@@ -1,9 +1,24 @@
-//! Types for V1 encrypted maps. V1 uses one vetkey per map that each authorized
-//! user can access. The encryption keys for the map-keys are derived from the
-//! vetkey hash.
-//! APIs for V1 encrypted maps. V1 uses one vetkey per map that each authorized
-//! user can access. The encryption keys for the map-keys are derived from the
-//! vetkey hash.
+//! # VetKD CDK - EncryptedMaps
+//!
+//! ## Overview
+//!
+//! **EncryptedMaps** is a support library built on top of **KeyManager**, designed to facilitate
+//! secure, encrypted data sharing between users on the Internet Computer (ICP) using the **vetKeys** feature.
+//! It allows developers to store encrypted key-value pairs (**maps**) securely and to manage fine-grained user access.
+//!
+//! ## Core Features
+//!
+//! - **Encrypted Key-Value Storage:** Securely store and manage encrypted key-value pairs within named maps.
+//! - **User-Specific Map Access:** Control precisely which users can read or modify entries in an encrypted map.
+//! - **Integrated Access Control:** Leverages the **KeyManager** library to manage and enforce user permissions.
+//! - **Stable Storage:** Utilizes **StableBTreeMap** for reliable, persistent storage across canister upgrades.
+//!
+//! ## EncryptedMaps Architecture
+//!
+//! The **EncryptedMaps** library contains:
+//!
+//! - **Encrypted Values Storage:** Maps `(KeyId, MapKey)` to `EncryptedMapValue`, securely storing encrypted data.
+//! - **KeyManager Integration:** Uses **KeyManager** to handle user permissions, ensuring authorized access to maps.
 
 use candid::Principal;
 use ic_stable_structures::memory_manager::VirtualMemory;
@@ -35,6 +50,8 @@ pub struct EncryptedMaps {
 }
 
 impl EncryptedMaps {
+    /// Initializes the EncryptedMaps and the underlying KeyManager.
+    /// Must be called before any other EncryptedMaps operations.
     pub fn try_init(
         memory_encrypted_maps: Memory,
         memory_key_manager_0: Memory,
@@ -74,10 +91,12 @@ impl EncryptedMaps {
     }
 }
 
+/// Lists all shared map names accessible by the caller.
 pub fn get_accessible_shared_map_names(caller: Principal) -> Vec<KeyId> {
     ic_vetkd_cdk_key_manager::get_accessible_shared_key_ids(caller)
 }
 
+/// Retrieves all users and their access rights for a specific map.
 pub fn get_shared_user_access_for_map(
     caller: Principal,
     key_id: KeyId,
@@ -85,6 +104,8 @@ pub fn get_shared_user_access_for_map(
     ic_vetkd_cdk_key_manager::get_shared_user_access_for_key(caller, key_id)
 }
 
+/// Removes all values from a map if the caller has sufficient rights.
+/// Returns the removed keys.
 pub fn remove_map_values(caller: Principal, key_id: KeyId) -> Result<Vec<MapKey>, String> {
     match ic_vetkd_cdk_key_manager::get_user_rights(caller, key_id, caller)? {
         Some(AccessRights::ReadWrite) | Some(AccessRights::ReadWriteManage) => Ok(()),
@@ -107,6 +128,7 @@ pub fn remove_map_values(caller: Principal, key_id: KeyId) -> Result<Vec<MapKey>
     })
 }
 
+/// Retrieves all encrypted key-value pairs from a map.
 pub fn get_encrypted_values_for_map(
     caller: Principal,
     key_id: KeyId,
@@ -127,6 +149,7 @@ pub fn get_encrypted_values_for_map(
     })
 }
 
+/// Retrieves a specific encrypted value from a map.
 pub fn get_encrypted_value(
     caller: Principal,
     key_id: KeyId,
@@ -140,6 +163,7 @@ pub fn get_encrypted_value(
     EncryptedMaps::with_borrow(|ed| Ok::<_, ()>(ed.mapkey_vals.get(&(key_id, key))))
 }
 
+/// Retrieves the non-empty map names owned by the caller.
 pub fn get_owned_non_empty_map_names(
     caller: Principal,
 ) -> Result<Vec<ic_vetkd_cdk_types::MapName>, String> {
@@ -159,6 +183,7 @@ pub fn get_owned_non_empty_map_names(
     })
 }
 
+/// Inserts or updates an encrypted value in a map.
 pub fn insert_encrypted_value(
     caller: Principal,
     key_id: KeyId,
@@ -175,6 +200,7 @@ pub fn insert_encrypted_value(
     })
 }
 
+/// Removes an encrypted value from a map.
 pub fn remove_encrypted_value(
     caller: Principal,
     key_id: KeyId,
@@ -188,10 +214,12 @@ pub fn remove_encrypted_value(
     EncryptedMaps::with_borrow_mut(|ed| Ok::<_, ()>(ed.mapkey_vals.remove(&(key_id, key))))
 }
 
+/// Retrieves the public verification key from KeyManager.
 pub async fn get_vetkey_verification_key() -> VetKeyVerificationKey {
     ic_vetkd_cdk_key_manager::get_vetkey_verification_key().await
 }
 
+/// Retrieves an encrypted vetkey for the caller.
 pub async fn get_encrypted_vetkey(
     caller: Principal,
     key_id: KeyId,
@@ -200,6 +228,7 @@ pub async fn get_encrypted_vetkey(
     ic_vetkd_cdk_key_manager::get_encrypted_vetkey(caller, key_id, transport_key).await
 }
 
+/// Retrieves access rights for a user from KeyManager.
 pub fn get_user_rights(
     caller: Principal,
     key_id: KeyId,
@@ -208,6 +237,7 @@ pub fn get_user_rights(
     ic_vetkd_cdk_key_manager::get_user_rights(caller, key_id, user)
 }
 
+/// Sets or updates access rights for a user to a map.
 pub fn set_user_rights(
     caller: Principal,
     key_id: KeyId,
@@ -217,6 +247,7 @@ pub fn set_user_rights(
     ic_vetkd_cdk_key_manager::set_user_rights(caller, key_id, user, access_rights)
 }
 
+/// Removes access rights for a user from a map.
 pub fn remove_user(
     caller: Principal,
     key_id: KeyId,
