@@ -46,7 +46,7 @@
                 editedVault.name,
                 Principal.fromText(newSharing),
                 accessRights,
-                $auth.encryptedMaps,
+                $auth.passwordManager,
             );
             addNotification({
                 type: "success",
@@ -65,7 +65,7 @@
         }
         await refreshVaults(
             $auth.client.getIdentity().getPrincipal(),
-            $auth.encryptedMaps,
+            $auth.passwordManager,
         ).catch((e) => showError(e, "Could not refresh vaults."));
     }
 
@@ -79,7 +79,7 @@
                 editedVault.owner,
                 editedVault.name,
                 sharing,
-                $auth.encryptedMaps,
+                $auth.passwordManager,
             );
             editedVault.users = editedVault.users.filter((user) =>
                 user[0].compareTo(sharing),
@@ -95,7 +95,7 @@
         }
         await refreshVaults(
             $auth.client.getIdentity().getPrincipal(),
-            $auth.encryptedMaps,
+            $auth.passwordManager,
         ).catch((e) => showError(e, "Could not refresh vaults."));
     }
 
@@ -145,7 +145,8 @@
 {:else}
     <p class="mt-3">
         This vault is <span class="font-bold">shared</span> with you. It is
-        owned by <span class="italic font-bold">{editedVault.owner}</span>.
+        owned by
+        <span class="italic font-bold">{editedVault.owner}</span>.
     </p>
     <p class="mt-3">Users with whom the vault is shared:</p>
 {/if}

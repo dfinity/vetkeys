@@ -10,8 +10,6 @@ export async function createEncryptedMaps(agentOptions?: HttpAgentOptions): Prom
         : 'http://localhost:8000';
     const hostOptions = { host, };
 
-    // console.info("host: " + host);
-
     if (!agentOptions) {
         agentOptions = hostOptions;
     } else {

@@ -1,5 +1,5 @@
 pushd ../../cdk/encrypted_maps_example
-make clean &&
+    make clean &&
     make mock &&
     eval $(make export-cmd)
 popd

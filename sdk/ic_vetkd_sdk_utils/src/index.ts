@@ -1,8 +1,10 @@
 import { bls12_381 } from '@noble/curves/bls12-381';
 import { ProjPointType } from '@noble/curves/abstract/weierstrass';
 import { Fp, Fp2, Fp12 } from '@noble/curves/abstract/tower';
-import { expand_message_xmd, hash_to_field } from '@noble/curves/abstract/hash-to-curve';
+import { hash_to_field } from '@noble/curves/abstract/hash-to-curve';
 import { shake256 } from '@noble/hashes/sha3';
+import { hkdf } from '@noble/hashes/hkdf';
+import { sha256 } from '@noble/hashes/sha256';
 
 export type G1Point = ProjPointType<Fp>;
 export type G2Point = ProjPointType<Fp2>;
@@ -66,6 +68,24 @@ export class TransportSecretKey {
 }
 
 /**
+ * Prefix a bytestring with its length
+ */
+function prefixWithLen(input: Uint8Array): Uint8Array {
+    let length = input.length;
+
+    const result = new Uint8Array(8 + length);
+
+    for (let i = 7; i >= 0; i--) {
+        result[i] = length & 0xff;
+        length >>>= 8;
+    }
+
+    result.set(input, 8);
+
+    return result;
+}
+
+/**
  * VetKD derived public key
  *
  * An unencrypted VetKey is a BLS signature generated with a canister-specific
@@ -80,8 +100,35 @@ export class DerivedPublicKey {
      * Normally the bytes provided here will have been returned by
      * the `vetkd_public_key` management canister interface.
      */
-    constructor(bytes: Uint8Array) {
-        this.#pk = bls12_381.G2.ProjectivePoint.fromHex(bytes);
+    static deserialize(bytes: Uint8Array): DerivedPublicKey {
+        return new DerivedPublicKey(bls12_381.G2.ProjectivePoint.fromHex(bytes));
+    }
+
+    /**
+     * Perform second-stage derivation of a public key
+     *
+     * To create the derived public key in VetKD, a two step derivation is performed. The first step
+     * creates a key that is specific to the canister that is making VetKD requests to the
+     * management canister, sometimes called canister master key. The second step incorporates the
+     * "derivation context" value provided to the `vetkd_public_key` management canister interface.
+     *
+     * If `vetkd_public_key` is invoked with an empty derivation context, it simply returns the
+     * canister master key. Then the second derivation step can be done offline, using this
+     * function. This is useful if you wish to derive multiple keys without having to interact with
+     * the IC each time.
+     *
+     * If `context` is empty, then this simply returns the underlying key. This matches the behavior
+     * of `vetkd_public_key`
+     */
+    deriveKey(context: Uint8Array): DerivedPublicKey {
+        if(context.length === 0) {
+            return this;
+        } else {
+            const dst = "ic-vetkd-bls12-381-g2-context";
+            const offset = hashToScalar(prefixWithLen(context), dst);
+            const g2_offset = bls12_381.G2.ProjectivePoint.BASE.multiply(offset);
+            return new DerivedPublicKey(this.getPoint().add(g2_offset));
+        }
     }
 
     /**
@@ -103,6 +150,14 @@ export class DerivedPublicKey {
     getPoint(): G2Point {
         return this.#pk;
     }
+
+    /**
+     * @internal constructor
+     */
+    constructor(pk: G2Point) {
+        this.#pk = pk;
+    }
+
 }
 
 /**
@@ -136,13 +191,9 @@ export function hashToScalar(input: Uint8Array, domainSep: string): bigint {
  * "my-app" is deriving two keys, one for usage "foo" and the other for
  * "bar". You might use as domain separators "my-app-foo" and "my-app-bar".
  */
-export function deriveSymmetricKey(input: Uint8Array, domainSep: string, outputLength: number): Uint8Array {
-    const dst = new Uint8Array(new TextEncoder().encode(domainSep));
-
-    // @ts-expect-error (https://github.com/paulmillr/noble-curves/issues/179)
-    const sha256 = bls12_381.G2.CURVE.htfDefaults.hash;
-
-    return expand_message_xmd(input, dst, outputLength, sha256);
+export function deriveSymmetricKey(input: Uint8Array, domainSep: Uint8Array | string, outputLength: number): Uint8Array {
+    const no_salt = new Uint8Array();
+    return hkdf(sha256, input, no_salt, domainSep, outputLength);
 }
 
 /**
@@ -184,7 +235,7 @@ export class VetKey {
      * Use the raw bytes only if your design makes use of the fact that VetKeys
      * are BLS signatures (eg for random beacon or threshold BLS signature
      * generation). If you are using VetKD for key distribution, instead use
-     * deriveSymmetricKey.
+     * deriveSymmetricKey or asHkdfCryptoKey
      */
     signatureBytes(): Uint8Array {
         return this.#bytes;
@@ -198,8 +249,27 @@ export class VetKey {
      * "my-app" is deriving two keys, one for usage "foo" and the other for
      * "bar". You might use as domain separators "my-app-foo" and "my-app-bar".
      */
-    deriveSymmetricKey(domainSep: string, outputLength: number): Uint8Array {
+    deriveSymmetricKey(domainSep: Uint8Array | string, outputLength: number): Uint8Array {
         return deriveSymmetricKey(this.#bytes, domainSep, outputLength);
+    }
+
+    /**
+     * Return a WebCrypto CryptoKey handle suitable for further key derivation
+     *
+     * The CryptoKey is not exportable
+     */
+    async asHkdfCryptoKey(): Promise<CryptoKey> {
+        const exportable = false;
+        return window.crypto.subtle.importKey("raw", this.#bytes, "HKDF", exportable, ["deriveKey"]);
+    }
+
+    /**
+     * Deserialize a VetKey from the 48 byte encoding of the BLS signature
+     *
+     * This deserializes the same value as returned by signatureBytes
+     */
+    static deserialize(bytes: Uint8Array): VetKey {
+        return new VetKey(bls12_381.G1.ProjectivePoint.fromHex(bytes));
     }
 
     /**

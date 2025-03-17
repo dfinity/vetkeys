@@ -72,19 +72,14 @@ export async function refreshVaults(
             const passwordNameString = new TextDecoder().decode(Uint8Array.from(passwordNameBytebuf.inner));
             const passwordContent = new TextDecoder().decode(Uint8Array.from(data.inner));
             const password = passwordFromContent(otherOwner, vaultName, passwordNameString, passwordContent);
-            // console.info("refreshVaults for owner " + password.owner.toText() + " and vaultName " + password.parentVaultName + " found password: " + password.passwordName + " with content: " + password.content);
             passwords.push([passwordNameString, password]);
         }
-
-        // const x = passwords.values().map((password) => password[1].content).reduce((accumulator, currentValue) => accumulator + currentValue + ", ", "");
-        // console.info("refreshVaults for owner " + owner.toText() + " and vaultName " + vaultName + " returned " + result.Ok.length + " passwords: " + x);
 
         const usersResult = await encryptedMaps.get_shared_user_access_for_map(otherOwner, vaultName);
         if ("Err" in usersResult) {
             throw new Error(usersResult.Err);
         }
 
-        // TODO fetch the user rights as well
         vaults.push(vaultFromContent(otherOwner, vaultName, passwords, usersResult.Ok));
     }
 
@@ -95,7 +90,6 @@ export async function addPassword(
     password: PasswordModel,
     encryptedMaps: EncryptedMaps
 ) {
-    // console.info("calling vaults.ts:addPassword with password: " + JSON.stringify(password));
     let result = await encryptedMaps.set_value(password.owner, password.parentVaultName, password.passwordName, new TextEncoder().encode(password.content));
     if ("Err" in result) {
         throw new Error(result.Err);
@@ -106,7 +100,6 @@ export async function removePassword(
     password: PasswordModel,
     encryptedMaps: EncryptedMaps
 ) {
-    // console.info("calling vaults.ts:addPassword with password: " + JSON.stringify(password));
     let result = await encryptedMaps.remove_encrypted_value(password.owner, password.parentVaultName, password.passwordName);
     if ("Err" in result) {
         throw new Error(result.Err);
@@ -117,7 +110,6 @@ export async function updatePassword(
     password: PasswordModel,
     encryptedMaps: EncryptedMaps
 ) {
-    // console.info("calling vaults.ts:updatePassword with password: " + JSON.stringify(password));
     let result = await encryptedMaps.set_value(password.owner, password.parentVaultName, password.passwordName, new TextEncoder().encode(password.content));
     if ("Err" in result) {
         throw new Error(result.Err);

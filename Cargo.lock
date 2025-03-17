@@ -1305,6 +1305,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "ic-vetkd-example-password-manager-with-metadata-backend"
+version = "0.1.0"
+dependencies = [
+ "candid",
+ "ic-cdk",
+ "ic-cdk-macros",
+ "ic-stable-structures",
+ "ic-vetkd-cdk-encrypted-maps",
+ "ic-vetkd-cdk-types",
+ "ic-vetkd-utils",
+ "serde",
+ "serde_cbor",
+]
+
+[[package]]
 name = "ic-vetkd-utils"
 version = "0.1.0"
 source = "git+https://github.com/dfinity/ic.git#620e7729d7e20c3dbb3843009188ab69ec4b600c"

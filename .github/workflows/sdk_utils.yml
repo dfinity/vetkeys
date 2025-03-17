@@ -1,4 +1,4 @@
-name: SDK Utils Linux
+name: SDK Utils CI
 on:
   push:
     branches:
@@ -18,7 +18,7 @@ jobs:
       - name: Setup
         run: |
           sudo apt-get install nodejs
-      - name: Run SDK Tests
+      - name: SDK Tests and Lint
         run: |
           set -eExuo pipefail
           cd sdk/ic_vetkd_sdk_utils
@@ -34,7 +34,7 @@ jobs:
       - name: Setup
         run: |
           brew install nodejs
-      - name: Run SDK Tests
+      - name: SDK Tests and Lint
         run: |
           set -eExuo pipefail
           cd sdk/ic_vetkd_sdk_utils
