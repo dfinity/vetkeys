@@ -1,26 +1,24 @@
 # VetKD SDK - KeyManager
 
 ## Overview
-The **KeyManager** frontend library facilitates interaction with a **KeyManager "enabled" canister** on the **Internet Computer (ICP)**. It allows web applications to securely request, decrypt, and manage VetKeys while handling access control and key sharing.
+The **KeyManager** frontend library facilitates interaction with a **KeyManager-enabled canister** on the **Internet Computer (ICP)**. It allows web applications to securely request, decrypt, and manage VetKeys while handling access control and key sharing.
 
-This package is designed to work in tandem with a **backend canister**, enabling users to retrieve and manage cryptographic keys efficiently.
+This package is designed to work in tandem with a **backend KeyManager canister**, enabling users to retrieve and manage cryptographic keys efficiently.
 
 ## Core Features
 - **Retrieve Encrypted VetKeys**: Fetch encrypted VetKeys and decrypt them locally using a **transport secret key**.
 - **Access Shared Keys**: Query which keys a user has access to.
 - **Manage Key Access**: Assign, modify, and revoke user rights on stored keys.
-- **Verification Keys**: Retrieve VetKey verification keys from the canister.
+- **Retrieve VetKey Verification Key**: Fetch the public verification key for validating VetKeys.
 
 ## Installation
-
-This package is not yet published to npm. 
-
+This package is not yet published to npm.
 
 ## Usage
 
 ### 1. Initialize the KeyManager
 ```ts
-import { KeyManager } from "...";
+import { KeyManager } from "[TBD]";
 
 const keyManager = new KeyManager(canisterClientInstance);
 ```
@@ -33,7 +31,7 @@ console.log("Shared Keys:", sharedKeys);
 
 ### 3. Request and Decrypt a VetKey
 ```ts
-const keyOwner = "aaaaa-aa"; // Principal of the key owner
+const keyOwner = Principal.fromText("aaaaa-aa");
 const vetkeyName = "my_secure_key";
 
 const encryptedKey = await keyManager.get_encrypted_vetkey(keyOwner, vetkeyName);
@@ -53,9 +51,9 @@ console.log("Verification Key:", verificationKey);
 ### 5. Manage User Access Rights
 #### a) Grant or Modify Access Rights
 ```ts
-const owner = "aaaaa-aa";
+const owner = Principal.fromText("aaaaa-aa");
 const keyName = "my_secure_key";
-const user = "bbbbbb-bb";
+const user = Principal.fromText("bbbbbb-bb");
 const accessRights = { ReadWrite: null };
 
 const result = await keyManager.set_user_rights(owner, keyName, user, accessRights);
@@ -93,7 +91,8 @@ console.log("User Removed:", removalResult);
 ## Security Considerations
 - **Transport Secret Keys** should be generated securely and never shared.
 - **Access Rights** should be carefully managed to prevent unauthorized access.
-- VetKeys should be decrypted **only on trusted environments** to prevent leaks.
+- VetKeys should be decrypted **only in trusted environments** to prevent leaks.
+- **Ensure transport secret key randomness** to prevent predictable keys.
 
 ## License
 MIT
