@@ -52,9 +52,29 @@ fn get_encrypted_values_for_map(
     result.map(|map_values| {
         map_values
             .into_iter()
-            .map(|(key, value)| (EncryptedMapValue::from(key.as_slice().to_vec()), value))
+            .map(|(key, value)| (ByteBuf::from(key.as_slice().to_vec()), value))
             .collect()
     })
+}
+
+#[query]
+fn get_all_accessible_encrypted_values(
+) -> Vec<((Principal, ByteBuf), Vec<(ByteBuf, EncryptedMapValue)>)> {
+    ENCRYPTED_MAPS
+        .with_borrow(|encrypted_maps| {
+            encrypted_maps.get_all_accessible_encrypted_values(ic_cdk::caller())
+        })
+        .into_iter()
+        .map(|((owner, map_name), encrypted_values)| {
+            (
+                (owner, ByteBuf::from(map_name.as_ref().to_vec())),
+                encrypted_values
+                    .into_iter()
+                    .map(|(key, value)| (ByteBuf::from(key.as_ref().to_vec()), value))
+                    .collect(),
+            )
+        })
+        .collect()
 }
 
 #[query]
