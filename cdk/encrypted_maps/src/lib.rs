@@ -129,20 +129,36 @@ impl EncryptedMaps {
         &self,
         caller: Principal,
     ) -> Vec<((Principal, MapName), Vec<(MapKey, EncryptedMapValue)>)> {
-        let map_ids: Vec<_> = self
-            .get_accessible_shared_map_names(caller)
-            .into_iter()
-            .chain(
-                self.get_owned_non_empty_map_names(caller)
-                    .into_iter()
-                    .map(|map_name| (caller, map_name)),
-            )
-            .collect();
-
-        let mut result = Vec::with_capacity(map_ids.len());
-        for map_id in map_ids {
+        let accessible_map_ids = self.get_accessible_shared_map_names(caller).into_iter();
+        let owned_map_ids =
+            std::iter::repeat(caller).zip(self.get_owned_non_empty_map_names(caller).into_iter());
+        let mut result = Vec::new();
+        for map_id in accessible_map_ids.chain(owned_map_ids) {
             let map_values = self.get_encrypted_values_for_map(caller, map_id).unwrap();
             result.push((map_id, map_values));
+        }
+        result
+    }
+
+    pub fn get_all_accessible_encrypted_maps(&self, caller: Principal) -> Vec<EncryptedMapData> {
+        let accessible_map_ids = self.get_accessible_shared_map_names(caller).into_iter();
+        let owned_map_ids =
+            std::iter::repeat(caller).zip(self.get_owned_non_empty_map_names(caller).into_iter());
+        let mut result = Vec::new();
+        for map_id in accessible_map_ids.chain(owned_map_ids) {
+            let keyvals = self
+                .get_encrypted_values_for_map(caller, map_id)
+                .unwrap()
+                .into_iter()
+                .map(|(key, value)| (ByteBuf::from(key.as_ref().to_vec()), value))
+                .collect();
+            let map = EncryptedMapData {
+                map_owner: map_id.0,
+                map_name: ByteBuf::from(map_id.1.as_ref().to_vec()),
+                keyvals,
+                access_control: self.get_shared_user_access_for_map(caller, map_id).unwrap(),
+            };
+            result.push(map);
         }
         result
     }
@@ -233,6 +249,14 @@ impl EncryptedMaps {
     ) -> Result<Option<AccessRights>, String> {
         self.key_manager.remove_user(caller, key_id, user)
     }
+}
+
+#[derive(serde::Deserialize, candid::CandidType)]
+pub struct EncryptedMapData {
+    pub map_owner: Principal,
+    pub map_name: ByteBuf,
+    pub keyvals: Vec<(ByteBuf, EncryptedMapValue)>,
+    pub access_control: Vec<(Principal, AccessRights)>,
 }
 
 #[cfg(feature = "expose-testing-api")]

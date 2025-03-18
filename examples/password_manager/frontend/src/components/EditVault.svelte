@@ -31,10 +31,9 @@
             message: "Vault saved successfully",
         });
 
-        await refreshVaults(
-            $auth.client.getIdentity().getPrincipal(),
-            $auth.encryptedMaps,
-        ).catch((e) => showError(e, "Could not refresh notes."));
+        await refreshVaults($auth.encryptedMaps).catch((e) =>
+            showError(e, "Could not refresh notes."),
+        );
     }
 
     function deleteVault() {}

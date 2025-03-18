@@ -5,7 +5,7 @@ use ic_cdk::{query, update};
 use ic_stable_structures::memory_manager::{MemoryId, MemoryManager, VirtualMemory};
 use ic_stable_structures::storable::Blob;
 use ic_stable_structures::DefaultMemoryImpl;
-use ic_vetkd_cdk_encrypted_maps::{EncryptedMaps, VetKey, VetKeyVerificationKey};
+use ic_vetkd_cdk_encrypted_maps::{EncryptedMapData, EncryptedMaps, VetKey, VetKeyVerificationKey};
 use ic_vetkd_cdk_types::{AccessRights, ByteBuf, EncryptedMapValue, TransportKey};
 
 type Memory = VirtualMemory<DefaultMemoryImpl>;
@@ -75,6 +75,13 @@ fn get_all_accessible_encrypted_values(
             )
         })
         .collect()
+}
+
+#[query]
+fn get_all_accessible_encrypted_maps() -> Vec<EncryptedMapData> {
+    ENCRYPTED_MAPS.with_borrow(|encrypted_maps| {
+        encrypted_maps.get_all_accessible_encrypted_maps(ic_cdk::caller())
+    })
 }
 
 #[query]

@@ -63,10 +63,9 @@
         } finally {
             adding = false;
         }
-        await refreshVaults(
-            $auth.client.getIdentity().getPrincipal(),
-            $auth.encryptedMaps,
-        ).catch((e) => showError(e, "Could not refresh vaults."));
+        await refreshVaults($auth.encryptedMaps).catch((e) =>
+            showError(e, "Could not refresh vaults."),
+        );
     }
 
     async function remove(sharing: Principal) {
@@ -93,10 +92,9 @@
         } finally {
             removing = false;
         }
-        await refreshVaults(
-            $auth.client.getIdentity().getPrincipal(),
-            $auth.encryptedMaps,
-        ).catch((e) => showError(e, "Could not refresh vaults."));
+        await refreshVaults($auth.encryptedMaps).catch((e) =>
+            showError(e, "Could not refresh vaults."),
+        );
     }
 
     function onKeyPress(e) {
