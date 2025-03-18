@@ -62,12 +62,9 @@ export class PasswordManager {
             await this.encryptedMaps.get_accessible_shared_map_names();
         const vaultsOwnedByMeResult =
             await this.encryptedMaps.get_owned_non_empty_map_names();
-        if ("Err" in vaultsOwnedByMeResult) {
-            return vaultsOwnedByMeResult;
-        }
 
         const vaultIds = new Array<[Principal, string]>();
-        for (const vaultNameBytes of vaultsOwnedByMeResult.Ok) {
+        for (const vaultNameBytes of vaultsOwnedByMeResult) {
             const vaultName = new TextDecoder().decode(
                 Uint8Array.from(vaultNameBytes.inner),
             );

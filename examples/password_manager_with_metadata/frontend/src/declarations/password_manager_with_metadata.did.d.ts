@@ -18,13 +18,11 @@ export type Result = { 'Ok' : Array<[ByteBuf, ByteBuf, PasswordMetadata]> } |
   { 'Err' : string };
 export type Result_1 = { 'Ok' : ByteBuf } |
   { 'Err' : string };
-export type Result_2 = { 'Ok' : Array<ByteBuf> } |
+export type Result_2 = { 'Ok' : Array<[Principal, AccessRights]> } |
   { 'Err' : string };
-export type Result_3 = { 'Ok' : Array<[Principal, AccessRights]> } |
+export type Result_3 = { 'Ok' : [] | [AccessRights] } |
   { 'Err' : string };
-export type Result_4 = { 'Ok' : [] | [AccessRights] } |
-  { 'Err' : string };
-export type Result_5 = { 'Ok' : [] | [[ByteBuf, PasswordMetadata]] } |
+export type Result_4 = { 'Ok' : [] | [[ByteBuf, PasswordMetadata]] } |
   { 'Err' : string };
 export interface _SERVICE {
   'get_accessible_shared_map_names' : ActorMethod<
@@ -36,25 +34,25 @@ export interface _SERVICE {
     Result
   >,
   'get_encrypted_vetkey' : ActorMethod<[Principal, ByteBuf, ByteBuf], Result_1>,
-  'get_owned_non_empty_map_names' : ActorMethod<[], Result_2>,
+  'get_owned_non_empty_map_names' : ActorMethod<[], Array<ByteBuf>>,
   'get_shared_user_access_for_map' : ActorMethod<
     [Principal, ByteBuf],
-    Result_3
+    Result_2
   >,
-  'get_user_rights' : ActorMethod<[Principal, ByteBuf, Principal], Result_4>,
+  'get_user_rights' : ActorMethod<[Principal, ByteBuf, Principal], Result_3>,
   'get_vetkey_verification_key' : ActorMethod<[], ByteBuf>,
   'insert_encrypted_value_with_metadata' : ActorMethod<
     [Principal, ByteBuf, ByteBuf, ByteBuf, Array<string>, string],
-    Result_5
+    Result_4
   >,
   'remove_encrypted_value_with_metadata' : ActorMethod<
     [Principal, ByteBuf, ByteBuf],
-    Result_5
+    Result_4
   >,
-  'remove_user' : ActorMethod<[Principal, ByteBuf, Principal], Result_4>,
+  'remove_user' : ActorMethod<[Principal, ByteBuf, Principal], Result_3>,
   'set_user_rights' : ActorMethod<
     [Principal, ByteBuf, Principal, AccessRights],
-    Result_4
+    Result_3
   >,
 }
 export declare const idlFactory: IDL.InterfaceFactory;
