@@ -147,7 +147,7 @@ impl KeyManager {
         })
     }
 
-    /// Retrieves an encrypted VetKey for the caller, secured with a transport key.
+    /// Retrieves an encrypted vetkey for caller and key id.
     pub fn get_encrypted_vetkey(
         &self,
         caller: Principal,

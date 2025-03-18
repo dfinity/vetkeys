@@ -203,7 +203,7 @@ impl EncryptedMaps {
         self.key_manager.get_vetkey_verification_key()
     }
 
-    /// Retrieves an encrypted vetkey for the caller.
+    /// Retrieves an encrypted vetkey for caller and key id.
     pub fn get_encrypted_vetkey(
         &self,
         caller: Principal,
@@ -214,7 +214,7 @@ impl EncryptedMaps {
             .get_encrypted_vetkey(caller, key_id, transport_key)
     }
 
-    /// Retrieves access rights for a user from KeyManager.
+    /// Retrieves access rights for a user to a map.
     pub fn get_user_rights(
         &self,
         caller: Principal,
