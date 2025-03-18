@@ -9,6 +9,7 @@ use ic_vetkd_cdk_encrypted_maps::{EncryptedMapData, EncryptedMaps, VetKey, VetKe
 use ic_vetkd_cdk_types::{AccessRights, ByteBuf, EncryptedMapValue, TransportKey};
 
 type Memory = VirtualMemory<DefaultMemoryImpl>;
+type MapId = (Principal, ByteBuf);
 
 thread_local! {
     static MEMORY_MANAGER: RefCell<MemoryManager<DefaultMemoryImpl>> =
@@ -58,8 +59,7 @@ fn get_encrypted_values_for_map(
 }
 
 #[query]
-fn get_all_accessible_encrypted_values(
-) -> Vec<((Principal, ByteBuf), Vec<(ByteBuf, EncryptedMapValue)>)> {
+fn get_all_accessible_encrypted_values() -> Vec<(MapId, Vec<(ByteBuf, EncryptedMapValue)>)> {
     ENCRYPTED_MAPS
         .with_borrow(|encrypted_maps| {
             encrypted_maps.get_all_accessible_encrypted_values(ic_cdk::caller())

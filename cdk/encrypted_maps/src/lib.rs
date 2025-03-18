@@ -13,7 +13,9 @@ use std::cell::RefCell;
 use std::future::Future;
 
 use ic_vetkd_cdk_key_manager::KeyId;
-use ic_vetkd_cdk_types::{AccessRights, ByteBuf, EncryptedMapValue, MapKey, MapName, TransportKey};
+use ic_vetkd_cdk_types::{
+    AccessRights, ByteBuf, EncryptedMapValue, MapId, MapKey, MapName, TransportKey,
+};
 
 // On a high level,
 // `ENCRYPTED_MAPS[MapName][MapKey] = EncryptedMapValue`, e.g.
@@ -128,10 +130,10 @@ impl EncryptedMaps {
     pub fn get_all_accessible_encrypted_values(
         &self,
         caller: Principal,
-    ) -> Vec<((Principal, MapName), Vec<(MapKey, EncryptedMapValue)>)> {
+    ) -> Vec<(MapId, Vec<(MapKey, EncryptedMapValue)>)> {
         let accessible_map_ids = self.get_accessible_shared_map_names(caller).into_iter();
         let owned_map_ids =
-            std::iter::repeat(caller).zip(self.get_owned_non_empty_map_names(caller).into_iter());
+            std::iter::repeat(caller).zip(self.get_owned_non_empty_map_names(caller));
         let mut result = Vec::new();
         for map_id in accessible_map_ids.chain(owned_map_ids) {
             let map_values = self.get_encrypted_values_for_map(caller, map_id).unwrap();
@@ -143,7 +145,7 @@ impl EncryptedMaps {
     pub fn get_all_accessible_encrypted_maps(&self, caller: Principal) -> Vec<EncryptedMapData> {
         let accessible_map_ids = self.get_accessible_shared_map_names(caller).into_iter();
         let owned_map_ids =
-            std::iter::repeat(caller).zip(self.get_owned_non_empty_map_names(caller).into_iter());
+            std::iter::repeat(caller).zip(self.get_owned_non_empty_map_names(caller));
         let mut result = Vec::new();
         for map_id in accessible_map_ids.chain(owned_map_ids) {
             let keyvals = self

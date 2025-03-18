@@ -9,6 +9,8 @@ use serde::Deserialize;
 
 pub type KeyName = Blob<32>;
 pub type MapName = KeyName;
+pub type MapId = KeyId;
+pub type KeyId = (candid::Principal, KeyName);
 pub type MapKey = Blob<32>;
 pub type TransportKey = ByteBuf;
 pub type EncryptedMapValue = ByteBuf;
