@@ -100,7 +100,7 @@ test('protocol flow with precomputed data', () => {
     const ibe = IdentityBasedEncryptionCiphertext.encrypt(dpk, did, message, seed);
 
     assertEqual(bytesToHex(ibe.serialize()),
-                "a2e6596cec446ce55d4d566cc6664abcf899cf824d420e55bd6177ffc2085388767a10a922a5f2e2d06835fc11f291a6053aa861acd577add1465ff50d218d814ff18c22dc27363c412a4d53133fe23eff8595a77f01c90e5c3e83562e5bf575a41a755c1610b3389386a17eac9d6285272c4a6ba48b941f9d60e7c93d309effc6d07f");
+                "4943204942450001a9937528bda5826cf5c7da77a5f5e46719a9748f4ea0aa491c8fba92081e5d55457ab36ec4f6335954c6d87987d0b28301bd8da166493bb537c842d20396da5a68cc9e9672fadedf1e311e0057fc906dfd37d1077ca027954c45336405e66e5e4b346b0f24bfd358a09de701654c1e0791741e4826396588440eee021df9b2398f143c");
 
     const ibeRec = IdentityBasedEncryptionCiphertext.deserialize(ibe.serialize());
 
