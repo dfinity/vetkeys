@@ -1,8 +1,12 @@
-use std::{collections::BTreeMap, iter::FromIterator};
+use std::{
+    collections::{BTreeMap, HashSet},
+    iter::FromIterator,
+};
 
 use assert_matches::assert_matches;
 use ic_stable_structures::{
     memory_manager::{MemoryId, MemoryManager},
+    storable::Blob,
     DefaultMemoryImpl,
 };
 use ic_vetkd_cdk_test_utils::{
@@ -295,7 +299,7 @@ fn can_access_map_values() {
         }
     }
 
-    for added_user in authorized_users {
+    for added_user in authorized_users.clone() {
         let expected_map = BTreeMap::from_iter(keyvals.clone().into_iter());
         let computed_map_single = BTreeMap::from_iter(
             encrypted_maps
@@ -305,12 +309,44 @@ fn can_access_map_values() {
         );
         assert_eq!(expected_map, computed_map_single);
 
-        let all = encrypted_maps.get_all_accessible_encrypted_values(added_user);
-        assert_eq!(all.len(), 1);
-        let all_destructured = all.into_iter().next().unwrap();
+        let all_values = encrypted_maps.get_all_accessible_encrypted_values(added_user);
+        let all_maps = encrypted_maps.get_all_accessible_encrypted_maps(added_user);
+        assert_eq!(all_values.len(), 1);
+        assert_eq!(
+            all_values,
+            all_maps
+                .iter()
+                .map(|m| (
+                    (
+                        m.map_owner,
+                        Blob::<32>::try_from(m.map_name.as_ref()).unwrap()
+                    ),
+                    m.keyvals
+                        .iter()
+                        .map(|(map_key, value)| (
+                            Blob::<32>::try_from(map_key.as_ref()).unwrap(),
+                            value.clone()
+                        ))
+                        .collect::<Vec<_>>()
+                ))
+                .collect::<Vec<_>>()
+        );
+
+        let all_destructured = all_values.into_iter().next().unwrap();
         assert_eq!((caller, name.clone()), all_destructured.0);
         let computed_map_wildcard = BTreeMap::from_iter(all_destructured.1.into_iter());
         assert_eq!(expected_map, computed_map_wildcard);
+
+        for map in all_maps {
+            assert_eq!(
+                map.access_control
+                    .iter()
+                    .map(|(p, _a)| *p)
+                    .chain(std::iter::once(caller))
+                    .collect::<HashSet<_>>(),
+                authorized_users.clone().into_iter().collect::<HashSet<_>>()
+            );
+        }
     }
 }
 
