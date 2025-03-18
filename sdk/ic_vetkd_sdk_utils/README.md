@@ -100,6 +100,3 @@ console.log('Decrypted Message:', new TextDecoder().decode(decryptedMessage));
 - **Authenticated Encryption:** Always verify ciphertext integrity when decrypting to prevent unauthorized modifications.
 - **Secure Key Storage:** If storing symmetric keys, ensure they are stored in a secure environment such as a hardware security module (HSM) or encrypted storage.
 
-## License
-MIT
-

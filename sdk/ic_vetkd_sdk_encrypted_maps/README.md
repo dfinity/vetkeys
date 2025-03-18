@@ -104,6 +104,3 @@ console.log("User Removed:", removalResult);
 - VetKeys should be decrypted **only in trusted environments** to prevent leaks.
 - **Ensure transport secret key randomness** to prevent predictable keys.
 
-## License
-MIT
-
