@@ -13,7 +13,7 @@ use std::cell::RefCell;
 use std::future::Future;
 
 use ic_vetkd_cdk_key_manager::KeyId;
-use ic_vetkd_cdk_types::{AccessRights, ByteBuf, EncryptedMapValue, MapKey, TransportKey};
+use ic_vetkd_cdk_types::{AccessRights, ByteBuf, EncryptedMapValue, MapKey, MapName, TransportKey};
 
 // On a high level,
 // `ENCRYPTED_MAPS[MapName][MapKey] = EncryptedMapValue`, e.g.
@@ -125,20 +125,39 @@ impl EncryptedMaps {
         Ok(self.mapkey_vals.get(&(key_id, key)))
     }
 
-    pub fn get_owned_non_empty_map_names(
+    pub fn get_all_accessible_encrypted_values(
         &self,
         caller: Principal,
-    ) -> Result<Vec<ic_vetkd_cdk_types::MapName>, String> {
+    ) -> Vec<((Principal, MapName), Vec<(MapKey, EncryptedMapValue)>)> {
+        let map_ids: Vec<_> = self
+            .get_accessible_shared_map_names(caller)
+            .into_iter()
+            .chain(
+                self.get_owned_non_empty_map_names(caller)
+                    .into_iter()
+                    .map(|map_name| (caller, map_name)),
+            )
+            .collect();
+
+        let mut result = Vec::with_capacity(map_ids.len());
+        for map_id in map_ids {
+            let map_values = self.get_encrypted_values_for_map(caller, map_id).unwrap();
+            result.push((map_id, map_values));
+        }
+        result
+    }
+
+    pub fn get_owned_non_empty_map_names(&self, caller: Principal) -> Vec<MapName> {
         let map_names: std::collections::HashSet<Vec<u8>> = self
             .mapkey_vals
             .keys_range(((caller, Blob::default()), Blob::default())..)
             .take_while(|((principal, _map_name), _key_name)| principal == &caller)
             .map(|((_principal, map_name), _key_name)| map_name.as_slice().to_vec())
             .collect();
-        Ok(map_names
+        map_names
             .into_iter()
             .map(|map_name| Blob::<32>::try_from(map_name.as_slice()).unwrap())
-            .collect())
+            .collect()
     }
 
     pub fn insert_encrypted_value(

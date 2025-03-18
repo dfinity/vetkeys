@@ -296,15 +296,21 @@ fn can_access_map_values() {
     }
 
     for added_user in authorized_users {
-        assert_eq!(
-            BTreeMap::from_iter(keyvals.clone().into_iter()),
-            BTreeMap::from_iter(
-                encrypted_maps
-                    .get_encrypted_values_for_map(added_user, (caller, name.clone()))
-                    .expect("failed to obtain values")
-                    .into_iter()
-            )
+        let expected_map = BTreeMap::from_iter(keyvals.clone().into_iter());
+        let computed_map_single = BTreeMap::from_iter(
+            encrypted_maps
+                .get_encrypted_values_for_map(added_user, (caller, name.clone()))
+                .expect("failed to obtain values")
+                .into_iter(),
         );
+        assert_eq!(expected_map, computed_map_single);
+
+        let all = encrypted_maps.get_all_accessible_encrypted_values(added_user);
+        assert_eq!(all.len(), 1);
+        let all_destructured = all.into_iter().next().unwrap();
+        assert_eq!((caller, name.clone()), all_destructured.0);
+        let computed_map_wildcard = BTreeMap::from_iter(all_destructured.1.into_iter());
+        assert_eq!(expected_map, computed_map_wildcard);
     }
 }
 
@@ -382,9 +388,7 @@ fn can_get_owned_map_names() {
     let mut expected_map_names = vec![];
 
     for _ in 0..7 {
-        let map_names = encrypted_maps
-            .get_owned_non_empty_map_names(caller)
-            .unwrap();
+        let map_names = encrypted_maps.get_owned_non_empty_map_names(caller);
         assert_eq!(map_names.len(), expected_map_names.len());
         for map_name in expected_map_names.iter() {
             assert!(map_names.contains(map_name));
@@ -401,9 +405,7 @@ fn can_get_owned_map_names() {
                 .unwrap();
         }
 
-        let map_names = encrypted_maps
-            .get_owned_non_empty_map_names(caller)
-            .unwrap();
+        let map_names = encrypted_maps.get_owned_non_empty_map_names(caller);
         assert_eq!(map_names.len(), expected_map_names.len());
         for map_name in expected_map_names.iter() {
             assert!(map_names.contains(map_name));

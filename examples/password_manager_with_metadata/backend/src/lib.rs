@@ -139,16 +139,13 @@ fn get_encrypted_values_for_map_with_metadata(
 }
 
 #[query]
-fn get_owned_non_empty_map_names() -> Result<Vec<ByteBuf>, String> {
+fn get_owned_non_empty_map_names() -> Vec<ByteBuf> {
     ENCRYPTED_MAPS.with_borrow(|encrypted_maps| {
         encrypted_maps
             .get_owned_non_empty_map_names(ic_cdk::caller())
-            .map(|map_names| {
-                map_names
-                    .into_iter()
-                    .map(|map_name| ByteBuf::from(map_name.as_slice().to_vec()))
-                    .collect()
-            })
+            .into_iter()
+            .map(|map_name| ByteBuf::from(map_name.as_slice().to_vec()))
+            .collect()
     })
 }
 
