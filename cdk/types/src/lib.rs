@@ -13,11 +13,6 @@ pub type MapKey = Blob<32>;
 pub type TransportKey = ByteBuf;
 pub type EncryptedMapValue = ByteBuf;
 
-#[derive(PartialEq, Debug)]
-pub enum MemoryInitializationError {
-    AlreadyInitialized,
-}
-
 #[repr(u8)]
 #[derive(
     CandidType,

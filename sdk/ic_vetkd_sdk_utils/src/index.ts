@@ -182,6 +182,17 @@ export function hashToScalar(input: Uint8Array, domainSep: string): bigint {
 }
 
 /**
+ * @internal helper for data encoding
+ */
+function asBytes(input: Uint8Array | string): Uint8Array {
+    if(typeof input === "string") {
+        return new TextEncoder().encode(input as string);
+    } else {
+        return input as Uint8Array;
+    }
+}
+
+/**
  * @internal derive a symmetric key from the provided input
  *
  * The `input` parameter should be a sufficiently long random input.
@@ -261,6 +272,79 @@ export class VetKey {
     async asHkdfCryptoKey(): Promise<CryptoKey> {
         const exportable = false;
         return window.crypto.subtle.importKey("raw", this.#bytes, "HKDF", exportable, ["deriveKey"]);
+    }
+
+    /**
+     * Return a WebCrypto CryptoKey handle suitable for AES-GCM encryption/decryption
+     *
+     * The key is derived from the VetKey using HKDF with the provided domain separator
+     *
+     * The CryptoKey is not exportable
+     */
+    async deriveAesGcmCryptoKey(domainSep: Uint8Array | string): Promise<CryptoKey> {
+        const exportable = false;
+
+        const hkdfKey = await this.asHkdfCryptoKey();
+
+        const algorithm = {
+            name: "HKDF",
+            hash: "SHA-256",
+            length: 32 * 8,
+            info: asBytes(domainSep),
+            salt: new Uint8Array(),
+        };
+
+        const gcmParams = {
+            name: "AES-GCM",
+            length: 32 * 8,
+        };
+
+        return window.crypto.subtle.deriveKey(algorithm, hkdfKey, gcmParams, exportable, ["encrypt", "decrypt"]);
+    }
+
+    /**
+     * Encrypt the provided message using AES-GCM and a key derived using HKDF
+     *
+     * The GCM key is derived from the VetKey using HKDF with the provided domain separator
+     */
+    async encryptMessage(message: Uint8Array | string, domainSep: Uint8Array | string): Promise<Uint8Array> {
+        const gcmKey = await this.deriveAesGcmCryptoKey(domainSep);
+
+        // The nonce must never be reused with a given key
+        const nonce = window.crypto.getRandomValues(new Uint8Array(12));
+
+        const ciphertext = new Uint8Array(await window.crypto.subtle.encrypt({ name: "AES-GCM", iv: nonce }, gcmKey, asBytes(message)));
+
+        // Concatenate the nonce to the beginning of the ciphertext
+        return new Uint8Array([...nonce, ...ciphertext]);
+    }
+
+    /**
+     * Decrypt the provided ciphertext using AES-GCM and a key derived using HKDF
+     *
+     * The GCM key is derived from the VetKey using HKDF with the provided domain separator
+     */
+    async decryptMessage(message: Uint8Array, domainSep: Uint8Array | string): Promise<Uint8Array> {
+        const NonceLength = 12;
+        const TagLength = 16;
+
+        if(message.length < NonceLength + TagLength) {
+            throw new Error("Invalid ciphertext, too short to possibly be valid");
+        }
+
+        const nonce = message.slice(0, NonceLength); // first 12 bytes are the nonce
+        const ciphertext = message.slice(NonceLength); // remainder GCM ciphertext
+
+        const gcmKey = await this.deriveAesGcmCryptoKey(domainSep);
+
+        try {
+            const ptext = await window.crypto.subtle.decrypt({ name: "AES-GCM", iv: nonce }, gcmKey, ciphertext);
+            return new Uint8Array(ptext);
+        }
+        /* eslint-disable @typescript-eslint/no-unused-vars */
+        catch(e) {
+            throw new Error("Decryption failed");
+        }
     }
 
     /**

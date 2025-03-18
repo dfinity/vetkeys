@@ -12,6 +12,7 @@ crate-type = ["lib"]
 [dependencies]
 anyhow = "1.0.89"
 candid = { workspace = true }
+futures = "0.3.31"
 hex = "0.4.3"
 ic-cdk = { workspace = true }
 ic-cdk-macros = { workspace = true }

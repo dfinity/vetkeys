@@ -143,6 +143,63 @@ test('hkdf using webcrypto', async () => {
     assertEqual(bytesToHex(derivedBytes), "3b7bd854033cdc119865ba3019dc1e35010fdaf90f8ff5c9cfe9d1d557dddb29");
 });
 
+test('AES-GCM encryption', async () => {
+    const vetkey = VetKey.deserialize(hexToBytes("ad19676dd92f116db11f326ff0822f295d87cc00cf65d9f132b5a618bb7381e5b0c3cb814f15e4a0f015359dcfa8a1da"));
+
+    const testMessage = "stay calm, this is only a test";
+    const testMessageBytes = new TextEncoder().encode(testMessage);
+    const domainSep = "ic-test-domain-sep";
+
+    // Test string encryption path, then decryption
+    const msg1 = await vetkey.encryptMessage(testMessage, domainSep);
+    assertEqual(await vetkey.decryptMessage(msg1, domainSep), testMessageBytes);
+
+    // Test Uint8Array encryption path, then decryption
+    const msg2 = await vetkey.encryptMessage(testMessageBytes, domainSep);
+    assertEqual(await vetkey.decryptMessage(msg2, domainSep), testMessageBytes);
+
+    // Test decryption of known ciphertext encrypted with the derived key
+    const msg3 = hexToBytes("476f440e30bb95fff1420ce41ba6a07e03c3fcc0a751cfb23e64a8dcb0fc2b1eb74e2d4768f5c4dccbf2526609156664046ad27a6e78bd93bb8b");
+    assertEqual(await vetkey.decryptMessage(msg3, domainSep), testMessageBytes);
+
+    // Test decryption of various mutated or truncated ciphertexts: all should fail
+
+    // Test sequentially flipping each bit
+    for (let trial = 0; trial < msg3.length * 8; trial++) {
+        const modMsg = new Uint8Array(msg3);
+
+        const flip = 0x80 >> (trial % 8);
+        const byteToFlip = Math.floor(trial / 8);
+        modMsg[byteToFlip] ^= flip;
+
+        expect(async () => {
+            return await vetkey.decryptMessage(modMsg, domainSep);
+        }).rejects.toThrow("Decryption failed");
+    }
+
+    // Test truncating
+    for (let trial = 0; trial < msg3.length - 1; trial++) {
+        const modMsg = msg3.slice(0, trial);
+
+        const expectedError = modMsg.length < (12 + 16) ?
+            "Invalid ciphertext, too short" : "Decryption failed";
+
+        expect(async () => {
+            return await vetkey.decryptMessage(modMsg, domainSep);
+        }).rejects.toThrow(expectedError);
+    }
+
+    // Test appending random bytes
+    for (let trial = 1; trial < 32; trial++) {
+        const extraBytes = window.crypto.getRandomValues(new Uint8Array(trial));
+        const modMsg = new Uint8Array([...msg3, ...extraBytes]);
+
+        expect(async () => {
+            return await vetkey.decryptMessage(modMsg, domainSep);
+        }).rejects.toThrow("Decryption failed");
+    }
+});
+
 test('hkdf test vectors', () => {
     // HKDF test vectors from wycheproof
     const testVectors = [

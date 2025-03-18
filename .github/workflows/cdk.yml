@@ -22,7 +22,7 @@ jobs:
         run: |
           set -eExuo pipefail
           export CARGO_TERM_COLOR=always # ensure output has colors
-          cargo clippy
+          cargo clippy -- -Dwarnings
   cargo-test-cdk-linux:
     runs-on: ubuntu-20.04
     steps:
