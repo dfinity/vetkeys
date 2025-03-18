@@ -27,3 +27,12 @@ Tools for frontend developers to interact with VetKD enabled canisters.
 - **[KeyManager](./sdk/ic_vetkd_sdk_key_manager/README.md)** – Facilitates interaction with a KeyManager-enabled canister
 - **[EncryptedMaps](./sdk/ic_vetkd_sdk_encrypted_maps/README.md)** – Facilitates interaction with a EncryptedMaps-enabled canister
 - **[SDK Utils](./sdk/ic_vetkd_sdk_utils/README.md)** – Utility functions for working with VetKeys
+
+### **3. VetKeys Password Manager** - Example application
+
+The **VetKey Password Manager** is an example application demonstrating how to use VetKeys and Encrypted Maps to build a secure, decentralized password manager on the Internet Computer (IC). This application allows users to create password vaults, store encrypted passwords, and share vaults with other users via their Internet Identity Principal.
+
+The example application is available in two versions:
+
+- **[Basic Password Manager](./examples/password_manager/README.md)** - A simpler example without metadata.
+- **[Password Manager with Metadata](./examples/password_manager_with_metadata/README.md)** - Supports unencrypted metadata alongside encrypted passwords.
