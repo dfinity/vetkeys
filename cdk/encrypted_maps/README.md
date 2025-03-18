@@ -1,10 +1,10 @@
-# VetKD CDK - EncryptedMaps
+# VetKey CDK - EncryptedMaps
 
 ## Overview
 
-**EncryptedMaps** is a support library built on top of **VetKD CDK - KeyManager**, designed to facilitate secure, encrypted data sharing between users on the Internet Computer (ICP) using the **vetKeys** feature. It allows developers to store encrypted key-value pairs (**maps**) securely and to manage fine-grained user access.
+**EncryptedMaps** is a support library built on top of **VetKey CDK - KeyManager**, designed to facilitate secure, encrypted data sharing between users on the Internet Computer (ICP) using the **vetKeys** feature. It allows developers to store encrypted key-value pairs (**maps**) securely and to manage fine-grained user access.
 
-For an introduction to **vetKeys**, refer to the [vetKeys Overview](...).
+For an introduction to **VetKeys**, refer to the [VetKeys Overview](https://internetcomputer.org/docs/building-apps/network-features/encryption/VetKeys).
 
 ## Core Features
 
@@ -13,7 +13,7 @@ The **EncryptedMaps** library provides the following key functionalities:
 - **Encrypted Key-Value Storage:** Securely store and manage encrypted key-value pairs within named maps.
 - **User-Specific Map Access:** Control precisely which users can read or modify entries in an encrypted map.
 - **Integrated Access Control:** Leverages the **KeyManager** library to manage and enforce user permissions.
-- **Stable Storage:** Utilizes **StableBTreeMap** for reliable, persistent storage across canister upgrades.
+- **Stable Storage:** Utilizes **[StableBTreeMap](https://crates.io/crates/ic-stable-structures)** for reliable, persistent storage across canister upgrades.
 
 ## EncryptedMaps Architecture
 
@@ -112,7 +112,7 @@ Revokes a user's access rights to a map.
 ```rust
 pub fn get_accessible_shared_map_names(caller: Principal) -> Vec<KeyId>;
 ```
-Lists maps accessible to the caller.
+Lists maps shared with the caller.
 
 ### 7. Retrieve Owned Map Names
 

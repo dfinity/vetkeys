@@ -1,9 +1,9 @@
-# VetKD CDK - KeyManager
+# VetKey CDK - KeyManager
 
 ## Overview
-The **KeyManager** is a support library for **vetKeys**, an Internet Computer (ICP) feature that enables the derivation of **encrypted cryptographic keys**. This library simplifies the process of key retrieval, encryption, and controlled sharing, ensuring secure and efficient key management for canisters and users.
+The **KeyManager** is a support library for **VetKeys**, an Internet Computer (ICP) feature that enables the derivation of **encrypted cryptographic keys**. This library simplifies the process of key retrieval, encryption, and controlled sharing, ensuring secure and efficient key management for canisters and users.
 
-For an introduction to **vetKeys**, refer to the [vetKeys Overview](...).
+For an introduction to **VetKeys**, refer to the [VetKeys Overview](https://internetcomputer.org/docs/building-apps/network-features/encryption/VetKeys).
 
 ## Core Features
 The **KeyManager** support library provides the following core functionalities:
@@ -132,5 +132,5 @@ The system enforces access control based on `AccessRights`, allowing fine-graine
 - Access control logic ensures only authorized users modify or retrieve keys.
 
 ## Conclusion
-The **KeyManager** simplifies the usage of **vetKeys** on the ICP, providing a secure and efficient mechanism for **cryptographic key derivation, sharing, and management**.
+The **KeyManager** simplifies the usage of **VetKeys** on the ICP, providing a secure and efficient mechanism for **cryptographic key derivation, sharing, and management**.
 
