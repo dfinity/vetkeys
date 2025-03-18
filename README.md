@@ -20,12 +20,10 @@ Tools to help canister developers integrate VetKeys into their Internet Computer
 - **[KeyManager](./cdk/key_manager/README.md)** – a library for deriving and managing encrypted cryptographic keys.
 - **[EncryptedMaps](./cdk/encrypted_maps/README.md)** – a library for securely storing and sharing encrypted key-value pairs.
 
-For more details, see: **[VetKeys CDK Documentation](./cdk/README.md)**
-
 ### **2. VetKeys SDK** - Supports frontend developers
 
 Tools for frontend developers to interact with VetKD enabled canisters.
 
-[to be completed]
-
-For more details, see: **[VetKeys SDK Documentation](./sdk/README.md)**
+- **[KeyManager](./sdk/ic_vetkd_sdk_key_manager/README.md)** – Facilitates interaction with a KeyManager-enabled canister
+- **[EncryptedMaps](./sdk/ic_vetkd_sdk_encrypted_maps/README.md)** – Facilitates interaction with a EncryptedMaps-enabled canister
+- **[SDK Utils](./sdk/ic_vetkd_sdk_utils/README.md)** – Utility functions for working with VetKeys
