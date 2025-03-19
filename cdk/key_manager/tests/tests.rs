@@ -13,6 +13,7 @@ use rand::{CryptoRng, Rng};
 
 #[test]
 fn can_init_memory() {
+    // prevent the compiler from optimizing away the function call
     std::hint::black_box(random_key_manager(&mut reproducible_rng()));
 }
 
@@ -124,6 +125,7 @@ fn can_instantiate_two_key_managers() {
         memory_manager.get(MemoryId::new(4)),
         memory_manager.get(MemoryId::new(5)),
     );
+    // prevent the compiler from optimizing away the function call
     std::hint::black_box((key_manager_1, key_manager_2));
 }
 
