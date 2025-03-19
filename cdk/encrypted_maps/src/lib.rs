@@ -131,11 +131,8 @@ impl EncryptedMaps {
         &self,
         caller: Principal,
     ) -> Vec<(MapId, Vec<(MapKey, EncryptedMapValue)>)> {
-        let accessible_map_ids = self.get_accessible_shared_map_names(caller).into_iter();
-        let owned_map_ids =
-            std::iter::repeat(caller).zip(self.get_owned_non_empty_map_names(caller));
         let mut result = Vec::new();
-        for map_id in accessible_map_ids.chain(owned_map_ids) {
+        for map_id in self.get_accessible_map_ids_iter(caller) {
             let map_values = self.get_encrypted_values_for_map(caller, map_id).unwrap();
             result.push((map_id, map_values));
         }
@@ -143,11 +140,8 @@ impl EncryptedMaps {
     }
 
     pub fn get_all_accessible_encrypted_maps(&self, caller: Principal) -> Vec<EncryptedMapData> {
-        let accessible_map_ids = self.get_accessible_shared_map_names(caller).into_iter();
-        let owned_map_ids =
-            std::iter::repeat(caller).zip(self.get_owned_non_empty_map_names(caller));
         let mut result = Vec::new();
-        for map_id in accessible_map_ids.chain(owned_map_ids) {
+        for map_id in self.get_accessible_map_ids_iter(caller) {
             let keyvals = self
                 .get_encrypted_values_for_map(caller, map_id)
                 .unwrap()
@@ -163,6 +157,16 @@ impl EncryptedMaps {
             result.push(map);
         }
         result
+    }
+
+    fn get_accessible_map_ids_iter(
+        &self,
+        caller: Principal,
+    ) -> impl Iterator<Item = (Principal, MapName)> {
+        let accessible_map_ids = self.get_accessible_shared_map_names(caller).into_iter();
+        let owned_map_ids =
+            std::iter::repeat(caller).zip(self.get_owned_non_empty_map_names(caller));
+        accessible_map_ids.chain(owned_map_ids)
     }
 
     pub fn get_owned_non_empty_map_names(&self, caller: Principal) -> Vec<MapName> {
