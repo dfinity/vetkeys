@@ -1,6 +1,7 @@
 # VetKD SDK - EncryptedMaps
 
-## Overview
+> [!IMPORTANT]  
+> These support libraries are under active development and are subject to change. Access to the repositories have been opened to allow for early feedback. Please check back regularly for updates.
 
 The **EncryptedMaps** frontend library facilitates interaction with an **EncryptedMaps-enabled canister** on the **Internet Computer (ICP)**. It allows web applications to securely store, retrieve, and manage encrypted key-value pairs within named maps while handling user access control and key sharing.
 

@@ -1,5 +1,8 @@
 # VetKeys
 
+> [!IMPORTANT]  
+> These support libraries are under active development and are subject to change. Access to the repositories have been opened to allow for early feedback. Please check back regularly for updates.
+
 This repository contains a set of tools designed to help canister developers as well as frontend developers integrate **VetKeys** into their Internet Computer (ICP) applications.
 
 **VetKeys** – Verifiable Encrypted Threshold Keys – on the Internet Computer addresses the fundamental challenge of storing secrets on-chain by allowing cryptographic key derivation without exposing private keys. By leveraging **threshold cryptography**, VetKeys make it possible to generate, transport, and use encrypted keys securely, unlocking new use cases such as **privacy-preserving smart contracts, secure authentication, and decentralized identity management on blockchain networks**.
@@ -47,4 +50,3 @@ The example application is available in two versions:
 
 - **[Basic Password Manager](./examples/password_manager/README.md)** - A simpler example without metadata.
 - **[Password Manager with Metadata](./examples/password_manager_with_metadata/README.md)** - Supports unencrypted metadata alongside encrypted passwords.
-

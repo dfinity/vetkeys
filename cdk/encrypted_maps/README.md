@@ -1,6 +1,7 @@
 # VetKey CDK - EncryptedMaps
 
-## Overview
+> [!IMPORTANT]  
+> These support libraries are under active development and are subject to change. Access to the repositories have been opened to allow for early feedback. Please check back regularly for updates.
 
 **EncryptedMaps** is a support library built on top of **VetKey CDK - KeyManager**, designed to facilitate secure, encrypted data sharing between users on the Internet Computer (ICP) using the **vetKeys** feature. It allows developers to store encrypted key-value pairs (**maps**) securely and to manage fine-grained user access.
 
@@ -47,13 +48,14 @@ fn init() {
     let encrypted_maps_memory: Memory = MEMORY_MANAGER.with(|m| m.borrow().get(MemoryId::new(0)));
     let access_control_memory: Memory = MEMORY_MANAGER.with(|m| m.borrow().get(MemoryId::new(1)));
     let shared_keys_memory: Memory = MEMORY_MANAGER.with(|m| m.borrow().get(MemoryId::new(2)));
-    
+
     EncryptedMaps::try_init(encrypted_maps_memory, access_control_memory, shared_keys_memory)
         .expect("failed to initialize EncryptedMaps");
 }
 ```
 
 ### 2. Store Encrypted Values
+
 ```rust
 pub fn insert_encrypted_value(
     caller: Principal,
@@ -62,9 +64,11 @@ pub fn insert_encrypted_value(
     encrypted_value: EncryptedMapValue,
 ) -> Result<Option<EncryptedMapValue>, String>;
 ```
+
 Stores an encrypted value in a specified map, ensuring caller has write permissions.
 
 ### 3. Retrieve Encrypted Values
+
 ```rust
 pub fn get_encrypted_value(
     caller: Principal,
@@ -72,9 +76,11 @@ pub fn get_encrypted_value(
     key: MapKey,
 ) -> Result<Option<EncryptedMapValue>, String>;
 ```
+
 Retrieves a specific encrypted value from the map, enforcing read access control.
 
 ### 4. Remove Encrypted Values
+
 ```rust
 pub fn remove_encrypted_value(
     caller: Principal,
@@ -82,11 +88,13 @@ pub fn remove_encrypted_value(
     key: MapKey,
 ) -> Result<Option<EncryptedMapValue>, String>;
 ```
+
 Removes a specific entry from the map if the caller has write permissions.
 
 ### 5. Manage User Access Rights
 
 #### a) Set User Access Rights
+
 ```rust
 pub fn set_user_rights(
     caller: Principal,
@@ -95,9 +103,11 @@ pub fn set_user_rights(
     access_rights: AccessRights,
 ) -> Result<Option<AccessRights>, String>;
 ```
+
 Grants or modifies user access permissions for a map.
 
 #### b) Remove User Access
+
 ```rust
 pub fn remove_user(
     caller: Principal,
@@ -105,6 +115,7 @@ pub fn remove_user(
     user: Principal,
 ) -> Result<Option<AccessRights>, String>;
 ```
+
 Revokes a user's access rights to a map.
 
 ### 6. Retrieve Accessible Map Names
@@ -112,6 +123,7 @@ Revokes a user's access rights to a map.
 ```rust
 pub fn get_accessible_shared_map_names(caller: Principal) -> Vec<KeyId>;
 ```
+
 Lists maps shared with the caller.
 
 ### 7. Retrieve Owned Map Names
@@ -119,11 +131,13 @@ Lists maps shared with the caller.
 ```rust
 pub fn get_owned_non_empty_map_names(caller: Principal) -> Result<Vec<MapName>, String>;
 ```
+
 Lists non-empty maps owned by the caller.
 
 ## Access Rights
 
 User permissions managed by **KeyManager** define access:
+
 - **Read**: View encrypted map values.
 - **Write**: Add, update, or delete encrypted map values.
 - **Manage**: Manage other users' access rights.
@@ -144,4 +158,3 @@ User permissions managed by **KeyManager** define access:
 ## Conclusion
 
 **EncryptedMaps** simplifies secure storage, retrieval, and controlled sharing of encrypted data on the Internet Computer, complementing the robust security and permissions management provided by **KeyManager**.
-
