@@ -149,7 +149,7 @@ impl EncryptedMaps {
     }
 
     /// Retrieves the non-empty map names owned by the caller.
-    pub fn get_owned_non_empty_map_names(
+    pub fn get_all_accessible_encrypted_values(
         &self,
         caller: Principal,
     ) -> Result<Vec<ic_vetkd_cdk_types::MapName>, String> {
