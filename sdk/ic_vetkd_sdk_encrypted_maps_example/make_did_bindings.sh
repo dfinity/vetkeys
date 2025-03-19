@@ -2,7 +2,6 @@ set -ex
 
 function make_and_copy_declarations () {
     DIR=$1
-    FILENAME=$2
 
     pushd $DIR
     make extract-candid
@@ -13,4 +12,4 @@ function make_and_copy_declarations () {
     cp -R "$DIR/src/declarations/encrypted_maps_example" "src/declarations/"
 }
 
-make_and_copy_declarations "../../cdk/encrypted_maps_example" "encrypted_maps_example.did";
+make_and_copy_declarations "../../cdk/encrypted_maps_example"

@@ -1,7 +1,7 @@
 import { Principal } from "@dfinity/principal";
 import { ActorSubclass, HttpAgent } from "@dfinity/agent";
 import { createActor, encrypted_maps_example } from "./declarations/encrypted_maps_example/index";
-import { _SERVICE as _DEFAULT_ENCRYPTED_MAPS_SERVICE, AccessRights, ByteBuf } from "./declarations/encrypted_maps_example/encrypted_maps_example.did";
+import { _SERVICE as _DEFAULT_ENCRYPTED_MAPS_SERVICE, AccessRights, ByteBuf, EncryptedMapData } from "./declarations/encrypted_maps_example/encrypted_maps_example.did";
 import { EncryptedMapsClient } from "ic_vetkd_sdk_encrypted_maps/src/index";
 
 export class DefaultEncryptedMapsClient implements EncryptedMapsClient {
@@ -20,10 +20,16 @@ export class DefaultEncryptedMapsClient implements EncryptedMapsClient {
         return this.actor.get_shared_user_access_for_map(owner, string_to_bytebuf(map_name));
     }
 
-
-    get_owned_non_empty_map_names(): Promise<{ 'Ok': Array<ByteBuf> } |
-    { 'Err': string }> {
+    get_owned_non_empty_map_names(): Promise<Array<ByteBuf>> {
         return this.actor.get_owned_non_empty_map_names();
+    }
+
+    get_all_accessible_encrypted_values(): Promise<[[Principal, ByteBuf], [ByteBuf, ByteBuf][]][]> {
+        return this.actor.get_all_accessible_encrypted_values();
+    }
+
+    get_all_accessible_encrypted_maps(): Promise<Array<EncryptedMapData>> {
+        return this.actor.get_all_accessible_encrypted_maps();
     }
 
     get_encrypted_value(map_owner: Principal, map_name: string, map_key: string): Promise<{ 'Ok': [] | [ByteBuf] } |

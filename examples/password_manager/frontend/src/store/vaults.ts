@@ -32,56 +32,20 @@ function updateVaults(vaults: VaultModel[]) {
 }
 
 export async function refreshVaults(
-    owner: Principal,
     encryptedMaps: EncryptedMaps
 ) {
-    const vaultsOwnedByMe = await encryptedMaps.get_owned_non_empty_map_names();
-    if ("Err" in vaultsOwnedByMe) {
-        throw new Error(vaultsOwnedByMe.Err);
-    }
-
-    let ownedNamesString = "";
-    for (const nameBytes of vaultsOwnedByMe.Ok) {
-        ownedNamesString += new TextDecoder().decode(Uint8Array.from(nameBytes.inner)) + ", ";
-    }
-
-    const vaultsSharedWithMe = await encryptedMaps.get_accessible_shared_map_names();
-
-    let vaultIds = new Array<[Principal, string]>();
-
-    for (const vaultNameBytes of vaultsOwnedByMe.Ok) {
-        const vaultName = new TextDecoder().decode(Uint8Array.from(vaultNameBytes.inner));
-        vaultIds.push([owner, vaultName]);
-    }
-
-    for (const [otherOwner, vaultNameBytes] of vaultsSharedWithMe) {
-        const vaultName = new TextDecoder().decode(Uint8Array.from(vaultNameBytes.inner));
-        vaultIds.push([otherOwner, vaultName]);
-    }
-
-    let vaults = new Array();
-
-    for (const [otherOwner, vaultName] of vaultIds) {
-        const result = await encryptedMaps.get_values_for_map(otherOwner, vaultName);
-        if ("Err" in result) {
-            throw new Error(result.Err);
-        }
-
+    const allMaps = await encryptedMaps.get_all_accessible_maps();
+    const vaults = allMaps.map((mapData) => {
+        const mapName = new TextDecoder().decode(Uint8Array.from(mapData.map_name));
         let passwords = new Array<[string, PasswordModel]>();
-        for (const [passwordNameBytebuf, data] of result.Ok) {
-            const passwordNameString = new TextDecoder().decode(Uint8Array.from(passwordNameBytebuf.inner));
-            const passwordContent = new TextDecoder().decode(Uint8Array.from(data.inner));
-            const password = passwordFromContent(otherOwner, vaultName, passwordNameString, passwordContent);
+        for (const [passwordNameBytebuf, data] of mapData.keyvals) {
+            const passwordNameString = new TextDecoder().decode(Uint8Array.from(passwordNameBytebuf));
+            const passwordContent = new TextDecoder().decode(Uint8Array.from(data));
+            const password = passwordFromContent(mapData.map_owner, mapName, passwordNameString, passwordContent);
             passwords.push([passwordNameString, password]);
         }
-
-        const usersResult = await encryptedMaps.get_shared_user_access_for_map(otherOwner, vaultName);
-        if ("Err" in usersResult) {
-            throw new Error(usersResult.Err);
-        }
-
-        vaults.push(vaultFromContent(otherOwner, vaultName, passwords, usersResult.Ok));
-    }
+        return vaultFromContent(mapData.map_owner, mapName, passwords, mapData.access_control);
+    });
 
     updateVaults(vaults);
 }
@@ -152,12 +116,12 @@ auth.subscribe(async ($auth) => {
             state: 'loading',
         });
         try {
-            await refreshVaults($auth.client.getIdentity().getPrincipal(), $auth.encryptedMaps).catch((e) =>
+            await refreshVaults($auth.encryptedMaps).catch((e) =>
                 showError(e, 'Could not poll vaults.')
             );
 
             vaultPollerHandle = setInterval(async () => {
-                await refreshVaults($auth.client.getIdentity().getPrincipal(), $auth.encryptedMaps).catch((e) =>
+                await refreshVaults($auth.encryptedMaps).catch((e) =>
                     showError(e, 'Could not poll vaults.')
                 );
             }, 3000);

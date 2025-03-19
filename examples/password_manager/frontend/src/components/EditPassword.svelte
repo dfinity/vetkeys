@@ -136,10 +136,9 @@
             message: "Password saved successfully",
         });
 
-        await refreshVaults(
-            $auth.client.getIdentity().getPrincipal(),
-            $auth.encryptedMaps,
-        ).catch((e) => showError(e, "Could not refresh passwords."));
+        await refreshVaults($auth.encryptedMaps).catch((e) =>
+            showError(e, "Could not refresh passwords."),
+        );
 
         if (move) {
             replace(
@@ -169,10 +168,7 @@
                 showError(e, "Could not delete password.");
             });
 
-        await refreshVaults(
-            $auth.client.getIdentity().getPrincipal(),
-            $auth.encryptedMaps,
-        )
+        await refreshVaults($auth.encryptedMaps)
             .catch((e) => showError(e, "Could not refresh passwords."))
             .finally(() => {
                 addNotification({

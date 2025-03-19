@@ -25,9 +25,9 @@ deploy-test: compile-wasm-test
 .PHONY: mock
 .SILENT: mock
 mock: deploy-test
-	SCHNORR_MOCK_CANISTER_ID=$(shell dfx canister id chainkey_testing_canister); \
-	echo "Changing to using mock canister instead of management canister for vetkd to "$${SCHNORR_MOCK_CANISTER_ID}""; \
-    CMD="dfx canister call encrypted_maps_example set_vetkd_testing_canister_id '(principal "\"$${SCHNORR_MOCK_CANISTER_ID}\"")'"; \
+	VETKD_MOCK_CANISTER_ID=$(shell dfx canister id chainkey_testing_canister); \
+	echo "Changing to using mock canister instead of management canister for vetkd to "$${VETKD_MOCK_CANISTER_ID}""; \
+    CMD="dfx canister call encrypted_maps_example set_vetkd_testing_canister_id '(principal "\"$${VETKD_MOCK_CANISTER_ID}\"")'"; \
 	eval "$${CMD}"
 
 .PHONY: export-cmd

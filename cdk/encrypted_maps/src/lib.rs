@@ -28,7 +28,9 @@ use std::cell::RefCell;
 use std::future::Future;
 
 use ic_vetkd_cdk_key_manager::KeyId;
-use ic_vetkd_cdk_types::{AccessRights, ByteBuf, EncryptedMapValue, MapKey, TransportKey};
+use ic_vetkd_cdk_types::{
+    AccessRights, ByteBuf, EncryptedMapValue, MapId, MapKey, MapName, TransportKey,
+};
 
 // On a high level,
 // `ENCRYPTED_MAPS[MapName][MapKey] = EncryptedMapValue`, e.g.
@@ -152,17 +154,56 @@ impl EncryptedMaps {
     pub fn get_all_accessible_encrypted_values(
         &self,
         caller: Principal,
-    ) -> Result<Vec<ic_vetkd_cdk_types::MapName>, String> {
+    ) -> Vec<(MapId, Vec<(MapKey, EncryptedMapValue)>)> {
+        let mut result = Vec::new();
+        for map_id in self.get_accessible_map_ids_iter(caller) {
+            let map_values = self.get_encrypted_values_for_map(caller, map_id).unwrap();
+            result.push((map_id, map_values));
+        }
+        result
+    }
+
+    pub fn get_all_accessible_encrypted_maps(&self, caller: Principal) -> Vec<EncryptedMapData> {
+        let mut result = Vec::new();
+        for map_id in self.get_accessible_map_ids_iter(caller) {
+            let keyvals = self
+                .get_encrypted_values_for_map(caller, map_id)
+                .unwrap()
+                .into_iter()
+                .map(|(key, value)| (ByteBuf::from(key.as_ref().to_vec()), value))
+                .collect();
+            let map = EncryptedMapData {
+                map_owner: map_id.0,
+                map_name: ByteBuf::from(map_id.1.as_ref().to_vec()),
+                keyvals,
+                access_control: self.get_shared_user_access_for_map(caller, map_id).unwrap(),
+            };
+            result.push(map);
+        }
+        result
+    }
+
+    fn get_accessible_map_ids_iter(
+        &self,
+        caller: Principal,
+    ) -> impl Iterator<Item = (Principal, MapName)> {
+        let accessible_map_ids = self.get_accessible_shared_map_names(caller).into_iter();
+        let owned_map_ids =
+            std::iter::repeat(caller).zip(self.get_owned_non_empty_map_names(caller));
+        accessible_map_ids.chain(owned_map_ids)
+    }
+
+    pub fn get_owned_non_empty_map_names(&self, caller: Principal) -> Vec<MapName> {
         let map_names: std::collections::HashSet<Vec<u8>> = self
             .mapkey_vals
             .keys_range(((caller, Blob::default()), Blob::default())..)
             .take_while(|((principal, _map_name), _key_name)| principal == &caller)
             .map(|((_principal, map_name), _key_name)| map_name.as_slice().to_vec())
             .collect();
-        Ok(map_names
+        map_names
             .into_iter()
             .map(|map_name| Blob::<32>::try_from(map_name.as_slice()).unwrap())
-            .collect())
+            .collect()
     }
 
     /// Inserts or updates an encrypted value in a map.
@@ -245,6 +286,14 @@ impl EncryptedMaps {
     ) -> Result<Option<AccessRights>, String> {
         self.key_manager.remove_user(caller, key_id, user)
     }
+}
+
+#[derive(serde::Deserialize, candid::CandidType)]
+pub struct EncryptedMapData {
+    pub map_owner: Principal,
+    pub map_name: ByteBuf,
+    pub keyvals: Vec<(ByteBuf, EncryptedMapValue)>,
+    pub access_control: Vec<(Principal, AccessRights)>,
 }
 
 #[cfg(feature = "expose-testing-api")]

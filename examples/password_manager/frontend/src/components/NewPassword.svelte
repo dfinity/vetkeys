@@ -57,10 +57,9 @@
         });
 
         // refresh passwords in the background
-        refreshVaults(
-            $auth.client.getIdentity().getPrincipal(),
-            $auth.encryptedMaps,
-        ).catch((e) => showError(e, "Could not refresh passwords."));
+        refreshVaults($auth.encryptedMaps).catch((e) =>
+            showError(e, "Could not refresh passwords."),
+        );
     }
 
     function saveDraft() {
@@ -94,11 +93,11 @@
             class="input input-bordered w-full"
         />
         <input
-        type="text"
-        bind:value={passwordName}
-        placeholder="Enter password name"
-        class="input input-bordered w-full"
-    />
+            type="text"
+            bind:value={passwordName}
+            placeholder="Enter password name"
+            class="input input-bordered w-full"
+        />
     </div>
     <PasswordEditor {editor} class="mb-3" disabled={creating} />
     <button

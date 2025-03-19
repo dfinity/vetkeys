@@ -5,10 +5,11 @@ use ic_cdk::{query, update};
 use ic_stable_structures::memory_manager::{MemoryId, MemoryManager, VirtualMemory};
 use ic_stable_structures::storable::Blob;
 use ic_stable_structures::DefaultMemoryImpl;
-use ic_vetkd_cdk_encrypted_maps::{EncryptedMaps, VetKey, VetKeyVerificationKey};
+use ic_vetkd_cdk_encrypted_maps::{EncryptedMapData, EncryptedMaps, VetKey, VetKeyVerificationKey};
 use ic_vetkd_cdk_types::{AccessRights, ByteBuf, EncryptedMapValue, TransportKey};
 
 type Memory = VirtualMemory<DefaultMemoryImpl>;
+type MapId = (Principal, ByteBuf);
 
 thread_local! {
     static MEMORY_MANAGER: RefCell<MemoryManager<DefaultMemoryImpl>> =
@@ -52,8 +53,34 @@ fn get_encrypted_values_for_map(
     result.map(|map_values| {
         map_values
             .into_iter()
-            .map(|(key, value)| (EncryptedMapValue::from(key.as_slice().to_vec()), value))
+            .map(|(key, value)| (ByteBuf::from(key.as_slice().to_vec()), value))
             .collect()
+    })
+}
+
+#[query]
+fn get_all_accessible_encrypted_values() -> Vec<(MapId, Vec<(ByteBuf, EncryptedMapValue)>)> {
+    ENCRYPTED_MAPS
+        .with_borrow(|encrypted_maps| {
+            encrypted_maps.get_all_accessible_encrypted_values(ic_cdk::caller())
+        })
+        .into_iter()
+        .map(|((owner, map_name), encrypted_values)| {
+            (
+                (owner, ByteBuf::from(map_name.as_ref().to_vec())),
+                encrypted_values
+                    .into_iter()
+                    .map(|(key, value)| (ByteBuf::from(key.as_ref().to_vec()), value))
+                    .collect(),
+            )
+        })
+        .collect()
+}
+
+#[query]
+fn get_all_accessible_encrypted_maps() -> Vec<EncryptedMapData> {
+    ENCRYPTED_MAPS.with_borrow(|encrypted_maps| {
+        encrypted_maps.get_all_accessible_encrypted_maps(ic_cdk::caller())
     })
 }
 
@@ -89,16 +116,13 @@ fn remove_map_values(
 }
 
 #[query]
-fn get_owned_non_empty_map_names() -> Result<Vec<ByteBuf>, String> {
+fn get_owned_non_empty_map_names() -> Vec<ByteBuf> {
     ENCRYPTED_MAPS.with_borrow(|encrypted_maps| {
         encrypted_maps
             .get_owned_non_empty_map_names(ic_cdk::caller())
-            .map(|map_names| {
-                map_names
-                    .into_iter()
-                    .map(|map_name| ByteBuf::from(map_name.as_slice().to_vec()))
-                    .collect()
-            })
+            .into_iter()
+            .map(|map_name| ByteBuf::from(map_name.as_slice().to_vec()))
+            .collect()
     })
 }
 

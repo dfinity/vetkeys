@@ -28,7 +28,7 @@ export default defineConfig({
   },
   define: {
     'process.env.DFX_NETWORK': JSON.stringify(process.env.DFX_NETWORK),
-    'process.env.INTERNET_IDENTITY_CANISTER_ID': JSON.stringify(process.env.INTERNET_IDENTITY_CANISTER_ID),
+    'process.env.CANISTER_ID_INTERNET_IDENTITY': JSON.stringify(process.env.CANISTER_ID_INTERNET_IDENTITY),
     'process.env.CANISTER_ID_ENCRYPTED_MAPS_EXAMPLE': JSON.stringify(process.env.CANISTER_ID_ENCRYPTED_MAPS_EXAMPLE)
   },
   css: {
