@@ -109,6 +109,12 @@ fn can_add_user_to_key() {
 
     let user_to_be_added = random_self_authenticating_principal(rng);
     let access_rights = random_access_rights(rng);
+
+    assert_eq!(
+        key_manager.get_user_rights(caller, (caller, name.clone()), user_to_be_added),
+        Ok(None)
+    );
+
     assert_eq!(
         key_manager.set_user_rights(
             caller,
@@ -118,10 +124,76 @@ fn can_add_user_to_key() {
         ),
         Ok(None)
     );
+
+    assert_eq!(
+        key_manager.get_user_rights(caller, (caller, name.clone()), user_to_be_added),
+        Ok(Some(access_rights))
+    );
+
     assert_eq!(
         key_manager.set_user_rights(caller, (caller, name), user_to_be_added, access_rights),
         Ok(Some(access_rights))
     );
+}
+
+#[test]
+fn get_and_set_user_rights_fails_for_unauthorized() {
+    let rng = &mut reproducible_rng();
+    let unauthorized = random_self_authenticating_principal(rng);
+    let key_id = (random_self_authenticating_principal(rng), random_name(rng));
+    let mut key_manager = random_key_manager(rng);
+    assert_eq!(
+        key_manager.get_user_rights(unauthorized, key_id, unauthorized),
+        Err("unauthorized".to_string())
+    );
+    assert_eq!(
+        key_manager.set_user_rights(unauthorized, key_id, unauthorized, AccessRights::Read),
+        Err("unauthorized".to_string())
+    );
+}
+
+#[test]
+fn cannot_alter_owner_rights() {
+    let rng = &mut reproducible_rng();
+    let caller = random_self_authenticating_principal(rng);
+    let name = random_name(rng);
+    let mut key_manager = random_key_manager(rng);
+
+    assert_eq!(
+        key_manager.set_user_rights(caller, (caller, name.clone()), caller, AccessRights::Read),
+        Err("cannot change key owner's user rights".to_string())
+    );
+
+    assert_eq!(
+        key_manager.remove_user(caller, (caller, name), caller),
+        Err("cannot remove key owner".to_string())
+    );
+}
+
+#[test]
+fn other_user_can_manage_key() {
+    let rng = &mut reproducible_rng();
+    let owner = random_self_authenticating_principal(rng);
+    let user1 = random_self_authenticating_principal(rng);
+    let user2 = random_self_authenticating_principal(rng);
+    let name = random_name(rng);
+    let mut key_manager = random_key_manager(rng);
+
+    let key_id = (owner, name);
+
+    key_manager
+        .set_user_rights(owner, key_id.clone(), user1, AccessRights::ReadWriteManage)
+        .unwrap();
+    key_manager
+        .set_user_rights(owner, key_id.clone(), user2, AccessRights::ReadWriteManage)
+        .unwrap();
+
+    key_manager
+        .remove_user(user2, key_id.clone(), user1)
+        .unwrap();
+    key_manager
+        .remove_user(user2, key_id.clone(), user2)
+        .unwrap();
 }
 
 #[test]

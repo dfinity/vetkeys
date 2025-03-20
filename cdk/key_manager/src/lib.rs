@@ -229,15 +229,6 @@ impl KeyManager {
         Ok(self.access_control.remove(&(user, key_id)))
     }
 
-    /// Checks whether a given key has been shared with at least one user.
-    pub fn is_key_shared(&self, key_id: KeyId) -> bool {
-        self.shared_keys
-            .range(&(key_id, Principal::management_canister())..)
-            .take_while(|((k, _), _)| k == &key_id)
-            .next()
-            .is_some()
-    }
-
     /// Ensures that a user has read access to a key before proceeding.
     /// Returns an error if the user is not authorized.
     fn ensure_user_can_read(&self, user: Principal, key_id: KeyId) -> Result<AccessRights, String> {

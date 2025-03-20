@@ -93,15 +93,7 @@ pub fn remove_user(
 - Revokes a user's access to a shared key.
 - The key owner **cannot** remove themselves.
 
-#### c) Check If a Key is Shared
-
-```rust
-pub fn is_key_shared(key_id: KeyId) -> Result<bool, String>;
-```
-
-- Returns `true` if a key has been shared with at least one user.
-
-#### d) List All Shared Keys a User Has Access To
+#### c) List All Shared Keys a User Has Access To
 
 ```rust
 pub fn get_accessible_shared_key_ids(caller: Principal) -> Vec<KeyId>;
@@ -109,7 +101,7 @@ pub fn get_accessible_shared_key_ids(caller: Principal) -> Vec<KeyId>;
 
 - Retrieves all keys accessible by the caller.
 
-#### e) Get All Users Who Have Access to a Key
+#### d) Get All Users Who Have Access to a Key
 
 ```rust
 pub fn get_shared_user_access_for_key(
@@ -120,7 +112,7 @@ pub fn get_shared_user_access_for_key(
 
 - Lists all users who have access to a specific key along with their permissions.
 
-#### f) Retrieve a User’s Access Rights
+#### e) Retrieve a User’s Access Rights
 
 ```rust
 pub fn get_user_rights(
