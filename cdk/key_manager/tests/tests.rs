@@ -18,7 +18,7 @@ fn can_init_memory() {
 }
 
 #[test]
-fn can_add_user_to_map() {
+fn can_add_user_to_key() {
     let rng = &mut reproducible_rng();
     let caller = random_self_authenticating_principal(rng);
     let name = random_name(rng);
@@ -43,7 +43,7 @@ fn can_add_user_to_map() {
 }
 
 #[test]
-fn can_remove_user_from_map() {
+fn can_remove_user_from_key() {
     let rng = &mut reproducible_rng();
     let caller = random_self_authenticating_principal(rng);
     let name = random_name(rng);
@@ -140,11 +140,3 @@ fn random_key_manager<R: Rng + CryptoRng>(rng: &mut R) -> KeyManager {
         memory_manager.get(MemoryId::new(memory_ids_key_manager[2])),
     )
 }
-
-// TODO tests
-// - create key
-// - retrieve vetkey
-// - retrieve vetkey and verification and and verify
-// - add a user to a key
-// - remove a user from a key
-// - change user rights for a key

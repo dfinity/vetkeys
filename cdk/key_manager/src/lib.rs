@@ -296,27 +296,6 @@ fn vetkd_system_api_canister_id() -> CanisterId {
     CanisterId::from_str(VETKD_SYSTEM_API_CANISTER_ID).expect("failed to create canister ID")
 }
 
-#[serde_as]
-#[derive(Serialize, Deserialize)]
-struct StorableDerivationPath {
-    #[serde_as(as = "Vec<serde_with::Bytes>")]
-    derivation_path: Vec<Vec<u8>>,
-}
-
-impl Storable for StorableDerivationPath {
-    fn to_bytes(&self) -> Cow<[u8]> {
-        Cow::Owned(serde_cbor::to_vec(&self.derivation_path).expect("failed to serialize"))
-    }
-
-    fn from_bytes(bytes: Cow<[u8]>) -> Self {
-        let derivation_path =
-            serde_cbor::from_slice(bytes.as_ref()).expect("failed to deserialize");
-        Self { derivation_path }
-    }
-
-    const BOUND: Bound = Bound::Unbounded;
-}
-
 #[cfg(feature = "expose-testing-api")]
 pub fn set_vetkd_testing_canister_id(canister_id: Principal) {
     VETKD_TESTING_CANISTER_ID.with(|cell| {
