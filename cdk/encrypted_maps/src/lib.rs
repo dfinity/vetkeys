@@ -122,10 +122,7 @@ impl EncryptedMaps {
         caller: Principal,
         key_id: KeyId,
     ) -> Result<Vec<(MapKey, EncryptedMapValue)>, String> {
-        match self.key_manager.get_user_rights(caller, key_id, caller)? {
-            Some(_) => Ok(()),
-            None => Err("unauthorized".to_string()),
-        }?;
+        self.key_manager.get_user_rights(caller, key_id, caller)?;
 
         Ok(self
             .mapkey_vals
@@ -142,12 +139,9 @@ impl EncryptedMaps {
         key_id: KeyId,
         key: MapKey,
     ) -> Result<Option<EncryptedMapValue>, String> {
-        match self.key_manager.get_user_rights(caller, key_id, caller)? {
-            Some(_) => Ok(()),
-            None => Err("unauthorized".to_string()),
-        }?;
-
-        Ok(self.mapkey_vals.get(&(key_id, key)))
+        self.key_manager
+            .get_user_rights(caller, key_id, caller)
+            .map(|_| self.mapkey_vals.get(&(key_id, key)))
     }
 
     /// Retrieves the non-empty map names owned by the caller.
