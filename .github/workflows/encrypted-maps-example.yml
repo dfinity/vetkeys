@@ -6,7 +6,8 @@ on:
       - main
   pull_request:
     paths:
-      - cdk/encrypted-maps-example/**
+      - cdk/**
+      - sdk/ic_vetkd_sdk_{encrypted_maps,encrypted_maps_example,utils}/**
       - .github/workflows/provision-darwin.sh
       - .github/workflows/provision-linux.sh
       - .github/workflows/encrypted-maps-example.yml

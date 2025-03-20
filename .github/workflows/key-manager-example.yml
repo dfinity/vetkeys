@@ -6,7 +6,8 @@ on:
       - main
   pull_request:
     paths:
-      - cdk/key-manager-example/**
+      - cdk/{key_manager_example,utils,types,test_utils}/**
+      - sdk/ic_vetkd_sdk_{key_manager,key_manager_example,utils}/**
       - .github/workflows/provision-darwin.sh
       - .github/workflows/provision-linux.sh
       - .github/workflows/key-manager-example.yml
