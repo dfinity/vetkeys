@@ -16,9 +16,12 @@
         "@dfinity/principal": "^2.3.0"
     },
     "devDependencies": {
-        "typescript": "^5.7.3"
+        "@eslint/js": "^9.22.0",
+        "typescript": "^5.7.3",
+        "typescript-eslint": "8.24"
     },
     "scripts": {
-        "build": "tsc"
+        "build": "tsc",
+        "lint": "eslint"
     }
 }

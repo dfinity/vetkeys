@@ -19,7 +19,6 @@ export class KeyManager {
             return encrypted_vetkey;
         } else {
             const encrypted_key_bytes = Uint8Array.from(encrypted_vetkey.Ok.inner);
-            const derived_public_key_bytes = new TextEncoder().encode("key_manager");
             const verification_key = await this.get_vetkey_verification_key();
             const vetkey_name_bytes = new TextEncoder().encode(vetkey_name);
             const derivaition_id = new Uint8Array([...key_owner.toUint8Array(), ...vetkey_name_bytes]);
