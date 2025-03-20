@@ -99,7 +99,7 @@ impl EncryptedMaps {
     ) -> Result<Vec<MapKey>, String> {
         match self.key_manager.get_user_rights(caller, key_id, caller)? {
             Some(AccessRights::ReadWrite) | Some(AccessRights::ReadWriteManage) => Ok(()),
-            Some(AccessRights::Read) | None => Err("unauthorized user".to_string()),
+            Some(AccessRights::Read) | None => Err("unauthorized".to_string()),
         }?;
 
         let keys: Vec<_> = self
@@ -124,7 +124,7 @@ impl EncryptedMaps {
     ) -> Result<Vec<(MapKey, EncryptedMapValue)>, String> {
         match self.key_manager.get_user_rights(caller, key_id, caller)? {
             Some(_) => Ok(()),
-            None => Err("unauthorized user".to_string()),
+            None => Err("unauthorized".to_string()),
         }?;
 
         Ok(self
@@ -144,7 +144,7 @@ impl EncryptedMaps {
     ) -> Result<Option<EncryptedMapValue>, String> {
         match self.key_manager.get_user_rights(caller, key_id, caller)? {
             Some(_) => Ok(()),
-            None => Err("unauthorized user".to_string()),
+            None => Err("unauthorized".to_string()),
         }?;
 
         Ok(self.mapkey_vals.get(&(key_id, key)))
@@ -216,7 +216,7 @@ impl EncryptedMaps {
     ) -> Result<Option<EncryptedMapValue>, String> {
         match self.key_manager.get_user_rights(caller, key_id, caller)? {
             Some(AccessRights::ReadWrite) | Some(AccessRights::ReadWriteManage) => Ok(()),
-            Some(AccessRights::Read) | None => Err("unauthorized user".to_string()),
+            Some(AccessRights::Read) | None => Err("unauthorized".to_string()),
         }?;
 
         Ok(self.mapkey_vals.insert((key_id, key), encrypted_value))
@@ -231,7 +231,7 @@ impl EncryptedMaps {
     ) -> Result<Option<EncryptedMapValue>, String> {
         match self.key_manager.get_user_rights(caller, key_id, caller)? {
             Some(AccessRights::ReadWrite) | Some(AccessRights::ReadWriteManage) => Ok(()),
-            Some(AccessRights::Read) | None => Err("unauthorized user".to_string()),
+            Some(AccessRights::Read) | None => Err("unauthorized".to_string()),
         }?;
 
         Ok(self.mapkey_vals.remove(&(key_id, key)))

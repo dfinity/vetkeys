@@ -63,6 +63,10 @@ fn can_add_user_to_map() {
     let user_to_be_added = random_self_authenticating_principal(rng);
     let access_rights = random_access_rights(rng);
     assert_eq!(
+        encrypted_maps.get_user_rights(caller, (caller, name.clone()), user_to_be_added,),
+        Ok(None)
+    );
+    assert_eq!(
         encrypted_maps.set_user_rights(
             caller,
             (caller, name.clone()),
@@ -74,6 +78,66 @@ fn can_add_user_to_map() {
     assert_eq!(
         encrypted_maps.set_user_rights(caller, (caller, name), user_to_be_added, access_rights),
         Ok(Some(access_rights))
+    );
+    assert_eq!(
+        encrypted_maps.get_user_rights(caller, (caller, name.clone()), user_to_be_added,),
+        Ok(Some(access_rights))
+    );
+}
+
+#[test]
+fn unauthorized_cannot_invoke_operations() {
+    let rng = &mut reproducible_rng();
+    let unauthorized = random_self_authenticating_principal(rng);
+    let owner = random_self_authenticating_principal(rng);
+    let map_name = random_name(rng);
+    let map_id = (owner, map_name);
+    let map_key = random_key(rng);
+    let mut encrypted_maps = random_encrypted_maps(rng);
+
+    assert_eq!(
+        encrypted_maps.get_user_rights(unauthorized, map_id, unauthorized),
+        Err("unauthorized".to_string())
+    );
+
+    assert_eq!(
+        encrypted_maps.get_encrypted_value(unauthorized, map_id, map_key),
+        Err("unauthorized".to_string())
+    );
+
+    assert_eq!(
+        encrypted_maps.get_encrypted_values_for_map(unauthorized, map_id),
+        Err("unauthorized".to_string())
+    );
+
+    for _ in 0..2 {
+        assert_eq!(
+            encrypted_maps.remove_map_values(unauthorized, map_id),
+            Err("unauthorized".to_string())
+        );
+
+        assert_eq!(
+            encrypted_maps.remove_user(unauthorized, map_id, unauthorized),
+            Err("unauthorized".to_string())
+        );
+
+        assert_eq!(
+            encrypted_maps.set_user_rights(unauthorized, map_id, unauthorized, AccessRights::Read),
+            Err("unauthorized".to_string())
+        );
+
+        encrypted_maps
+            .set_user_rights(owner, map_id, unauthorized, AccessRights::Read)
+            .unwrap();
+    }
+
+    encrypted_maps
+        .set_user_rights(owner, map_id, unauthorized, AccessRights::ReadWrite)
+        .unwrap();
+
+    assert_eq!(
+        encrypted_maps.set_user_rights(unauthorized, map_id, unauthorized, AccessRights::Read),
+        Err("unauthorized".to_string())
     );
 }
 
@@ -194,7 +258,7 @@ fn add_a_key_to_map_by_unauthorized_fails() {
 
     assert_eq!(
         encrypted_maps.insert_encrypted_value(readonly_caller, (caller, name), key, value),
-        Err("unauthorized user".to_string())
+        Err("unauthorized".to_string())
     );
 }
 
@@ -253,7 +317,7 @@ fn remove_of_key_from_map_by_unauthorized_fails() {
 
     assert_eq!(
         encrypted_maps.remove_encrypted_value(readonly_caller, (caller, name), key),
-        Err("unauthorized user".to_string())
+        Err("unauthorized".to_string())
     );
 }
 
@@ -410,7 +474,7 @@ fn modify_a_key_value_in_map_by_unauthorized_fails() {
 
     assert_eq!(
         encrypted_maps.insert_encrypted_value(readonly_caller, (caller, name), key, new_value),
-        Err("unauthorized user".to_string())
+        Err("unauthorized".to_string())
     );
 }
 
