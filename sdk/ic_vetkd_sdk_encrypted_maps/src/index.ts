@@ -67,13 +67,13 @@ export class EncryptedMaps {
         const encryptedValues = await this.canister_client.get_encrypted_values_for_map(map_owner, map_name);
         if ("Err" in encryptedValues) { return encryptedValues; }
 
-        let resultGet = new Array<[string, Uint8Array]>();
+        const resultGet = new Array<[string, Uint8Array]>();
         for (const [x, y] of encryptedValues.Ok) {
             resultGet.push([new TextDecoder().decode(Uint8Array.from(x.inner)), Uint8Array.from(y.inner)]);
         }
         // console.info("encryptedMaps.get_values_for_map(" + map_owner.toText() + ", " + map_name + " result: " + resultGet);
 
-        let result = new Array<[ByteBuf, ByteBuf]>();
+        const result = new Array<[ByteBuf, ByteBuf]>();
         for (const [mapKey, mapValue] of encryptedValues.Ok) {
             const passwordName = new TextDecoder().decode(Uint8Array.from(mapKey.inner));
             const decrypted = await this.decrypt_for(map_owner, map_name, passwordName, Uint8Array.from(mapValue.inner));
@@ -83,7 +83,7 @@ export class EncryptedMaps {
                 return decrypted;
             }
         }
-        let resultDecrypted = new Array<[string, string]>();
+        const resultDecrypted = new Array<[string, string]>();
         for (const [x, y] of result) {
             resultDecrypted.push([new TextDecoder().decode(Uint8Array.from(x.inner)), new TextDecoder().decode(Uint8Array.from(y.inner))]);
         }
@@ -178,19 +178,10 @@ export class EncryptedMaps {
     async get_vetkey_or_fetch_if_needed(map_owner: Principal, map_name: string): Promise<{ 'Ok': CryptoKey } | { 'Err': string }
     > {
         const maybe_cached_vetkey = await get([map_owner.toString(), map_name]);
-        if (!!maybe_cached_vetkey) { return { 'Ok': maybe_cached_vetkey }; }
-
-        const seed = window.crypto.getRandomValues(new Uint8Array(32));
-        const tsk = new TransportSecretKey(seed);
+        if (maybe_cached_vetkey) { return { 'Ok': maybe_cached_vetkey }; }
 
         const aes_256_gcm_key_raw = await this.get_symmetric_vetkey(map_owner, map_name);
         if ("Err" in aes_256_gcm_key_raw) { return aes_256_gcm_key_raw };
-
-        const pk_bytes = await this.get_vetkey_verification_key();
-
-        const owner_bytes: Uint8Array = map_owner.toUint8Array();
-        const map_name_bytes: Uint8Array = new TextEncoder().encode(map_name);
-        let derivation_id = new Uint8Array([...owner_bytes, ...map_name_bytes]);
 
         const vetkey: CryptoKey = await window.crypto.subtle.importKey("raw", Uint8Array.from(aes_256_gcm_key_raw.Ok.inner), "HKDF", false, ["deriveKey"]);
         await set([[map_owner.toString(), map_name]], vetkey)
@@ -198,8 +189,8 @@ export class EncryptedMaps {
     }
 
     async get_subkey_and_fetch_and_derive_if_needed(map_owner: Principal, map_name: string, map_key: string): Promise<{ 'Ok': CryptoKey } | { 'Err': string }> {
-        let maybe_derived_key = await get([[map_owner.toString(), map_name, map_key]]);
-        if (!!maybe_derived_key) {
+        const maybe_derived_key = await get([[map_owner.toString(), map_name, map_key]]);
+        if (maybe_derived_key) {
             return { 'Ok': maybe_derived_key };
         }
         const get_vetkey_result = await this.get_vetkey_or_fetch_if_needed(map_owner, map_name);
@@ -210,7 +201,7 @@ export class EncryptedMaps {
             info: new TextEncoder().encode("ic_vetkd_sdk_encrypted_maps_subkey"),
             hash: "SHA-256",
         };
-        let derived_key = await window.crypto.subtle.deriveKey(algorithm, get_vetkey_result.Ok, { name: "AES-GCM", length: 256 }, true, ["encrypt", "decrypt"]);
+        const derived_key = await window.crypto.subtle.deriveKey(algorithm, get_vetkey_result.Ok, { name: "AES-GCM", length: 256 }, true, ["encrypt", "decrypt"]);
 
         await set([[map_owner.toString(), map_name, map_key]], derived_key);
 
@@ -237,9 +228,7 @@ export async function encrypt(bytes_to_encrypt: Uint8Array, key: CryptoKey): Pro
         bytes_to_encrypt
     );
 
-    let encrypted_value = Uint8Array.from([...iv, ...new Uint8Array(ciphertext)]);
-
-    return encrypted_value;
+    return Uint8Array.from([...iv, ...new Uint8Array(ciphertext)]);
 }
 
 export async function decrypt(encrypted_value: Uint8Array, key: CryptoKey): Promise<Uint8Array> {
