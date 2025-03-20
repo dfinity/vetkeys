@@ -218,6 +218,10 @@ fn can_remove_user_from_key() {
         key_manager.remove_user(caller, (caller, name), user_to_be_added,),
         Ok(Some(access_rights))
     );
+    assert_eq!(
+        key_manager.get_user_rights(caller, (caller, name), user_to_be_added),
+        Ok(None)
+    );
 }
 
 #[test]
