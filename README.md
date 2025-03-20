@@ -1,7 +1,9 @@
 # VetKeys
 
 > [!IMPORTANT]  
-> These support libraries are under active development and are subject to change. Access to the repositories have been opened to allow for early feedback. Please check back regularly for updates.
+> These support libraries are under active development and are subject to change. Access to the repositories have been opened to allow for early feedback. Check back regularly for updates.
+>
+> Please share your feedback on the [developer forum](https://forum.dfinity.org/).
 
 This repository contains a set of tools designed to help canister developers as well as frontend developers integrate **VetKeys** into their Internet Computer (ICP) applications.
 

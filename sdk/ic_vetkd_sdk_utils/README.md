@@ -1,7 +1,9 @@
 # VetKD SDK - SDK Utils
 
 > [!IMPORTANT]  
-> These support libraries are under active development and are subject to change. Access to the repositories have been opened to allow for early feedback. Please check back regularly for updates.
+> These support libraries are under active development and are subject to change. Access to the repositories have been opened to allow for early feedback. Check back regularly for updates.
+>
+> Please share your feedback on the [developer forum](https://forum.dfinity.org/).
 
 This package provides cryptographic utilities for working with **VetKey** (Verifiably Encrypted Threshold Key) derivation on the **Internet Computer (IC)**. It includes support for **BLS12-381 operations**, **transport secret keys**, **derived public keys**, **identity-based encryption (IBE)**, and **symmetric key derivation**.
 
