@@ -24,6 +24,7 @@
     "@babel/preset-typescript": "^7.26.0",
     "@babel/register": "^7.25.9",
     "@dfinity/identity": "^2.2.0",
+    "@eslint/js": "^9.22.0",
     "@jest/globals": "^29.7.0",
     "@types/chai": "^5.0.1",
     "@types/isomorphic-fetch": "^0.0.39",
@@ -37,6 +38,7 @@
     "ts-jest": "^29.2.5",
     "ts-node": "^10.9.2",
     "typescript": "^5.7.3",
+    "typescript-eslint": "8.24",
     "vite": "^6.0.11",
     "vitest": "^3.0.5"
   },
@@ -44,7 +46,7 @@
     "build": "tsc && vite build",
     "coverage": "vitest run --coverage",
     "test": "vitest",
-    "lint": "tslint --project tsconfig.json -t codeFrame 'src/**/*.ts' 'test/**/*.ts'",
+    "lint": "eslint",
     "test:prod": "npm run lint && npm run test -- --no-cache"
   }
 }
