@@ -53,6 +53,53 @@ fn get_accessible_shared_key_ids_works_correctly() {
 }
 
 #[test]
+fn can_get_shared_user_access_for_key() {
+    let rng = &mut reproducible_rng();
+    let caller = random_self_authenticating_principal(rng);
+    let name = random_name(rng);
+    let mut key_manager = random_key_manager(rng);
+
+    let mut shared_access = BTreeSet::new();
+
+    for _ in 0..10 {
+        let user_to_be_added = random_self_authenticating_principal(rng);
+        let access_rights = random_access_rights(rng);
+
+        let computed_shared_access: BTreeSet<_> = key_manager
+            .get_shared_user_access_for_key(caller, (caller, name.clone()))
+            .unwrap()
+            .into_iter()
+            .collect();
+
+        assert_eq!(shared_access, computed_shared_access);
+
+        assert_eq!(
+            key_manager.set_user_rights(
+                caller,
+                (caller, name.clone()),
+                user_to_be_added,
+                access_rights
+            ),
+            Ok(None)
+        );
+
+        shared_access.insert((user_to_be_added, access_rights));
+    }
+}
+
+#[test]
+fn get_shared_user_access_for_key_fails_for_unauthorized() {
+    let rng = &mut reproducible_rng();
+    let unauthorized = random_self_authenticating_principal(rng);
+    let key_id = (random_self_authenticating_principal(rng), random_name(rng));
+    let key_manager = random_key_manager(rng);
+    assert_eq!(
+        key_manager.get_shared_user_access_for_key(unauthorized, key_id),
+        Err("unauthorized".to_string())
+    );
+}
+
+#[test]
 fn can_add_user_to_key() {
     let rng = &mut reproducible_rng();
     let caller = random_self_authenticating_principal(rng);
