@@ -1,6 +1,6 @@
 import { Principal } from "@dfinity/principal";
 import { ActorSubclass, HttpAgent } from "@dfinity/agent";
-import { createActor, encrypted_maps_example } from "./declarations/encrypted_maps_example/index";
+import { createActor } from "./declarations/encrypted_maps_example/index";
 import { _SERVICE as _DEFAULT_ENCRYPTED_MAPS_SERVICE, AccessRights, ByteBuf, EncryptedMapData } from "./declarations/encrypted_maps_example/encrypted_maps_example.did";
 import { EncryptedMapsClient } from "ic_vetkd_sdk_encrypted_maps/src/index";
 
