@@ -3,7 +3,7 @@
 > [!IMPORTANT]  
 > These support libraries are under active development and are subject to change. Access to the repositories have been opened to allow for early feedback. Check back regularly for updates.
 >
-> Please share your feedback on the [developer forum](https://forum.dfinity.org/).
+> Please share your feedback on the [developer forum](https://forum.dfinity.org/t/threshold-key-derivation-privacy-on-the-ic/16560/179).
 
 **EncryptedMaps** is a support library built on top of **VetKey CDK - KeyManager**, designed to facilitate secure, encrypted data sharing between users on the Internet Computer (ICP) using the **vetKeys** feature. It allows developers to store encrypted key-value pairs (**maps**) securely and to manage fine-grained user access.
 

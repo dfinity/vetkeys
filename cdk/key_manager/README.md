@@ -3,7 +3,7 @@
 > [!IMPORTANT]  
 > These support libraries are under active development and are subject to change. Access to the repositories have been opened to allow for early feedback. Check back regularly for updates.
 >
-> Please share your feedback on the [developer forum](https://forum.dfinity.org/).
+> Please share your feedback on the [developer forum](https://forum.dfinity.org/t/threshold-key-derivation-privacy-on-the-ic/16560/179).
 
 The **KeyManager** is a support library for **VetKeys**, an Internet Computer (ICP) feature that enables the derivation of **encrypted cryptographic keys**. This library simplifies the process of key retrieval, encryption, and controlled sharing, ensuring secure and efficient key management for canisters and users.
 
