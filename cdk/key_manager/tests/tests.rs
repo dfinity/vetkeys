@@ -1,3 +1,5 @@
+use std::collections::BTreeSet;
+
 use assert_matches::assert_matches;
 use ic_stable_structures::{
     memory_manager::{MemoryId, MemoryManager},
@@ -15,6 +17,39 @@ use rand::{CryptoRng, Rng};
 fn can_init_memory() {
     // prevent the compiler from optimizing away the function call
     std::hint::black_box(random_key_manager(&mut reproducible_rng()));
+}
+
+#[test]
+fn get_accessible_shared_key_ids_works_correctly() {
+    let rng = &mut reproducible_rng();
+    let user_to_be_added = random_self_authenticating_principal(rng);
+    let mut key_manager = random_key_manager(rng);
+
+    let mut map_ids = BTreeSet::new();
+
+    for _ in 0..10 {
+        let caller = random_self_authenticating_principal(rng);
+        let access_rights = random_access_rights(rng);
+        let name = random_name(rng);
+
+        assert_eq!(
+            key_manager.set_user_rights(
+                caller,
+                (caller, name.clone()),
+                user_to_be_added,
+                access_rights
+            ),
+            Ok(None)
+        );
+
+        map_ids.insert((caller, name));
+        let computed_map_ids: BTreeSet<_> = key_manager
+            .get_accessible_shared_key_ids(user_to_be_added)
+            .into_iter()
+            .collect();
+
+        assert_eq!(computed_map_ids, map_ids);
+    }
 }
 
 #[test]
