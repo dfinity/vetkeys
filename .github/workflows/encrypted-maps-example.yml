@@ -36,7 +36,7 @@ jobs:
           npm install
           npm test
   encrypted-maps-example-linux:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
       - name: Provision Linux
