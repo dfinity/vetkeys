@@ -28,7 +28,8 @@ pushd frontend
 popd
 
 # Store environment variables for the frontend.
-echo "CANISTER_ID_ENCRYPTED_MAPS_EXAMPLE=$CANISTER_ID_ENCRYPTED_MAPS_EXAMPLE" > frontend/.env
+echo "DFX_NETWORK=$DFX_NETWORK" > frontend/.env
+echo "CANISTER_ID_ENCRYPTED_MAPS_EXAMPLE=$CANISTER_ID_ENCRYPTED_MAPS_EXAMPLE" >> frontend/.env
 echo "CANISTER_ID_INTERNET_IDENTITY=$CANISTER_ID_INTERNET_IDENTITY" >> frontend/.env
 
 # Deploy the frontend canister.
