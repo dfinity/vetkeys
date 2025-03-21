@@ -6,6 +6,7 @@ import tailwindcss from 'tailwindcss'
 import autoprefixer from "autoprefixer";
 import css from 'rollup-plugin-css-only';
 import typescript from '@rollup/plugin-typescript';
+import environment from 'vite-plugin-environment';
 
 const production = false;// !process.env.VITE_WATCH_MODE;
 
@@ -20,16 +21,13 @@ export default defineConfig({
       sourceMap: true,
       inlineSources: true,
     }),
+    environment("all", { prefix: "CANISTER_" }),
+    environment("all", { prefix: "DFX_" }),
   ],
   esbuild: {
     supported: {
       'top-level-await': true //browsers can handle top-level-await features
     },
-  },
-  define: {
-    'process.env.DFX_NETWORK': JSON.stringify(process.env.DFX_NETWORK),
-    'process.env.CANISTER_ID_INTERNET_IDENTITY': JSON.stringify(process.env.CANISTER_ID_INTERNET_IDENTITY),
-    'process.env.CANISTER_ID_ENCRYPTED_MAPS_EXAMPLE': JSON.stringify(process.env.CANISTER_ID_ENCRYPTED_MAPS_EXAMPLE)
   },
   css: {
     postcss: {

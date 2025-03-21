@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -ex
+set -e
 
 # Check that `dfx` is installed.
 dfx --version >> /dev/null
@@ -26,6 +26,10 @@ pushd frontend
     npm i
     npm run build
 popd
+
+# Store environment variables for the frontend.
+echo "CANISTER_ID_ENCRYPTED_MAPS_EXAMPLE=$CANISTER_ID_ENCRYPTED_MAPS_EXAMPLE" > frontend/.env
+echo "CANISTER_ID_INTERNET_IDENTITY=$CANISTER_ID_INTERNET_IDENTITY" >> frontend/.env
 
 # Deploy the frontend canister.
 dfx deploy www
