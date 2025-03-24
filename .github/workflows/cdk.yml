@@ -13,7 +13,7 @@ concurrency:
   cancel-in-progress: true
 jobs:
   cargo-clippy-cdk-linux:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
       - name: Provision Linux
@@ -24,7 +24,7 @@ jobs:
           export CARGO_TERM_COLOR=always # ensure output has colors
           cargo clippy -- -Dwarnings
   cargo-test-cdk-linux:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
       - name: Provision Linux
