@@ -11,6 +11,9 @@
         "preview": "vite preview",
         "gen-bindings": "cd ../backend && make extract-candid && cd .. && dfx generate password_manager_with_metadata && mv src/declarations/password_manager_with_metadata/* frontend/src/declarations/ && rmdir -p src/declarations/password_manager_with_metadata"
     },
+    "peerDependencies": {
+        "ic_vetkd_sdk_encrypted_maps": "^0.1.0"
+    },
     "devDependencies": {
         "@eslint/js": "^9.22.0",
         "@rollup/plugin-typescript": "^12.1.2",
@@ -37,7 +40,6 @@
         "@dfinity/principal": "^2.3.0",
         "@sveltejs/vite-plugin-svelte": "^3.0.2",
         "daisyui": "^4.12.23",
-        "ic_vetkd_sdk_encrypted_maps": "file:../../../sdk/ic_vetkd_sdk_encrypted_maps",
         "save": "^2.9.0",
         "svelte": "^4.2.19",
         "svelte-icons": "^2.1.0",
