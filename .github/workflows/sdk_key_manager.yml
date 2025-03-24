@@ -22,7 +22,7 @@ jobs:
       - name: Test/Lint KeyManager
         run: |
           set -eExuo pipefail
-          cd sdk/ic_sdk_vetkd_key_manager
+          cd sdk/ic_vetkd_sdk_key_manager
           npm install
           # no tests at the moment
           npm run lint
