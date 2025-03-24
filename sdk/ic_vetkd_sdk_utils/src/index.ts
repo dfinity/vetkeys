@@ -255,6 +255,9 @@ export class VetKey {
     /**
      * Derive a symmetric key of the requested length from the VetKey
      *
+     * As an alternative to this function consider using asDerivedKeyMaterial,
+     * which uses the WebCrypto API and prevents export of the underlying key.
+     *
      * The `domainSep` parameter should be a string unique to your application and
      * also your usage of the resulting key. For example say your application
      * "my-app" is deriving two keys, one for usage "foo" and the other for
@@ -265,9 +268,7 @@ export class VetKey {
     }
 
     /**
-     * Return a WebCrypto CryptoKey handle suitable for further key derivation
-     *
-     * The CryptoKey is not exportable
+     * Return a DerivedKeyMaterial type which is suitable for further key derivation
      */
     async asDerivedKeyMaterial(): Promise<DerivedKeyMaterial> {
         return DerivedKeyMaterial.setup(this.#bytes);
@@ -332,7 +333,7 @@ export class DerivedKeyMaterial {
     /**
      * Return a WebCrypto CryptoKey handle suitable for AES-GCM encryption/decryption
      *
-     * The key is derived from the VetKey using HKDF with the provided domain separator
+     * The key is derived using HKDF with the provided domain separator
      *
      * The CryptoKey is not exportable
      */
@@ -358,7 +359,7 @@ export class DerivedKeyMaterial {
     /**
      * Encrypt the provided message using AES-GCM and a key derived using HKDF
      *
-     * The GCM key is derived from the VetKey using HKDF with the provided domain separator
+     * The GCM key is derived using HKDF with the provided domain separator
      */
     async encryptMessage(message: Uint8Array | string, domainSep: Uint8Array | string): Promise<Uint8Array> {
         const gcmKey = await this.deriveAesGcmCryptoKey(domainSep);
@@ -375,7 +376,7 @@ export class DerivedKeyMaterial {
     /**
      * Decrypt the provided ciphertext using AES-GCM and a key derived using HKDF
      *
-     * The GCM key is derived from the VetKey using HKDF with the provided domain separator
+     * The GCM key is derived using HKDF with the provided domain separator
      */
     async decryptMessage(message: Uint8Array, domainSep: Uint8Array | string): Promise<Uint8Array> {
         const NonceLength = 12;
