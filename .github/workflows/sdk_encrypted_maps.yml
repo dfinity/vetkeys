@@ -22,7 +22,7 @@ jobs:
       - name: Test/Lint EncryptedMaps
         run: |
           set -eExuo pipefail
-          cd sdk/ic_vetkd_encrypted_maps
+          cd sdk/ic_sdk_vetkd_encrypted_maps
           npm install
           # no tests at the moment
           npm run lint
