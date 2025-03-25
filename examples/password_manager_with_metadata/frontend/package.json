@@ -24,6 +24,7 @@
         "autoprefixer": "^10.4.20",
         "eslint": "^9.22.0",
         "prettier": "3.5.3",
+        "prettier-package-json": "^2.8.0",
         "prettier-plugin-svelte": "^3.3.3",
         "rollup-plugin-css-only": "^4.5.2",
         "typescript-eslint": "^8.26.1",
