@@ -13,7 +13,8 @@
   },
   "dependencies": {
     "@dfinity/principal": "^2.3.0",
-    "idb-keyval": "^6.2.1"
+    "idb-keyval": "^6.2.1",
+    "prettier": "^3.5.3"
   },
   "devDependencies": {
     "@eslint/js": "^9.22.0",

@@ -8,7 +8,8 @@
     "typings": "dist/types/index.d.ts",
     "dependencies": {
         "@noble/curves": "^1.8.1",
-        "@noble/hashes": "^1.7.1"
+        "@noble/hashes": "^1.7.1",
+        "prettier": "^3.5.3"
     },
     "devDependencies": {
         "@babel/preset-env": "7.26.0",
