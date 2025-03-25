@@ -35,6 +35,7 @@ jobs:
           pushd sdk/ic_vetkd_sdk_encrypted_maps_example
           npm install
           npm test
+          npm run lint
   encrypted-maps-example-linux:
     runs-on: ubuntu-24.04
     steps:
@@ -51,3 +52,4 @@ jobs:
           pushd sdk/ic_vetkd_sdk_encrypted_maps_example
           npm install
           npm test
+          npm run lint

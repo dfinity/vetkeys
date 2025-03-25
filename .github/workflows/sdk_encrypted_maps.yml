@@ -1,0 +1,28 @@
+name: encrypted_maps
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    paths:
+      - sdk/ic_sdk_encrypted_maps/**
+      - sdk/ic_sdk_utils/**
+      - .github/workflows/sdk_encrypted_maps.yml
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  encrypted_maps_linux:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup
+        run: |
+          sudo apt-get install nodejs
+      - name: Test/Lint EncryptedMaps
+        run: |
+          set -eExuo pipefail
+          cd sdk/ic_vetkd_sdk_encrypted_maps
+          npm install
+          # no tests at the moment
+          npm run lint
