@@ -16,7 +16,7 @@ export class EncryptedMaps {
         return await this.canister_client.get_owned_non_empty_map_names();
     }
 
-    async get_all_accessible_encrypted_values(): Promise<Array<[[Principal, ByteBuf], Array<[ByteBuf, ByteBuf]>]>> {
+    async get_all_accessible_values(): Promise<Array<[[Principal, ByteBuf], Array<[ByteBuf, ByteBuf]>]>> {
         const result = await this.canister_client.get_all_accessible_encrypted_values();
         const decryptedResult: Array<[[Principal, ByteBuf], Array<[ByteBuf, ByteBuf]>]> = [];
         for (const [mapId, encryptedValues] of result) {

@@ -290,7 +290,7 @@ test("get all accessible values should work", async () => {
   );
 
   const retrievedValues =
-    await encryptedMapsOwner.get_all_accessible_encrypted_values();
+    await encryptedMapsOwner.get_all_accessible_values();
   for (const [[ownerPrincipal, mapName], values] of retrievedValues) {
     const valuesConverted: Array<Array<Uint8Array>> = values.map(
       ([mapKey, value]) => {
