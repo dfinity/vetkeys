@@ -2,6 +2,7 @@
 build
 coverage
 dist
+README.md
 **/*.js
 **/*.cjs
 **/*.mjs
