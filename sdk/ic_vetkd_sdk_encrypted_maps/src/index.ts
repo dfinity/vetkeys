@@ -18,6 +18,7 @@ export class EncryptedMaps {
 
     async get_all_accessible_encrypted_values(): Promise<Array<[[Principal, ByteBuf], Array<[ByteBuf, ByteBuf]>]>> {
         const result = await this.canister_client.get_all_accessible_encrypted_values();
+        const decryptedResult = [];
         for (const [mapId, encryptedValues] of result) {
             const mapName = new TextDecoder().decode(Uint8Array.from(mapId[1].inner));
             const keyValues: Array<[ByteBuf, ByteBuf]> = [];
@@ -29,10 +30,10 @@ export class EncryptedMaps {
                 }
                 keyValues.push([mapKeyBytes, { inner: value.Ok }]);
             };
-            result.push([mapId, keyValues]);
+            decryptedResult.push([mapId, keyValues]);
         }
 
-        return result;
+        return decryptedResult;
     }
 
     async get_all_accessible_maps(): Promise<Array<MapData>> {
@@ -77,7 +78,6 @@ export class EncryptedMaps {
         for (const [x, y] of encryptedValues.Ok) {
             resultGet.push([new TextDecoder().decode(Uint8Array.from(x.inner)), Uint8Array.from(y.inner)]);
         }
-        // console.info("encryptedMaps.get_values_for_map(" + map_owner.toText() + ", " + map_name + " result: " + resultGet);
 
         const result = new Array<[ByteBuf, ByteBuf]>();
         for (const [mapKey, mapValue] of encryptedValues.Ok) {
@@ -93,7 +93,6 @@ export class EncryptedMaps {
         for (const [x, y] of result) {
             resultDecrypted.push([new TextDecoder().decode(Uint8Array.from(x.inner)), new TextDecoder().decode(Uint8Array.from(y.inner))]);
         }
-        // console.info("decrypted encryptedMaps.get_values_for_map(" + map_owner.toText() + ", " + map_name + " result: " + resultDecrypted);
         return { "Ok": result };
     }
 

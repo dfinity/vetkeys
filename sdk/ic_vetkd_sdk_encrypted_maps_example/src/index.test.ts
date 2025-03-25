@@ -3,7 +3,7 @@ import { DefaultEncryptedMapsClient } from "./index";
 import { expect, test } from 'vitest'
 import fetch from 'isomorphic-fetch';
 import { Ed25519KeyIdentity } from "@dfinity/identity";
-import { EncryptedMaps } from "ic_vetkd_sdk_encrypted_maps/src";
+import { ByteBuf, EncryptedMaps } from "ic_vetkd_sdk_encrypted_maps/src";
 import { randomBytes } from 'node:crypto'
 
 function randomId(): Ed25519KeyIdentity {
@@ -247,7 +247,101 @@ test('get values should work', async () => {
     [new TextEncoder().encode(key2), data2],
     [new TextEncoder().encode(key3), data3]
   ];
-  expect(isEqual2dArrayIfSortedThrowing(mapValues, expectedMapValues)).to.equal(true);
+  expect(isEqual2dArrayIfSortedThrowing(mapValues, expectedMapValues)).to.toBeTruthy();
+});
+
+test("get all accessible values should work", async () => {
+  const id = randomId();
+  const encryptedMapsOwner = await new_encrypted_maps(id);
+  const encryptedMapsSharesWithOwner = await new_encrypted_maps(id);
+  const owner = id.getPrincipal();
+  const sharesWithOwner = id.getPrincipal();
+  const mapName1 = "some map 1";
+  const mapName2 = "some map 2";
+  const key1 = "some key 1";
+  const key2 = "some key 2";
+  const key3 = "some key 3";
+  const key4 = "some key 4";
+  const data1 = new TextEncoder().encode("Hello, world 1!");
+  const data2 = new TextEncoder().encode("Hello, world 2!");
+  const data3 = new TextEncoder().encode("Hello, world 3!");
+  const data4 = new TextEncoder().encode("Hello, world 4!");
+
+  await encryptedMapsOwner.set_value(owner, mapName1, key1, data1);
+  await encryptedMapsOwner.set_value(owner, mapName1, key2, data2);
+  await encryptedMapsSharesWithOwner.set_value(
+    sharesWithOwner,
+    mapName2,
+    key3,
+    data3
+  );
+  await encryptedMapsSharesWithOwner.set_value(
+    sharesWithOwner,
+    mapName2,
+    key4,
+    data4
+  );
+
+  encryptedMapsSharesWithOwner.set_user_rights(
+    sharesWithOwner,
+    mapName1,
+    owner,
+    { Read: null }
+  );
+
+  const retrievedValues =
+    await encryptedMapsOwner.get_all_accessible_encrypted_values();
+  for (const [[ownerPrincipal, mapName], values] of retrievedValues) {
+    const valuesConverted: Array<Array<Uint8Array>> = values.map(
+      ([mapKey, value]) => {
+        return [Uint8Array.from(mapKey.inner), Uint8Array.from(value.inner)];
+      }
+    );
+    if (
+      ownerPrincipal.compareTo(owner) === "eq" &&
+      isEqualArray(
+        Uint8Array.from(mapName.inner),
+        new TextEncoder().encode(mapName1)
+      )
+    ) {
+      const expectedValues: Array<Array<Uint8Array>> = [
+        [new TextEncoder().encode(key1), data1],
+        [new TextEncoder().encode(key2), data2],
+      ];
+      expect(
+        isEqual2dArrayIfSortedThrowing(valuesConverted, expectedValues)
+      ).to.toBeTruthy();
+    } else if (
+      ownerPrincipal.compareTo(sharesWithOwner) === "eq" &&
+      isEqualArray(
+        Uint8Array.from(mapName.inner),
+        new TextEncoder().encode(mapName2)
+      )
+    ) {
+      const expectedValues: Array<Array<Uint8Array>> = [
+        [new TextEncoder().encode(key3), data3],
+        [new TextEncoder().encode(key4), data4],
+      ];
+      expect(
+        isEqual2dArrayIfSortedThrowing(valuesConverted, expectedValues)
+      ).to.toBeTruthy();
+    } else {
+      throw new Error(
+        "Unexpected map owner and name: " +
+          ownerPrincipal +
+          " " +
+          new TextDecoder().decode(Uint8Array.from(mapName.inner)) +
+          ". Expected were owner=" +
+          owner +
+          ", map=" +
+          mapName1 +
+          " and non-owner=" +
+          sharesWithOwner +
+          ", map=" +
+          mapName2
+      );
+    }
+  }
 });
 
 function isEqualArrayThrowing(a: Uint8Array, b: Uint8Array) {
