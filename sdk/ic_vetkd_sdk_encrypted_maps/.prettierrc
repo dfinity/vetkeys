@@ -1,4 +1,4 @@
 {
-    "plugins": [],
+    "plugins": ["prettier"],
     "tabWidth": 4
 }
