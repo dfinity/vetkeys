@@ -18,12 +18,17 @@
         "@jest/globals": "^29.7.0",
         "eslint": "^9.22.0",
         "jest": "^29.7.0",
-        "prettier-package-json": "^2.8.0",
         "typescript": "^5.7.3",
         "typescript-eslint": "8.27"
     },
     "scripts": {
         "build": "tsc",
+        "prettier-check": "npm run prettier-check:js && npm run prettier-check:package-json",
+        "prettier": "npm run prettier:js && npm run prettier:package-json",
+        "prettier-check:js": "prettier --check .",
+        "prettier:js": "prettier --write .",
+        "prettier-check:package-json": "prettier-package-json --check .",
+        "prettier:package-json": "prettier-package-json --write .",
         "test": "jest",
         "lint": "eslint"
     }

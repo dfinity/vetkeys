@@ -19,12 +19,17 @@
   "devDependencies": {
     "@eslint/js": "^9.22.0",
     "eslint": "^9.22.0",
-    "prettier-package-json": "^2.8.0",
     "typescript": "^5.8.2",
     "typescript-eslint": "^8.27.0"
   },
   "scripts": {
     "build": "tsc",
-    "lint": "eslint"
+    "lint": "eslint",
+    "prettier-check": "npm run prettier-check:js && npm run prettier-check:package-json",
+    "prettier": "npm run prettier:js && npm run prettier:package-json",
+    "prettier-check:js": "prettier --check .",
+    "prettier:js": "prettier --write .",
+    "prettier-check:package-json": "prettier-package-json --check .",
+    "prettier:package-json": "prettier-package-json --write ."
   }
 }
