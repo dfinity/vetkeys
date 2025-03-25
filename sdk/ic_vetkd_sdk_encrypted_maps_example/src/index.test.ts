@@ -213,7 +213,7 @@ test('can get user rights', async () => {
   expect((await encrypted_maps_user.get_user_rights(owner, "some key", user))["Ok"]).to.deep.equal([rights]);
 });
 
-test('get values should work', async () => {
+test('get map values should work', async () => {
   const id = randomId();
   const encrypted_maps = await new_encrypted_maps(id);
   const owner = id.getPrincipal();
