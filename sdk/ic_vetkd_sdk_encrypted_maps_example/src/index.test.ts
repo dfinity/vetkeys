@@ -35,10 +35,10 @@ test('can get vetkey', async () => {
   const vetkey = await encrypted_maps.get_symmetric_vetkey(owner, "some key");
   expect('Ok' in vetkey).to.equal(true);
   // no trivial key output
-  expect(isEqualArray(vetkey["Ok"].inner, new Uint8Array(16))).to.equal(false);
+  expect(isEqualArray(vetkey["Ok"].inner, new Uint8Array(16))).toBeFalsy();
 
   const second_vetkey = await encrypted_maps.get_symmetric_vetkey(owner, "some key");
-  expect(isEqualArray(vetkey["Ok"].inner, second_vetkey["Ok"].inner)).to.equal(true);
+  expect(isEqualArrayThrowing(vetkey["Ok"].inner, second_vetkey["Ok"].inner)).to.equal(true);
 });
 
 test('vetkey encryption roundtrip', async () => {
@@ -58,7 +58,7 @@ test('vetkey encryption roundtrip', async () => {
   if (decrypted_ciphertext.Ok.length === 0) {
     throw new Error("empty result");
   }
-  expect(isEqualArray(plaintext, decrypted_ciphertext.Ok)).to.equal(true);
+  expect(isEqualArrayThrowing(plaintext, decrypted_ciphertext.Ok)).to.equal(true);
 });
 
 test('cannot get unauthorized vetkey', async () => {
@@ -82,7 +82,7 @@ test('can share a key', async () => {
 
   const vetkey_user = await encrypted_maps_user.get_symmetric_vetkey(owner, "some key");
 
-  expect(isEqualArray(vetkey_owner["Ok"].inner, vetkey_user["Ok"].inner)).to.equal(true);
+  expect(isEqualArrayThrowing(vetkey_owner["Ok"].inner, vetkey_user["Ok"].inner)).to.equal(true);
 });
 
 test('set value should work', async () => {
@@ -132,7 +132,7 @@ test('set value should work', async () => {
   if (try_decrypt_from_check.Ok.length === 0) {
     throw new Error("empty result");
   }
-  expect(isEqualArray(try_decrypt_from_check.Ok, plaintext)).to.equal(true);
+  expect(isEqualArrayThrowing(try_decrypt_from_check.Ok, plaintext)).to.equal(true);
 
   const try_decrypt_from_canister = await encrypted_maps.decrypt_for(owner, map_name, map_key, Uint8Array.from(get_value_result.Ok[0].inner));
   if ("Err" in try_decrypt_from_canister) {
@@ -141,7 +141,7 @@ test('set value should work', async () => {
   if (try_decrypt_from_canister.Ok.length === 0) {
     throw new Error("empty result");
   }
-  expect(isEqualArray(try_decrypt_from_canister.Ok, plaintext)).to.equal(true);
+  expect(isEqualArrayThrowing(try_decrypt_from_canister.Ok, plaintext)).to.equal(true);
 });
 
 test('get value should work', async () => {
@@ -170,7 +170,7 @@ test('get value should work', async () => {
     throw new Error("get_value returned empty array");
   }
 
-  expect(isEqualArray(value, get_value_result.Ok)).to.equal(true);
+  expect(isEqualArrayThrowing(value, Uint8Array.from(get_value_result.Ok))).to.equal(true);
 });
 
 test('get-set roundtrip should be consistent', async () => {
@@ -190,20 +190,86 @@ test('get-set roundtrip should be consistent', async () => {
   expect(result.Ok).to.deep.equal(data);
 });
 
-// test('sharing rights are consistent', async () => {
-//   let owner = id0.getPrincipal();
-//   let user = id1.getPrincipal();
-//   let encrypted_maps_owner = new_encrypted_maps(id0);
-//   let encrypted_maps_user = new_encrypted_maps(id1);
-//   let rights = { 'ReadWrite': null };
+test('can get user rights', async () => {
+  const [id0, id1] = ids();
+  let owner = id0.getPrincipal();
+  let user = id1.getPrincipal();
+  let encrypted_maps_owner = await new_encrypted_maps(id0);
+  let encrypted_maps_user = await new_encrypted_maps(id1);
+  let rights = { 'ReadWrite': null };
 
-//   expect((await encrypted_maps_user.get_user_rights(owner, "some key", owner))["Ok"]).to.deep.equal([{ 'ReadWriteManage': null }]);
+  await encrypted_maps_owner.set_value(owner, "some map", "some key", new TextEncoder().encode("Hello, world!"));
+  const initialUserRights = await encrypted_maps_owner.get_user_rights(owner, "some key", owner);
+  if ("Err" in initialUserRights) {
+    throw new Error("Failed to get initial user rights");
+  }
+  expect(initialUserRights.Ok).to.deep.equal([{'ReadWriteManage': null}]);
 
-//   expect((await encrypted_maps_owner.set_user_rights(owner, "some key", user, rights))["Ok"]).to.deep.equal([rights]);
-//   expect((await encrypted_maps_user.get_user_rights(owner, "some key", user))["Ok"]).to.deep.equal([rights]);
-// });
+  const setUserRightsResult = await encrypted_maps_owner.set_user_rights(owner, "some key", user, rights);
+  if ("Err" in setUserRightsResult) {
+    throw new Error(setUserRightsResult.Err);
+  }
+  expect(setUserRightsResult.Ok).to.deep.equal([]);
+  expect((await encrypted_maps_user.get_user_rights(owner, "some key", user))["Ok"]).to.deep.equal([rights]);
+});
 
-function isEqualArray(a, b) {
+test('get values should work', async () => {
+  const id = randomId();
+  const encrypted_maps = await new_encrypted_maps(id);
+  const owner = id.getPrincipal();
+  const key1 = "some key 1";
+  const key2 = "some key 2";
+  const key3 = "some key 3";
+  const data1 = new TextEncoder().encode("Hello, world 1!");
+  const data2 = new TextEncoder().encode("Hello, world 2!");
+  const data3 = new TextEncoder().encode("Hello, world 3!");
+  const mapName = "some map";
+
+  await encrypted_maps.set_value(owner, mapName, key1, data1);
+  await encrypted_maps.set_value(owner, mapName, key2, data2);
+  await encrypted_maps.set_value(owner, mapName, key3, data3);
+  const result = await encrypted_maps.get_values_for_map(owner, mapName);
+  if ("Err" in result) {
+    throw new Error(result.Err);
+  }
+  if (result.Ok.length === 0) {
+    throw new Error("empty result");
+  }
+  expect(result.Ok.length).to.equal(3);
+
+  const mapValues: Array<Array<Uint8Array>> = result.Ok.map(
+    (keyValue) => {
+      return [Uint8Array.from(keyValue[0].inner), Uint8Array.from(keyValue[1].inner)]; 
+    }
+  );
+  const expectedMapValues: Array<Array<Uint8Array>> = [
+    [new TextEncoder().encode(key1), data1],
+    [new TextEncoder().encode(key2), data2],
+    [new TextEncoder().encode(key3), data3]
+  ];
+  expect(isEqual2dArrayIfSortedThrowing(mapValues, expectedMapValues)).to.equal(true);
+});
+
+function isEqualArrayThrowing(a: Uint8Array, b: Uint8Array) {
+  if (!isEqualArray(a,b)) { throw Error("Arrays not equal\n\na: " + a + "\n\nb: " + b); };
+  return true;
+}
+
+function isEqualArray(a: Uint8Array, b: Uint8Array) : boolean {
   if (a.length != b.length) return false;
-  for (let i = 0; i < a.length; i++) if (a[i] != b[i]) return false; return true;
+  for (let i = 0; i < a.length; i++) { if (a[i] != b[i]) return false; }
+  return true;
+}
+
+function isEqual2dArrayIfSortedThrowing(a: Array<Array<Uint8Array>>, b: Array<Array<Uint8Array>>) : boolean {
+  if (a.length != b.length) throw Error("Arrays not equal length\n\na: " + JSON.stringify(a) + "\n\nb: " + JSON.stringify(b));
+
+  for (const [keyA, valueA] of a) {
+    const isFound = b.find(([keyB, valueB]) => { return isEqualArray(keyA, keyB) && isEqualArray(valueA, valueB); } );
+    if (!isFound) {
+      throw Error("Arrays not equal\n\na: " + JSON.stringify(a) + "\n\nb: " + JSON.stringify(b));
+    }
+  }
+
+  return true;
 }

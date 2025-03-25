@@ -18,15 +18,20 @@ export class EncryptedMaps {
 
     async get_all_accessible_encrypted_values(): Promise<Array<[[Principal, ByteBuf], Array<[ByteBuf, ByteBuf]>]>> {
         const result = await this.canister_client.get_all_accessible_encrypted_values();
-        result.map(([mapId, encryptedValues]) => {
+        for (const [mapId, encryptedValues] of result) {
             const mapName = new TextDecoder().decode(Uint8Array.from(mapId[1].inner));
-            const values = encryptedValues.map(([mapKeyBytes, encryptedValue]) => {
+            const keyValues: Array<[ByteBuf, ByteBuf]> = [];
+            for (const [mapKeyBytes, encryptedValue] of encryptedValues) {
                 const mapKey = new TextDecoder().decode(Uint8Array.from(mapKeyBytes.inner));
-                return this.decrypt_for(mapId[0], mapName, mapKey, Uint8Array.from(encryptedValue.inner));
-            });
-            /* eslint-disable @typescript-eslint/no-unused-expressions */
-            [mapId, values]
-        })
+                const value = await this.decrypt_for(mapId[0], mapName, mapKey, Uint8Array.from(encryptedValue.inner));
+                if ("Err" in value) {
+                    throw Error(value.Err);
+                }
+                keyValues.push([mapKeyBytes, { inner: value.Ok }]);
+            };
+            result.push([mapId, keyValues]);
+        }
+
         return result;
     }
 
