@@ -8,13 +8,11 @@
     "main": "dist/index.umd.js",
     "module": "dist/index.es5.js",
     "typings": "dist/types/index.d.ts",
-    "peerDependencies": {
-        "ic_vetkd_sdk_encrypted_maps": "^0.1.0"
-    },
     "dependencies": {
         "@dfinity/agent": "^2.3.0",
         "@dfinity/candid": "^2.3.0",
         "@dfinity/principal": "^2.3.0",
+        "ic_vetkd_sdk_encrypted_maps": "^0.1.0",
         "vite-plugin-top-level-await": "^1.4.4",
         "vite-plugin-wasm": "^3.4.1"
     },
