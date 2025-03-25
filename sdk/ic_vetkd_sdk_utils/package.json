@@ -26,6 +26,7 @@
         "build": "tsc",
         "lint": "eslint",
         "prettier": "prettier --write .",
-        "prettier-check": "prettier --check ."
+        "prettier-check": "prettier --check .",
+        "test": "jest"
     }
 }
