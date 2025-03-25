@@ -3,7 +3,7 @@ import { DefaultEncryptedMapsClient } from "./index";
 import { expect, test } from 'vitest'
 import fetch from 'isomorphic-fetch';
 import { Ed25519KeyIdentity } from "@dfinity/identity";
-import { ByteBuf, EncryptedMaps } from "ic_vetkd_sdk_encrypted_maps/src";
+import { EncryptedMaps } from "ic_vetkd_sdk_encrypted_maps/src";
 import { randomBytes } from 'node:crypto'
 
 function randomId(): Ed25519KeyIdentity {
@@ -192,11 +192,11 @@ test('get-set roundtrip should be consistent', async () => {
 
 test('can get user rights', async () => {
   const [id0, id1] = ids();
-  let owner = id0.getPrincipal();
-  let user = id1.getPrincipal();
-  let encrypted_maps_owner = await new_encrypted_maps(id0);
-  let encrypted_maps_user = await new_encrypted_maps(id1);
-  let rights = { 'ReadWrite': null };
+  const owner = id0.getPrincipal();
+  const user = id1.getPrincipal();
+  const encrypted_maps_owner = await new_encrypted_maps(id0);
+  const encrypted_maps_user = await new_encrypted_maps(id1);
+  const rights = { 'ReadWrite': null };
 
   await encrypted_maps_owner.set_value(owner, "some map", "some key", new TextEncoder().encode("Hello, world!"));
   const initialUserRights = await encrypted_maps_owner.get_user_rights(owner, "some key", owner);
