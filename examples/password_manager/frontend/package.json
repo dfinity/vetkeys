@@ -6,6 +6,8 @@
     "dev": "vite",
     "build": "npm run build:deps && vite build",
     "build:deps": "cd ../../../sdk/ic_vetkd_sdk_encrypted_maps_example && npm i && npm run build",
+    "prettier-check": "prettier --check .",
+    "prettier": "prettier --write .",
     "preview": "vite preview"
   },
   "peerDependencies": {
@@ -15,6 +17,8 @@
   "devDependencies": {
     "@rollup/plugin-typescript": "^12.1.2",
     "daisyui": "^4.12.23",
+    "prettier": "^3.5.3",
+    "prettier-plugin-svelte": "^3.3.3",
     "svelte": "^4.2.19",
     "vite": "^5.4.14",
     "vite-plugin-environment": "^1.1.3",

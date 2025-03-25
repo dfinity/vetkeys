@@ -8,6 +8,8 @@
         "build": "npm run build:deps && vite build",
         "build:deps": "cd ../../../sdk/ic_vetkd_sdk_encrypted_maps_example && npm i && npm run build",
         "lint": "eslint",
+        "prettier-check": "prettier --check .",
+        "prettier": "prettier --write .",
         "preview": "vite preview",
         "gen-bindings": "cd ../backend && make extract-candid && cd .. && dfx generate password_manager_with_metadata && mv src/declarations/password_manager_with_metadata/* frontend/src/declarations/ && rmdir -p src/declarations/password_manager_with_metadata"
     },
