@@ -22,7 +22,7 @@ export function addNotification(notification: NewNotification, timeout = 2000) {
     }, timeout);
 }
 
-export function showError(e: any, message: string): never {
+export function showError(e: Error, message: string): never {
     addNotification({ type: "error", message });
     console.error(e);
     console.error(e.stack);

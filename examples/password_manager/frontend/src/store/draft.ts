@@ -10,7 +10,7 @@ let initialDraft: DraftModel = {
 };
 
 try {
-    let getDraft = localStorage.getItem("draft");
+    const getDraft = localStorage.getItem("draft");
     if (getDraft) {
         const savedDraft: DraftModel = JSON.parse(getDraft);
         if ("content" in savedDraft && "tags" in savedDraft) {
@@ -19,7 +19,9 @@ try {
     } else {
         throw new Error("Draft not found");
     }
-} catch {}
+} catch {
+    // ignore error
+}
 
 export const draft = writable<DraftModel>(initialDraft);
 
