@@ -25,11 +25,7 @@
     "scripts": {
         "build": "tsc",
         "lint": "eslint",
-        "prettier-check": "npm run prettier-check:js && npm run prettier-check:package-json",
-        "prettier": "npm run prettier:js && npm run prettier:package-json",
-        "prettier-check:js": "prettier --check .",
-        "prettier:js": "prettier --write .",
-        "prettier-check:package-json": "prettier-package-json --check .",
-        "prettier:package-json": "prettier-package-json --write ."
+        "prettier": "prettier --write .",
+        "prettier-check": "prettier --check ."
     }
 }

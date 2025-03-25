@@ -3,15 +3,11 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
     "build": "npm run build:deps && vite build",
     "build:deps": "cd ../../../sdk/ic_vetkd_sdk_encrypted_maps_example && npm i && npm run build",
-        "prettier-check": "npm run prettier-check:js && npm run prettier-check:package-json",
-        "prettier": "npm run prettier:js && npm run prettier:package-json",
-        "prettier-check:js": "prettier --check .",
-        "prettier:js": "prettier --write .",
-        "prettier-check:package-json": "prettier-package-json --check .",
-        "prettier:package-json": "prettier-package-json --write .",
+    "dev": "vite",
+    "prettier": "prettier --write .",
+    "prettier-check": "prettier --check .",
     "preview": "vite preview"
   },
   "peerDependencies": {
@@ -22,7 +18,6 @@
     "@rollup/plugin-typescript": "^12.1.2",
     "daisyui": "^4.12.23",
     "prettier": "^3.5.3",
-    "prettier-package-json": "^2.8.0",
     "prettier-plugin-svelte": "^3.3.3",
     "svelte": "^4.2.19",
     "vite": "^5.4.14",

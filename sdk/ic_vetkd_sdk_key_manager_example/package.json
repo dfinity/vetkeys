@@ -36,13 +36,9 @@
   "scripts": {
     "build": "tsc && vite build",
     "coverage": "vitest run --coverage",
-        "prettier-check": "npm run prettier-check:js && npm run prettier-check:package-json",
-        "prettier": "npm run prettier:js && npm run prettier:package-json",
-        "prettier-check:js": "prettier --check .",
-        "prettier:js": "prettier --write .",
-        "prettier-check:package-json": "prettier-package-json --check .",
-        "prettier:package-json": "prettier-package-json --write .",
-    "test": "vitest",
-    "lint": "eslint"
+    "lint": "eslint",
+    "prettier": "prettier --write .",
+    "prettier-check": "prettier --check .",
+    "test": "vitest"
   }
 }
