@@ -205,7 +205,7 @@ test('can get user rights', async () => {
   }
   expect(initialUserRights.Ok).to.deep.equal([{'ReadWriteManage': null}]);
 
-  expect((await encrypted_maps_user.get_user_rights(owner, "some key", user))["Ok"]).to.deep.equal([]);
+  expect((await encrypted_maps_owner.get_user_rights(owner, "some key", user))["Ok"]).to.deep.equal([]);
   const setUserRightsResult = await encrypted_maps_owner.set_user_rights(owner, "some key", user, rights);
   if ("Err" in setUserRightsResult) {
     throw new Error(setUserRightsResult.Err);
@@ -283,15 +283,23 @@ test("get all accessible values should work", async () => {
     data4
   );
 
-  encryptedMapsSharesWithOwner.set_user_rights(
+  await encryptedMapsSharesWithOwner.set_user_rights(
     sharesWithOwner,
-    mapName1,
+    mapName2,
     owner,
     { Read: null }
   );
 
   const retrievedValues =
     await encryptedMapsOwner.get_all_accessible_values();
+
+  // 2 maps
+  expect(retrievedValues.length).to.equal(2);
+  // 2 keys in the first map
+  expect(retrievedValues[0][1].length).to.equal(2);
+  // 2 maps in the second map
+  expect(retrievedValues[1][1].length).to.equal(2);
+
   for (const [[ownerPrincipal, mapName], values] of retrievedValues) {
     const valuesConverted: Array<Array<Uint8Array>> = values.map(
       ([mapKey, value]) => {
