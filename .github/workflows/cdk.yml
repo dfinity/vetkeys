@@ -42,7 +42,6 @@ jobs:
       - name: Provision Darwin
         run: |
           bash .github/workflows/provision-darwin.sh
-          brew install llvm
       - name: Run Tests Darwin
         run: |
           set -eExuo pipefail
