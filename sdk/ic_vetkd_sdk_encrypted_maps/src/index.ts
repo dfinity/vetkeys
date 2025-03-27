@@ -68,7 +68,6 @@ export class EncryptedMaps {
         for (const [x, y] of encryptedValues.Ok) {
             resultGet.push([new TextDecoder().decode(Uint8Array.from(x.inner)), Uint8Array.from(y.inner)]);
         }
-        // console.info("encryptedMaps.get_values_for_map(" + map_owner.toText() + ", " + map_name + " result: " + resultGet);
 
         const result = new Array<[ByteBuf, ByteBuf]>();
         for (const [mapKey, mapValue] of encryptedValues.Ok) {
@@ -80,7 +79,6 @@ export class EncryptedMaps {
         for (const [x, y] of result) {
             resultDecrypted.push([new TextDecoder().decode(Uint8Array.from(x.inner)), new TextDecoder().decode(Uint8Array.from(y.inner))]);
         }
-        // console.info("decrypted encryptedMaps.get_values_for_map(" + map_owner.toText() + ", " + map_name + " result: " + resultDecrypted);
         return { "Ok": result };
     }
 
@@ -165,26 +163,6 @@ export class EncryptedMaps {
         await set([[map_owner.toString(), map_name]], derivedKeyMaterial)
         return derivedKeyMaterial;
     }
-
-    // async get_subkey_and_fetch_and_derive_if_needed(map_owner: Principal, map_name: string, map_key: string): Promise<{ 'Ok': CryptoKey } | { 'Err': string }> {
-    //     const maybe_derived_key = await get([[map_owner.toString(), map_name, map_key]]);
-    //     if (maybe_derived_key) {
-    //         return { 'Ok': maybe_derived_key };
-    //     }
-    //     const get_vetkey_result = await this.get_vetkey_or_fetch_if_needed(map_owner, map_name);
-    //     if ("Err" in get_vetkey_result) { return get_vetkey_result; }
-
-    //     const algorithm = {
-    //         name: "HKDF", salt: new TextEncoder().encode(map_key),
-    //         info: new TextEncoder().encode("ic_vetkd_sdk_encrypted_maps_subkey"),
-    //         hash: "SHA-256",
-    //     };
-    //     const derived_key = await window.crypto.subtle.deriveKey(algorithm, get_vetkey_result.Ok, { name: "AES-GCM", length: 256 }, true, ["encrypt", "decrypt"]);
-
-    //     await set([[map_owner.toString(), map_name, map_key]], derived_key);
-
-    //     return { 'Ok': derived_key };
-    // }
 }
 
 export interface MapData {
@@ -193,38 +171,6 @@ export interface MapData {
     'map_name': Uint8Array,
     'map_owner': Principal,
 }
-
-// export async function encrypt(bytes_to_encrypt: Uint8Array, key: CryptoKey): Promise<Uint8Array> {
-//     // The iv must never be reused with a given key.
-//     const iv = window.crypto.getRandomValues(new Uint8Array(12));
-//     const ciphertext = await window.crypto.subtle.encrypt(
-//         {
-//             name: "AES-GCM",
-//             iv: iv
-//         },
-//         key,
-//         bytes_to_encrypt
-//     );
-
-//     return Uint8Array.from([...iv, ...new Uint8Array(ciphertext)]);
-// }
-
-// export async function decrypt(encrypted_value: Uint8Array, key: CryptoKey): Promise<Uint8Array> {
-//     const iv = Uint8Array.from(encrypted_value.slice(0, 12));
-//     const ciphertext = Uint8Array.from(encrypted_value.slice(12));
-
-//     const decrypted_bytes = await window.crypto.subtle.decrypt(
-//         {
-//             name: "AES-GCM",
-//             iv: iv
-//         },
-//         key,
-//         ciphertext
-//     );
-
-//     return new Uint8Array(decrypted_bytes);
-// }
-
 
 export interface EncryptedMapsClient {
     get_accessible_shared_map_names(): Promise<[Principal, ByteBuf][]>;
