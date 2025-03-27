@@ -205,6 +205,7 @@ test('can get user rights', async () => {
   }
   expect(initialUserRights.Ok).to.deep.equal([{'ReadWriteManage': null}]);
 
+  expect((await encrypted_maps_user.get_user_rights(owner, "some key", user))["Ok"]).to.deep.equal([]);
   const setUserRightsResult = await encrypted_maps_owner.set_user_rights(owner, "some key", user, rights);
   if ("Err" in setUserRightsResult) {
     throw new Error(setUserRightsResult.Err);
