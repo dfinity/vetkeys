@@ -253,7 +253,7 @@ test("get all accessible values should work", async () => {
   expect(retrievedValues.length).to.equal(2);
   // 2 keys in the first map
   expect(retrievedValues[0][1].length).to.equal(2);
-  // 2 maps in the second map
+  // 2 keys in the second map
   expect(retrievedValues[1][1].length).to.equal(2);
 
   for (const [[ownerPrincipal, mapName], values] of retrievedValues) {
