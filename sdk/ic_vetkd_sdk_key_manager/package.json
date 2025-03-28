@@ -8,9 +8,6 @@
     "main": "dist/index.umd.js",
     "module": "dist/index.es5.js",
     "typings": "dist/types/index.d.ts",
-    "peerDependencies": {
-        "ic-vetkd-cdk-utils": "^0.1.0"
-    },
     "license": "Apache-2.0",
     "dependencies": {
         "@dfinity/principal": "^2.3.0"
@@ -28,5 +25,8 @@
         "lint": "eslint",
         "prettier": "prettier --write .",
         "prettier-check": "prettier --check ."
+    },
+    "peerDependencies": {
+        "ic_vetkd_sdk_utils": "^0.1.0"
     }
 }

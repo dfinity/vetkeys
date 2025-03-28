@@ -15,9 +15,7 @@
     "@dfinity/agent": "^2.3.0",
     "@dfinity/candid": "^2.3.0",
     "@dfinity/principal": "^2.3.0",
-    "@types/node": "^22.13.0",
-    "vite-plugin-top-level-await": "^1.4.4",
-    "vite-plugin-wasm": "^3.4.1"
+    "@types/node": "^22.13.0"
   },
   "devDependencies": {
     "@dfinity/identity": "^2.2.0",

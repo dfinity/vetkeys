@@ -36,15 +36,12 @@ export class PasswordManager {
             passwordName,
             password,
         );
-        if ("Err" in encryptedPassword) {
-            return encryptedPassword;
-        }
         const maybeError =
             await this.canisterClient.insert_encrypted_value_with_metadata(
                 owner,
                 stringToBytebuf(vault),
                 stringToBytebuf(passwordName),
-                { inner: encryptedPassword.Ok },
+                { inner: encryptedPassword },
                 tags,
                 url,
             );
@@ -104,12 +101,8 @@ export class PasswordManager {
                     passwordNameString,
                     Uint8Array.from(encryptedData.inner),
                 );
-                if ("Err" in data) {
-                    throw new Error(data.Err);
-                }
-                const passwordContent = new TextDecoder().decode(
-                    Uint8Array.from(data.Ok),
-                );
+
+                const passwordContent = new TextDecoder().decode(data);
                 const password = passwordFromContent(
                     otherOwner,
                     vaultName,

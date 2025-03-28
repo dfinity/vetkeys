@@ -13,6 +13,8 @@ on:
       - sdk/ic_vetkd_sdk_key_manager/**
       - sdk/ic_vetkd_sdk_key_manager_example/**
       - sdk/ic_vetkd_sdk_utils/**
+      - package.json
+      - package-lock.json
       - .github/workflows/provision-darwin.sh
       - .github/workflows/provision-linux.sh
       - .github/workflows/key-manager-example.yml
