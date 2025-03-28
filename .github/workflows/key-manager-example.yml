@@ -27,7 +27,6 @@ jobs:
       - name: Provision Darwin
         run: |
           bash .github/workflows/provision-darwin.sh
-          brew install llvm
       - name: Key Manager Example Darwin
         run: |
           pushd cdk/key_manager_example

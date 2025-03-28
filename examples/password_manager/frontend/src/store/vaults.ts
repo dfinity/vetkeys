@@ -54,10 +54,7 @@ export async function addPassword(
     password: PasswordModel,
     encryptedMaps: EncryptedMaps
 ) {
-    let result = await encryptedMaps.set_value(password.owner, password.parentVaultName, password.passwordName, new TextEncoder().encode(password.content));
-    if ("Err" in result) {
-        throw new Error(result.Err);
-    }
+    await encryptedMaps.set_value(password.owner, password.parentVaultName, password.passwordName, new TextEncoder().encode(password.content));
 }
 
 export async function removePassword(
@@ -74,10 +71,7 @@ export async function updatePassword(
     password: PasswordModel,
     encryptedMaps: EncryptedMaps
 ) {
-    let result = await encryptedMaps.set_value(password.owner, password.parentVaultName, password.passwordName, new TextEncoder().encode(password.content));
-    if ("Err" in result) {
-        throw new Error(result.Err);
-    }
+    await encryptedMaps.set_value(password.owner, password.parentVaultName, password.passwordName, new TextEncoder().encode(password.content));
 }
 
 export async function addUser(

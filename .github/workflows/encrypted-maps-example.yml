@@ -24,7 +24,6 @@ jobs:
       - name: Provision Darwin
         run: |
           bash .github/workflows/provision-darwin.sh
-          brew install llvm
       - name: Encrypted Maps Example Darwin
         run: |
           pushd cdk/encrypted_maps_example
