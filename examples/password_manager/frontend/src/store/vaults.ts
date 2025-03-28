@@ -37,28 +37,22 @@ function updateVaults(vaults: VaultModel[]) {
 export async function refreshVaults(encryptedMaps: EncryptedMaps) {
     const allMaps = await encryptedMaps.get_all_accessible_maps();
     const vaults = allMaps.map((mapData) => {
-        const mapName = new TextDecoder().decode(
-            Uint8Array.from(mapData.map_name),
-        );
         const passwords = new Array<[string, PasswordModel]>();
-        for (const [passwordNameBytebuf, data] of mapData.keyvals) {
-            const passwordNameString = new TextDecoder().decode(
-                Uint8Array.from(passwordNameBytebuf),
-            );
+        for (const [passwordName, data] of mapData.keyvals) {
             const passwordContent = new TextDecoder().decode(
                 Uint8Array.from(data),
             );
             const password = passwordFromContent(
                 mapData.map_owner,
-                mapName,
-                passwordNameString,
+                mapData.map_name,
+                passwordName,
                 passwordContent,
             );
-            passwords.push([passwordNameString, password]);
+            passwords.push([passwordName, password]);
         }
         return vaultFromContent(
             mapData.map_owner,
-            mapName,
+            mapData.map_name,
             passwords,
             mapData.access_control,
         );
@@ -78,14 +72,11 @@ export async function removePassword(
     password: PasswordModel,
     encryptedMaps: EncryptedMaps,
 ) {
-    const result = await encryptedMaps.remove_encrypted_value(
+    await encryptedMaps.remove_encrypted_value(
         password.owner,
         password.parentVaultName,
         password.passwordName,
     );
-    if ("Err" in result) {
-        throw new Error(result.Err);
-    }
 }
 
 export async function updatePassword(
@@ -102,15 +93,12 @@ export async function addUser(
     userRights: AccessRights,
     encryptedMaps: EncryptedMaps,
 ) {
-    const result = await encryptedMaps.set_user_rights(
+    await encryptedMaps.set_user_rights(
         owner,
         vaultName,
         user,
         userRights,
     );
-    if ("Err" in result) {
-        throw new Error(result.Err);
-    }
 }
 
 export async function removeUser(
@@ -119,10 +107,7 @@ export async function removeUser(
     user: Principal,
     encryptedMaps: EncryptedMaps,
 ) {
-    const result = await encryptedMaps.remove_user(owner, vaultName, user);
-    if ("Err" in result) {
-        throw new Error(result.Err);
-    }
+    await encryptedMaps.remove_user(owner, vaultName, user);
 }
 
 auth.subscribe(async ($auth) => {
