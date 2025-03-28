@@ -96,10 +96,10 @@ export class EncryptedMaps {
             const vetkey_name_bytes = new TextEncoder().encode(map_name);
             const derivaition_id = new Uint8Array([...map_owner.toUint8Array(), ...vetkey_name_bytes]);
 
-            const encryptedVetKey = new EncryptedVetKey (encrypted_key_bytes);
+            const encryptedVetKey = new EncryptedVetKey(encrypted_key_bytes);
             const derivedPublicKey = DerivedPublicKey.deserialize(verification_key);
             const vetKey = encryptedVetKey.decryptAndVerify(tsk, derivedPublicKey, derivaition_id);
-            return vetKey.asDerivedKeyMaterial();
+            return await vetKey.asDerivedKeyMaterial();
         }
     }
 
@@ -159,11 +159,11 @@ export class EncryptedMaps {
     }
 
     async getDerivedKeyMaterialOrFetchIfNeeded(map_owner: Principal, map_name: string): Promise<DerivedKeyMaterial> {
-        const maybeDerivedKeyMaterial: DerivedKeyMaterial | undefined = await get([map_owner.toString(), map_name]);
-        if (maybeDerivedKeyMaterial) { return maybeDerivedKeyMaterial; }
+        const cachedRawDerivedKeyMaterial: CryptoKey | undefined = await get([map_owner.toString(), map_name]);
+        if (cachedRawDerivedKeyMaterial) { return new DerivedKeyMaterial(cachedRawDerivedKeyMaterial); }
 
         const derivedKeyMaterial = await this.getDerivedKeyMaterial(map_owner, map_name);
-        await set([[map_owner.toString(), map_name]], derivedKeyMaterial)
+        await set([map_owner.toString(), map_name], derivedKeyMaterial.getCryptoKey());
         return derivedKeyMaterial;
     }
 }
