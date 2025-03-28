@@ -35,7 +35,8 @@ test('can get vetkey', async () => {
   const vetkey = await encrypted_maps.getDerivedKeyMaterial(owner, "some key");
   const second_vetkey = await encrypted_maps.getDerivedKeyMaterial(owner, "some key");
   expect(isEqualArrayThrowing(
-    await vetkey.encryptMessage("message", "domain"), await second_vetkey.encryptMessage("message", "domain")
+    await second_vetkey.decryptMessage(await vetkey.encryptMessage("message", "domain"), "domain"),
+    new TextEncoder().encode("message"),
   )).to.equal(true);
 });
 
@@ -57,7 +58,7 @@ test('vetkey encryption roundtrip', async () => {
 test('cannot get unauthorized vetkey', async () => {
   const [id0, id1] = ids();
   const encrypted_maps = await new_encrypted_maps(id0);
-  expect(encrypted_maps.getDerivedKeyMaterial(id1.getPrincipal(), "some key")).rejects.toThrow(Error("unauthorized"));
+  await expect(encrypted_maps.getDerivedKeyMaterial(id1.getPrincipal(), "some key")).rejects.toThrow(Error("unauthorized"));
 });
 
 test('can share a key', async () => {
@@ -72,7 +73,7 @@ test('can share a key', async () => {
   const rights = { 'ReadWrite': null };
   expect((await encrypted_maps_owner.set_user_rights(owner, "some key", user, rights))["Ok"]).to.deep.equal([]);
 
-  expect(encrypted_maps_user.getDerivedKeyMaterial(owner, "some key")).resolves.toBeTypeOf('object');
+  await expect(encrypted_maps_user.getDerivedKeyMaterial(owner, "some key")).resolves.toBeTypeOf('object');
 });
 
 test('set value should work', async () => {
@@ -328,3 +329,6 @@ function isEqual2dArrayIfSortedThrowing(a: Array<Array<Uint8Array>>, b: Array<Ar
       throw Error("Arrays not equal\n\na: " + JSON.stringify(a) + "\n\nb: " + JSON.stringify(b));
     }
   }
+
+  return true;
+}

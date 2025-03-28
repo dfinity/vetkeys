@@ -25,10 +25,7 @@ export class EncryptedMaps {
             for (const [mapKeyBytes, encryptedValue] of encryptedValues) {
                 const mapKey = new TextDecoder().decode(Uint8Array.from(mapKeyBytes.inner));
                 const value = await this.decrypt_for(mapId[0], mapName, mapKey, Uint8Array.from(encryptedValue.inner));
-                if ("Err" in value) {
-                    throw Error(value.Err);
-                }
-                keyValues.push([mapKeyBytes, { inner: value.Ok }]);
+                keyValues.push([mapKeyBytes, { inner: value }]);
             };
             decryptedResult.push([mapId, keyValues]);
         }
