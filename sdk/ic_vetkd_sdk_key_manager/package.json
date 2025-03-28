@@ -8,16 +8,13 @@
     "main": "dist/index.umd.js",
     "module": "dist/index.es5.js",
     "typings": "dist/types/index.d.ts",
-    "peerDependencies": {
-        "ic-vetkd-cdk-utils": "^0.1.0"
-    },
     "license": "Apache-2.0",
     "dependencies": {
         "@dfinity/principal": "^2.3.0"
     },
     "devDependencies": {
-        "eslint": "^9.22.0",
         "@eslint/js": "^9.22.0",
+        "eslint": "^9.22.0",
         "typescript": "^5.7.3",
         "typescript-eslint": "8.27"
     },
