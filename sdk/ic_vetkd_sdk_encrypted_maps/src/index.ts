@@ -16,18 +16,21 @@ export class EncryptedMaps {
         return await this.canister_client.get_owned_non_empty_map_names();
     }
 
-    async get_all_accessible_encrypted_values(): Promise<Array<[[Principal, ByteBuf], Array<[ByteBuf, ByteBuf]>]>> {
+    async get_all_accessible_values(): Promise<Array<[[Principal, ByteBuf], Array<[ByteBuf, ByteBuf]>]>> {
         const result = await this.canister_client.get_all_accessible_encrypted_values();
-        result.map(([mapId, encryptedValues]) => {
+        const decryptedResult: Array<[[Principal, ByteBuf], Array<[ByteBuf, ByteBuf]>]> = [];
+        for (const [mapId, encryptedValues] of result) {
             const mapName = new TextDecoder().decode(Uint8Array.from(mapId[1].inner));
-            const values = encryptedValues.map(([mapKeyBytes, encryptedValue]) => {
+            const keyValues: Array<[ByteBuf, ByteBuf]> = [];
+            for (const [mapKeyBytes, encryptedValue] of encryptedValues) {
                 const mapKey = new TextDecoder().decode(Uint8Array.from(mapKeyBytes.inner));
-                return this.decrypt_for(mapId[0], mapName, mapKey, Uint8Array.from(encryptedValue.inner));
-            });
-            /* eslint-disable @typescript-eslint/no-unused-expressions */
-            [mapId, values]
-        })
-        return result;
+                const value = await this.decrypt_for(mapId[0], mapName, mapKey, Uint8Array.from(encryptedValue.inner));
+                keyValues.push([mapKeyBytes, { inner: value }]);
+            };
+            decryptedResult.push([mapId, keyValues]);
+        }
+
+        return decryptedResult;
     }
 
     async get_all_accessible_maps(): Promise<Array<MapData>> {
@@ -93,10 +96,10 @@ export class EncryptedMaps {
             const vetkey_name_bytes = new TextEncoder().encode(map_name);
             const derivaition_id = new Uint8Array([...map_owner.toUint8Array(), ...vetkey_name_bytes]);
 
-            const encryptedVetKey = new EncryptedVetKey (encrypted_key_bytes);
+            const encryptedVetKey = new EncryptedVetKey(encrypted_key_bytes);
             const derivedPublicKey = DerivedPublicKey.deserialize(verification_key);
             const vetKey = encryptedVetKey.decryptAndVerify(tsk, derivedPublicKey, derivaition_id);
-            return vetKey.asDerivedKeyMaterial();
+            return await vetKey.asDerivedKeyMaterial();
         }
     }
 
@@ -156,11 +159,11 @@ export class EncryptedMaps {
     }
 
     async getDerivedKeyMaterialOrFetchIfNeeded(map_owner: Principal, map_name: string): Promise<DerivedKeyMaterial> {
-        const maybeDerivedKeyMaterial: DerivedKeyMaterial | undefined = await get([map_owner.toString(), map_name]);
-        if (maybeDerivedKeyMaterial) { return maybeDerivedKeyMaterial; }
+        const cachedRawDerivedKeyMaterial: CryptoKey | undefined = await get([map_owner.toString(), map_name]);
+        if (cachedRawDerivedKeyMaterial) { return new DerivedKeyMaterial(cachedRawDerivedKeyMaterial); }
 
         const derivedKeyMaterial = await this.getDerivedKeyMaterial(map_owner, map_name);
-        await set([[map_owner.toString(), map_name]], derivedKeyMaterial)
+        await set([map_owner.toString(), map_name], derivedKeyMaterial.getCryptoKey());
         return derivedKeyMaterial;
     }
 }
