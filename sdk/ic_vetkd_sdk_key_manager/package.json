@@ -21,5 +21,8 @@
     "scripts": {
         "build": "tsc",
         "lint": "eslint"
+    },
+    "peerDependencies": {
+        "ic_vetkd_sdk_utils": "^0.1.0"
     }
 }
