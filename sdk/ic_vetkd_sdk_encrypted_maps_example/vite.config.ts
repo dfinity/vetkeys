@@ -1,7 +1,5 @@
 import { defineConfig } from 'vite';
 import path from 'path';
-import wasm from "vite-plugin-wasm";
-import topLevelAwait from "vite-plugin-top-level-await";
 
 export default defineConfig({
     build: {
@@ -17,15 +15,6 @@ export default defineConfig({
                 globals: {}
             }
         }
-    },
-    plugins: [
-        wasm(),
-        topLevelAwait()
-    ],
-    esbuild: {
-        supported: {
-            'top-level-await': true //browsers can handle top-level-await features
-        },
     },
     test: {
         environment: "happy-dom",
