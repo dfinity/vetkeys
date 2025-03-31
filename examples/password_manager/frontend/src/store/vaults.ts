@@ -37,14 +37,16 @@ function updateVaults(vaults: VaultModel[]) {
 export async function refreshVaults(encryptedMaps: EncryptedMaps) {
     const allMaps = await encryptedMaps.get_all_accessible_maps();
     const vaults = allMaps.map((mapData) => {
+        const vaultName = new TextDecoder().decode(mapData.map_name);
         const passwords = new Array<[string, PasswordModel]>();
-        for (const [passwordName, data] of mapData.keyvals) {
+        for (const [passwordNameBytes, data] of mapData.keyvals) {
+            const passwordName = new TextDecoder().decode(passwordNameBytes);
             const passwordContent = new TextDecoder().decode(
                 Uint8Array.from(data),
             );
             const password = passwordFromContent(
                 mapData.map_owner,
-                mapData.map_name,
+                vaultName,
                 passwordName,
                 passwordContent,
             );
@@ -52,7 +54,7 @@ export async function refreshVaults(encryptedMaps: EncryptedMaps) {
         }
         return vaultFromContent(
             mapData.map_owner,
-            mapData.map_name,
+            vaultName,
             passwords,
             mapData.access_control,
         );
@@ -65,7 +67,7 @@ export async function addPassword(
     password: PasswordModel,
     encryptedMaps: EncryptedMaps,
 ) {
-    await encryptedMaps.set_value(password.owner, password.parentVaultName, password.passwordName, new TextEncoder().encode(password.content));
+    await encryptedMaps.set_value(password.owner, new TextEncoder().encode(password.parentVaultName), new TextEncoder().encode(password.passwordName), new TextEncoder().encode(password.content));
 }
 
 export async function removePassword(
@@ -74,8 +76,8 @@ export async function removePassword(
 ) {
     await encryptedMaps.remove_encrypted_value(
         password.owner,
-        password.parentVaultName,
-        password.passwordName,
+        new TextEncoder().encode(password.parentVaultName),
+        new TextEncoder().encode(password.passwordName),
     );
 }
 
@@ -83,7 +85,7 @@ export async function updatePassword(
     password: PasswordModel,
     encryptedMaps: EncryptedMaps,
 ) {
-    await encryptedMaps.set_value(password.owner, password.parentVaultName, password.passwordName, new TextEncoder().encode(password.content));
+    await encryptedMaps.set_value(password.owner, new TextEncoder().encode(password.parentVaultName), new TextEncoder().encode(password.passwordName), new TextEncoder().encode(password.content));
 }
 
 export async function addUser(
@@ -95,7 +97,7 @@ export async function addUser(
 ) {
     await encryptedMaps.set_user_rights(
         owner,
-        vaultName,
+        new TextEncoder().encode(vaultName),
         user,
         userRights,
     );
@@ -107,7 +109,7 @@ export async function removeUser(
     user: Principal,
     encryptedMaps: EncryptedMaps,
 ) {
-    await encryptedMaps.remove_user(owner, vaultName, user);
+    await encryptedMaps.remove_user(owner, new TextEncoder().encode(vaultName), user);
 }
 
 auth.subscribe(async ($auth) => {

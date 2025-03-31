@@ -32,8 +32,8 @@ export class PasswordManager {
     ): Promise<{ Ok: null } | { Err: string }> {
         const encryptedPassword = await this.encryptedMaps.encrypt_for(
             owner,
-            vault,
-            passwordName,
+            new TextEncoder().encode(vault),
+            new TextEncoder().encode(passwordName),
             password,
         );
         const maybeError =
@@ -58,7 +58,7 @@ export class PasswordManager {
         const vaultsOwnedByMeResult =
             await this.encryptedMaps.get_owned_non_empty_map_names();
 
-        const vaultIds = new Array<[Principal, string]>();
+        const vaultIds = new Array<[Principal, Uint8Array]>();
         for (const vaultName of vaultsOwnedByMeResult) {
             vaultIds.push([owner, vaultName]);
         }
@@ -72,32 +72,36 @@ export class PasswordManager {
             const result =
                 await this.canisterClient.get_encrypted_values_for_map_with_metadata(
                     otherOwner,
-                    { inner: new TextEncoder().encode(vaultName) },
+                    { inner: vaultName },
                 );
             if ("Err" in result) {
                 throw new Error(result.Err);
             }
 
             const passwords = new Array<[string, PasswordModel]>();
+            const vaultNameString = new TextDecoder().decode(vaultName);
             for (const [
                 passwordNameBytebuf,
                 encryptedData,
                 passwordMetadata,
             ] of result.Ok) {
+                const passwordNameBytes = Uint8Array.from(
+                    passwordNameBytebuf.inner,
+                );
                 const passwordNameString = new TextDecoder().decode(
-                    Uint8Array.from(passwordNameBytebuf.inner),
+                    passwordNameBytes,
                 );
                 const data = await this.encryptedMaps.decrypt_for(
                     otherOwner,
                     vaultName,
-                    passwordNameString,
+                    passwordNameBytes,
                     Uint8Array.from(encryptedData.inner),
                 );
 
                 const passwordContent = new TextDecoder().decode(data);
                 const password = passwordFromContent(
                     otherOwner,
-                    vaultName,
+                    vaultNameString,
                     passwordNameString,
                     passwordContent,
                     passwordMetadata,
@@ -112,7 +116,12 @@ export class PasswordManager {
                 );
 
             vaults.push(
-                vaultFromContent(otherOwner, vaultName, passwords, usersResult),
+                vaultFromContent(
+                    otherOwner,
+                    vaultNameString,
+                    passwords,
+                    usersResult,
+                ),
             );
         }
 

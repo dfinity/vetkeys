@@ -18,24 +18,24 @@ export class DefaultKeyManagerClient implements KeyManagerClient {
         return this.actor.get_accessible_shared_key_ids();
     }
 
-    set_user_rights(owner: Principal, vetkey_name: string, user: Principal, user_rights: AccessRights): Promise<{ 'Ok': [] | [AccessRights] } |
+    set_user_rights(owner: Principal, vetkey_name: ByteBuf, user: Principal, user_rights: AccessRights): Promise<{ 'Ok': [] | [AccessRights] } |
     { 'Err': string }> {
-        return this.actor.set_user_rights(owner, string_to_bytebuf(vetkey_name), user, user_rights);
+        return this.actor.set_user_rights(owner, vetkey_name, user, user_rights);
     }
 
-    get_user_rights(owner: Principal, vetkey_name: string, user: Principal): Promise<{ 'Ok': [] | [AccessRights] } |
+    get_user_rights(owner: Principal, vetkey_name: ByteBuf, user: Principal): Promise<{ 'Ok': [] | [AccessRights] } |
     { 'Err': string }> {
-        return this.actor.get_user_rights(owner, string_to_bytebuf(vetkey_name), user);
+        return this.actor.get_user_rights(owner, vetkey_name, user);
     }
 
-    remove_user(owner: Principal, vetkey_name: string, user: Principal): Promise<{ 'Ok': [] | [AccessRights] } |
+    remove_user(owner: Principal, vetkey_name: ByteBuf, user: Principal): Promise<{ 'Ok': [] | [AccessRights] } |
     { 'Err': string }> {
-        return this.actor.remove_user(owner, string_to_bytebuf(vetkey_name), user);
+        return this.actor.remove_user(owner, vetkey_name, user);
     }
 
-    async get_encrypted_vetkey(key_owner: Principal, vetkey_name: string, transport_key: Uint8Array): Promise<{ 'Ok': ByteBuf } |
+    async get_encrypted_vetkey(key_owner: Principal, vetkey_name: ByteBuf, transport_key: ByteBuf): Promise<{ 'Ok': ByteBuf } |
     { 'Err': string }> {
-        return await this.actor.get_encrypted_vetkey(key_owner, string_to_bytebuf(vetkey_name), { inner: transport_key });
+        return await this.actor.get_encrypted_vetkey(key_owner, vetkey_name, transport_key);
     }
 
     async get_vetkey_verification_key(): Promise<ByteBuf> {
@@ -46,8 +46,4 @@ export class DefaultKeyManagerClient implements KeyManagerClient {
             return this.verification_key;
         }
     }
-}
-
-function string_to_bytebuf(s: string): ByteBuf {
-    return { inner: new TextEncoder().encode(s) };
 }

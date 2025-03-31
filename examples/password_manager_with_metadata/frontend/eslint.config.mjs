@@ -9,14 +9,21 @@ import svelte from "eslint-plugin-svelte";
 
 export default tseslint.config(
     eslint.configs.recommended,
+    //tseslint.configs.recommendedTypeChecked,
     tseslint.configs.recommended,
     ...svelte.configs.recommended,
     eslintPluginPrettierRecommended,
     {
         languageOptions: {
+            parserOptions: {
+                projectService: {
+                    defaultProject: "./tsconfig.json",
+                },
+                tsconfigRootDir: import.meta.dirname,
+            },
             globals: {
                 ...globals.browser,
-                ...globals.node,
+                ...globals.es2020,
             },
         },
     },
@@ -31,5 +38,5 @@ export default tseslint.config(
             },
         },
     },
-    { ignores: ["dist/", "babel.config.js", "src/declarations"] },
+    { ignores: ["dist/", "src/declarations", "*.config.js", "*.config.cjs", "*.config.mjs"] },
 );

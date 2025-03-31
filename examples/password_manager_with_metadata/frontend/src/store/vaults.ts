@@ -84,7 +84,7 @@ export async function addUser(
 ) {
     await passwordManager.encryptedMaps.set_user_rights(
         owner,
-        vaultName,
+        new TextEncoder().encode(vaultName),
         user,
         userRights,
     );
@@ -96,7 +96,11 @@ export async function removeUser(
     user: Principal,
     passwordManager: PasswordManager,
 ) {
-    await passwordManager.encryptedMaps.remove_user(owner, vaultName, user);
+    await passwordManager.encryptedMaps.remove_user(
+        owner,
+        new TextEncoder().encode(vaultName),
+        user,
+    );
 }
 
 auth.subscribe(async ($auth) => {
