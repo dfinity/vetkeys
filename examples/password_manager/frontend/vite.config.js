@@ -24,11 +24,11 @@ export default defineConfig({
     }
   },
   build: {
+    sourcemap: true,
     rollupOptions: {
       output: {
         inlineDynamicImports: true,
       },
-      sourcemap: true,
     },
   },
   root: "./",
