@@ -150,8 +150,7 @@ export class PasswordManager {
 export async function createPasswordManager(
     agentOptions?: HttpAgentOptions,
 ): Promise<PasswordManager> {
-    const { CANISTER_ID_PASSWORD_MANAGER_WITH_METADATA } = process.env;
-    if (!CANISTER_ID_PASSWORD_MANAGER_WITH_METADATA) {
+    if (!process.env.CANISTER_ID_PASSWORD_MANAGER_WITH_METADATA) {
         console.error(
             "CANISTER_ID_PASSWORD_MANAGER_WITH_METADATA is not defined",
         );
@@ -162,7 +161,7 @@ export async function createPasswordManager(
 
     const host =
         process.env.DFX_NETWORK === "ic"
-            ? `https://${CANISTER_ID_PASSWORD_MANAGER_WITH_METADATA}.ic0.app`
+            ? `https://${process.env.CANISTER_ID_PASSWORD_MANAGER_WITH_METADATA}.ic0.app`
             : "http://localhost:8000";
     const hostOptions = { host };
 
@@ -174,7 +173,7 @@ export async function createPasswordManager(
 
     const encryptedMaps = await createEncryptedMaps({ ...agentOptions });
     const canisterClient = createActor(
-        CANISTER_ID_PASSWORD_MANAGER_WITH_METADATA,
+        process.env.CANISTER_ID_PASSWORD_MANAGER_WITH_METADATA,
         { agentOptions },
     );
 

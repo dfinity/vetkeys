@@ -6,11 +6,9 @@ import { EncryptedMaps } from "ic_vetkd_sdk_encrypted_maps/src";
 export async function createEncryptedMaps(
     agentOptions?: HttpAgentOptions,
 ): Promise<EncryptedMaps> {
-    const CANISTER_ID_ENCRYPTED_MAPS_EXAMPLE =
-        process.env.CANISTER_ID_ENCRYPTED_MAPS_EXAMPLE;
     const host =
         process.env.DFX_NETWORK === "ic"
-            ? `https://${CANISTER_ID_ENCRYPTED_MAPS_EXAMPLE}.ic0.app`
+            ? `https://${process.env.CANISTER_ID_ENCRYPTED_MAPS_EXAMPLE}.ic0.app`
             : "http://localhost:8000";
     const hostOptions = { host };
 
@@ -37,7 +35,7 @@ export async function createEncryptedMaps(
     return new EncryptedMaps(
         new DefaultEncryptedMapsClient(
             agent,
-            CANISTER_ID_ENCRYPTED_MAPS_EXAMPLE,
+            process.env.CANISTER_ID_ENCRYPTED_MAPS_EXAMPLE,
         ),
     );
 }

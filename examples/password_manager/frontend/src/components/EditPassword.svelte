@@ -93,8 +93,8 @@
             await $auth.encryptedMaps
                 .remove_encrypted_value(
                     originalPassword.owner,
-                    originalPassword.parentVaultName,
-                    originalPassword.passwordName,
+                    new TextEncoder().encode(originalPassword.parentVaultName),
+                    new TextEncoder().encode(originalPassword.passwordName),
                 )
                 .catch((e) => {
                     deleting = false;
@@ -160,8 +160,8 @@
         await $auth.encryptedMaps
             .remove_encrypted_value(
                 editedPassword.owner,
-                editedPassword.parentVaultName,
-                editedPassword.passwordName,
+                new TextEncoder().encode(editedPassword.parentVaultName),
+                new TextEncoder().encode(editedPassword.passwordName),
             )
             .catch((e) => {
                 deleting = false;
