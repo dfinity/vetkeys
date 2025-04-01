@@ -5,7 +5,7 @@ use ic_stable_structures::{
     storable::{Blob, Bound},
     Storable,
 };
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
 pub type KeyName = Blob<32>;
 pub type MapName = KeyName;
@@ -18,6 +18,7 @@ pub type EncryptedMapValue = ByteBuf;
 #[repr(u8)]
 #[derive(
     CandidType,
+    Serialize,
     Deserialize,
     Clone,
     Copy,
@@ -51,7 +52,56 @@ impl Storable for AccessRights {
     };
 }
 
-#[derive(CandidType, Deserialize, PartialEq, Eq, PartialOrd, Ord, Clone, Debug)]
+impl AccessControl for AccessRights {
+    fn can_read(&self) -> bool {
+        matches!(
+            self,
+            AccessRights::Read | AccessRights::ReadWrite | AccessRights::ReadWriteManage
+        )
+    }
+
+    fn can_write(&self) -> bool {
+        matches!(
+            self,
+            AccessRights::ReadWrite | AccessRights::ReadWriteManage
+        )
+    }
+
+    fn can_get_user_rights(&self) -> bool {
+        matches!(self, AccessRights::ReadWriteManage)
+    }
+
+    fn can_set_user_rights(&self) -> bool {
+        matches!(self, AccessRights::ReadWriteManage)
+    }
+
+    fn owner_rights() -> Self {
+        AccessRights::ReadWriteManage
+    }
+}
+
+pub trait AccessControl:
+    CandidType
+    + Serialize
+    + for<'a> Deserialize<'a>
+    + Clone
+    + Copy
+    + PartialEq
+    + Eq
+    + PartialOrd
+    + Ord
+    + std::fmt::Debug
+    + strum::IntoEnumIterator
+    + Storable
+{
+    fn can_read(&self) -> bool;
+    fn can_write(&self) -> bool;
+    fn can_get_user_rights(&self) -> bool;
+    fn can_set_user_rights(&self) -> bool;
+    fn owner_rights() -> Self;
+}
+
+#[derive(CandidType, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Clone, Debug)]
 pub struct ByteBuf {
     #[serde(with = "serde_bytes")]
     inner: Vec<u8>,

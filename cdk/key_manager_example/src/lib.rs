@@ -13,7 +13,7 @@ type Memory = VirtualMemory<DefaultMemoryImpl>;
 thread_local! {
     static MEMORY_MANAGER: RefCell<MemoryManager<DefaultMemoryImpl>> =
         RefCell::new(MemoryManager::init(DefaultMemoryImpl::default()));
-    static KEY_MANAGER: RefCell<KeyManager> = RefCell::new(KeyManager::init("key_manager", id_to_memory(0), id_to_memory(1), id_to_memory(2)));
+    static KEY_MANAGER: RefCell<KeyManager<AccessRights>> = RefCell::new(KeyManager::init("key_manager", id_to_memory(0), id_to_memory(1), id_to_memory(2)));
 }
 
 #[query]

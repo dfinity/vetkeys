@@ -69,7 +69,7 @@ type StableMetadataMap = StableBTreeMap<(MapOwner, MapName, MapKey), PasswordMet
 thread_local! {
     static MEMORY_MANAGER: RefCell<MemoryManager<DefaultMemoryImpl>> =
         RefCell::new(MemoryManager::init(DefaultMemoryImpl::default()));
-    static ENCRYPTED_MAPS: RefCell<EncryptedMaps> = RefCell::new(EncryptedMaps::init(
+    static ENCRYPTED_MAPS: RefCell<EncryptedMaps<AccessRights>> = RefCell::new(EncryptedMaps::init(
         "password_manager",
         MEMORY_MANAGER.with(|m| m.borrow().get(MemoryId::new(0))),
         MEMORY_MANAGER.with(|m| m.borrow().get(MemoryId::new(1))),

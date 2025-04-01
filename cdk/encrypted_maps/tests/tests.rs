@@ -523,7 +523,7 @@ fn can_get_owned_map_names() {
     }
 }
 
-fn random_encrypted_maps<R: Rng + CryptoRng>(rng: &mut R) -> EncryptedMaps {
+fn random_encrypted_maps<R: Rng + CryptoRng>(rng: &mut R) -> EncryptedMaps<AccessRights> {
     let memory_manager = MemoryManager::init(DefaultMemoryImpl::default());
     let (memory_id_encrypted_maps, memory_ids_key_manager) = random_unique_memory_ids(rng);
     let domain_separator_len = rng.random_range(0..32);

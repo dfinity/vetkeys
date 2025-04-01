@@ -271,13 +271,13 @@ fn add_or_remove_user_by_unauthorized_fails() {
 #[test]
 fn can_instantiate_two_key_managers() {
     let memory_manager = MemoryManager::init(DefaultMemoryImpl::default());
-    let key_manager_1 = KeyManager::init(
+    let key_manager_1 = KeyManager::<AccessRights>::init(
         "key_manager_1",
         memory_manager.get(MemoryId::new(0)),
         memory_manager.get(MemoryId::new(1)),
         memory_manager.get(MemoryId::new(2)),
     );
-    let key_manager_2 = KeyManager::init(
+    let key_manager_2 = KeyManager::<AccessRights>::init(
         "key_manager_2",
         memory_manager.get(MemoryId::new(3)),
         memory_manager.get(MemoryId::new(4)),
@@ -287,11 +287,11 @@ fn can_instantiate_two_key_managers() {
     std::hint::black_box((key_manager_1, key_manager_2));
 }
 
-fn random_key_manager<R: Rng + CryptoRng>(rng: &mut R) -> KeyManager {
+fn random_key_manager<R: Rng + CryptoRng>(rng: &mut R) -> KeyManager<AccessRights> {
     let memory_manager = MemoryManager::init(DefaultMemoryImpl::default());
     let (_memory_id_encrypted_maps, memory_ids_key_manager) = random_unique_memory_ids(rng);
     let domain_separator_len = rng.random_range(0..32);
-    KeyManager::init(
+    KeyManager::<AccessRights>::init(
         &random_utf8_string(rng, domain_separator_len),
         memory_manager.get(MemoryId::new(memory_ids_key_manager[0])),
         memory_manager.get(MemoryId::new(memory_ids_key_manager[1])),
