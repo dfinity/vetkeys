@@ -1305,13 +1305,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "ic-vetkd-cdk-utils"
-version = "0.1.0"
-dependencies = [
- "ic-vetkd-utils",
-]
-
-[[package]]
 name = "ic-vetkd-example-password-manager-with-metadata-backend"
 version = "0.1.0"
 dependencies = [
