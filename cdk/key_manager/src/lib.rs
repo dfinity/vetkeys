@@ -101,7 +101,7 @@ impl<T: AccessControl> KeyManager<T> {
         caller: Principal,
         key_id: KeyId,
     ) -> Result<Vec<(Principal, T)>, String> {
-        self.ensure_user_can_read(caller, key_id)?;
+        self.ensure_user_can_get_user_rights(caller, key_id)?;
 
         let users: Vec<_> = self
             .shared_keys
@@ -202,7 +202,7 @@ impl<T: AccessControl> KeyManager<T> {
         user: Principal,
         access_rights: T,
     ) -> Result<Option<T>, String> {
-        self.ensure_user_can_manage(caller, key_id)?;
+        self.ensure_user_can_set_user_rights(caller, key_id)?;
 
         if caller == key_id.0 && caller == user {
             return Err("cannot change key owner's user rights".to_string());
@@ -219,7 +219,7 @@ impl<T: AccessControl> KeyManager<T> {
         key_id: KeyId,
         user: Principal,
     ) -> Result<Option<T>, String> {
-        self.ensure_user_can_manage(caller, key_id)?;
+        self.ensure_user_can_set_user_rights(caller, key_id)?;
 
         if caller == user && caller == key_id.0 {
             return Err("cannot remove key owner".to_string());
@@ -245,9 +245,22 @@ impl<T: AccessControl> KeyManager<T> {
         Err("unauthorized".to_string())
     }
 
+    fn ensure_user_can_get_user_rights(&self, user: Principal, key_id: KeyId) -> Result<T, String> {
+        let is_owner = user == key_id.0;
+        if is_owner {
+            return Ok(T::owner_rights());
+        }
+
+        let has_shared_access = self.access_control.get(&(user, key_id));
+        match has_shared_access {
+            Some(access_rights) if access_rights.can_get_user_rights() => Ok(access_rights),
+            _ => Err("unauthorized".to_string()),
+        }
+    }
+
     /// Ensures that a user has management access to a key before proceeding.
     /// Returns an error if the user is not authorized.
-    fn ensure_user_can_manage(&self, user: Principal, key_id: KeyId) -> Result<T, String> {
+    fn ensure_user_can_set_user_rights(&self, user: Principal, key_id: KeyId) -> Result<T, String> {
         let is_owner = user == key_id.0;
         if is_owner {
             return Ok(T::owner_rights());

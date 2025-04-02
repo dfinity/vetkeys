@@ -165,7 +165,7 @@ impl<T: AccessControl> EncryptedMaps<T> {
                 map_owner: map_id.0,
                 map_name: ByteBuf::from(map_id.1.as_ref().to_vec()),
                 keyvals,
-                access_control: self.get_shared_user_access_for_map(caller, map_id).unwrap(),
+                access_control: self.get_shared_user_access_for_map(caller, map_id).ok(),
             };
             result.push(map);
         }
@@ -282,7 +282,7 @@ pub struct EncryptedMapData<T: AccessControl> {
     pub map_owner: Principal,
     pub map_name: ByteBuf,
     pub keyvals: Vec<(ByteBuf, EncryptedMapValue)>,
-    pub access_control: Vec<(Principal, T)>,
+    pub access_control: Option<Vec<(Principal, T)>>,
 }
 
 #[cfg(feature = "expose-testing-api")]
