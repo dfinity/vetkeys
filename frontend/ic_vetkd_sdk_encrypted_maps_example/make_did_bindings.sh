@@ -12,4 +12,4 @@ function make_and_copy_declarations () {
     cp -R "$DIR/src/declarations/encrypted_maps_example" "src/declarations/"
 }
 
-make_and_copy_declarations "../../cdk/encrypted_maps_example"
+make_and_copy_declarations "../../backend/encrypted_maps_example"

@@ -13,4 +13,4 @@ function make_and_copy_declarations () {
     cp -R "$DIR/src/declarations/key_manager_example" "src/declarations/"
 }
 
-make_and_copy_declarations "../../cdk/key_manager_example" "key_manager_example.did";
+make_and_copy_declarations "../../backend/key_manager_example" "key_manager_example.did";

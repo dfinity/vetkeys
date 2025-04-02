@@ -6,7 +6,7 @@ on:
       - main
   pull_request:
     paths:
-      - cdk/**
+      - backend/**
       - frontend/ic_vetkd_sdk_encrypted_maps/**
       - frontend/ic_vetkd_sdk_encrypted_maps_example/**
       - frontend/ic_vetkd_sdk_utils/**
@@ -28,7 +28,7 @@ jobs:
           bash .github/workflows/provision-darwin.sh
       - name: Encrypted Maps Example Darwin
         run: |
-          pushd cdk/encrypted_maps_example
+          pushd backend/encrypted_maps_example
           dfx start --background
           make mock
           eval $(make export-cmd)
@@ -45,7 +45,7 @@ jobs:
         run: bash .github/workflows/provision-linux.sh
       - name: Encrypted Maps Example Linux
         run: |
-          pushd cdk/encrypted_maps_example
+          pushd backend/encrypted_maps_example
           dfx start --background
           make mock
           eval $(make export-cmd)
