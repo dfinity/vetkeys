@@ -33,6 +33,6 @@ mock: deploy-test
 .PHONY: export-cmd
 .SILENT: export-cmd
 export-cmd:
-	CANISTER_ID_KEY_MANAGER_EXAMPLE=$(shell dfx canister id ic_vetkeys_manager_canister); \
-	CMD="export CANISTER_ID_KEY_MANAGER_EXAMPLE=$${CANISTER_ID_KEY_MANAGER_EXAMPLE}"; \
+	CANISTER_ID_IC_VETKEYS_MANAGER_CANISTER=$(shell dfx canister id ic_vetkeys_manager_canister); \
+	CMD="export CANISTER_ID_IC_VETKEYS_MANAGER_CANISTER=$${CANISTER_ID_IC_VETKEYS_MANAGER_CANISTER}"; \
 	echo "$${CMD}"

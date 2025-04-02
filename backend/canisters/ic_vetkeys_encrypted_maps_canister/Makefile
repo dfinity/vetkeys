@@ -33,8 +33,8 @@ mock: deploy-test
 .PHONY: export-cmd
 .SILENT: export-cmd
 export-cmd:
-	CANISTER_ID_ENCRYPTED_MAPS_EXAMPLE=$(shell dfx canister id ic_vetkeys_encrypted_maps_canister); \
-	CMD="export CANISTER_ID_ENCRYPTED_MAPS_EXAMPLE=$${CANISTER_ID_ENCRYPTED_MAPS_EXAMPLE}"; \
+	CANISTER_ID_IC_VETKEYS_ENCRYPTED_MAPS_CANISTER=$(shell dfx canister id ic_vetkeys_encrypted_maps_canister); \
+	CMD="export CANISTER_ID_IC_VETKEYS_ENCRYPTED_MAPS_CANISTER=$${CANISTER_ID_ENCRYPTED_MAPSCANISTER_ID_IC_VETKEYS_ENCRYPTED_MAPS_CANISTER_EXAMPLE}"; \
 	echo "$${CMD}"
 
 .PHONY: clean
