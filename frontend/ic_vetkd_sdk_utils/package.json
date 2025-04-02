@@ -5,8 +5,7 @@
     "files": [
         "dist"
     ],
-    "main": "dist/index.umd.js",
-    "module": "dist/index.es5.js",
+    "module": "dist/lib/index.js",
     "typings": "dist/types/index.d.ts",
     "dependencies": {
         "@noble/curves": "^1.8.1",

@@ -10,9 +10,9 @@ on:
       - cdk/utils/**
       - cdk/types/**
       - cdk/test_utils/**
-      - sdk/ic_vetkd_sdk_key_manager/**
-      - sdk/ic_vetkd_sdk_key_manager_example/**
-      - sdk/ic_vetkd_sdk_utils/**
+      - frontend/ic_vetkd_sdk_key_manager/**
+      - frontend/ic_vetkd_sdk_key_manager_example/**
+      - frontend/ic_vetkd_sdk_utils/**
       - package.json
       - package-lock.json
       - .github/workflows/provision-darwin.sh
@@ -36,7 +36,7 @@ jobs:
           make mock
           eval $(make export-cmd)
           popd
-          pushd sdk/ic_vetkd_sdk_key_manager_example
+          pushd frontend/ic_vetkd_sdk_key_manager_example
           npm install
           npm test
           npm run lint
@@ -53,7 +53,7 @@ jobs:
           make mock
           eval $(make export-cmd)
           popd
-          pushd sdk/ic_vetkd_sdk_key_manager_example
+          pushd frontend/ic_vetkd_sdk_key_manager_example
           npm install
           npm test
           npm run lint

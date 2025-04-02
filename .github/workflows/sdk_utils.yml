@@ -5,7 +5,7 @@ on:
       - main
   pull_request:
     paths:
-      - sdk/ic_vetkd_sdk_utils/**
+      - frontend/ic_vetkd_sdk_utils/**
       - package.json
       - package-lock.json
       - .github/workflows/sdk_utils.yml
@@ -23,7 +23,7 @@ jobs:
       - name: SDK Tests and Lint
         run: |
           set -eExuo pipefail
-          cd sdk/ic_vetkd_sdk_utils
+          cd frontend/ic_vetkd_sdk_utils
           npm install
           npm run build
           npm run test
@@ -39,7 +39,7 @@ jobs:
       - name: SDK Tests and Lint
         run: |
           set -eExuo pipefail
-          cd sdk/ic_vetkd_sdk_utils
+          cd frontend/ic_vetkd_sdk_utils
           npm install
           npm run build
           npm run test

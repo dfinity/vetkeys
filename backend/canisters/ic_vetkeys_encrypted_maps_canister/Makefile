@@ -20,7 +20,7 @@ deploy-test: compile-wasm-test
 	dfx canister create ic_vetkeys_encrypted_maps_canister && \
 	dfx build chainkey_testing_canister && \
 	dfx canister install --upgrade-unchanged --mode auto chainkey_testing_canister && \
-	dfx canister install --upgrade-unchanged --mode auto --wasm ../../target/wasm32-unknown-unknown/release/ic_vetkeys_encrypted_maps_canister.wasm ic_vetkeys_encrypted_maps_canister
+	dfx canister install --upgrade-unchanged --mode auto --wasm ../../../target/wasm32-unknown-unknown/release/ic_vetkeys_encrypted_maps_canister.wasm ic_vetkeys_encrypted_maps_canister
 
 .PHONY: mock
 .SILENT: mock

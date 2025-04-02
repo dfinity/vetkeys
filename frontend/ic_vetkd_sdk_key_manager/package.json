@@ -21,7 +21,8 @@
         "typescript-eslint": "8.27"
     },
     "scripts": {
-        "build": "tsc",
+        "build": "npm run build:deps && tsc",
+        "build:deps": "cd ../ic_vetkd_sdk_utils && npm run build",
         "lint": "eslint",
         "prettier": "prettier --write .",
         "prettier-check": "prettier --check ."

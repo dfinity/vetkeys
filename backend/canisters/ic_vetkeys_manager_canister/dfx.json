@@ -1,6 +1,6 @@
 {
     "canisters": {
-      "key_manager_example": {
+      "ic_vetkeys_manager_canister": {
         "candid": "ic_vetkeys_manager_canister.did",
         "package": "ic-vetkeys-manager-canister",
         "type": "rust"

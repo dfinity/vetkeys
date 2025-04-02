@@ -1,5 +1,5 @@
 import { Principal } from "@dfinity/principal";
-import { TransportSecretKey,EncryptedVetKey, DerivedPublicKey } from "ic_vetkd_sdk_utils/src/index";
+import { TransportSecretKey,EncryptedVetKey, DerivedPublicKey } from "ic_vetkd_sdk_utils";
 
 export class KeyManager {
     canister_client: KeyManagerClient;

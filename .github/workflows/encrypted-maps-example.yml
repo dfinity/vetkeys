@@ -7,9 +7,9 @@ on:
   pull_request:
     paths:
       - cdk/**
-      - sdk/ic_vetkd_sdk_encrypted_maps/**
-      - sdk/ic_vetkd_sdk_encrypted_maps_example/**
-      - sdk/ic_vetkd_sdk_utils/**
+      - frontend/ic_vetkd_sdk_encrypted_maps/**
+      - frontend/ic_vetkd_sdk_encrypted_maps_example/**
+      - frontend/ic_vetkd_sdk_utils/**
       - package.json
       - package-lock.json
       - .github/workflows/provision-darwin.sh
@@ -33,7 +33,7 @@ jobs:
           make mock
           eval $(make export-cmd)
           popd
-          pushd sdk/ic_vetkd_sdk_encrypted_maps_example
+          pushd frontend/ic_vetkd_sdk_encrypted_maps_example
           npm install
           npm test
           npm run lint
@@ -50,7 +50,7 @@ jobs:
           make mock
           eval $(make export-cmd)
           popd
-          pushd sdk/ic_vetkd_sdk_encrypted_maps_example
+          pushd frontend/ic_vetkd_sdk_encrypted_maps_example
           npm install
           npm test
           npm run lint

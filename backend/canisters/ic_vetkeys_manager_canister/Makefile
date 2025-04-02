@@ -20,7 +20,7 @@ deploy-test: compile-wasm-test
 	dfx canister create ic_vetkeys_manager_canister && \
 	dfx build chainkey_testing_canister && \
 	dfx canister install chainkey_testing_canister && \
-	dfx canister install --wasm ../../target/wasm32-unknown-unknown/release/ic_vetkeys_manager_canister.wasm ic_vetkeys_manager_canister
+	dfx canister install --wasm ../../../target/wasm32-unknown-unknown/release/ic_vetkeys_manager_canister.wasm ic_vetkeys_manager_canister
 
 .PHONY: mock
 .SILENT: mock
