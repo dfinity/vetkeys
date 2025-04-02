@@ -24,12 +24,11 @@ use candid::Principal;
 use ic_stable_structures::memory_manager::VirtualMemory;
 use ic_stable_structures::storable::Blob;
 use ic_stable_structures::{DefaultMemoryImpl, StableBTreeMap};
-use std::cell::RefCell;
 use std::future::Future;
 
 use ic_vetkd_cdk_key_manager::KeyId;
 use ic_vetkd_cdk_types::{
-    AccessRights, ByteBuf, EncryptedMapValue, MapId, MapKey, MapName, TransportKey,
+    AccessControl, ByteBuf, EncryptedMapValue, MapId, MapKey, MapName, TransportKey,
 };
 
 // On a high level,
@@ -39,18 +38,14 @@ use ic_vetkd_cdk_types::{
 pub type VetKeyVerificationKey = ByteBuf;
 pub type VetKey = ByteBuf;
 
-thread_local! {
-    static ENCRYPTED_MAPS: RefCell<Option<EncryptedMaps>> = const { RefCell::new(None) };
-}
-
 type Memory = VirtualMemory<DefaultMemoryImpl>;
 
-pub struct EncryptedMaps {
-    pub key_manager: ic_vetkd_cdk_key_manager::KeyManager,
+pub struct EncryptedMaps<T: AccessControl> {
+    pub key_manager: ic_vetkd_cdk_key_manager::KeyManager<T>,
     pub mapkey_vals: StableBTreeMap<(KeyId, MapKey), EncryptedMapValue, Memory>,
 }
 
-impl EncryptedMaps {
+impl<T: AccessControl> EncryptedMaps<T> {
     /// Initializes the EncryptedMaps and the underlying KeyManager.
     /// Must be called before any other EncryptedMaps operations.
     pub fn init(
@@ -85,7 +80,7 @@ impl EncryptedMaps {
         &self,
         caller: Principal,
         key_id: KeyId,
-    ) -> Result<Vec<(Principal, AccessRights)>, String> {
+    ) -> Result<Vec<(Principal, T)>, String> {
         self.key_manager
             .get_shared_user_access_for_key(caller, key_id)
     }
@@ -98,8 +93,8 @@ impl EncryptedMaps {
         key_id: KeyId,
     ) -> Result<Vec<MapKey>, String> {
         match self.key_manager.get_user_rights(caller, key_id, caller)? {
-            Some(AccessRights::ReadWrite) | Some(AccessRights::ReadWriteManage) => Ok(()),
-            Some(AccessRights::Read) | None => Err("unauthorized".to_string()),
+            Some(a) if a.can_write() => Ok(()),
+            Some(_) | None => Err("unauthorized".to_string()),
         }?;
 
         let keys: Vec<_> = self
@@ -157,7 +152,7 @@ impl EncryptedMaps {
         result
     }
 
-    pub fn get_all_accessible_encrypted_maps(&self, caller: Principal) -> Vec<EncryptedMapData> {
+    pub fn get_all_accessible_encrypted_maps(&self, caller: Principal) -> Vec<EncryptedMapData<T>> {
         let mut result = Vec::new();
         for map_id in self.get_accessible_map_ids_iter(caller) {
             let keyvals = self
@@ -170,7 +165,9 @@ impl EncryptedMaps {
                 map_owner: map_id.0,
                 map_name: ByteBuf::from(map_id.1.as_ref().to_vec()),
                 keyvals,
-                access_control: self.get_shared_user_access_for_map(caller, map_id).unwrap(),
+                access_control: self
+                    .get_shared_user_access_for_map(caller, map_id)
+                    .unwrap_or_default(),
             };
             result.push(map);
         }
@@ -209,8 +206,8 @@ impl EncryptedMaps {
         encrypted_value: EncryptedMapValue,
     ) -> Result<Option<EncryptedMapValue>, String> {
         match self.key_manager.get_user_rights(caller, key_id, caller)? {
-            Some(AccessRights::ReadWrite) | Some(AccessRights::ReadWriteManage) => Ok(()),
-            Some(AccessRights::Read) | None => Err("unauthorized".to_string()),
+            Some(a) if a.can_write() => Ok(()),
+            Some(_) | None => Err("unauthorized".to_string()),
         }?;
 
         Ok(self.mapkey_vals.insert((key_id, key), encrypted_value))
@@ -224,8 +221,8 @@ impl EncryptedMaps {
         key: MapKey,
     ) -> Result<Option<EncryptedMapValue>, String> {
         match self.key_manager.get_user_rights(caller, key_id, caller)? {
-            Some(AccessRights::ReadWrite) | Some(AccessRights::ReadWriteManage) => Ok(()),
-            Some(AccessRights::Read) | None => Err("unauthorized".to_string()),
+            Some(a) if a.can_write() => Ok(()),
+            Some(_) | None => Err("unauthorized".to_string()),
         }?;
 
         Ok(self.mapkey_vals.remove(&(key_id, key)))
@@ -255,7 +252,7 @@ impl EncryptedMaps {
         caller: Principal,
         key_id: KeyId,
         user: Principal,
-    ) -> Result<Option<AccessRights>, String> {
+    ) -> Result<Option<T>, String> {
         self.key_manager.get_user_rights(caller, key_id, user)
     }
 
@@ -265,8 +262,8 @@ impl EncryptedMaps {
         caller: Principal,
         key_id: KeyId,
         user: Principal,
-        access_rights: AccessRights,
-    ) -> Result<Option<AccessRights>, String> {
+        access_rights: T,
+    ) -> Result<Option<T>, String> {
         self.key_manager
             .set_user_rights(caller, key_id, user, access_rights)
     }
@@ -277,17 +274,17 @@ impl EncryptedMaps {
         caller: Principal,
         key_id: KeyId,
         user: Principal,
-    ) -> Result<Option<AccessRights>, String> {
+    ) -> Result<Option<T>, String> {
         self.key_manager.remove_user(caller, key_id, user)
     }
 }
 
-#[derive(serde::Deserialize, candid::CandidType)]
-pub struct EncryptedMapData {
+#[derive(candid::CandidType)]
+pub struct EncryptedMapData<T: AccessControl> {
     pub map_owner: Principal,
     pub map_name: ByteBuf,
     pub keyvals: Vec<(ByteBuf, EncryptedMapValue)>,
-    pub access_control: Vec<(Principal, AccessRights)>,
+    pub access_control: Vec<(Principal, T)>,
 }
 
 #[cfg(feature = "expose-testing-api")]

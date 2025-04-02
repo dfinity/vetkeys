@@ -14,7 +14,7 @@ type MapId = (Principal, ByteBuf);
 thread_local! {
     static MEMORY_MANAGER: RefCell<MemoryManager<DefaultMemoryImpl>> =
         RefCell::new(MemoryManager::init(DefaultMemoryImpl::default()));
-        static ENCRYPTED_MAPS: RefCell<EncryptedMaps> = RefCell::new(EncryptedMaps::init("encrypted_maps", id_to_memory(0), id_to_memory(1), id_to_memory(2), id_to_memory(3)));
+        static ENCRYPTED_MAPS: RefCell<EncryptedMaps<AccessRights>> = RefCell::new(EncryptedMaps::init("encrypted_maps", id_to_memory(0), id_to_memory(1), id_to_memory(2), id_to_memory(3)));
 }
 
 #[query]
@@ -78,7 +78,7 @@ fn get_all_accessible_encrypted_values() -> Vec<(MapId, Vec<(ByteBuf, EncryptedM
 }
 
 #[query]
-fn get_all_accessible_encrypted_maps() -> Vec<EncryptedMapData> {
+fn get_all_accessible_encrypted_maps() -> Vec<EncryptedMapData<AccessRights>> {
     ENCRYPTED_MAPS.with_borrow(|encrypted_maps| {
         encrypted_maps.get_all_accessible_encrypted_maps(ic_cdk::caller())
     })

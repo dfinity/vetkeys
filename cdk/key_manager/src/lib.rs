@@ -21,7 +21,7 @@
 //!
 //! The **KeyManager** consists of two primary components:
 //!
-//! 1. **Access Control Map** (`access_control`): Maps `(Caller, KeyId)` to `AccessRights`, defining permissions for each user.
+//! 1. **Access Control Map** (`access_control`): Maps `(Caller, KeyId)` to `T`, defining permissions for each user.
 //! 2. **Shared Keys Map** (`shared_keys`): Tracks which users have access to shared keys.
 
 use candid::Principal;
@@ -29,7 +29,7 @@ use ic_cdk::api::management_canister::main::CanisterId;
 use ic_stable_structures::memory_manager::VirtualMemory;
 use ic_stable_structures::storable::Blob;
 use ic_stable_structures::{DefaultMemoryImpl, StableBTreeMap, StableCell, Storable};
-use ic_vetkd_cdk_types::{AccessRights, ByteBuf, KeyName, TransportKey};
+use ic_vetkd_cdk_types::{AccessControl, ByteBuf, KeyName, TransportKey};
 use std::future::Future;
 use std::str::FromStr;
 
@@ -61,13 +61,13 @@ thread_local! {
 
 type Memory = VirtualMemory<DefaultMemoryImpl>;
 
-pub struct KeyManager {
+pub struct KeyManager<T: AccessControl> {
     pub domain_separator: StableCell<String, Memory>,
-    pub access_control: StableBTreeMap<(Caller, KeyId), AccessRights, Memory>,
+    pub access_control: StableBTreeMap<(Caller, KeyId), T, Memory>,
     pub shared_keys: StableBTreeMap<(KeyId, Caller), (), Memory>,
 }
 
-impl KeyManager {
+impl<T: AccessControl> KeyManager<T> {
     /// Initializes the KeyManager with stable storage.
     /// This function must be called exactly once before any other KeyManager operation can be invoked.
     pub fn init(
@@ -100,8 +100,8 @@ impl KeyManager {
         &self,
         caller: Principal,
         key_id: KeyId,
-    ) -> Result<Vec<(Principal, AccessRights)>, String> {
-        self.ensure_user_can_read(caller, key_id)?;
+    ) -> Result<Vec<(Principal, T)>, String> {
+        self.ensure_user_can_get_user_rights(caller, key_id)?;
 
         let users: Vec<_> = self
             .shared_keys
@@ -188,7 +188,7 @@ impl KeyManager {
         caller: Principal,
         key_id: KeyId,
         user: Principal,
-    ) -> Result<Option<AccessRights>, String> {
+    ) -> Result<Option<T>, String> {
         self.ensure_user_can_read(caller, key_id)?;
         Ok(self.ensure_user_can_read(user, key_id).ok())
     }
@@ -200,9 +200,9 @@ impl KeyManager {
         caller: Principal,
         key_id: KeyId,
         user: Principal,
-        access_rights: AccessRights,
-    ) -> Result<Option<AccessRights>, String> {
-        self.ensure_user_can_manage(caller, key_id)?;
+        access_rights: T,
+    ) -> Result<Option<T>, String> {
+        self.ensure_user_can_set_user_rights(caller, key_id)?;
 
         if caller == key_id.0 && caller == user {
             return Err("cannot change key owner's user rights".to_string());
@@ -218,8 +218,8 @@ impl KeyManager {
         caller: Principal,
         key_id: KeyId,
         user: Principal,
-    ) -> Result<Option<AccessRights>, String> {
-        self.ensure_user_can_manage(caller, key_id)?;
+    ) -> Result<Option<T>, String> {
+        self.ensure_user_can_set_user_rights(caller, key_id)?;
 
         if caller == user && caller == key_id.0 {
             return Err("cannot remove key owner".to_string());
@@ -231,10 +231,10 @@ impl KeyManager {
 
     /// Ensures that a user has read access to a key before proceeding.
     /// Returns an error if the user is not authorized.
-    fn ensure_user_can_read(&self, user: Principal, key_id: KeyId) -> Result<AccessRights, String> {
+    fn ensure_user_can_read(&self, user: Principal, key_id: KeyId) -> Result<T, String> {
         let is_owner = user == key_id.0;
         if is_owner {
-            return Ok(AccessRights::ReadWriteManage);
+            return Ok(T::owner_rights());
         }
 
         let has_shared_access = self.access_control.get(&(user, key_id));
@@ -245,23 +245,30 @@ impl KeyManager {
         Err("unauthorized".to_string())
     }
 
-    /// Ensures that a user has management access to a key before proceeding.
-    /// Returns an error if the user is not authorized.
-    fn ensure_user_can_manage(
-        &self,
-        user: Principal,
-        key_id: KeyId,
-    ) -> Result<AccessRights, String> {
+    fn ensure_user_can_get_user_rights(&self, user: Principal, key_id: KeyId) -> Result<T, String> {
         let is_owner = user == key_id.0;
         if is_owner {
-            return Ok(AccessRights::ReadWriteManage);
+            return Ok(T::owner_rights());
         }
 
         let has_shared_access = self.access_control.get(&(user, key_id));
         match has_shared_access {
-            Some(access_rights) if access_rights == AccessRights::ReadWriteManage => {
-                Ok(access_rights)
-            }
+            Some(access_rights) if access_rights.can_get_user_rights() => Ok(access_rights),
+            _ => Err("unauthorized".to_string()),
+        }
+    }
+
+    /// Ensures that a user has management access to a key before proceeding.
+    /// Returns an error if the user is not authorized.
+    fn ensure_user_can_set_user_rights(&self, user: Principal, key_id: KeyId) -> Result<T, String> {
+        let is_owner = user == key_id.0;
+        if is_owner {
+            return Ok(T::owner_rights());
+        }
+
+        let has_shared_access = self.access_control.get(&(user, key_id));
+        match has_shared_access {
+            Some(access_rights) if access_rights.can_set_user_rights() => Ok(access_rights),
             _ => Err("unauthorized".to_string()),
         }
     }

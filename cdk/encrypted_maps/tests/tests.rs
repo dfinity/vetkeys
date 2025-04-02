@@ -1,9 +1,7 @@
-use std::{
-    collections::{BTreeMap, HashSet},
-    iter::FromIterator,
-};
+use std::{collections::BTreeMap, iter::FromIterator};
 
 use assert_matches::assert_matches;
+use candid::Principal;
 use ic_stable_structures::{
     memory_manager::{MemoryId, MemoryManager},
     storable::Blob,
@@ -18,7 +16,7 @@ use rand::{CryptoRng, Rng};
 use strum::IntoEnumIterator;
 
 use ic_vetkd_cdk_encrypted_maps::EncryptedMaps;
-use ic_vetkd_cdk_types::AccessRights;
+use ic_vetkd_cdk_types::{AccessControl, AccessRights};
 
 #[test]
 fn can_init_memory() {
@@ -328,7 +326,7 @@ fn can_access_map_values() {
     let name = random_name(rng);
     let mut encrypted_maps = random_encrypted_maps(rng);
 
-    let mut authorized_users = vec![caller];
+    let mut authorized_users = vec![(caller, AccessRights::ReadWriteManage)];
     let mut keyvals = vec![];
 
     for _ in 0..3 {
@@ -349,14 +347,14 @@ fn can_access_map_values() {
                 ),
                 Ok(None)
             );
-            authorized_users.push(user_to_be_added);
+            authorized_users.push((user_to_be_added, access_rights));
         }
 
         keyvals.push((key.clone(), value));
     }
 
     for (key, value) in keyvals.clone() {
-        for user in authorized_users.iter() {
+        for (user, _access_rights) in authorized_users.iter() {
             assert_eq!(
                 encrypted_maps.get_encrypted_value(*user, (caller, name.clone()), key.clone()),
                 Ok(Some(value.clone()))
@@ -364,18 +362,18 @@ fn can_access_map_values() {
         }
     }
 
-    for added_user in authorized_users.clone() {
+    for (user, access_rights) in authorized_users.clone() {
         let expected_map = BTreeMap::from_iter(keyvals.clone().into_iter());
         let computed_map_single = BTreeMap::from_iter(
             encrypted_maps
-                .get_encrypted_values_for_map(added_user, (caller, name.clone()))
+                .get_encrypted_values_for_map(user, (caller, name.clone()))
                 .expect("failed to obtain values")
                 .into_iter(),
         );
         assert_eq!(expected_map, computed_map_single);
 
-        let all_values = encrypted_maps.get_all_accessible_encrypted_values(added_user);
-        let all_maps = encrypted_maps.get_all_accessible_encrypted_maps(added_user);
+        let all_values = encrypted_maps.get_all_accessible_encrypted_values(user);
+        let all_maps = encrypted_maps.get_all_accessible_encrypted_maps(user);
         assert_eq!(all_values.len(), 1);
         assert_eq!(
             all_values,
@@ -403,14 +401,18 @@ fn can_access_map_values() {
         assert_eq!(expected_map, computed_map_wildcard);
 
         for map in all_maps {
-            assert_eq!(
-                map.access_control
-                    .iter()
-                    .map(|(p, _a)| *p)
-                    .chain(std::iter::once(caller))
-                    .collect::<HashSet<_>>(),
-                authorized_users.clone().into_iter().collect::<HashSet<_>>()
-            );
+            if access_rights.can_get_user_rights() {
+                assert_eq!(
+                    BTreeMap::<Principal, AccessRights>::from_iter(
+                        map.access_control
+                            .into_iter()
+                            .chain(std::iter::once((caller, access_rights)))
+                    ),
+                    BTreeMap::from_iter(authorized_users.clone().into_iter())
+                );
+            } else {
+                assert_eq!(map.access_control, vec![]);
+            }
         }
     }
 }
@@ -523,7 +525,7 @@ fn can_get_owned_map_names() {
     }
 }
 
-fn random_encrypted_maps<R: Rng + CryptoRng>(rng: &mut R) -> EncryptedMaps {
+fn random_encrypted_maps<R: Rng + CryptoRng>(rng: &mut R) -> EncryptedMaps<AccessRights> {
     let memory_manager = MemoryManager::init(DefaultMemoryImpl::default());
     let (memory_id_encrypted_maps, memory_ids_key_manager) = random_unique_memory_ids(rng);
     let domain_separator_len = rng.random_range(0..32);
