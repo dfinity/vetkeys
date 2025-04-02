@@ -4,8 +4,8 @@ use ic_stable_structures::memory_manager::{MemoryId, MemoryManager, VirtualMemor
 use ic_stable_structures::storable::Blob;
 use ic_stable_structures::{storable::Bound, Storable};
 use ic_stable_structures::{BTreeMap as StableBTreeMap, DefaultMemoryImpl};
-use ic_vetkd_cdk_encrypted_maps::{EncryptedMaps, VetKey, VetKeyVerificationKey};
-use ic_vetkd_cdk_types::{AccessRights, ByteBuf, EncryptedMapValue, TransportKey};
+use ic_vetkeys::encrypted_maps::{EncryptedMaps, VetKey, VetKeyVerificationKey};
+use ic_vetkeys::types::{AccessRights, ByteBuf, EncryptedMapValue, TransportKey};
 use serde::{Deserialize, Serialize};
 use std::borrow::Cow;
 use std::cell::RefCell;
@@ -264,7 +264,7 @@ fn remove_user(
 #[cfg(feature = "expose-testing-api")]
 #[update]
 fn set_vetkd_testing_canister_id(vetkd_testing_canister: Principal) {
-    ic_vetkd_cdk_encrypted_maps::set_vetkd_testing_canister_id(vetkd_testing_canister)
+    ic_vetkeys::key_manager::set_vetkd_testing_canister_id(vetkd_testing_canister)
 }
 
 fn bytebuf_to_blob(buf: ByteBuf) -> Result<Blob<32>, String> {

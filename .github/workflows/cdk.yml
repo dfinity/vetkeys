@@ -35,7 +35,7 @@ jobs:
         run: |
           set -eExuo pipefail
           export CARGO_TERM_COLOR=always # ensure output has colors
-          cargo build --release --target wasm32-unknown-unknown --features expose-testing-api -p ic-vetkd-cdk-key-manager-example -p ic-vetkd-cdk-encrypted-maps-example
+          cargo build --release --target wasm32-unknown-unknown --features expose-testing-api -p ic-vetkeys-manager-canister -p ic-vetkeys-encrypted-maps-canister
           cargo test
   cargo-test-cdk-darwin:
     runs-on: macos-15
@@ -48,5 +48,5 @@ jobs:
         run: |
           set -eExuo pipefail
           export CARGO_TERM_COLOR=always # ensure output has colors
-          cargo build --release --target wasm32-unknown-unknown --features expose-testing-api -p ic-vetkd-cdk-key-manager-example -p ic-vetkd-cdk-encrypted-maps-example
+          cargo build --release --target wasm32-unknown-unknown --features expose-testing-api -p ic-vetkeys-manager-canister -p ic-vetkeys-encrypted-maps-canister
           cargo test

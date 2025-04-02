@@ -1,8 +1,8 @@
 {
     "canisters": {
       "key_manager_example": {
-        "candid": "key_manager_example.did",
-        "package": "ic-vetkd-cdk-key-manager-example",
+        "candid": "ic_vetkeys_manager_canister.did",
+        "package": "ic-vetkeys-manager-canister",
         "type": "rust"
       },
       "chainkey_testing_canister": {

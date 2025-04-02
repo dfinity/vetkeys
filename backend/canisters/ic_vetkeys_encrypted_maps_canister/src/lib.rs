@@ -5,8 +5,8 @@ use ic_cdk::{query, update};
 use ic_stable_structures::memory_manager::{MemoryId, MemoryManager, VirtualMemory};
 use ic_stable_structures::storable::Blob;
 use ic_stable_structures::DefaultMemoryImpl;
-use ic_vetkd_cdk_encrypted_maps::{EncryptedMapData, EncryptedMaps, VetKey, VetKeyVerificationKey};
-use ic_vetkd_cdk_types::{AccessRights, ByteBuf, EncryptedMapValue, TransportKey};
+use ic_vetkeys::encrypted_maps::{EncryptedMapData, EncryptedMaps, VetKey, VetKeyVerificationKey};
+use ic_vetkeys::types::{AccessRights, ByteBuf, EncryptedMapValue, TransportKey};
 
 type Memory = VirtualMemory<DefaultMemoryImpl>;
 type MapId = (Principal, ByteBuf);
@@ -223,7 +223,7 @@ fn remove_user(
 #[cfg(feature = "expose-testing-api")]
 #[update]
 fn set_vetkd_testing_canister_id(vetkd_testing_canister: Principal) {
-    ic_vetkd_cdk_encrypted_maps::set_vetkd_testing_canister_id(vetkd_testing_canister)
+    ic_vetkeys::key_manager::set_vetkd_testing_canister_id(vetkd_testing_canister)
 }
 
 fn bytebuf_to_blob(buf: ByteBuf) -> Result<Blob<32>, String> {

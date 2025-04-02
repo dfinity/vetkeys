@@ -2,7 +2,7 @@ use std::{convert::TryInto, ops::Range};
 
 use candid::Principal;
 use ic_stable_structures::storable::Blob;
-use ic_vetkd_cdk_types::{AccessRights, ByteBuf, KeyName};
+use ic_vetkeys::types::{AccessRights, ByteBuf, KeyName};
 use rand::{CryptoRng, Rng, SeedableRng};
 use rand_chacha::ChaCha20Rng;
 use std::convert::TryFrom;

@@ -29,15 +29,14 @@ use ic_cdk::api::management_canister::main::CanisterId;
 use ic_stable_structures::memory_manager::VirtualMemory;
 use ic_stable_structures::storable::Blob;
 use ic_stable_structures::{DefaultMemoryImpl, StableBTreeMap, StableCell, Storable};
-use ic_vetkd_cdk_types::{AccessControl, ByteBuf, KeyName, TransportKey};
+use crate::types::{AccessControl, ByteBuf, KeyName, TransportKey};
 use std::future::Future;
 use std::str::FromStr;
 
 #[cfg(feature = "expose-testing-api")]
 use std::cell::RefCell;
 
-pub mod vetkd_api_types;
-use vetkd_api_types::{
+use crate::vetkd_api_types::{
     VetKDCurve, VetKDEncryptedKeyReply, VetKDEncryptedKeyRequest, VetKDKeyId, VetKDPublicKeyReply,
     VetKDPublicKeyRequest,
 };

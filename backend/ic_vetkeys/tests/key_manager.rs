@@ -5,12 +5,12 @@ use ic_stable_structures::{
     memory_manager::{MemoryId, MemoryManager},
     DefaultMemoryImpl,
 };
-use ic_vetkd_cdk_key_manager::KeyManager;
-use ic_vetkd_cdk_test_utils::{
+use ic_vetkeys::key_manager::KeyManager;
+use ic_vetkeys::types::AccessRights;
+use ic_vetkeys_test_utils::{
     random_access_rights, random_name, random_self_authenticating_principal,
     random_unique_memory_ids, random_utf8_string, reproducible_rng,
 };
-use ic_vetkd_cdk_types::AccessRights;
 use rand::{CryptoRng, Rng};
 
 #[test]

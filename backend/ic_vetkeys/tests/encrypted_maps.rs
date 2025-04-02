@@ -7,7 +7,7 @@ use ic_stable_structures::{
     storable::Blob,
     DefaultMemoryImpl,
 };
-use ic_vetkd_cdk_test_utils::{
+use ic_vetkeys_test_utils::{
     random_access_rights, random_bytebuf, random_key, random_name,
     random_self_authenticating_principal, random_unique_memory_ids, random_utf8_string,
     reproducible_rng,
@@ -15,8 +15,8 @@ use ic_vetkd_cdk_test_utils::{
 use rand::{CryptoRng, Rng};
 use strum::IntoEnumIterator;
 
-use ic_vetkd_cdk_encrypted_maps::EncryptedMaps;
-use ic_vetkd_cdk_types::{AccessControl, AccessRights};
+use ic_vetkeys::encrypted_maps::EncryptedMaps;
+use ic_vetkeys::types::{AccessControl, AccessRights};
 
 #[test]
 fn can_init_memory() {

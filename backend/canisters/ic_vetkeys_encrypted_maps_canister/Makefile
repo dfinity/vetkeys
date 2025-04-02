@@ -6,7 +6,7 @@ compile-wasm:
 .PHONY: extract-candid
 .SILENT: extract-candid
 extract-candid: compile-wasm
-	candid-extractor ../../target/wasm32-unknown-unknown/release/ic_vetkd_cdk_encrypted_maps_example.wasm > encrypted_maps_example.did
+	candid-extractor ../../../target/wasm32-unknown-unknown/release/ic_vetkeys_encrypted_maps_canister.wasm > ic_vetkeys_encrypted_maps_canister.did
 
 .PHONY: compile-wasm-test
 .SILENT: compile-wasm-test
@@ -17,23 +17,23 @@ compile-wasm-test:
 .SILENT: deploy-test
 deploy-test: compile-wasm-test
 	dfx canister create chainkey_testing_canister && \
-	dfx canister create encrypted_maps_example && \
+	dfx canister create ic_vetkeys_encrypted_maps_canister && \
 	dfx build chainkey_testing_canister && \
 	dfx canister install --upgrade-unchanged --mode auto chainkey_testing_canister && \
-	dfx canister install --upgrade-unchanged --mode auto --wasm ../../target/wasm32-unknown-unknown/release/ic_vetkd_cdk_encrypted_maps_example.wasm encrypted_maps_example
+	dfx canister install --upgrade-unchanged --mode auto --wasm ../../target/wasm32-unknown-unknown/release/ic_vetkeys_encrypted_maps_canister.wasm ic_vetkeys_encrypted_maps_canister
 
 .PHONY: mock
 .SILENT: mock
 mock: deploy-test
 	VETKD_MOCK_CANISTER_ID=$(shell dfx canister id chainkey_testing_canister); \
 	echo "Changing to using mock canister instead of management canister for vetkd to "$${VETKD_MOCK_CANISTER_ID}""; \
-    CMD="dfx canister call encrypted_maps_example set_vetkd_testing_canister_id '(principal "\"$${VETKD_MOCK_CANISTER_ID}\"")'"; \
+    CMD="dfx canister call ic_vetkeys_encrypted_maps_canister set_vetkd_testing_canister_id '(principal "\"$${VETKD_MOCK_CANISTER_ID}\"")'"; \
 	eval "$${CMD}"
 
 .PHONY: export-cmd
 .SILENT: export-cmd
 export-cmd:
-	CANISTER_ID_ENCRYPTED_MAPS_EXAMPLE=$(shell dfx canister id encrypted_maps_example); \
+	CANISTER_ID_ENCRYPTED_MAPS_EXAMPLE=$(shell dfx canister id ic_vetkeys_encrypted_maps_canister); \
 	CMD="export CANISTER_ID_ENCRYPTED_MAPS_EXAMPLE=$${CANISTER_ID_ENCRYPTED_MAPS_EXAMPLE}"; \
 	echo "$${CMD}"
 

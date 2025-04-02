@@ -1,7 +1,7 @@
 use candid::{decode_one, encode_args, encode_one, CandidType, Principal};
-use ic_vetkd_cdk_encrypted_maps::{VetKey, VetKeyVerificationKey};
-use ic_vetkd_cdk_test_utils::random_self_authenticating_principal;
-use ic_vetkd_cdk_types::{AccessRights, ByteBuf, TransportKey};
+use ic_vetkeys::encrypted_maps::{VetKey, VetKeyVerificationKey};
+use ic_vetkeys_test_utils::random_self_authenticating_principal;
+use ic_vetkeys::types::{AccessRights, ByteBuf, TransportKey};
 use ic_vetkd_utils::TransportSecretKey;
 use pocket_ic::{PocketIc, PocketIcBuilder};
 use rand::{CryptoRng, Rng, SeedableRng};
@@ -242,7 +242,7 @@ impl TestEnvironment {
 
 fn load_key_manager_example_canister_wasm() -> Vec<u8> {
     let wasm_path = Path::new(
-        "../../target/wasm32-unknown-unknown/release/ic_vetkd_cdk_encrypted_maps_example.wasm",
+        "../../../target/wasm32-unknown-unknown/release/ic_vetkeys_encrypted_maps_canister.wasm",
     );
     let wasm_bytes = std::fs::read(wasm_path).expect(
         "wasm does not exist - run `cargo build --release --target wasm32-unknown-unknown --features expose-testing-api`",

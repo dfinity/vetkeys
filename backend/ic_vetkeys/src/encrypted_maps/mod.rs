@@ -26,8 +26,8 @@ use ic_stable_structures::storable::Blob;
 use ic_stable_structures::{DefaultMemoryImpl, StableBTreeMap};
 use std::future::Future;
 
-use ic_vetkd_cdk_key_manager::KeyId;
-use ic_vetkd_cdk_types::{
+use crate::key_manager::KeyId;
+use crate::types::{
     AccessControl, ByteBuf, EncryptedMapValue, MapId, MapKey, MapName, TransportKey,
 };
 
@@ -41,7 +41,7 @@ pub type VetKey = ByteBuf;
 type Memory = VirtualMemory<DefaultMemoryImpl>;
 
 pub struct EncryptedMaps<T: AccessControl> {
-    pub key_manager: ic_vetkd_cdk_key_manager::KeyManager<T>,
+    pub key_manager: crate::key_manager::KeyManager<T>,
     pub mapkey_vals: StableBTreeMap<(KeyId, MapKey), EncryptedMapValue, Memory>,
 }
 
@@ -55,7 +55,7 @@ impl<T: AccessControl> EncryptedMaps<T> {
         memory_shared_keys: Memory,
         memory_encrypted_maps: Memory,
     ) -> Self {
-        let key_manager = ic_vetkd_cdk_key_manager::KeyManager::init(
+        let key_manager = crate::key_manager::KeyManager::init(
             domain_separator,
             memory_domain_separator,
             memory_access_control,
@@ -285,9 +285,4 @@ pub struct EncryptedMapData<T: AccessControl> {
     pub map_name: ByteBuf,
     pub keyvals: Vec<(ByteBuf, EncryptedMapValue)>,
     pub access_control: Vec<(Principal, T)>,
-}
-
-#[cfg(feature = "expose-testing-api")]
-pub fn set_vetkd_testing_canister_id(canister_id: Principal) {
-    ic_vetkd_cdk_key_manager::set_vetkd_testing_canister_id(canister_id);
 }

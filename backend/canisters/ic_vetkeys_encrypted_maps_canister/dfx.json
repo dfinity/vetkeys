@@ -1,8 +1,8 @@
 {
   "canisters": {
     "encrypted_maps_example": {
-      "candid": "encrypted_maps_example.did",
-      "package": "ic-vetkd-cdk-encrypted-maps-example",
+      "candid": "ic_vetkeys_encrypted_maps_canister.did",
+      "package": "ic-vetkeys-encrypted-maps-canister",
       "type": "rust"
     },
     "chainkey_testing_canister": {
