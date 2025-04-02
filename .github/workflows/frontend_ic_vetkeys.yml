@@ -1,4 +1,4 @@
-name: SDK Utils CI
+name: Frontend ic_vetkeys CI
 on:
   push:
     branches:
