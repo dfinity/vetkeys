@@ -1,4 +1,4 @@
-name: CDK CI
+name: Backend CI
 on:
   push:
     branches:
@@ -10,6 +10,7 @@ on:
       - Cargo.lock
       - .github/workflows/provision-linux.sh
       - .github/workflows/provision-darwin.sh
+      - .github/workflows/backend.yml
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true

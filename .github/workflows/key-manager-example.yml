@@ -6,10 +6,7 @@ on:
       - main
   pull_request:
     paths:
-      - backend/key_manager_example/**
-      - backend/utils/**
-      - backend/types/**
-      - backend/test_utils/**
+      - backend/**
       - frontend/ic_vetkd_sdk_key_manager/**
       - frontend/ic_vetkd_sdk_key_manager_example/**
       - frontend/ic_vetkd_sdk_utils/**
@@ -31,7 +28,7 @@ jobs:
           bash .github/workflows/provision-darwin.sh
       - name: Key Manager Example Darwin
         run: |
-          pushd backend/key_manager_example
+          pushd backend/canisters/ic_vetkeys_manager_canister
           dfx start --background -vv
           make mock
           eval $(make export-cmd)
@@ -48,7 +45,7 @@ jobs:
         run: bash .github/workflows/provision-linux.sh
       - name: Key Manager Example Linux
         run: |
-          pushd backend/key_manager_example
+          pushd backend/canisters/ic_vetkeys_manager_canister
           dfx start --background -vv
           make mock
           eval $(make export-cmd)

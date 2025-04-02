@@ -28,7 +28,7 @@ jobs:
           bash .github/workflows/provision-darwin.sh
       - name: Encrypted Maps Example Darwin
         run: |
-          pushd backend/encrypted_maps_example
+          pushd backend/canisters/ic_vetkeys_encrypted_maps_canister
           dfx start --background
           make mock
           eval $(make export-cmd)
@@ -45,7 +45,7 @@ jobs:
         run: bash .github/workflows/provision-linux.sh
       - name: Encrypted Maps Example Linux
         run: |
-          pushd backend/encrypted_maps_example
+          pushd backend/canisters/ic_vetkeys_encrypted_maps_canister
           dfx start --background
           make mock
           eval $(make export-cmd)
