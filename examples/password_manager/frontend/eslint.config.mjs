@@ -6,5 +6,5 @@ import tseslint from 'typescript-eslint';
 export default tseslint.config(
   eslint.configs.recommended,
   tseslint.configs.recommended,
-  { ignores: ["dist/", "babel.config.js", "src/declarations"] }
+  { ignores: ["dist/", "babel.config.js", "src/declarations", "vite.config.ts"] }
 );

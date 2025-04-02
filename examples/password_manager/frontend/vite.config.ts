@@ -13,7 +13,6 @@ export default defineConfig({
     svelte(),
     css({ output: "bundle.css" }),
     typescript({
-      sourceMap: true,
       inlineSources: true,
     }),
     environment("all", { prefix: "CANISTER_" }),
