@@ -1,8 +1,8 @@
 import { Actor, HttpAgent } from "@dfinity/agent";
 
 // Imports and re-exports candid interface
-import { idlFactory } from "./encrypted_maps_example.did.js";
-export { idlFactory } from "./encrypted_maps_example.did.js";
+import { idlFactory } from "./ic_vetkeys_encrypted_maps_canister.did.js";
+export { idlFactory } from "./ic_vetkeys_encrypted_maps_canister.did.js";
 
 /* CANISTER_ID is replaced by webpack based on node environment
  * Note: canister environment variable will be standardized as
@@ -10,7 +10,7 @@ export { idlFactory } from "./encrypted_maps_example.did.js";
  * beginning in dfx 0.15.0
  */
 export const canisterId =
-  process.env.CANISTER_ID_ENCRYPTED_MAPS_EXAMPLE;
+  process.env.CANISTER_ID_IC_VETKEYS_ENCRYPTED_MAPS_CANISTER;
 
 export const createActor = (canisterId, options = {}) => {
   const agent = options.agent || new HttpAgent({ ...options.agentOptions });
@@ -39,4 +39,4 @@ export const createActor = (canisterId, options = {}) => {
   });
 };
 
-export const encrypted_maps_example = canisterId ? createActor(canisterId) : undefined;
+export const ic_vetkeys_encrypted_maps_canister = canisterId ? createActor(canisterId) : undefined;

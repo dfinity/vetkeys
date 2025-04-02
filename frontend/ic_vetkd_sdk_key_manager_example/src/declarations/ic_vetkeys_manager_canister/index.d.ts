@@ -7,7 +7,7 @@ import type {
 import type { Principal } from "@dfinity/principal";
 import type { IDL } from "@dfinity/candid";
 
-import { _SERVICE } from './key_manager_example.did';
+import { _SERVICE } from './ic_vetkeys_manager_canister.did';
 
 export declare const idlFactory: IDL.InterfaceFactory;
 export declare const canisterId: string;
@@ -47,4 +47,4 @@ export declare const createActor: (
  * Intialized Actor using default settings, ready to talk to a canister using its candid interface
  * @constructs {@link ActorSubClass}
  */
-export declare const key_manager_example: ActorSubclass<_SERVICE>;
+export declare const ic_vetkeys_manager_canister: ActorSubclass<_SERVICE>;
