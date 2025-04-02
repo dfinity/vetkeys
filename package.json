@@ -1,7 +1,6 @@
 {
     "private": true,
     "workspaces": [
-        "cdk/utils/pkg",
         "sdk/*",
         "examples/password_manager/frontend",
         "examples/password_manager_with_metadata/frontend"
