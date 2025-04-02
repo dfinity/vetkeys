@@ -161,7 +161,7 @@ test('AES-GCM encryption', async () => {
         const byteToFlip = Math.floor(trial / 8);
         modMsg[byteToFlip] ^= flip;
 
-        expect(async () => {
+        await expect(async () => {
             return await keyMaterial.decryptMessage(modMsg, domainSep);
         }).rejects.toThrow("Decryption failed");
     }
@@ -173,7 +173,7 @@ test('AES-GCM encryption', async () => {
         const expectedError = modMsg.length < (12 + 16) ?
             "Invalid ciphertext, too short" : "Decryption failed";
 
-        expect(async () => {
+        await expect(async () => {
             return await keyMaterial.decryptMessage(modMsg, domainSep);
         }).rejects.toThrow(expectedError);
     }
@@ -183,7 +183,7 @@ test('AES-GCM encryption', async () => {
         const extraBytes = window.crypto.getRandomValues(new Uint8Array(trial));
         const modMsg = new Uint8Array([...msg3, ...extraBytes]);
 
-        expect(async () => {
+        await expect(async () => {
             return await keyMaterial.decryptMessage(modMsg, domainSep);
         }).rejects.toThrow("Decryption failed");
     }
