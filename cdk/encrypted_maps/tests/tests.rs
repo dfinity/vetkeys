@@ -405,14 +405,13 @@ fn can_access_map_values() {
                 assert_eq!(
                     BTreeMap::<Principal, AccessRights>::from_iter(
                         map.access_control
-                            .expect("should be able to retrieve access rights")
                             .into_iter()
                             .chain(std::iter::once((caller, access_rights)))
                     ),
                     BTreeMap::from_iter(authorized_users.clone().into_iter())
                 );
             } else {
-                assert_eq!(map.access_control, None);
+                assert_eq!(map.access_control, vec![]);
             }
         }
     }
