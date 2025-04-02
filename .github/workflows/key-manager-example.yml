@@ -28,13 +28,13 @@ jobs:
           bash .github/workflows/provision-darwin.sh
       - name: Key Manager Example Darwin
         run: |
+          npm install
           pushd backend/canisters/ic_vetkeys_manager_canister
           dfx start --background -vv
           make mock
           eval $(make export-cmd)
           popd
           pushd frontend/ic_vetkd_sdk_key_manager_example
-          npm install
           npm test
           npm run lint
   key-manager-example-linux:
@@ -45,12 +45,12 @@ jobs:
         run: bash .github/workflows/provision-linux.sh
       - name: Key Manager Example Linux
         run: |
+          npm install
           pushd backend/canisters/ic_vetkeys_manager_canister
           dfx start --background -vv
           make mock
           eval $(make export-cmd)
           popd
           pushd frontend/ic_vetkd_sdk_key_manager_example
-          npm install
           npm test
           npm run lint
