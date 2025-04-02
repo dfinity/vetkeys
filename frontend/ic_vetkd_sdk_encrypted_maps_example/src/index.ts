@@ -1,7 +1,7 @@
 import { Principal } from "@dfinity/principal";
 import { ActorSubclass, HttpAgent } from "@dfinity/agent";
-import { createActor } from "./declarations/encrypted_maps_example/index";
-import { _SERVICE as _DEFAULT_ENCRYPTED_MAPS_SERVICE, AccessRights, ByteBuf, EncryptedMapData } from "./declarations/encrypted_maps_example/encrypted_maps_example.did";
+import { createActor } from "./declarations/ic_vetkeys_encrypted_maps_canister/index";
+import { _SERVICE as _DEFAULT_ENCRYPTED_MAPS_SERVICE, AccessRights, ByteBuf, EncryptedMapData } from "./declarations/ic_vetkeys_encrypted_maps_canister/ic_vetkeys_encrypted_maps_canister.did";
 import { EncryptedMapsClient } from "ic_vetkd_sdk_encrypted_maps/src/index";
 
 export class DefaultEncryptedMapsClient implements EncryptedMapsClient {
