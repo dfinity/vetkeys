@@ -5,15 +5,15 @@ on:
       - main
   pull_request:
     paths:
-      - frontend/ic_vetkd_sdk_utils/**
+      - frontend/ic_vetkeys/**
       - package.json
       - package-lock.json
-      - .github/workflows/sdk_utils.yml
+      - .github/workflows/frontend_ic_vetkeys.yml
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 jobs:
-  sdk_utils_tests_linux:
+  frontend_ic_vetkeys_linux:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
@@ -23,13 +23,22 @@ jobs:
       - name: SDK Tests and Lint
         run: |
           set -eExuo pipefail
-          cd frontend/ic_vetkd_sdk_utils
           npm install
+          pushd backend/canisters/ic_vetkeys_encrypted_maps_canister
+          dfx start --background
+          make mock
+          eval $(make export-cmd)
+          popd
+          pushd backend/canisters/ic_vetkeys_manager_canister
+          dfx start --background
+          make mock
+          eval $(make export-cmd)
+          popd
+          cd frontend/ic_vetkeys
           npm run build
           npm run test
           npm run lint
-
-  sdk_utils_tests_mac:
+  frontend_ic_vetkeys_mac:
     runs-on: macos-15
     steps:
       - uses: actions/checkout@v4
@@ -39,8 +48,18 @@ jobs:
       - name: SDK Tests and Lint
         run: |
           set -eExuo pipefail
-          cd frontend/ic_vetkd_sdk_utils
           npm install
+          pushd backend/canisters/ic_vetkeys_encrypted_maps_canister
+          dfx start --background
+          make mock
+          eval $(make export-cmd)
+          popd
+          pushd backend/canisters/ic_vetkeys_manager_canister
+          dfx start --background
+          make mock
+          eval $(make export-cmd)
+          popd
+          cd frontend/ic_vetkeys
           npm run build
           npm run test
           npm run lint
