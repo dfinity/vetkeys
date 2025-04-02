@@ -2,8 +2,8 @@ import { HttpAgent } from "@dfinity/agent";
 import { Ed25519KeyIdentity } from "@dfinity/identity";
 import fetch from 'isomorphic-fetch';
 import { expect, test } from 'vitest'
-import { KeyManager } from "ic_vetkd_sdk_key_manager/src";
-import { DefaultKeyManagerClient } from "./index";
+import { KeyManager } from "./key_manager";
+import { DefaultKeyManagerClient } from "./key_manager_canister";
 import { randomBytes } from "node:crypto";
 
 function randomId(): Ed25519KeyIdentity {

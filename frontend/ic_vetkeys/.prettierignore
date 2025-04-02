@@ -2,6 +2,6 @@
 build
 coverage
 dist
-README.md
+**/README.md
 **/declarations/
 

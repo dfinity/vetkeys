@@ -9,7 +9,7 @@
     import GiOpenTreasureChest from "svelte-icons/gi/GiOpenTreasureChest.svelte";
     import { auth } from "../store/auth";
     import SharingEditor from "./SharingEditor.svelte";
-    import type { AccessRights } from "ic_vetkd_sdk_encrypted_maps/src";
+    import type { AccessRights } from "ic_vetkeys";
 
     export let vault: VaultModel = {
         name: "",

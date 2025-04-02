@@ -1,7 +1,7 @@
 import { Principal } from "@dfinity/principal";
 import { ActorSubclass, HttpAgent } from "@dfinity/agent";
-import { createActor } from "./declarations/key_manager_example/index.js";
-import { _SERVICE as _DEFAULT_KEY_MANAGER_SERVICE, AccessRights, ByteBuf } from "./declarations/ic_vetkeys_manager_canister/ic_vetkeys_manager_canister.did.js";
+import { createActor } from "../declarations/ic_vetkeys_manager_canister/index.js";
+import { _SERVICE as _DEFAULT_KEY_MANAGER_SERVICE, AccessRights, ByteBuf } from "../declarations/ic_vetkeys_manager_canister/ic_vetkeys_manager_canister.did.js";
 import { KeyManagerClient } from "ic_vetkd_sdk_key_manager";
 
 export class DefaultKeyManagerClient implements KeyManagerClient {

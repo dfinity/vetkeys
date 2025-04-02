@@ -6,7 +6,7 @@ import { showError } from "./notifications";
 import {
     type AccessRights,
     EncryptedMaps,
-} from "ic_vetkd_sdk_encrypted_maps/src";
+} from "ic_vetkeys";
 import type { Principal } from "@dfinity/principal";
 
 export const vaultsStore = writable<

@@ -9,7 +9,7 @@
     } from "../store/vaults";
     import { addNotification, showError } from "../store/notifications";
     import { Principal } from "@dfinity/principal";
-    import type { AccessRights } from "ic_vetkd_sdk_encrypted_maps/src";
+    import type { AccessRights } from "ic_vetkeys";
 
     export let editedVault: VaultModel;
     export let canManage = false;

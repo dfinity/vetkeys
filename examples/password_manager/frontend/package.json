@@ -5,15 +5,14 @@
   "scripts": {
     "dev": "vite",
     "build": "npm run build:deps && vite build",
-    "build:deps": "cd ../../../frontend/ic_vetkd_sdk_encrypted_maps_example && npm i && npm run build",
+    "build:deps": "cd ../../../frontend/ic_vetkeys && npm run build",
     "lint": "eslint",
     "prettier": "prettier --write .",
     "prettier-check": "prettier --check .",
     "preview": "vite preview"
   },
   "peerDependencies": {
-    "ic_vetkd_sdk_encrypted_maps": "^0.1.0",
-    "ic_vetkd_sdk_encrypted_maps_example": "^0.1.0"
+    "ic_vetkeys": "^0.1.0"
   },
   "devDependencies": {
     "@rollup/plugin-typescript": "^12.1.2",

@@ -2,6 +2,7 @@ set -ex
 
 function make_and_copy_declarations () {
     DIR=$1
+    NAME=$2
 
     pushd $DIR
     make extract-candid
@@ -9,7 +10,8 @@ function make_and_copy_declarations () {
     popd
 
     mkdir -p declarations
-    cp -R "$DIR/src/declarations/ic_vetkeys_encrypted_maps_canister" "src/declarations/"
+    mv "$DIR/""$NAME""/src/declarations/""$NAME" "src/declarations/"
 }
 
-make_and_copy_declarations "../../backend/canisters/ic_vetkeys_encrypted_maps_canister"
+make_and_copy_declarations "../../backend/canisters/" "ic_vetkeys_manager_canister"
+make_and_copy_declarations "../../backend/canisters/" "ic_vetkeys_encrypted_maps_canister"

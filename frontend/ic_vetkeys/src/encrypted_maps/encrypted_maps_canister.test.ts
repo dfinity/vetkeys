@@ -1,9 +1,9 @@
 import { HttpAgent } from "@dfinity/agent";
-import { DefaultEncryptedMapsClient } from "./index";
+import { DefaultEncryptedMapsClient } from "./encrypted_maps_canister";
 import { expect, test } from 'vitest'
 import fetch from 'isomorphic-fetch';
 import { Ed25519KeyIdentity } from "@dfinity/identity";
-import { EncryptedMaps } from "ic_vetkd_sdk_encrypted_maps/src";
+import { EncryptedMaps } from "./encrypted_maps";
 import { randomBytes } from 'node:crypto'
 
 function randomId(): Ed25519KeyIdentity {

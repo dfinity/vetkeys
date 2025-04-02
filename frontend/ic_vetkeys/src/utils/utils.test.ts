@@ -1,19 +1,5 @@
-import { DerivedPublicKey, EncryptedVetKey, IdentityBasedEncryptionCiphertext, TransportSecretKey, augmentedHashToG1, hashToScalar, deriveSymmetricKey, VetKey } from "../src/index";
-import { expect, test, beforeAll } from '@jest/globals';
-
-import crypto from 'node:crypto';
-
-if (typeof window === 'undefined') {
-    /* eslint-disable @typescript-eslint/no-explicit-any */
-    (global as any).window = {};
-}
-
-beforeAll(() => {
-    Object.defineProperty(window, 'crypto', {
-        value: crypto.webcrypto,
-        writable: true,
-    });
-});
+import { DerivedPublicKey, EncryptedVetKey, IdentityBasedEncryptionCiphertext, TransportSecretKey, augmentedHashToG1, hashToScalar, deriveSymmetricKey, VetKey } from "./utils";
+import { expect, test } from 'vitest'
 
 function hexToBytes(hex: string): Uint8Array {
     const bytes = new Uint8Array(hex.length / 2);
@@ -139,7 +125,7 @@ test('hkdf using webcrypto', async () => {
     };
     const derived = await window.crypto.subtle.deriveKey(algorithm, wckey, derivedAlgo, true, ["sign"]);
 
-    const derivedBytes = await window.crypto.subtle.exportKey("raw", derived);
+    const derivedBytes = new Uint8Array(await window.crypto.subtle.exportKey("raw", derived));
     assertEqual(bytesToHex(derivedBytes), "3b7bd854033cdc119865ba3019dc1e35010fdaf90f8ff5c9cfe9d1d557dddb29");
 });
 
