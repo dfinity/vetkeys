@@ -1,6 +1,6 @@
 import "./init.ts";
 import { HttpAgent, type HttpAgentOptions } from "@dfinity/agent";
-import { DefaultEncryptedMapsClient } from "../../../../../frontend/ic_vetkd_sdk_encrypted_maps_example/src/index";
+import { DefaultEncryptedMapsClient } from "ic_vetkeys/tools";
 import { EncryptedMaps } from "ic_vetkeys/tools";
 
 export async function createEncryptedMaps(

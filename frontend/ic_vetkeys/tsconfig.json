@@ -17,9 +17,14 @@
     "isolatedModules": true,
     "moduleDetection": "force",
     "noEmit": true,
-    "noUncheckedSideEffectImports": true
+    "noUncheckedSideEffectImports": true,
   },
   "include": [
     "src"
+  ],
+  "exclude": [
+    "**/*.test.ts",
+    "**/*.test.tsx",
+    "test", "tests"
   ]
 }

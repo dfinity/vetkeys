@@ -6,17 +6,15 @@ export default defineConfig({
     plugins: [dts({ outDir: 'dist/types' })],
     build: {
         lib: {
-            entry: path.resolve(__dirname, 'src/index.ts'),
-            name: 'index',
+            entry: {
+                index: path.resolve(__dirname, 'src/index.ts'),
+                tools: path.resolve(__dirname, 'src/tools/index.ts'),
+            },
+            name: 'ic_vetkeys',
             formats: ['es'],
-            fileName: (format) => `lib/index.${format}.js`
+            fileName: (format, entryName) => `${entryName}.${format}.js`,
         },
-        rollupOptions: {
-            external: [],
-            output: {
-                globals: {}
-            }
-        },
+        outDir: 'dist/lib',
         emptyOutDir: true
     },
     test: {

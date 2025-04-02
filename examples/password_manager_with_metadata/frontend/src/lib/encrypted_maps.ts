@@ -1,14 +1,11 @@
 import "./init.ts";
 import { HttpAgent, type HttpAgentOptions } from "@dfinity/agent";
-import { DefaultEncryptedMapsClient } from "../../../../../frontend/ic_vetkd_sdk_encrypted_maps_example/src/index";
+import { DefaultEncryptedMapsClient } from "ic_vetkeys/tools";
 import { EncryptedMaps } from "ic_vetkeys/tools";
 
 export async function createEncryptedMaps(
     agentOptions: HttpAgentOptions,
 ): Promise<EncryptedMaps> {
-    const CANISTER_ID_PASSWORD_MANAGER_WITH_METADATA =
-        process.env.CANISTER_ID_PASSWORD_MANAGER_WITH_METADATA;
-
     const agent = await HttpAgent.create({ ...agentOptions });
     // Fetch root key for certificate validation during development
     if (process.env.NODE_ENV !== "production") {
@@ -26,7 +23,7 @@ export async function createEncryptedMaps(
     return new EncryptedMaps(
         new DefaultEncryptedMapsClient(
             agent,
-            CANISTER_ID_PASSWORD_MANAGER_WITH_METADATA,
+            process.env.CANISTER_ID_PASSWORD_MANAGER_WITH_METADATA as string,
         ),
     );
 }

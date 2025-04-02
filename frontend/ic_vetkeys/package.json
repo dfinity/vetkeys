@@ -5,12 +5,23 @@
     "files": [
         "dist"
     ],
+    "exports": {
+        ".": {
+            "import": "./dist/lib/index.es.js",
+            "types": "./dist/types/index.d.ts"
+        },
+        "./tools": {
+            "import": "./dist/lib/tools/index.es.js",
+            "types": "./dist/types/tools/index.d.ts"
+        }
+    },
     "module": "dist/lib/index.es.js",
     "typings": "dist/types/index.d.ts",
     "dependencies": {
         "@dfinity/agent": "^2.3.0",
         "@dfinity/candid": "^2.3.0",
-        "@dfinity/principal": "^2.3.0"
+        "@dfinity/principal": "^2.3.0",
+        "idb-keyval": "^6.2.1"
     },
     "devDependencies": {
         "@dfinity/identity": "^2.2.0",

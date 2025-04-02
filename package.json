@@ -1,7 +1,7 @@
 {
     "private": true,
     "workspaces": [
-        "frontend/*",
+        "frontend/ic_vetkeys",
         "examples/password_manager/frontend",
         "examples/password_manager_with_metadata/frontend"
     ]

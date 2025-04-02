@@ -5,6 +5,7 @@ import autoprefixer from "autoprefixer";
 import css from 'rollup-plugin-css-only';
 import typescript from '@rollup/plugin-typescript';
 import environment from 'vite-plugin-environment';
+import path from 'path';
 
 // https://vite.dev/config/
 export default defineConfig({
@@ -30,6 +31,12 @@ export default defineConfig({
         inlineDynamicImports: true,
       },
     },
+  },
+  resolve: {
+    alias: {
+      'ic_vetkeys': path.resolve(__dirname, '../../../frontend/ic_vetkeys/src'),
+      'ic_vetkeys/tools': path.resolve(__dirname, '../../../frontend/ic_vetkeys/src/tools'),
+    }
   },
   root: "./",
   server: {
