@@ -9,7 +9,7 @@ function make_and_copy_declarations () {
     popd
 
     mkdir -p declarations
-    cp -R "$DIR/src/declarations/encrypted_maps_example" "src/declarations/"
+    cp -R "$DIR/src/declarations/ic_vetkeys_encrypted_maps_canister" "src/declarations/"
 }
 
-make_and_copy_declarations "../../backend/encrypted_maps_example"
+make_and_copy_declarations "../../backend/canisters/ic_vetkeys_encrypted_maps_canister"

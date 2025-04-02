@@ -10,7 +10,7 @@ function make_and_copy_declarations () {
     popd
 
     mkdir -p declarations
-    cp -R "$DIR/src/declarations/key_manager_example" "src/declarations/"
+    cp -R "$DIR/src/declarations/ic_vetkeys_manager_canister" "src/declarations/"
 }
 
-make_and_copy_declarations "../../backend/key_manager_example" "key_manager_example.did";
+make_and_copy_declarations "../../backend/canisters/ic_vetkeys_manager_canister" "ic_vetkeys_manager_canister.did";
