@@ -9,6 +9,8 @@ on:
       - package.json
       - package-lock.json
       - .github/workflows/frontend_ic_vetkeys.yml
+      - .github/workflows/provision-darwin.sh
+      - .github/workflows/provision-linux.sh
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
