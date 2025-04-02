@@ -17,7 +17,7 @@ function ids(): [Ed25519KeyIdentity, Ed25519KeyIdentity] {
 async function new_key_manager(id: Ed25519KeyIdentity): Promise<KeyManager> {
   const host = 'http://127.0.0.1:4943';
   const agent = await HttpAgent.create({ fetch, host, identity: id, shouldFetchRootKey: true }).catch((err) => { throw err; });
-  const canisterId = process.env.CANISTER_ID_KEY_MANAGER_EXAMPLE as string;
+  const canisterId = process.env.CANISTER_ID_IC_VETKEYS_MANAGER_CANISTER as string;
   return new KeyManager(new DefaultKeyManagerClient(agent, canisterId));
 }
 

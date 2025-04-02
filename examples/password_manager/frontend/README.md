@@ -8,7 +8,7 @@ frontend implementation that uses all defaults from the SDK.
 
 ## Step 2: Tell `frontend` what canisters to communicate with, so the following environment variables must be defined. For a local deployment, one can run `deploy_locally.sh` from that folder.
 * `CANISTER_ID_INTERNET_IDENTITY`
-* `CANISTER_ID_ENCRYPTED_MAPS_EXAMPLE`
+* `CANISTER_ID_IC_VETKEYS_ENCRYPTED_MAPS_CANISTER`
 
 ## Step 3: Deploy frontend. This returns a link that can be used to access the frontend from the asset canister.
 ```shell

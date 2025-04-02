@@ -8,7 +8,7 @@ export async function createEncryptedMaps(
 ): Promise<EncryptedMaps> {
     const host =
         process.env.DFX_NETWORK === "ic"
-            ? `https://${process.env.CANISTER_ID_ENCRYPTED_MAPS_EXAMPLE}.ic0.app`
+            ? `https://${process.env.CANISTER_ID_IC_VETKEYS_ENCRYPTED_MAPS_CANISTER}.ic0.app`
             : "http://localhost:8000";
     const hostOptions = { host };
 
@@ -35,7 +35,7 @@ export async function createEncryptedMaps(
     return new EncryptedMaps(
         new DefaultEncryptedMapsClient(
             agent,
-            process.env.CANISTER_ID_ENCRYPTED_MAPS_EXAMPLE,
+            process.env.CANISTER_ID_IC_VETKEYS_ENCRYPTED_MAPS_CANISTER,
         ),
     );
 }
