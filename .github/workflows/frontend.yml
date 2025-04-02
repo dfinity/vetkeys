@@ -19,9 +19,8 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
-      - name: Setup
-        run: |
-          sudo apt-get install nodejs
+      - name: Provision Linux
+        run: bash .github/workflows/provision-linux.sh
       - name: SDK Tests and Lint
         run: |
           set -eExuo pipefail
@@ -44,9 +43,9 @@ jobs:
     runs-on: macos-15
     steps:
       - uses: actions/checkout@v4
-      - name: Setup
+      - name: Provision Darwin
         run: |
-          brew install nodejs
+          bash .github/workflows/provision-darwin.sh
       - name: SDK Tests and Lint
         run: |
           set -eExuo pipefail
