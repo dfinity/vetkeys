@@ -1189,129 +1189,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "ic-vetkd-cdk-encrypted-maps"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "assert_matches",
- "candid",
- "hex",
- "ic-agent",
- "ic-cdk-macros",
- "ic-stable-structures",
- "ic-vetkd-cdk-key-manager",
- "ic-vetkd-cdk-test-utils",
- "ic-vetkd-cdk-types",
- "lazy_static",
- "pocket-ic",
- "rand 0.9.0",
- "rand_chacha 0.9.0",
- "serde",
- "serde_bytes",
- "strum",
-]
-
-[[package]]
-name = "ic-vetkd-cdk-encrypted-maps-example"
-version = "0.1.0"
-dependencies = [
- "candid",
- "ic-cdk",
- "ic-cdk-macros",
- "ic-stable-structures",
- "ic-vetkd-cdk-encrypted-maps",
- "ic-vetkd-cdk-test-utils",
- "ic-vetkd-cdk-types",
- "ic-vetkd-utils",
- "pocket-ic",
- "rand 0.9.0",
- "rand_chacha 0.9.0",
- "reqwest",
- "serde",
-]
-
-[[package]]
-name = "ic-vetkd-cdk-key-manager"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "assert_matches",
- "candid",
- "futures",
- "hex",
- "ic-agent",
- "ic-cdk",
- "ic-cdk-macros",
- "ic-stable-structures",
- "ic-vetkd-cdk-test-utils",
- "ic-vetkd-cdk-types",
- "lazy_static",
- "pocket-ic",
- "rand 0.9.0",
- "rand_chacha 0.9.0",
- "serde",
- "serde_bytes",
- "serde_with",
-]
-
-[[package]]
-name = "ic-vetkd-cdk-key-manager-example"
-version = "0.1.0"
-dependencies = [
- "candid",
- "ic-cdk",
- "ic-cdk-macros",
- "ic-stable-structures",
- "ic-vetkd-cdk-key-manager",
- "ic-vetkd-cdk-test-utils",
- "ic-vetkd-cdk-types",
- "ic-vetkd-utils",
- "pocket-ic",
- "rand 0.9.0",
- "rand_chacha 0.9.0",
- "reqwest",
- "serde",
-]
-
-[[package]]
-name = "ic-vetkd-cdk-test-utils"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "candid",
- "hex",
- "ic-stable-structures",
- "ic-vetkd-cdk-types",
- "lazy_static",
- "rand 0.9.0",
- "rand_chacha 0.9.0",
- "serde",
- "serde_bytes",
-]
-
-[[package]]
-name = "ic-vetkd-cdk-types"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "candid",
- "hex",
- "ic-stable-structures",
- "lazy_static",
- "serde",
- "serde_bytes",
- "strum",
- "strum_macros",
-]
-
-[[package]]
-name = "ic-vetkd-cdk-utils"
-version = "0.1.0"
-dependencies = [
- "ic-vetkd-utils",
-]
-
-[[package]]
 name = "ic-vetkd-example-password-manager-with-metadata-backend"
 version = "0.1.0"
 dependencies = [
@@ -1319,8 +1196,7 @@ dependencies = [
  "ic-cdk",
  "ic-cdk-macros",
  "ic-stable-structures",
- "ic-vetkd-cdk-encrypted-maps",
- "ic-vetkd-cdk-types",
+ "ic-vetkeys",
  "serde",
  "serde_cbor",
 ]
@@ -1341,6 +1217,83 @@ dependencies = [
  "subtle",
  "wasm-bindgen",
  "zeroize",
+]
+
+[[package]]
+name = "ic-vetkeys"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "assert_matches",
+ "candid",
+ "futures",
+ "hex",
+ "ic-agent",
+ "ic-cdk",
+ "ic-cdk-macros",
+ "ic-stable-structures",
+ "ic-vetkeys-test-utils",
+ "lazy_static",
+ "pocket-ic",
+ "rand 0.9.0",
+ "rand_chacha 0.9.0",
+ "serde",
+ "serde_bytes",
+ "serde_with",
+ "strum",
+ "strum_macros",
+]
+
+[[package]]
+name = "ic-vetkeys-encrypted-maps-canister"
+version = "0.1.0"
+dependencies = [
+ "candid",
+ "ic-cdk",
+ "ic-cdk-macros",
+ "ic-stable-structures",
+ "ic-vetkd-utils",
+ "ic-vetkeys",
+ "ic-vetkeys-test-utils",
+ "pocket-ic",
+ "rand 0.9.0",
+ "rand_chacha 0.9.0",
+ "reqwest",
+ "serde",
+]
+
+[[package]]
+name = "ic-vetkeys-manager-canister"
+version = "0.1.0"
+dependencies = [
+ "candid",
+ "ic-cdk",
+ "ic-cdk-macros",
+ "ic-stable-structures",
+ "ic-vetkd-utils",
+ "ic-vetkeys",
+ "ic-vetkeys-test-utils",
+ "pocket-ic",
+ "rand 0.9.0",
+ "rand_chacha 0.9.0",
+ "reqwest",
+ "serde",
+]
+
+[[package]]
+name = "ic-vetkeys-test-utils"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "candid",
+ "hex",
+ "ic-stable-structures",
+ "ic-vetkeys",
+ "lazy_static",
+ "rand 0.9.0",
+ "rand_chacha 0.9.0",
+ "serde",
+ "serde_bytes",
 ]
 
 [[package]]

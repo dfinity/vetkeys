@@ -1,12 +1,9 @@
 [workspace]
 members = [
-    "cdk/encrypted_maps_example",
-    "cdk/key_manager_example",
-    "cdk/encrypted_maps",
-    "cdk/key_manager",
-    "cdk/test_utils",
-    "cdk/types",
-    "cdk/utils",
+    "backend/ic_vetkeys",
+    "backend/canisters/ic_vetkeys_manager_canister",
+    "backend/canisters/ic_vetkeys_encrypted_maps_canister",
+    "backend/ic_vetkeys_test_utils",
     "examples/password_manager_with_metadata/backend"
 ]
 resolver = "2"

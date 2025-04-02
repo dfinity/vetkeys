@@ -1,5 +1,5 @@
 [package]
-name = "ic-vetkd-cdk-key-manager-example"
+name = "ic-vetkeys-manager-canister"
 authors.workspace = true
 description.workspace = true
 documentation.workspace = true
@@ -16,12 +16,11 @@ candid = { workspace = true }
 ic-cdk = { workspace = true }
 ic-cdk-macros = { workspace = true }
 ic-stable-structures = { workspace = true }
-ic-vetkd-cdk-key-manager = { path = "../key_manager" }
-ic-vetkd-cdk-types = { path = "../types" }
+ic-vetkeys = { path = "../../ic_vetkeys" }
 serde = { workspace = true }
 
 [dev-dependencies]
-ic-vetkd-cdk-test-utils = { path = "../test_utils" }
+ic-vetkeys-test-utils = { path = "../../ic_vetkeys_test_utils" }
 ic-vetkd-utils = { workspace = true }
 pocket-ic = { workspace = true }
 rand = { workspace = true }
@@ -29,4 +28,5 @@ rand_chacha = { workspace = true }
 reqwest = "0.12.12"
 
 [features]
-expose-testing-api = ["ic-vetkd-cdk-key-manager/expose-testing-api"]
+expose-testing-api = ["ic-vetkeys/expose-testing-api"]
+

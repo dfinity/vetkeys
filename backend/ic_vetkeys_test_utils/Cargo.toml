@@ -1,5 +1,5 @@
 [package]
-name = "ic-vetkd-cdk-test-utils"
+name = "ic-vetkeys-test-utils"
 authors.workspace = true
 description.workspace = true
 documentation.workspace = true
@@ -15,7 +15,7 @@ anyhow = { workspace = true }
 candid = { workspace = true }
 hex = { workspace = true }
 ic-stable-structures = { workspace = true }
-ic-vetkd-cdk-types = { path = "../types" }
+ic-vetkeys = { path = "../ic_vetkeys" }
 lazy_static = { workspace = true }
 rand = { workspace = true }
 rand_chacha = { workspace = true }

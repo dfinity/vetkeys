@@ -16,10 +16,9 @@ candid = { workspace = true }
 ic-cdk = { workspace = true }
 ic-cdk-macros = { workspace = true }
 ic-stable-structures = { workspace = true }
-ic-vetkd-cdk-encrypted-maps = { path = "../../../cdk/encrypted_maps" }
-ic-vetkd-cdk-types = { path = "../../../cdk/types" }
+ic-vetkeys = { path = "../../../backend/ic_vetkeys" }
 serde = { workspace = true }
 serde_cbor = { workspace = true }
 
 [features]
-expose-testing-api = ["ic-vetkd-cdk-encrypted-maps/expose-testing-api"]
+expose-testing-api = ["ic-vetkeys/expose-testing-api"]

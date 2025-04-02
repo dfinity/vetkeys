@@ -1,5 +1,5 @@
 [package]
-name = "ic-vetkd-cdk-encrypted-maps"
+name = "ic-vetkeys"
 authors.workspace = true
 description.workspace = true
 documentation.workspace = true
@@ -18,17 +18,17 @@ hex = { workspace = true }
 ic-cdk = { workspace = true }
 ic-cdk-macros = { workspace = true }
 ic-stable-structures = { workspace = true }
-ic-vetkd-cdk-key-manager = { path = "../key_manager" }
-ic-vetkd-cdk-types = { path = "../types" }
 lazy_static = { workspace = true }
 serde = { workspace = true }
 serde_bytes = { workspace = true }
 serde_with = "3.11.0"
+strum = "0.26.3"
+strum_macros = "0.26.3"
 
 [dev-dependencies]
 assert_matches = "1.5.0"
 ic-agent = "0.38.2"
-ic-vetkd-cdk-test-utils = { path = "../test_utils" }
+ic-vetkeys-test-utils = { path = "../ic_vetkeys_test_utils" }
 pocket-ic = { workspace = true }
 rand = { workspace = true }
 rand_chacha = { workspace = true }
