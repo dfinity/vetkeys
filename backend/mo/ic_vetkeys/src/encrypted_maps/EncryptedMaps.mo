@@ -62,7 +62,7 @@ module {
     public class EncryptedMaps<T>(domainSeparatorArg : Text, accessRightsOperationsArg : Types.AccessControlOperations<T>) {
         let accessRightsOperations = accessRightsOperationsArg;
         public let domainSeparator = domainSeparatorArg;
-        public let keyManager = KeyManager.KeyManager<T>(domainSeparatorArg, accessRightsOperationsArg);
+        public var keyManager = KeyManager.KeyManager<T>(domainSeparatorArg, accessRightsOperationsArg);
         public var mapKeyVals : OrderedMap.Map<(KeyId, MapKey), EncryptedMapValue> = mapKeyValsMapOps().empty();
         public var mapKeys : OrderedMap.Map<KeyId, [MapKey]> = mapKeysMapOps().empty();
 
