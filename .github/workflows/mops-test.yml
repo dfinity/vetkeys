@@ -6,6 +6,13 @@ on:
       - main
       - master
   pull_request:
+    paths:
+      - backend/mo/**
+      - Cargo.toml
+      - Cargo.lock
+      - .github/workflows/provision-linux.sh
+      - .github/workflows/provision-darwin.sh
+      - .github/workflows/backend-motoko.yml
 
 jobs:
   backend-motoko-tests-linux:
