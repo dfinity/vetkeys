@@ -137,18 +137,12 @@ fn map_sharing_should_work() {
                 encode_args((map_owner, map_name.clone(), transport_key_bytes)).unwrap(),
             )
             .unwrap();
-        let derivation_id: Vec<u8> = map_owner
-            .as_slice()
-            .iter()
-            .chain(map_name.as_ref().iter())
-            .cloned()
-            .collect();
 
         transport_key
             .decrypt(
                 encrypted_vetkey.as_ref(),
                 verification_key.as_ref(),
-                derivation_id.as_ref(),
+                &key_id_to_derivation_id(map_owner, map_name.as_ref()),
             )
             .expect("failed to decrypt and verify `vetkey")
     };
