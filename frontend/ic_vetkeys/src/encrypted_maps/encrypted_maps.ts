@@ -92,7 +92,7 @@ export class EncryptedMaps {
         } else {
             const encrypted_key_bytes = Uint8Array.from(encrypted_vetkey.Ok.inner);
             const verification_key = await this.get_vetkey_verification_key();
-            const derivaition_id = new Uint8Array([...map_owner.toUint8Array(), ...map_name]);
+            const derivaition_id = new Uint8Array([map_owner.toUint8Array().length, ...map_owner.toUint8Array(), ...map_name]);
 
             const encryptedVetKey = new EncryptedVetKey(encrypted_key_bytes);
             const derivedPublicKey = DerivedPublicKey.deserialize(verification_key);

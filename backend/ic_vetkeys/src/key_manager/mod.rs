@@ -24,12 +24,12 @@
 //! 1. **Access Control Map** (`access_control`): Maps `(Caller, KeyId)` to `T`, defining permissions for each user.
 //! 2. **Shared Keys Map** (`shared_keys`): Tracks which users have access to shared keys.
 
+use crate::types::{AccessControl, ByteBuf, KeyName, TransportKey};
 use candid::Principal;
 use ic_cdk::api::management_canister::main::CanisterId;
 use ic_stable_structures::memory_manager::VirtualMemory;
 use ic_stable_structures::storable::Blob;
 use ic_stable_structures::{DefaultMemoryImpl, StableBTreeMap, StableCell, Storable};
-use crate::types::{AccessControl, ByteBuf, KeyName, TransportKey};
 use std::future::Future;
 use std::str::FromStr;
 
@@ -154,16 +154,8 @@ impl<T: AccessControl> KeyManager<T> {
 
         self.ensure_user_can_read(caller, key_id)?;
 
-        let derivation_id = key_id
-            .0
-            .as_slice()
-            .iter()
-            .chain(key_id.1.as_ref().iter())
-            .cloned()
-            .collect();
-
         let request = VetKDEncryptedKeyRequest {
-            derivation_id,
+            derivation_id: key_id_to_derivation_id(key_id),
             public_key_derivation_path: vec![self.domain_separator.get().to_bytes().to_vec()],
             key_id: bls12_381_test_key_1(),
             encryption_public_key: transport_key.into(),
@@ -288,6 +280,16 @@ fn vetkd_system_api_canister_id() -> CanisterId {
         }
     }
     CanisterId::from_str(VETKD_SYSTEM_API_CANISTER_ID).expect("failed to create canister ID")
+}
+
+fn key_id_to_derivation_id(key_id: KeyId) -> Vec<u8> {
+    let (principal, key_name) = key_id;
+    let mut derivation_id =
+        Vec::with_capacity(principal.as_slice().len() + 1 + key_name.as_ref().len());
+    derivation_id.push(principal.as_slice().len() as u8);
+    derivation_id.extend(principal.as_slice());
+    derivation_id.extend(key_name.as_ref());
+    derivation_id
 }
 
 #[cfg(feature = "expose-testing-api")]
