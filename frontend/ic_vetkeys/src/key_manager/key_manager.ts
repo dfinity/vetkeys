@@ -22,9 +22,9 @@ export class KeyManager {
             const encrypted_key_bytes = Uint8Array.from(encrypted_vetkey.Ok.inner);
             const verification_key = await this.get_vetkey_verification_key();
             const derivedPublicKey = DerivedPublicKey.deserialize(Uint8Array.from(verification_key));
-            const derivaition_id = new Uint8Array([...key_owner.toUint8Array(), ...vetkey_name]);
+            const derivationId = new Uint8Array([key_owner.toUint8Array().length, ...key_owner.toUint8Array(), ...vetkey_name]);
             const encryptedDetkey = new EncryptedVetKey(encrypted_key_bytes);
-            const vetkey = encryptedDetkey.decryptAndVerify(tsk, derivedPublicKey, derivaition_id);
+            const vetkey = encryptedDetkey.decryptAndVerify(tsk, derivedPublicKey, derivationId);
             return vetkey.signatureBytes();
         }
     }
