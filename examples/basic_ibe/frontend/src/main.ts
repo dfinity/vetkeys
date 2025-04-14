@@ -53,9 +53,10 @@ function getBasicIbeCanister(): ActorSubclass<_SERVICE> {
 // Get the root IBE public key
 async function getRootIbePublicKey(): Promise<DerivedPublicKey> {
   if (ibePublicKey) return ibePublicKey;
-  return DerivedPublicKey.deserialize(
+  ibePublicKey = DerivedPublicKey.deserialize(
     new Uint8Array(await getBasicIbeCanister().get_root_ibe_public_key())
   );
+  return ibePublicKey;
 }
 
 // Get the user's encrypted IBE key
@@ -196,7 +197,7 @@ async function displayMessages(inbox: Inbox) {
     return;
   }
 
-  for (const [_, message] of inbox.messages.entries()) {
+  for (const message of inbox.messages.values()) {
     const plaintextString = await decryptMessage(
       new Uint8Array(message.encrypted_message)
     );
