@@ -273,7 +273,7 @@ async function handleLogin() {
 
 document.querySelector<HTMLDivElement>("#app")!.innerHTML = `
   <div>
-    <h1>IBE Message System</h1>
+    <h1>Basic IBE Message System with VetKeys</h1>
     <div class="principal-container">
       <div id="principalDisplay" class="principal-display"></div>
       <button id="logoutButton" style="display: none;">Logout</button>
