@@ -59,25 +59,20 @@ pub struct GetEncryptedIbeKeyRequest {
 }
 
 #[derive(CandidType, Deserialize, Clone, Debug)]
-pub struct SendMessageReply {
-    pub message_id: u64,
-}
-
-#[derive(CandidType, Deserialize, Clone, Debug)]
 pub enum VetKDCurve {
     #[serde(rename = "bls12_381")]
     Bls12_381,
 }
 
 #[derive(CandidType, Deserialize, Clone, Debug)]
-pub struct VetKDKeyId {
+pub(crate) struct VetKDKeyId {
     pub curve: VetKDCurve,
     pub name: String,
 }
 
 #[serde_as]
 #[derive(CandidType, Deserialize)]
-pub struct VetKDPublicKeyRequest {
+pub(crate) struct VetKDPublicKeyRequest {
     pub canister_id: Option<CanisterId>,
     #[serde_as(as = "Vec<serde_with::Bytes>")]
     pub derivation_path: Vec<Vec<u8>>,
@@ -85,14 +80,14 @@ pub struct VetKDPublicKeyRequest {
 }
 
 #[derive(CandidType, Deserialize)]
-pub struct VetKDPublicKeyReply {
+pub(crate) struct VetKDPublicKeyReply {
     #[serde(with = "serde_bytes")]
     pub public_key: Vec<u8>,
 }
 
 #[serde_as]
 #[derive(CandidType, Deserialize, Clone, Debug)]
-pub struct VetKDEncryptedKeyRequest {
+pub(crate) struct VetKDEncryptedKeyRequest {
     #[serde_as(as = "Vec<serde_with::Bytes>")]
     pub public_key_derivation_path: Vec<Vec<u8>>,
     #[serde(with = "serde_bytes")]
@@ -103,7 +98,7 @@ pub struct VetKDEncryptedKeyRequest {
 }
 
 #[derive(CandidType, Deserialize)]
-pub struct VetKDEncryptedKeyReply {
+pub(crate) struct VetKDEncryptedKeyReply {
     #[serde(with = "serde_bytes")]
     pub encrypted_key: Vec<u8>,
 }
