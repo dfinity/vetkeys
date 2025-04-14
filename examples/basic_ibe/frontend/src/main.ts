@@ -1,5 +1,5 @@
 import "./style.css";
-import { basic_ibe as basicIbeCanister } from "../../src/declarations/basic_ibe";
+import { createActor } from "../../src/declarations/basic_ibe";
 import { Principal } from "@dfinity/principal";
 import {
   TransportSecretKey,
@@ -8,20 +8,53 @@ import {
   VetKey,
   IdentityBasedEncryptionCiphertext,
 } from "ic_vetkeys";
-import { Message, Inbox } from "../../src/declarations/basic_ibe/basic_ibe.did";
+import {
+  Inbox,
+  _SERVICE,
+} from "../../src/declarations/basic_ibe/basic_ibe.did";
 import { AuthClient } from "@dfinity/auth-client";
+import type { ActorSubclass } from "@dfinity/agent";
 
 // Store the IBE key in memory
 let ibePrivateKey: VetKey | undefined = undefined;
 let ibePublicKey: DerivedPublicKey | undefined = undefined;
 let myPrincipal: Principal | undefined = undefined;
 let authClient: AuthClient | undefined;
+let basicIbeCanister: ActorSubclass<_SERVICE> | undefined;
+
+function getBasicIbeCanister(): ActorSubclass<_SERVICE> {
+  if (basicIbeCanister) return basicIbeCanister;
+  if (!process.env.CANISTER_ID_BASIC_IBE) {
+    throw Error("CANISTER_ID_BASIC_IBE is not set");
+  }
+  if (!authClient) {
+    throw Error("Auth client is not initialized");
+  }
+  const host =
+    process.env.DFX_NETWORK === "ic"
+      ? `https://${process.env.CANISTER_ID_PASSWORD_MANAGER_WITH_METADATA}.ic0.app`
+      : "http://localhost:8000";
+
+  basicIbeCanister = createActor(
+    process.env.CANISTER_ID_BASIC_IBE,
+    process.env.DFX_NETWORK === "ic"
+      ? undefined
+      : {
+          agentOptions: {
+            identity: authClient.getIdentity(),
+            host,
+          },
+        }
+  );
+
+  return basicIbeCanister;
+}
 
 // Get the root IBE public key
 async function getRootIbePublicKey(): Promise<DerivedPublicKey> {
   if (ibePublicKey) return ibePublicKey;
   return DerivedPublicKey.deserialize(
-    new Uint8Array(await basicIbeCanister.get_root_ibe_public_key())
+    new Uint8Array(await getBasicIbeCanister().get_root_ibe_public_key())
   );
 }
 
@@ -34,7 +67,7 @@ async function getIbeKey(): Promise<VetKey> {
   } else {
     const transportSecretKey = TransportSecretKey.random();
     const encryptedKey = Uint8Array.from(
-      await basicIbeCanister.get_my_encrypted_ibe_key(
+      await getBasicIbeCanister().get_my_encrypted_ibe_key(
         transportSecretKey.publicKeyBytes()
       )
     );
@@ -67,49 +100,60 @@ async function sendMessage() {
       receiverPrincipal.toUint8Array(),
       new TextEncoder().encode(message),
       seed
-    ); // Placeholder for encrypted message
+    );
 
-    const result = await basicIbeCanister.send_message({
+    const result = await getBasicIbeCanister().send_message({
       encrypted_message: encryptedMessage.serialize(),
-      receiver: Principal.fromText(receiver),
+      receiver: receiverPrincipal,
     });
 
     if ("Err" in result) {
-      console.error("Error sending message: " + result.Err);
+      alert("Error sending message: " + result.Err);
     } else {
-      console.info("Message sent successfully!");
+      alert("Message sent successfully!");
     }
   } catch (error) {
-    console.error("Error: " + error);
+    alert("Error sending message: " + error);
   }
 }
 
 async function showMessages() {
-    const inbox = await basicIbeCanister.get_my_messages();
-    await displayMessages(inbox);
+  const inbox = await getBasicIbeCanister().get_my_messages();
+  await displayMessages(inbox);
 }
 
-async function deleteSelectedMessages() {
+async function deleteMessages() {
   try {
-    const inbox = await basicIbeCanister.remove_my_messages();
+    const inbox = await getBasicIbeCanister().remove_my_messages();
+    const messageCount = inbox.messages.length;
+    if (messageCount === 0) {
+      alert("No messages were deleted as the inbox was already empty.");
+    } else {
+      alert(
+        `Successfully deleted ${messageCount} message${messageCount === 1 ? "" : "s"}.`
+      );
+    }
     await displayMessages(inbox);
   } catch (error) {
     alert("Error deleting messages: " + error);
   }
 }
 
+async function decryptMessage(encryptedMessage: Uint8Array): Promise<string> {
+  const ibeKey = await getIbeKey();
+  const ciphertext =
+    IdentityBasedEncryptionCiphertext.deserialize(encryptedMessage);
+  const plaintext = ciphertext.decrypt(ibeKey);
+  return new TextDecoder().decode(plaintext);
+}
+
 function createMessageElement(
   sender: Principal,
   timestamp: bigint,
-  index: number,
   plaintextString: string
 ): HTMLDivElement {
   const messageElement = document.createElement("div");
   messageElement.className = "message";
-
-  const checkbox = document.createElement("input");
-  checkbox.type = "checkbox";
-  checkbox.id = `message-${index}`;
 
   const messageContent = document.createElement("div");
   messageContent.className = "message-content";
@@ -135,37 +179,35 @@ function createMessageElement(
   messageContent.appendChild(messageText);
   messageContent.appendChild(messageInfo);
 
-  messageElement.appendChild(checkbox);
   messageElement.appendChild(messageContent);
 
   return messageElement;
-}
-
-async function decryptMessage(encryptedMessage: Uint8Array): Promise<string> {
-  const ibeKey = await getIbeKey();
-  const ciphertext = IdentityBasedEncryptionCiphertext.deserialize(encryptedMessage);
-  const plaintext = ciphertext.decrypt(ibeKey);
-  return new TextDecoder().decode(plaintext);
 }
 
 async function displayMessages(inbox: Inbox) {
   const messagesDiv = document.getElementById("messages")!;
   messagesDiv.innerHTML = "";
 
-  for (const [index, message] of inbox.messages.entries()) {
-    const plaintextString = await decryptMessage(new Uint8Array(message.encrypted_message));
-    
+  if (inbox.messages.length === 0) {
+    const noMessagesDiv = document.createElement("div");
+    noMessagesDiv.className = "no-messages";
+    noMessagesDiv.textContent = "No messages in the inbox.";
+    messagesDiv.appendChild(noMessagesDiv);
+    return;
+  }
+
+  for (const [_, message] of inbox.messages.entries()) {
+    const plaintextString = await decryptMessage(
+      new Uint8Array(message.encrypted_message)
+    );
+
     const messageElement = createMessageElement(
       message.sender,
       message.timestamp,
-      index,
       plaintextString
     );
     messagesDiv.appendChild(messageElement);
   }
-
-  const deleteButton = document.getElementById("deleteMessages")!;
-  deleteButton.style.display = inbox.messages.length > 0 ? "block" : "none";
 }
 
 export function login(client: AuthClient) {
@@ -185,6 +227,13 @@ export function login(client: AuthClient) {
   });
 }
 
+export function logout() {
+  authClient?.logout();
+  const messagesDiv = document.getElementById("messages")!;
+  messagesDiv.innerHTML = "";
+  updateUI(false);
+}
+
 async function initAuth() {
   authClient = await AuthClient.create();
   const isAuthenticated = await authClient.isAuthenticated();
@@ -201,10 +250,12 @@ function updateUI(isAuthenticated: boolean) {
   const loginButton = document.getElementById("loginButton")!;
   const messageButtons = document.getElementById("messageButtons")!;
   const principalDisplay = document.getElementById("principalDisplay")!;
+  const logoutButton = document.getElementById("logoutButton")!;
 
   loginButton.style.display = isAuthenticated ? "none" : "block";
   messageButtons.style.display = isAuthenticated ? "flex" : "none";
   principalDisplay.style.display = isAuthenticated ? "block" : "none";
+  logoutButton.style.display = isAuthenticated ? "block" : "none";
 
   if (isAuthenticated && myPrincipal) {
     principalDisplay.textContent = `Principal: ${myPrincipal.toString()}`;
@@ -223,26 +274,32 @@ async function handleLogin() {
 document.querySelector<HTMLDivElement>("#app")!.innerHTML = `
   <div>
     <h1>IBE Message System</h1>
-    <div id="principalDisplay" class="principal-display"></div>
-    <button id="loginButton">Login</button>
+    <div class="principal-container">
+      <div id="principalDisplay" class="principal-display"></div>
+      <button id="logoutButton" style="display: none;">Logout</button>
+    </div>
+    <div class="login-container">
+      <button id="loginButton">Login</button>
+    </div>
     <div id="messageButtons" class="buttons" style="display: none;">
       <button id="sendMessage">Send Message</button>
       <button id="showMessages">Show My Messages</button>
+      <button id="deleteMessages">Delete and Show My Messages</button>
     </div>
     <div id="messages"></div>
-    <button id="deleteMessages" style="display: none;">Delete Selected Messages</button>
   </div>
 `;
 
 // Add event listeners
 document.getElementById("loginButton")!.addEventListener("click", handleLogin);
+document.getElementById("logoutButton")!.addEventListener("click", logout);
 document.getElementById("sendMessage")!.addEventListener("click", sendMessage);
 document
   .getElementById("showMessages")!
   .addEventListener("click", showMessages);
 document
   .getElementById("deleteMessages")!
-  .addEventListener("click", deleteSelectedMessages);
+  .addEventListener("click", deleteMessages);
 
 // Initialize auth
 initAuth();

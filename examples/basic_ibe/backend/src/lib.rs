@@ -47,6 +47,7 @@ fn send_message(request: SendMessageRequest) -> Result<(), String> {
 
     INBOXES.with_borrow_mut(|inboxes| {
         let mut inbox = inboxes.get(&receiver).unwrap_or_default();
+
         if inbox.messages.len() >= MAX_MESSAGES_PER_INBOX {
             Err(format!("Inbox for {} is full", receiver))
         } else {

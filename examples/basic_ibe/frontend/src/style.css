@@ -126,6 +126,7 @@ button:focus-visible {
   font-size: 1.1em;
   line-height: 1.4;
   margin-bottom: 0.5rem;
+  color: #000;
 }
 
 .message-info {
@@ -157,19 +158,55 @@ button:focus-visible {
   }
 }
 
+.principal-container {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
 .principal-display {
-  position: fixed;
-  top: 1rem;
-  left: 50%;
-  transform: translateX(-50%);
-  font-size: 0.9em;
-  color: #666;
+  font-family: monospace;
   background-color: rgba(0, 0, 0, 0.05);
-  padding: 0.5rem 1rem;
+  padding: 0.5rem;
   border-radius: 4px;
+  color: #a8a6a6;
   white-space: pre-wrap;
   word-break: break-all;
   max-width: 600px;
+}
+
+#logoutButton {
+  padding: 0.5rem 1rem;
+  background-color: #dc3545;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+#logoutButton:hover {
+  background-color: #c82333;
+}
+
+.login-container {
+  display: flex;
+  justify-content: center;
+  margin: 20px 0;
+}
+
+#loginButton {
+  padding: 10px 20px;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+.no-messages {
   text-align: center;
-  z-index: 1000;
+  padding: 2rem;
+  background-color: rgba(0, 0, 0, 0.05);
+  border-radius: 8px;
+  color: #666;
+  font-size: 1.1em;
+  margin: 1rem 0;
 }
