@@ -21,6 +21,7 @@ let ibePublicKey: DerivedPublicKey | undefined = undefined;
 let myPrincipal: Principal | undefined = undefined;
 let authClient: AuthClient | undefined;
 let basicIbeCanister: ActorSubclass<_SERVICE> | undefined;
+let lastSeenMessageCount: number = 0;
 
 function getBasicIbeCanister(): ActorSubclass<_SERVICE> {
   if (basicIbeCanister) return basicIbeCanister;
@@ -120,20 +121,22 @@ async function sendMessage() {
 
 async function showMessages() {
   const inbox = await getBasicIbeCanister().get_my_messages();
-  await displayMessages(inbox);
+  await displayMessages(inbox, false);
+  lastSeenMessageCount = inbox.messages.length;
 }
 
 async function deleteMessages() {
-    const inbox = await getBasicIbeCanister().remove_my_messages();
-    const messageCount = inbox.messages.length;
-    if (messageCount === 0) {
-      alert("No messages were deleted as the inbox was already empty.");
-    } else {
-      alert(
-        `Successfully deleted ${messageCount} message${messageCount === 1 ? "" : "s"}.`
-      );
-    }
-    await displayMessages(inbox);
+  const inbox = await getBasicIbeCanister().remove_my_messages();
+  const messageCount = inbox.messages.length;
+  if (messageCount === 0) {
+    alert("No messages were deleted as the inbox was already empty.");
+  } else {
+    alert(
+      `Successfully deleted ${messageCount} message${messageCount === 1 ? "" : "s"}.`
+    );
+  }
+  await displayMessages(inbox, true);
+  lastSeenMessageCount = 0;
 }
 
 async function decryptMessage(encryptedMessage: Uint8Array): Promise<string> {
@@ -147,13 +150,37 @@ async function decryptMessage(encryptedMessage: Uint8Array): Promise<string> {
 function createMessageElement(
   sender: Principal,
   timestamp: bigint,
-  plaintextString: string
+  plaintextString: string,
+  messageType: "seen" | "new" | "deleted" | "deleted-new"
 ): HTMLDivElement {
   const messageElement = document.createElement("div");
   messageElement.className = "message";
 
+  if (messageType === "deleted" || messageType === "deleted-new" || messageType === "new") {
+    messageElement.classList.add(messageType);
+  }
+
   const messageContent = document.createElement("div");
   messageContent.className = "message-content";
+
+  if (messageType !== "seen") {
+    const deletedLabel = document.createElement("div");
+    deletedLabel.className = "deleted-label";
+    let labelText = "";
+    switch (messageType) {
+      case "new":
+        labelText = "New";
+        break;
+      case "deleted-new":
+        labelText = "Deleted (New)";
+        break;
+      case "deleted":
+        labelText = "Deleted";
+        break;
+    }
+    deletedLabel.textContent = labelText;
+    messageContent.appendChild(deletedLabel);
+  }
 
   const messageText = document.createElement("div");
   messageText.className = "message-text";
@@ -181,7 +208,7 @@ function createMessageElement(
   return messageElement;
 }
 
-async function displayMessages(inbox: Inbox) {
+async function displayMessages(inbox: Inbox, isAfterDeletion: boolean) {
   const messagesDiv = document.getElementById("messages")!;
   messagesDiv.innerHTML = "";
 
@@ -193,15 +220,23 @@ async function displayMessages(inbox: Inbox) {
     return;
   }
 
-  for (const message of inbox.messages.values()) {
+  // Normal message display without deletion styling
+  for (const [index, message] of inbox.messages.entries()) {
     const plaintextString = await decryptMessage(
       new Uint8Array(message.encrypted_message)
     );
 
+    let messageType: "seen" | "new" | "deleted" | "deleted-new" =
+      index < lastSeenMessageCount ? "seen" : "new";
+    if (isAfterDeletion) {
+      messageType = index < lastSeenMessageCount ? "deleted" : "deleted-new";
+    }
+
     const messageElement = createMessageElement(
       message.sender,
       message.timestamp,
-      plaintextString
+      plaintextString,
+      messageType
     );
     messagesDiv.appendChild(messageElement);
   }
@@ -281,7 +316,7 @@ document.querySelector<HTMLDivElement>("#app")!.innerHTML = `
     <div id="messageButtons" class="buttons" style="display: none;">
       <button id="sendMessage">Send Message</button>
       <button id="showMessages">Show My Messages</button>
-      <button id="deleteMessages">Delete and Show My Messages</button>
+      <button id="deleteMessages">Delete My Messages</button>
     </div>
     <div id="messages"></div>
   </div>
