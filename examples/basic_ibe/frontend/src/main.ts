@@ -60,7 +60,7 @@ async function getRootIbePublicKey(): Promise<DerivedPublicKey> {
 }
 
 // Get the user's encrypted IBE key
-async function getIbeKey(): Promise<VetKey> {
+async function getMyIbePrivateKey(): Promise<VetKey> {
   if (ibePrivateKey) return ibePrivateKey;
 
   if (!myPrincipal) {
@@ -124,7 +124,6 @@ async function showMessages() {
 }
 
 async function deleteMessages() {
-  try {
     const inbox = await getBasicIbeCanister().remove_my_messages();
     const messageCount = inbox.messages.length;
     if (messageCount === 0) {
@@ -135,13 +134,10 @@ async function deleteMessages() {
       );
     }
     await displayMessages(inbox);
-  } catch (error) {
-    alert("Error deleting messages: " + error);
-  }
 }
 
 async function decryptMessage(encryptedMessage: Uint8Array): Promise<string> {
-  const ibeKey = await getIbeKey();
+  const ibeKey = await getMyIbePrivateKey();
   const ciphertext =
     IdentityBasedEncryptionCiphertext.deserialize(encryptedMessage);
   const plaintext = ciphertext.decrypt(ibeKey);

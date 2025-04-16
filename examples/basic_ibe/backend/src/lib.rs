@@ -11,7 +11,7 @@ mod types;
 use types::*;
 
 type Memory = VirtualMemory<DefaultMemoryImpl>;
-type VetKey = ByteBuf;
+type EncryptedVetKey = ByteBuf;
 type VetKeyPublicKey = ByteBuf;
 type TransportPublicKey = ByteBuf;
 
@@ -26,7 +26,7 @@ thread_local! {
     static CANISTER_ID_VETKD_MOCK: RefCell<Option<Principal>> = const { RefCell::new(None) };
 }
 
-static DOMAIN_SEPARATOR: &str = "basic_ibe";
+static DOMAIN_SEPARATOR: &str = "basic_ibe_example_dapp";
 const CANISTER_ID_VETKD_SYSTEM_API: &str = "aaaaa-aa";
 
 #[update]
@@ -78,7 +78,8 @@ async fn get_root_ibe_public_key() -> VetKeyPublicKey {
 }
 
 #[update]
-async fn get_my_encrypted_ibe_key(transport_key: TransportPublicKey) -> VetKey {
+/// Retrieves the caller's encrypted private IBE key for message decryption.
+async fn get_my_encrypted_ibe_key(transport_key: TransportPublicKey) -> EncryptedVetKey {
     let caller = ic_cdk::caller();
     let request = VetKDEncryptedKeyRequest {
         derivation_id: caller.as_ref().to_vec(),
@@ -95,13 +96,13 @@ async fn get_my_encrypted_ibe_key(transport_key: TransportPublicKey) -> VetKey {
     .await
     .expect("call to vetkd_encrypted_key failed");
 
-    VetKey::from(result.encrypted_key)
+    EncryptedVetKey::from(result.encrypted_key)
 }
 
 #[query]
 fn get_my_messages() -> Inbox {
     let caller = ic_cdk::caller();
-    INBOXES.with_borrow_mut(|inboxes| inboxes.get(&caller).unwrap_or_default())
+    INBOXES.with_borrow(|inboxes| inboxes.get(&caller).unwrap_or_default())
 }
 
 #[update]
