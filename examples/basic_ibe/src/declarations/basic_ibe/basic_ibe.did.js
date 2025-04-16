@@ -3,7 +3,6 @@ export const idlFactory = ({ IDL }) => {
     'sender' : IDL.Principal,
     'timestamp' : IDL.Nat64,
     'encrypted_message' : IDL.Vec(IDL.Nat8),
-    'receiver' : IDL.Principal,
   });
   const Inbox = IDL.Record({ 'messages' : IDL.Vec(Message) });
   const SendMessageRequest = IDL.Record({

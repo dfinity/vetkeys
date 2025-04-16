@@ -40,7 +40,6 @@ fn send_message(request: SendMessageRequest) -> Result<(), String> {
 
     let message = Message {
         sender,
-        receiver,
         encrypted_message,
         timestamp,
     };

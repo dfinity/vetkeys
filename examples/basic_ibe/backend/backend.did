@@ -3,7 +3,6 @@ type Message = record {
   sender : principal;
   timestamp : nat64;
   encrypted_message : blob;
-  receiver : principal;
 };
 type Result = variant { Ok; Err : text };
 type SendMessageRequest = record {

@@ -4,8 +4,9 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "npm run build:deps && tsc && vite build",
+    "dev": "npm run build:bindings && vite",
+    "build": "npm run build:bindings && npm run build:deps && tsc && vite build",
+    "build:bindings": "cd scripts && ./gen_bindings.sh",
     "build:deps": "cd ../../../frontend/ic_vetkeys && npm run build",
     "preview": "vite preview",
     "lint": "eslint"

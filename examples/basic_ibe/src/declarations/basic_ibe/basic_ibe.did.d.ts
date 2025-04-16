@@ -7,7 +7,6 @@ export interface Message {
   'sender' : Principal,
   'timestamp' : bigint,
   'encrypted_message' : Uint8Array | number[],
-  'receiver' : Principal,
 }
 export type Result = { 'Ok' : null } |
   { 'Err' : string };

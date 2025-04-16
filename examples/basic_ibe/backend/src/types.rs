@@ -10,7 +10,6 @@ pub const MAX_MESSAGES_PER_INBOX: usize = 10;
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
 pub struct Message {
     pub sender: Principal,
-    pub receiver: Principal,
     #[serde(with = "serde_bytes")]
     pub encrypted_message: Vec<u8>,
     pub timestamp: u64,
