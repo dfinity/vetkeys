@@ -29,6 +29,7 @@ jobs:
       - name: Deploy Basic IBE Darwin
         run: |
           set -eExuo pipefail
+          cargo install candid-extractor
           npm i
           pushd examples/basic_ibe
           ./deploy_locally.sh
@@ -43,6 +44,7 @@ jobs:
       - name: Deploy Basic IBE Linux
         run: |
           set -eExuo pipefail
+          cargo install candid-extractor
           npm i
           pushd examples/basic_ibe
           ./deploy_locally.sh
