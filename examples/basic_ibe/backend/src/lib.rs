@@ -110,7 +110,7 @@ fn remove_my_message_by_index(message_index: usize) -> Result<(), String> {
     INBOXES.with_borrow_mut(|inboxes| {
         let mut inbox = inboxes.get(&caller).unwrap_or_default();
         if message_index >= inbox.messages.len() {
-            Err(format!("Message index out of bounds"))
+            Err("Message index out of bounds".to_string())
         } else {
             inbox.messages.remove(message_index);
             inboxes.insert(caller, inbox);
