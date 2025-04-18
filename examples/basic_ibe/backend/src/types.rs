@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 use serde_with::serde_as;
 use std::borrow::Cow;
 
-pub const MAX_MESSAGES_PER_INBOX: usize = 10;
+pub const MAX_MESSAGES_PER_INBOX: usize = 1000;
 
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
 pub struct Message {

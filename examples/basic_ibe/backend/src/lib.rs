@@ -105,9 +105,18 @@ fn get_my_messages() -> Inbox {
 }
 
 #[update]
-fn remove_my_messages() -> Inbox {
+fn remove_my_message_by_index(message_index: usize) -> Result<(), String> {
     let caller = ic_cdk::caller();
-    INBOXES.with_borrow_mut(|inboxes| inboxes.remove(&caller).unwrap_or_default())
+    INBOXES.with_borrow_mut(|inboxes| {
+        let mut inbox = inboxes.get(&caller).unwrap_or_default();
+        if message_index >= inbox.messages.len() {
+            Err(format!("Message index out of bounds"))
+        } else {
+            inbox.messages.remove(message_index);
+            inboxes.insert(caller, inbox);
+            Ok(())
+        }
+    })
 }
 
 fn bls12_381_test_key_1() -> VetKDKeyId {

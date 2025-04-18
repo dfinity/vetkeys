@@ -21,7 +21,7 @@ export interface _SERVICE {
   >,
   'get_my_messages' : ActorMethod<[], Inbox>,
   'get_root_ibe_public_key' : ActorMethod<[], Uint8Array | number[]>,
-  'remove_my_messages' : ActorMethod<[], Inbox>,
+  'remove_my_message_by_index' : ActorMethod<[bigint], Result>,
   'send_message' : ActorMethod<[SendMessageRequest], Result>,
 }
 export declare const idlFactory: IDL.InterfaceFactory;

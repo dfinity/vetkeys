@@ -145,6 +145,31 @@ button:focus-visible {
   color: #888;
 }
 
+.message-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.delete-button {
+  padding: 0.25rem 0.5rem;
+  font-size: 0.9em;
+  background-color: #dc3545;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.delete-button:hover {
+  background-color: #c82333;
+}
+
+.delete-button:disabled {
+  background-color: #6c757d;
+  cursor: not-allowed;
+}
+
 @media (prefers-color-scheme: light) {
   :root {
     color: #213547;

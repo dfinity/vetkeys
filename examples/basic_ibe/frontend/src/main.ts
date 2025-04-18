@@ -21,7 +21,6 @@ let ibePublicKey: DerivedPublicKey | undefined = undefined;
 let myPrincipal: Principal | undefined = undefined;
 let authClient: AuthClient | undefined;
 let basicIbeCanister: ActorSubclass<_SERVICE> | undefined;
-let lastSeenMessageCount: number = 0;
 
 function getBasicIbeCanister(): ActorSubclass<_SERVICE> {
   if (basicIbeCanister) return basicIbeCanister;
@@ -121,22 +120,7 @@ async function sendMessage() {
 
 async function showMessages() {
   const inbox = await getBasicIbeCanister().get_my_messages();
-  await displayMessages(inbox, false);
-  lastSeenMessageCount = inbox.messages.length;
-}
-
-async function deleteMessages() {
-  const inbox = await getBasicIbeCanister().remove_my_messages();
-  const messageCount = inbox.messages.length;
-  if (messageCount === 0) {
-    alert("No messages were deleted as the inbox was already empty.");
-  } else {
-    alert(
-      `Successfully deleted ${messageCount} message${messageCount === 1 ? "" : "s"}.`
-    );
-  }
-  await displayMessages(inbox, true);
-  lastSeenMessageCount = 0;
+  await displayMessages(inbox);
 }
 
 async function decryptMessage(encryptedMessage: Uint8Array): Promise<string> {
@@ -151,36 +135,13 @@ function createMessageElement(
   sender: Principal,
   timestamp: bigint,
   plaintextString: string,
-  messageType: "seen" | "new" | "deleted" | "deleted-new"
+  index: number
 ): HTMLDivElement {
   const messageElement = document.createElement("div");
   messageElement.className = "message";
 
-  if (messageType === "deleted" || messageType === "deleted-new" || messageType === "new") {
-    messageElement.classList.add(messageType);
-  }
-
   const messageContent = document.createElement("div");
   messageContent.className = "message-content";
-
-  if (messageType !== "seen") {
-    const deletedLabel = document.createElement("div");
-    deletedLabel.className = "deleted-label";
-    let labelText = "";
-    switch (messageType) {
-      case "new":
-        labelText = "New";
-        break;
-      case "deleted-new":
-        labelText = "Deleted (New)";
-        break;
-      case "deleted":
-        labelText = "Deleted";
-        break;
-    }
-    deletedLabel.textContent = labelText;
-    messageContent.appendChild(deletedLabel);
-  }
 
   const messageText = document.createElement("div");
   messageText.className = "message-text";
@@ -198,17 +159,26 @@ function createMessageElement(
   const date = new Date(Number(timestamp) / 1_000_000);
   timestampInfo.textContent = `Sent: ${date.toLocaleString()}`;
 
+  const messageActions = document.createElement("div");
+  messageActions.className = "message-actions";
+
+  const deleteButton = document.createElement("button");
+  deleteButton.className = "delete-button";
+  deleteButton.textContent = "Delete";
+  deleteButton.dataset.index = index.toString();
+
+  messageActions.appendChild(deleteButton);
   messageInfo.appendChild(senderInfo);
   messageInfo.appendChild(timestampInfo);
   messageContent.appendChild(messageText);
   messageContent.appendChild(messageInfo);
-
+  messageContent.appendChild(messageActions);
   messageElement.appendChild(messageContent);
 
   return messageElement;
 }
 
-async function displayMessages(inbox: Inbox, isAfterDeletion: boolean) {
+async function displayMessages(inbox: Inbox) {
   const messagesDiv = document.getElementById("messages")!;
   messagesDiv.innerHTML = "";
 
@@ -220,26 +190,60 @@ async function displayMessages(inbox: Inbox, isAfterDeletion: boolean) {
     return;
   }
 
-  // Normal message display without deletion styling
-  for (const [index, message] of inbox.messages.entries()) {
+  // Iterate through messages in reverse order
+  for (let i = inbox.messages.length - 1; i >= 0; i--) {
+    const message = inbox.messages[i];
     const plaintextString = await decryptMessage(
       new Uint8Array(message.encrypted_message)
     );
-
-    let messageType: "seen" | "new" | "deleted" | "deleted-new" =
-      index < lastSeenMessageCount ? "seen" : "new";
-    if (isAfterDeletion) {
-      messageType = index < lastSeenMessageCount ? "deleted" : "deleted-new";
-    }
 
     const messageElement = createMessageElement(
       message.sender,
       message.timestamp,
       plaintextString,
-      messageType
+      i
     );
     messagesDiv.appendChild(messageElement);
   }
+
+  // Add event listeners to delete buttons
+  const deleteButtons = document.querySelectorAll(".delete-button");
+  deleteButtons.forEach(button => {
+    button.addEventListener("click", async (e) => {
+      const target = e.target as HTMLButtonElement;
+      const index = parseInt(target.dataset.index!);
+      
+      // Disable all delete buttons
+      deleteButtons.forEach(btn => (btn as HTMLButtonElement).disabled = true);
+      
+      try {
+        const result = await getBasicIbeCanister().remove_my_message_by_index(BigInt(index));
+        if ("Err" in result) {
+          alert("Error deleting message: " + result.Err);
+        } else {
+          // Remove the message element from the DOM
+          const messageElement = target.closest('.message');
+          if (messageElement) {
+            messageElement.remove();
+            
+            // If this was the last message, show the "no messages" message
+            const messagesDiv = document.getElementById("messages")!;
+            if (messagesDiv.children.length === 0) {
+              const noMessagesDiv = document.createElement("div");
+              noMessagesDiv.className = "no-messages";
+              noMessagesDiv.textContent = "No messages in the inbox.";
+              messagesDiv.appendChild(noMessagesDiv);
+            }
+          }
+        }
+      } catch (error) {
+        alert("Error deleting message: " + error);
+      } finally {
+        // Re-enable all delete buttons
+        deleteButtons.forEach(btn => (btn as HTMLButtonElement).disabled = false);
+      }
+    });
+  });
 }
 
 export function login(client: AuthClient) {
@@ -263,6 +267,9 @@ export function logout() {
   authClient?.logout();
   const messagesDiv = document.getElementById("messages")!;
   messagesDiv.innerHTML = "";
+  ibePrivateKey = undefined;
+  myPrincipal = undefined;
+  basicIbeCanister = undefined;
   updateUI(false);
 }
 
@@ -316,7 +323,6 @@ document.querySelector<HTMLDivElement>("#app")!.innerHTML = `
     <div id="messageButtons" class="buttons" style="display: none;">
       <button id="sendMessage">Send Message</button>
       <button id="showMessages">Show My Messages</button>
-      <button id="deleteMessages">Delete My Messages</button>
     </div>
     <div id="messages"></div>
   </div>
@@ -329,9 +335,6 @@ document.getElementById("sendMessage")!.addEventListener("click", sendMessage);
 document
   .getElementById("showMessages")!
   .addEventListener("click", showMessages);
-document
-  .getElementById("deleteMessages")!
-  .addEventListener("click", deleteMessages);
 
 // Initialize auth
 initAuth();

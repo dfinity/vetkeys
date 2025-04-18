@@ -5,11 +5,11 @@ export const idlFactory = ({ IDL }) => {
     'encrypted_message' : IDL.Vec(IDL.Nat8),
   });
   const Inbox = IDL.Record({ 'messages' : IDL.Vec(Message) });
+  const Result = IDL.Variant({ 'Ok' : IDL.Null, 'Err' : IDL.Text });
   const SendMessageRequest = IDL.Record({
     'encrypted_message' : IDL.Vec(IDL.Nat8),
     'receiver' : IDL.Principal,
   });
-  const Result = IDL.Variant({ 'Ok' : IDL.Null, 'Err' : IDL.Text });
   return IDL.Service({
     'get_my_encrypted_ibe_key' : IDL.Func(
         [IDL.Vec(IDL.Nat8)],
@@ -18,7 +18,7 @@ export const idlFactory = ({ IDL }) => {
       ),
     'get_my_messages' : IDL.Func([], [Inbox], ['query']),
     'get_root_ibe_public_key' : IDL.Func([], [IDL.Vec(IDL.Nat8)], []),
-    'remove_my_messages' : IDL.Func([], [Inbox], []),
+    'remove_my_message_by_index' : IDL.Func([IDL.Nat64], [Result], []),
     'send_message' : IDL.Func([SendMessageRequest], [Result], []),
   });
 };
