@@ -30,7 +30,7 @@ module {
         access_control : [(Principal, T)];
     };
 
-    func compareKeyIds(a : KeyId, b : KeyId) : { #less; #greater; #equal } {
+    func compareMapIds(a : MapId, b : MapId) : { #less; #greater; #equal } {
         let ownersCompare = Principal.compare(a.0, b.0);
         if (ownersCompare == #equal) {
             Blob.compare(a.1, b.1);
@@ -39,60 +39,60 @@ module {
         };
     };
 
-    func mapKeyValsMapOps() : OrderedMap.Operations<(KeyId, MapKey)> {
-        let compare = func(a : (KeyId, MapKey), b : (KeyId, MapKey)) : {
+    func mapKeyValsMapOps() : OrderedMap.Operations<(MapId, MapKey)> {
+        let compare = func(a : (MapId, MapKey), b : (MapId, MapKey)) : {
             #less;
             #greater;
             #equal;
         } {
-            let keyIdCompare = compareKeyIds(a.0, b.0);
-            if (keyIdCompare == #equal) {
+            let mapIdCompare = compareMapIds(a.0, b.0);
+            if (mapIdCompare == #equal) {
                 Blob.compare(a.1, b.1);
             } else {
-                keyIdCompare;
+                mapIdCompare;
             };
         };
-        return OrderedMap.Make<(KeyId, MapKey)>(compare);
+        return OrderedMap.Make<(MapId, MapKey)>(compare);
     };
 
-    func mapKeysMapOps() : OrderedMap.Operations<KeyId> {
-        return OrderedMap.Make<KeyId>(compareKeyIds);
+    func mapKeysMapOps() : OrderedMap.Operations<MapId> {
+        return OrderedMap.Make<MapId>(compareMapIds);
     };
 
     public class EncryptedMaps<T>(domainSeparatorArg : Text, accessRightsOperationsArg : Types.AccessControlOperations<T>) {
         let accessRightsOperations = accessRightsOperationsArg;
         public let domainSeparator = domainSeparatorArg;
         public var keyManager = KeyManager.KeyManager<T>(domainSeparatorArg, accessRightsOperationsArg);
-        public var mapKeyVals : OrderedMap.Map<(KeyId, MapKey), EncryptedMapValue> = mapKeyValsMapOps().empty();
-        public var mapKeys : OrderedMap.Map<KeyId, [MapKey]> = mapKeysMapOps().empty();
+        public var mapKeyVals : OrderedMap.Map<(MapId, MapKey), EncryptedMapValue> = mapKeyValsMapOps().empty();
+        public var mapKeys : OrderedMap.Map<MapId, [MapKey]> = mapKeysMapOps().empty();
 
         // Get accessible shared map names for a caller
-        public func getAccessibleSharedMapNames(caller : Caller) : [KeyId] {
+        public func getAccessibleSharedMapNames(caller : Caller) : [MapId] {
             keyManager.getAccessibleSharedKeyIds(caller);
         };
 
         // Get shared user access for a map
-        public func getSharedUserAccessForMap(caller : Caller, keyId : KeyId) : Result.Result<[(Caller, T)], Text> {
-            keyManager.getSharedUserAccessForKey(caller, keyId);
+        public func getSharedUserAccessForMap(caller : Caller, mapId : MapId) : Result.Result<[(Caller, T)], Text> {
+            keyManager.getSharedUserAccessForKey(caller, mapId);
         };
 
         // Remove all values from a map
-        public func removeMapValues(caller : Caller, keyId : KeyId) : Result.Result<[MapKey], Text> {
-            switch (keyManager.getUserRights(caller, keyId, caller)) {
+        public func removeMapValues(caller : Caller, mapId : MapId) : Result.Result<[MapKey], Text> {
+            switch (keyManager.getUserRights(caller, mapId, caller)) {
                 case (#err(msg)) { #err(msg) };
                 case (#ok(optRights)) {
                     switch (optRights) {
                         case (null) { #err("unauthorized") };
                         case (?rights) {
                             if (accessRightsOperations.canWrite(rights)) {
-                                let keys = switch (mapKeysMapOps().get(mapKeys, keyId)) {
+                                let keys = switch (mapKeysMapOps().get(mapKeys, mapId)) {
                                     case (null) { [] };
                                     case (?ks) { ks };
                                 };
                                 for (key in keys.vals()) {
-                                    mapKeyVals := mapKeyValsMapOps().delete(mapKeyVals, (keyId, key));
+                                    mapKeyVals := mapKeyValsMapOps().delete(mapKeyVals, (mapId, key));
                                 };
-                                mapKeys := mapKeysMapOps().delete(mapKeys, keyId);
+                                mapKeys := mapKeysMapOps().delete(mapKeys, mapId);
                                 #ok(keys);
                             } else {
                                 #err("unauthorized");
@@ -104,17 +104,17 @@ module {
         };
 
         // Get encrypted values for a map
-        public func getEncryptedValuesForMap(caller : Caller, keyId : KeyId) : Result.Result<[(MapKey, EncryptedMapValue)], Text> {
-            switch (keyManager.getUserRights(caller, keyId, caller)) {
+        public func getEncryptedValuesForMap(caller : Caller, mapId : MapId) : Result.Result<[(MapKey, EncryptedMapValue)], Text> {
+            switch (keyManager.getUserRights(caller, mapId, caller)) {
                 case (#err(msg)) { #err(msg) };
                 case (#ok(_)) {
                     let values = Buffer.Buffer<(MapKey, EncryptedMapValue)>(0);
-                    let keys = switch (mapKeysMapOps().get(mapKeys, keyId)) {
+                    let keys = switch (mapKeysMapOps().get(mapKeys, mapId)) {
                         case (null) { [] };
                         case (?ks) { ks };
                     };
                     for (key in keys.vals()) {
-                        switch (mapKeyValsMapOps().get(mapKeyVals, (keyId, key))) {
+                        switch (mapKeyValsMapOps().get(mapKeyVals, (mapId, key))) {
                             case (null) {};
                             case (?value) {
                                 values.add((key, value));
@@ -127,11 +127,11 @@ module {
         };
 
         // Get encrypted value
-        public func getEncryptedValue(caller : Caller, keyId : KeyId, key : MapKey) : Result.Result<?EncryptedMapValue, Text> {
-            switch (keyManager.getUserRights(caller, keyId, caller)) {
+        public func getEncryptedValue(caller : Caller, mapId : MapId, key : MapKey) : Result.Result<?EncryptedMapValue, Text> {
+            switch (keyManager.getUserRights(caller, mapId, caller)) {
                 case (#err(msg)) { #err(msg) };
                 case (#ok(_)) {
-                    #ok(mapKeyValsMapOps().get(mapKeyVals, (keyId, key)));
+                    #ok(mapKeyValsMapOps().get(mapKeyVals, (mapId, key)));
                 };
             };
         };
@@ -184,9 +184,9 @@ module {
         // Get owned non-empty map names
         public func getOwnedNonEmptyMapNames(caller : Caller) : [MapName] {
             let mapNames = Buffer.Buffer<MapName>(0);
-            for ((keyId, _) in mapKeysMapOps().entries(mapKeys)) {
-                if (Principal.equal(keyId.0, caller)) {
-                    mapNames.add(keyId.1);
+            for ((mapId, _) in mapKeysMapOps().entries(mapKeys)) {
+                if (Principal.equal(mapId.0, caller)) {
+                    mapNames.add(mapId.1);
                 };
             };
             Buffer.toArray(mapNames);
@@ -195,27 +195,27 @@ module {
         // Insert encrypted value
         public func insertEncryptedValue(
             caller : Caller,
-            keyId : KeyId,
+            mapId : MapId,
             key : MapKey,
             encryptedValue : EncryptedMapValue,
         ) : Result.Result<?EncryptedMapValue, Text> {
-            switch (keyManager.getUserRights(caller, keyId, caller)) {
+            switch (keyManager.getUserRights(caller, mapId, caller)) {
                 case (#err(msg)) { #err(msg) };
                 case (#ok(optRights)) {
                     switch (optRights) {
                         case (null) { #err("unauthorized") };
                         case (?rights) {
                             if (accessRightsOperations.canWrite(rights)) {
-                                let oldValue = mapKeyValsMapOps().get(mapKeyVals, (keyId, key));
-                                mapKeyVals := mapKeyValsMapOps().put(mapKeyVals, (keyId, key), encryptedValue);
+                                let oldValue = mapKeyValsMapOps().get(mapKeyVals, (mapId, key));
+                                mapKeyVals := mapKeyValsMapOps().put(mapKeyVals, (mapId, key), encryptedValue);
 
                                 // Update mapKeys
-                                let currentKeys = switch (mapKeysMapOps().get(mapKeys, keyId)) {
+                                let currentKeys = switch (mapKeysMapOps().get(mapKeys, mapId)) {
                                     case (null) { [] };
                                     case (?ks) { ks };
                                 };
                                 if (Option.isNull(Array.find<MapKey>(currentKeys, func(k) = Blob.equal(k, key)))) {
-                                    mapKeys := mapKeysMapOps().put(mapKeys, keyId, Array.append<MapKey>(currentKeys, [key]));
+                                    mapKeys := mapKeysMapOps().put(mapKeys, mapId, Array.append<MapKey>(currentKeys, [key]));
                                 };
 
                                 #ok(oldValue);
@@ -231,29 +231,29 @@ module {
         // Remove encrypted value
         public func removeEncryptedValue(
             caller : Caller,
-            keyId : KeyId,
+            mapId : MapId,
             key : MapKey,
         ) : Result.Result<?EncryptedMapValue, Text> {
-            switch (keyManager.getUserRights(caller, keyId, caller)) {
+            switch (keyManager.getUserRights(caller, mapId, caller)) {
                 case (#err(msg)) { #err(msg) };
                 case (#ok(optRights)) {
                     switch (optRights) {
                         case (null) { #err("unauthorized") };
                         case (?rights) {
                             if (accessRightsOperations.canWrite(rights)) {
-                                let oldValue = mapKeyValsMapOps().get(mapKeyVals, (keyId, key));
-                                mapKeyVals := mapKeyValsMapOps().delete(mapKeyVals, (keyId, key));
+                                let oldValue = mapKeyValsMapOps().get(mapKeyVals, (mapId, key));
+                                mapKeyVals := mapKeyValsMapOps().delete(mapKeyVals, (mapId, key));
 
                                 // Update mapKeys
-                                let currentKeys = switch (mapKeysMapOps().get(mapKeys, keyId)) {
+                                let currentKeys = switch (mapKeysMapOps().get(mapKeys, mapId)) {
                                     case (null) { [] };
                                     case (?ks) { ks };
                                 };
                                 let newKeys = Array.filter<MapKey>(currentKeys, func(k) = not Blob.equal(k, key));
                                 if (newKeys.size() == 0) {
-                                    mapKeys := mapKeysMapOps().delete(mapKeys, keyId);
+                                    mapKeys := mapKeysMapOps().delete(mapKeys, mapId);
                                 } else {
-                                    mapKeys := mapKeysMapOps().put(mapKeys, keyId, newKeys);
+                                    mapKeys := mapKeysMapOps().put(mapKeys, mapId, newKeys);
                                 };
 
                                 #ok(oldValue);
@@ -274,30 +274,30 @@ module {
         // Get encrypted vetkey
         public func getEncryptedVetkey(
             caller : Caller,
-            keyId : KeyId,
+            mapId : MapId,
             transportKey : TransportKey,
         ) : async Result.Result<VetKey, Text> {
-            await keyManager.getEncryptedVetkey(caller, keyId, transportKey);
+            await keyManager.getEncryptedVetkey(caller, mapId, transportKey);
         };
 
         // Get user rights
-        public func getUserRights(caller : Caller, keyId : KeyId, user : Caller) : Result.Result<?T, Text> {
-            keyManager.getUserRights(caller, keyId, user);
+        public func getUserRights(caller : Caller, mapId : MapId, user : Caller) : Result.Result<?T, Text> {
+            keyManager.getUserRights(caller, mapId, user);
         };
 
         // Set user rights
         public func setUserRights(
             caller : Caller,
-            keyId : KeyId,
+            mapId : MapId,
             user : Caller,
             accessRights : T,
         ) : Result.Result<?T, Text> {
-            keyManager.setUserRights(caller, keyId, user, accessRights);
+            keyManager.setUserRights(caller, mapId, user, accessRights);
         };
 
         // Remove user
-        public func removeUser(caller : Caller, keyId : KeyId, user : Caller) : Result.Result<?T, Text> {
-            keyManager.removeUserRights(caller, keyId, user);
+        public func removeUser(caller : Caller, mapId : MapId, user : Caller) : Result.Result<?T, Text> {
+            keyManager.removeUserRights(caller, mapId, user);
         };
 
         // Private helper functions
