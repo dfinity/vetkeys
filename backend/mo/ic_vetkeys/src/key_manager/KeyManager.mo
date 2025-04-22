@@ -48,9 +48,7 @@ module {
     };
 
     // KeyManager class
-    public class KeyManager<T>(domainSeparatorArg : Text, accessRightsOperationsArg : Types.AccessControlOperations<T>) {
-        let accessRightsOperations = accessRightsOperationsArg;
-        public let domainSeparator = domainSeparatorArg;
+    public class KeyManager<T>(domainSeparator: Text, accessRightsOperations : Types.AccessControlOperations<T>) {
         public var accessControl : OrderedMap.Map<Caller, [(KeyId, T)]> = accessControlMapOps().empty();
         public var sharedKeys : OrderedMap.Map<KeyId, [Caller]> = sharedKeysMapOps().empty();
         public var managementCanisterPrincipalText = "aaaaa-aa";

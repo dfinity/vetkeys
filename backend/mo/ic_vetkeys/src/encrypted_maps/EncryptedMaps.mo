@@ -59,10 +59,8 @@ module {
         return OrderedMap.Make<MapId>(compareMapIds);
     };
 
-    public class EncryptedMaps<T>(domainSeparatorArg : Text, accessRightsOperationsArg : Types.AccessControlOperations<T>) {
-        let accessRightsOperations = accessRightsOperationsArg;
-        public let domainSeparator = domainSeparatorArg;
-        public var keyManager = KeyManager.KeyManager<T>(domainSeparatorArg, accessRightsOperationsArg);
+    public class EncryptedMaps<T>(domainSeparator : Text, accessRightsOperations : Types.AccessControlOperations<T>) {
+        public var keyManager = KeyManager.KeyManager<T>(domainSeparator, accessRightsOperations);
         public var mapKeyVals : OrderedMap.Map<(MapId, MapKey), EncryptedMapValue> = mapKeyValsMapOps().empty();
         public var mapKeys : OrderedMap.Map<MapId, [MapKey]> = mapKeysMapOps().empty();
 
