@@ -1,5 +1,6 @@
 import { Principal } from "@dfinity/principal";
 import { TransportSecretKey,EncryptedVetKey, DerivedPublicKey } from "../utils/utils";
+import { AccessRights, ByteBuf } from "../declarations/ic_vetkeys_manager_canister/ic_vetkeys_manager_canister.did";
 
 /**
  * > [!IMPORTANT]  
@@ -38,11 +39,9 @@ import { TransportSecretKey,EncryptedVetKey, DerivedPublicKey } from "../utils/u
  * const vetkey = await keyManager.get_vetkey(keyOwner, vetkeyName);
  * 
  * // Manage user access rights
- * const owner = Principal.fromText("aaaaa-aa");
- * const keyName = "my_secure_key";
  * const user = Principal.fromText("bbbbbb-bb");
  * const accessRights = { ReadWrite: null };
- * const result = await keyManager.set_user_rights(owner, keyName, user, accessRights);
+ * const result = await keyManager.set_user_rights(keyOwner, vetkeyName, user, accessRights);
  * ```
  */
 export class KeyManager {
@@ -285,23 +284,6 @@ export interface KeyManagerClient {
      */
     get_vetkey_verification_key(): Promise<ByteBuf>;
 }
-
-/**
- * Access rights that can be granted to users for VetKeys.
- * - `Read`: User can read the key
- * - `ReadWrite`: User can read and update the key
- * - `ReadWriteManage`: User can read, update, and manage access control for the key
- */
-export type AccessRights = { 'Read': null } |
-{ 'ReadWrite': null } |
-{ 'ReadWriteManage': null };
-
-/**
- * Interface for byte buffer representation used in canister communication.
- * 
- * The need for this representation comes from the [inefficiencies in byte buffer serialization in Rust](https://mmapped.blog/posts/01-effective-rust-canisters#serde-bytes).
- */
-export interface ByteBuf { 'inner': Uint8Array | number[] }
 
 function arrayToByteBuf(a: Uint8Array): ByteBuf {
     return { inner: Array.from(a) };

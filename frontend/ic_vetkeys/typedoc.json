@@ -5,5 +5,5 @@
     ],
     "excludeInternal": true,
     "excludeExternals": true,
-    "includeVersion": true
+    "includeVersion": true,
 }
