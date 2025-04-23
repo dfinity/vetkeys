@@ -1,5 +1,6 @@
 /**
  * @module ic_vetkeys/tools
+ * @description Provides high-level tools for frontend integration with the Internet Computer (ICP) applications using the respective [`ic_vetkeys` backend tools](https://docs.rs/ic_vetkeys/latest/)
  */
 
 export { KeyManager, type KeyManagerClient } from "../key_manager/key_manager";
