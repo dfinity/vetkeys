@@ -43,9 +43,7 @@
         "build": "tsc && vite build",
         "coverage": "vitest run --coverage",
         "lint": "eslint",
-        "make:docs": "mkdir -p $(git rev-parse --show-toplevel)/docs/tools && npm run make:docs/index && npm run make:docs/tools",
-        "make:docs/index": "typedoc src/index.ts --out $(git rev-parse --show-toplevel)/docs --excludeInternal --excludeExternals --includeVersion",
-        "make:docs/tools": "typedoc src/tools/index.ts --name 'ic_vetkeys/tools' --out $(git rev-parse --show-toplevel)/docs/tools --excludeInternal --excludeExternals --includeVersion",
+        "make:docs": "mkdir -p $(git rev-parse --show-toplevel)/docs/tools && typedoc --out $(git rev-parse --show-toplevel)/docs",
         "prettier": "prettier --write .",
         "prettier-check": "prettier --check .",
         "test": "vitest"

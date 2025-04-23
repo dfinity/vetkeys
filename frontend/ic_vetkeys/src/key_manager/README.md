@@ -1,3 +1,5 @@
+[![documentation](https://img.shields.io/badge/documentation-online-blue)](https://5lfyp-mqaaa-aaaag-aleqa-cai.icp0.io/tools/classes/KeyManager.html)
+
 # VetKD SDK - KeyManager
 
 > [!IMPORTANT]  
