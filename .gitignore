@@ -87,4 +87,4 @@ node_modules
 **/*.sln
 **/*.sw?
 
-docs/generated/
+docs/
