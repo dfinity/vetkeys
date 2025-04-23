@@ -32,18 +32,18 @@ test('can get vetkey', async () => {
   const id = randomId();
   const key_manager = await new_key_manager(id).catch((err) => { throw err; });
   const owner = id.getPrincipal();
-  const vetkey = await key_manager.get_encrypted_vetkey(owner, new TextEncoder().encode("some key")).catch((err) => { throw err; });
+  const vetkey = await key_manager.get_vetkey(owner, new TextEncoder().encode("some key")).catch((err) => { throw err; });
   // no trivial key output
   expect(isEqualArray(vetkey, new Uint8Array(16))).to.equal(false);
 
-  const second_vetkey = await key_manager.get_encrypted_vetkey(owner, new TextEncoder().encode("some key")).catch((err) => { throw err; });
+  const second_vetkey = await key_manager.get_vetkey(owner, new TextEncoder().encode("some key")).catch((err) => { throw err; });
   expect(isEqualArray(vetkey, second_vetkey)).to.equal(true);
 });
 
 test('cannot get unauthorized vetkey', async () => {
   const [id0, id1] = ids();
   const key_manager = await new_key_manager(id0).catch((err) => { throw err; });
-  await expect(key_manager.get_encrypted_vetkey(id1.getPrincipal(), new TextEncoder().encode("some key"))).rejects.toThrow("unauthorized");
+  await expect(key_manager.get_vetkey(id1.getPrincipal(), new TextEncoder().encode("some key"))).rejects.toThrow("unauthorized");
 });
 
 test('can share a key', async () => {
@@ -52,12 +52,12 @@ test('can share a key', async () => {
   const user = id1.getPrincipal();
   const key_manager_owner = await new_key_manager(id0).catch((err) => { throw err; });
   const key_manager_user = await new_key_manager(id1).catch((err) => { throw err; });
-  const vetkey_owner = await key_manager_owner.get_encrypted_vetkey(owner, new TextEncoder().encode("some key"));
+  const vetkey_owner = await key_manager_owner.get_vetkey(owner, new TextEncoder().encode("some key"));
 
   const rights = { 'ReadWrite': null };
   expect((await key_manager_owner.set_user_rights(owner, new TextEncoder().encode("some key"), user, rights))).toBeUndefined();
 
-  const vetkey_user = await key_manager_user.get_encrypted_vetkey(owner, new TextEncoder().encode("some key"));
+  const vetkey_user = await key_manager_user.get_vetkey(owner, new TextEncoder().encode("some key"));
 
   expect(isEqualArray(vetkey_owner, vetkey_user)).to.equal(true);
 });
