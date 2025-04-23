@@ -460,39 +460,173 @@ export interface MapData {
  * For example, `get_user_rights` will call the `get_user_rights` method of the backend `EncryptedMaps`.
  */
 export interface EncryptedMapsClient {
+    /**
+     * Retrieves a list of maps that were shared with the user and the user still has access to.
+     * 
+     * @returns Promise resolving to an array of `[Principal, ByteBuf]` pairs representing accessible map identifiers.
+     */
     get_accessible_shared_map_names(): Promise<[Principal, ByteBuf][]>;
+
+    /**
+     * Gets all users that have access to a map and their access rights.
+     * 
+     * @param owner - The principal of the map owner
+     * @param map_name - The name/identifier of the map
+     * @returns Promise resolving to an array of user-access rights pairs, or an error if the operation fails
+     */
     get_shared_user_access_for_map(owner: Principal, map_name: ByteBuf): Promise<{ 'Ok': Array<[Principal, AccessRights]> } | { 'Err': string }>;
+
+    /**
+     * Retrieves a list of non-empty maps owned by the caller.
+     * 
+     * @returns Promise resolving to an array of map names
+     */
     get_owned_non_empty_map_names(): Promise<Array<ByteBuf>>;
+
+    /**
+     * Retrieves all accessible values across all maps the user has access to.
+     * 
+     * @returns Promise resolving to an array of map data with encrypted values
+     */
     get_all_accessible_encrypted_values(): Promise<[[Principal, ByteBuf], [ByteBuf, ByteBuf][]][]>;
+
+    /**
+     * Retrieves all accessible maps with their encrypted values.
+     * 
+     * @returns Promise resolving to an array of encrypted map data
+     */
     get_all_accessible_encrypted_maps(): Promise<Array<EncryptedMapData>>;
-    get_encrypted_value(map_owner: Principal, map_name: ByteBuf, map_key: ByteBuf): Promise<{ 'Ok': [] | [ByteBuf] } |
-    { 'Err': string }>;
-    get_encrypted_values_for_map(map_owner: Principal, map_name: ByteBuf): Promise<{ 'Ok': Array<[ByteBuf, ByteBuf]> } |
-    { 'Err': string }>;
-    insert_encrypted_value(map_owner: Principal, map_name: ByteBuf, map_key: ByteBuf, data: ByteBuf): Promise<{ 'Ok': [] | [ByteBuf] } |
-    { 'Err': string }>;
-    remove_encrypted_value(map_owner: Principal, map_name: ByteBuf, map_key: ByteBuf): Promise<{ 'Ok': [] | [ByteBuf] } |
-    { 'Err': string }>;
-    remove_map_values(map_owner: Principal, map_name: ByteBuf): Promise<{ 'Ok': Array<ByteBuf> } |
-    { 'Err': string }>;
-    set_user_rights(owner: Principal, map_name: ByteBuf, user: Principal, user_rights: AccessRights): Promise<{ 'Ok': [] | [AccessRights] } |
-    { 'Err': string }>;
-    get_user_rights(owner: Principal, map_name: ByteBuf, user: Principal): Promise<{ 'Ok': [] | [AccessRights] } |
-    { 'Err': string }>;
-    remove_user(owner: Principal, map_name: ByteBuf, user: Principal): Promise<{ 'Ok': [] | [AccessRights] } |
-    { 'Err': string }>;
-    get_encrypted_vetkey(map_owner: Principal, map_name: ByteBuf, transport_key: ByteBuf): Promise<{ 'Ok': ByteBuf } |
-    { 'Err': string }>;
+
+    /**
+     * Retrieves an encrypted value from a map.
+     * 
+     * @param map_owner - The principal of the map owner
+     * @param map_name - The name/identifier of the map
+     * @param map_key - The key to retrieve
+     * @returns Promise resolving to the encrypted value if it exists, or an error if the operation fails
+     */
+    get_encrypted_value(map_owner: Principal, map_name: ByteBuf, map_key: ByteBuf): Promise<{ 'Ok': [] | [ByteBuf] } | { 'Err': string }>;
+
+    /**
+     * Retrieves all encrypted values from a specific map.
+     * 
+     * @param map_owner - The principal of the map owner
+     * @param map_name - The name/identifier of the map
+     * @returns Promise resolving to an array of key-value pairs, or an error if the operation fails
+     */
+    get_encrypted_values_for_map(map_owner: Principal, map_name: ByteBuf): Promise<{ 'Ok': Array<[ByteBuf, ByteBuf]> } | { 'Err': string }>;
+
+    /**
+     * Stores an encrypted value in a map.
+     * 
+     * @param map_owner - The principal of the map owner
+     * @param map_name - The name/identifier of the map
+     * @param map_key - The key to store
+     * @param data - The encrypted value to store
+     * @returns Promise resolving to the previous value if it existed, or an error if the operation fails
+     */
+    insert_encrypted_value(map_owner: Principal, map_name: ByteBuf, map_key: ByteBuf, data: ByteBuf): Promise<{ 'Ok': [] | [ByteBuf] } | { 'Err': string }>;
+
+    /**
+     * Removes a value from a map.
+     * 
+     * @param map_owner - The principal of the map owner
+     * @param map_name - The name/identifier of the map
+     * @param map_key - The key to remove
+     * @returns Promise resolving to the removed value if it existed, or an error if the operation fails
+     */
+    remove_encrypted_value(map_owner: Principal, map_name: ByteBuf, map_key: ByteBuf): Promise<{ 'Ok': [] | [ByteBuf] } | { 'Err': string }>;
+
+    /**
+     * Removes all values from a map.
+     * 
+     * @param map_owner - The principal of the map owner
+     * @param map_name - The name/identifier of the map
+     * @returns Promise resolving to an array of removed keys, or an error if the operation fails
+     */
+    remove_map_values(map_owner: Principal, map_name: ByteBuf): Promise<{ 'Ok': Array<ByteBuf> } | { 'Err': string }>;
+
+    /**
+     * Grants or modifies access rights for a user.
+     * 
+     * @param owner - The principal of the map owner
+     * @param map_name - The name/identifier of the map
+     * @param user - The principal of the user to grant/modify rights for
+     * @param user_rights - The access rights to grant
+     * @returns Promise resolving to the previous access rights if they existed, or an error if the operation fails
+     */
+    set_user_rights(owner: Principal, map_name: ByteBuf, user: Principal, user_rights: AccessRights): Promise<{ 'Ok': [] | [AccessRights] } | { 'Err': string }>;
+
+    /**
+     * Checks a user's access rights.
+     * 
+     * @param owner - The principal of the map owner
+     * @param map_name - The name/identifier of the map
+     * @param user - The principal of the user to check rights for
+     * @returns Promise resolving to the user's access rights if they exist, or an error if the operation fails
+     */
+    get_user_rights(owner: Principal, map_name: ByteBuf, user: Principal): Promise<{ 'Ok': [] | [AccessRights] } | { 'Err': string }>;
+
+    /**
+     * Revokes a user's access.
+     * 
+     * @param owner - The principal of the map owner
+     * @param map_name - The name/identifier of the map
+     * @param user - The principal of the user to remove
+     * @returns Promise resolving to the previous access rights if they existed, or an error if the operation fails
+     */
+    remove_user(owner: Principal, map_name: ByteBuf, user: Principal): Promise<{ 'Ok': [] | [AccessRights] } | { 'Err': string }>;
+
+    /**
+     * Fetches an encrypted VetKey.
+     * 
+     * @param map_owner - The principal of the map owner
+     * @param map_name - The name/identifier of the map
+     * @param transport_key - The public transport key to use for encryption
+     * @returns Promise resolving to the encrypted VetKey bytes, or an error if the operation fails
+     */
+    get_encrypted_vetkey(map_owner: Principal, map_name: ByteBuf, transport_key: ByteBuf): Promise<{ 'Ok': ByteBuf } | { 'Err': string }>;
+
+    /**
+     * Retrieves the public verification key for validating encrypted VetKeys.
+     * 
+     * @returns Promise resolving to the verification key bytes
+     */
     get_vetkey_verification_key(): Promise<ByteBuf>;
 }
 
 /**
- * Interface for encrypted map data structure.
+ * This interface represents the structure of an encrypted map as stored in the backend canister.
+ * It contains all the necessary information about a map, including its access control settings,
+ * encrypted key-value pairs, and metadata.
  */
 export interface EncryptedMapData {
+    /**
+     * Access control list for the map (excluding the map owner), specifying which users have what level of access.
+     * Each entry is a tuple of [Principal, AccessRights] where:
+     * - Principal: The user's identity
+     * - AccessRights: The level of access granted (Read, ReadWrite, or ReadWriteManage)
+     */
     'access_control': Array<[Principal, AccessRights]>,
+
+    /**
+     * The encrypted key-value pairs stored in the map.
+     * Each entry is a tuple of [ByteBuf, ByteBuf] where:
+     * - First ByteBuf: The encrypted key
+     * - Second ByteBuf: The encrypted value
+     */
     'keyvals': Array<[ByteBuf, ByteBuf]>,
+
+    /**
+     * The name/identifier of the map.
+     * This is used to uniquely identify the map within the system.
+     */
     'map_name': ByteBuf,
+
+    /**
+     * The principal of the map owner.
+     * This identifies who created and owns the map.
+     */
     'map_owner': Principal,
 }
 
