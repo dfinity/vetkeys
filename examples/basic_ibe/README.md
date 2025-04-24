@@ -26,7 +26,7 @@ npm install
 
 ### Deploy the Canisters
 
-Run the local deployment script, which starts the local development environment (`dfx`) if necessary, build both backend and frontend (asset) canisters, and installs them locally.
+Run the local deployment script, which starts the local development environment (`dfx`) if necessary, builds both backend and frontend (asset) canisters, and installs them locally.
 ```bash
 bash deploy_locally.sh
 ```
