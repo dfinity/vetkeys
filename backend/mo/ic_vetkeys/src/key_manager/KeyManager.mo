@@ -48,7 +48,7 @@ module {
     };
 
     // KeyManager class
-    public class KeyManager<T>(domainSeparator: Text, accessRightsOperations : Types.AccessControlOperations<T>) {
+    public class KeyManager<T>(domainSeparator : Text, accessRightsOperations : Types.AccessControlOperations<T>) {
         public var accessControl : OrderedMap.Map<Principal, [(KeyId, T)]> = accessControlMapOps().empty();
         public var sharedKeys : OrderedMap.Map<KeyId, [Principal]> = sharedKeysMapOps().empty();
         public var managementCanisterPrincipalText = "aaaaa-aa";
@@ -66,33 +66,34 @@ module {
 
         // Get shared user access for a key
         public func getSharedUserAccessForKey(caller : Caller, keyId : KeyId) : Result.Result<[(Caller, T)], Text> {
-            switch (ensureUserCanGetUserRights(caller, keyId)) {
-                case (#err(msg)) { #err(msg) };
-                case (#ok(_)) {
-                    switch (sharedKeysMapOps().get(sharedKeys, keyId)) {
-                        case (null) { #ok([]) };
-                        case (?users) {
-                            let results = Buffer.Buffer<(Caller, T)>(0);
-                            for (user in users.vals()) {
-                                switch (getUserRights(caller, keyId, user)) {
-                                    case (#err(msg)) { return #err(msg) };
-                                    case (#ok(optRights)) {
-                                        switch (optRights) {
-                                            case (null) {
-                                                Debug.trap("bug: missing access rights");
-                                            };
-                                            case (?rights) {
-                                                results.add((user, rights));
-                                            };
-                                        };
-                                    };
-                                };
+            let canRead = ensureUserCanRead(caller, keyId);
+            switch (canRead) {
+                case (#err(msg)) { return #err(msg) };
+                case (_) {};
+            };
+
+            let users = switch (sharedKeysMapOps().get(sharedKeys, keyId)) {
+                case (null) { return #ok([]) };
+                case (?users) users;
+            };
+
+            let results = Buffer.Buffer<(Caller, T)>(0);
+            for (user in users.vals()) {
+                switch (getUserRights(caller, keyId, user)) {
+                    case (#err(msg)) { return #err(msg) };
+                    case (#ok(optRights)) {
+                        switch (optRights) {
+                            case (null) {
+                                Debug.trap("bug: missing access rights");
                             };
-                            #ok(Buffer.toArray(results));
+                            case (?rights) {
+                                results.add((user, rights));
+                            };
                         };
                     };
                 };
             };
+            #ok(Buffer.toArray(results));
         };
 
         // Get vetkey verification key
