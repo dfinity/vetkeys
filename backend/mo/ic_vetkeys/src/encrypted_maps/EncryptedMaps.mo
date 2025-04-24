@@ -21,7 +21,7 @@ module {
     type EncryptedMapData<T> = {
         map_owner : Principal;
         map_name : MapName;
-        keyvals : [(Blob, EncryptedMapValue)];
+        keyvals : [(MapKey, EncryptedMapValue)];
         access_control : [(Principal, T)];
     };
 
