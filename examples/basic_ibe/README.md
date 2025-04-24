@@ -3,7 +3,7 @@
 > [!IMPORTANT]  
 > These support libraries are under active development and are subject to change. Access to the repositories have been opened to allow for early feedback. Please check back regularly for updates.
 
-The **Basic IBE Messaging** example demonstrates how to use **VetKeys** to implement secure messaging between users from Identity Based Encryption (IBE) on the **Internet Computer (IC)**. This application allows users to send encrypted messages to other users using their **Internet Identity Principal** as the encryption key identifier. The canister (IC smart contract) ensures that only the authenticated user can access their private decryption key, meaning that even if someone else knows your principal, they cannot decrypt messages intended for you because neither other users nor the canister can access your private key.
+The **Basic IBE** example demonstrates how to use **VetKeys** to implement secure messaging between users from Identity Based Encryption (IBE) on the **Internet Computer (IC)**. This application allows users to send encrypted messages to other users using their **Internet Identity Principal** as the encryption key identifier. The canister (IC smart contract) ensures that only the authenticated user can access their private decryption key, meaning that even if someone else knows your principal, they cannot decrypt messages intended for you because neither other users nor the canister can access your private key.
 
 ## Features
 
