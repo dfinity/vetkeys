@@ -9,13 +9,13 @@ import Types "../Types";
 import Text "mo:base/Text";
 
 module {
-    type VetKeyVerificationKey = Blob;
-    type VetKey = Blob;
-    type Creator = Principal;
-    type Caller = Principal;
-    type KeyName = Blob;
-    type KeyId = (Caller, KeyName);
-    type TransportKey = Blob;
+    public type VetKeyVerificationKey = Blob;
+    public type VetKey = Blob;
+    public type Owner = Principal;
+    public type Caller = Principal;
+    public type KeyName = Blob;
+    public type KeyId = (Owner, KeyName);
+    public type TransportKey = Blob;
     type VetkdSystemApi = actor {
         vetkd_public_key : ({
             canister_id : ?Principal;
@@ -49,9 +49,10 @@ module {
 
     // KeyManager class
     public class KeyManager<T>(domainSeparator: Text, accessRightsOperations : Types.AccessControlOperations<T>) {
-        public var accessControl : OrderedMap.Map<Caller, [(KeyId, T)]> = accessControlMapOps().empty();
-        public var sharedKeys : OrderedMap.Map<KeyId, [Caller]> = sharedKeysMapOps().empty();
+        public var accessControl : OrderedMap.Map<Principal, [(KeyId, T)]> = accessControlMapOps().empty();
+        public var sharedKeys : OrderedMap.Map<KeyId, [Principal]> = sharedKeysMapOps().empty();
         public var managementCanisterPrincipalText = "aaaaa-aa";
+        let domainSeparatorBytes = Text.encodeUtf8(domainSeparator);
 
         // Get accessible shared key IDs for a caller
         public func getAccessibleSharedKeyIds(caller : Caller) : [KeyId] {
@@ -96,7 +97,7 @@ module {
 
         // Get vetkey verification key
         public func getVetkeyVerificationKey() : async VetKeyVerificationKey {
-            let derivationPath = [Text.encodeUtf8(domainSeparator)];
+            let derivationPath = [domainSeparatorBytes];
 
             let request = {
                 canister_id = null;
@@ -118,7 +119,7 @@ module {
                         Blob.toArray(keyId.1),
                     ]);
 
-                    let derivationPath = [Text.encodeUtf8(domainSeparator)];
+                    let derivationPath = [domainSeparatorBytes];
 
                     let request = {
                         derivation_id = Blob.fromArray(derivationId);
@@ -134,7 +135,7 @@ module {
         };
 
         // Get user rights
-        public func getUserRights(caller : Caller, keyId : KeyId, user : Caller) : Result.Result<?T, Text> {
+        public func getUserRights(caller : Caller, keyId : KeyId, user : Principal) : Result.Result<?T, Text> {
             switch (ensureUserCanGetUserRights(caller, keyId)) {
                 case (#err(msg)) { #err(msg) };
                 case (#ok(_)) {
@@ -146,7 +147,7 @@ module {
                                 let entries = accessControlMapOps().get(accessControl, user)!;
                                 let (k, rights) = Array.find<(KeyId, T)>(
                                     entries,
-                                    func((k, rights)) = Principal.equal(k.0, keyId.0) and Blob.equal(k.1, keyId.1),
+                                    func((k, rights)) = compareKeyIds(k, keyId) == #equal,
                                 )!;
                                 rights;
                             };
@@ -157,7 +158,7 @@ module {
         };
 
         // Set user rights
-        public func setUserRights(caller : Caller, keyId : KeyId, user : Caller, accessRights : T) : Result.Result<?T, Text> {
+        public func setUserRights(caller : Caller, keyId : KeyId, user : Principal, accessRights : T) : Result.Result<?T, Text> {
             switch (ensureUserCanSetUserRights(caller, keyId)) {
                 case (#err(msg)) { #err(msg) };
                 case (#ok(_)) {
@@ -171,15 +172,9 @@ module {
                         case (?users) { users };
                     };
 
-                    let newUsers = switch (Array.indexOf<Caller>(user, currentUsers, Principal.equal)) {
-                        case (?index) {
-                            let mutCurrentUsers = Array.thaw<Caller>(currentUsers);
-                            mutCurrentUsers[index] := user;
-                            Array.freeze(mutCurrentUsers);
-                        };
-                        case (null) {
-                            Array.append<Caller>(currentUsers, [user]);
-                        };
+                    let newUsers = switch (Array.indexOf<Principal>(user, currentUsers, Principal.equal)) {
+                        case (?index) currentUsers;
+                        case (null) Array.append<Principal>(currentUsers, [user]);
                     };
 
                     sharedKeys := sharedKeysMapOps().put(sharedKeys, keyId, newUsers);
@@ -208,18 +203,14 @@ module {
                             Array.append<(KeyId, T)>(currentEntries, [(keyId, accessRights)]);
                         };
                     };
-                    if (Array.size<(KeyId, T)>(newEntries) > 0) {
-                        accessControl := accessControlMapOps().put(accessControl, user, newEntries);
-                    } else {
-                        accessControl := accessControlMapOps().delete(accessControl, user);
-                    };
+                    accessControl := accessControlMapOps().put(accessControl, user, newEntries);
                     #ok(oldRights);
                 };
             };
         };
 
         // Remove user
-        public func removeUserRights(caller : Caller, keyId : KeyId, user : Caller) : Result.Result<?T, Text> {
+        public func removeUserRights(caller : Caller, keyId : KeyId, user : Principal) : Result.Result<?T, Text> {
             switch (ensureUserCanSetUserRights(caller, keyId)) {
                 case (#err(msg)) { #err(msg) };
                 case (#ok(_)) {
@@ -244,7 +235,7 @@ module {
                         currentEntries,
                         ([], null),
                         func((k, r), (entries, rights)) {
-                            if (Principal.equal(k.0, keyId.0) and Blob.equal(k.1, keyId.1)) {
+                            if (compareKeyIds(k, keyId) == #equal) {
                                 (entries, ?r);
                             } else {
                                 (Array.append<(KeyId, T)>(entries, [(k, r)]), rights);
@@ -257,7 +248,7 @@ module {
             };
         };
 
-        private func ensureUserCanRead(user : Caller, keyId : KeyId) : Result.Result<T, Text> {
+        private func ensureUserCanRead(user : Principal, keyId : KeyId) : Result.Result<T, Text> {
             if (Principal.equal(user, keyId.0)) {
                 return #ok(accessRightsOperations.ownerRights());
             };
@@ -266,8 +257,12 @@ module {
                 case (null) { #err("unauthorized") };
                 case (?entries) {
                     for ((k, rights) in entries.vals()) {
-                        if (Principal.equal(k.0, keyId.0) and Blob.equal(k.1, keyId.1)) {
-                            return #ok(rights);
+                        if (compareKeyIds(k, keyId) == #equal) {
+                            if (accessRightsOperations.canRead(rights)) {
+                                return #ok(rights);
+                            } else {
+                                return #err("unauthorized");
+                            };
                         };
                     };
                     #err("unauthorized");
@@ -275,7 +270,7 @@ module {
             };
         };
 
-        private func ensureUserCanGetUserRights(user : Caller, keyId : KeyId) : Result.Result<T, Text> {
+        private func ensureUserCanGetUserRights(user : Principal, keyId : KeyId) : Result.Result<T, Text> {
             if (Principal.equal(user, keyId.0)) {
                 return #ok(accessRightsOperations.ownerRights());
             };
@@ -284,7 +279,7 @@ module {
                 case (null) { #err("unauthorized") };
                 case (?entries) {
                     for ((k, rights) in entries.vals()) {
-                        if (Principal.equal(k.0, keyId.0) and Blob.equal(k.1, keyId.1)) {
+                        if (compareKeyIds(k, keyId) == #equal) {
                             if (accessRightsOperations.canGetUserRights(rights)) {
                                 return #ok(rights);
                             } else {
@@ -297,7 +292,7 @@ module {
             };
         };
 
-        private func ensureUserCanSetUserRights(user : Caller, keyId : KeyId) : Result.Result<T, Text> {
+        private func ensureUserCanSetUserRights(user : Principal, keyId : KeyId) : Result.Result<T, Text> {
             if (Principal.equal(user, keyId.0)) {
                 return #ok(accessRightsOperations.ownerRights());
             };
@@ -306,7 +301,7 @@ module {
                 case (null) { #err("unauthorized") };
                 case (?entries) {
                     for ((k, rights) in entries.vals()) {
-                        if (Principal.equal(k.0, keyId.0) and Blob.equal(k.1, keyId.1)) {
+                        if (compareKeyIds(k, keyId) == #equal) {
                             if (accessRightsOperations.canSetUserRights(rights)) {
                                 return #ok(rights);
                             } else {

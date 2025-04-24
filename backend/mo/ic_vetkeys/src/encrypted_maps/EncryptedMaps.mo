@@ -12,20 +12,15 @@ import Text "mo:base/Text";
 import KeyManager "../key_manager/KeyManager";
 
 module {
-    type VetKeyVerificationKey = Blob;
-    type VetKey = Blob;
-    type Caller = Principal;
-    type KeyName = Blob;
-    type KeyId = (Caller, KeyName);
-    type MapName = KeyName;
-    type MapId = KeyId;
-    type MapKey = Blob;
-    type TransportKey = Blob;
-    type EncryptedMapValue = Blob;
+    public type Caller = Principal;
+    public type MapName = KeyManager.KeyName;
+    public type MapId = KeyManager.KeyId;
+    public type MapKey = Blob;
+    public type EncryptedMapValue = Blob;
 
     type EncryptedMapData<T> = {
         map_owner : Principal;
-        map_name : Blob;
+        map_name : MapName;
         keyvals : [(Blob, EncryptedMapValue)];
         access_control : [(Principal, T)];
     };
@@ -265,7 +260,7 @@ module {
         };
 
         // Get vetkey verification key
-        public func getVetkeyVerificationKey() : async VetKeyVerificationKey {
+        public func getVetkeyVerificationKey() : async KeyManager.VetKeyVerificationKey {
             await keyManager.getVetkeyVerificationKey();
         };
 
@@ -273,13 +268,13 @@ module {
         public func getEncryptedVetkey(
             caller : Caller,
             mapId : MapId,
-            transportKey : TransportKey,
-        ) : async Result.Result<VetKey, Text> {
+            transportKey : KeyManager.TransportKey,
+        ) : async Result.Result<KeyManager.VetKey, Text> {
             await keyManager.getEncryptedVetkey(caller, mapId, transportKey);
         };
 
         // Get user rights
-        public func getUserRights(caller : Caller, mapId : MapId, user : Caller) : Result.Result<?T, Text> {
+        public func getUserRights(caller : Caller, mapId : MapId, user : Principal) : Result.Result<?T, Text> {
             keyManager.getUserRights(caller, mapId, user);
         };
 
@@ -287,14 +282,14 @@ module {
         public func setUserRights(
             caller : Caller,
             mapId : MapId,
-            user : Caller,
+            user : Principal,
             accessRights : T,
         ) : Result.Result<?T, Text> {
             keyManager.setUserRights(caller, mapId, user, accessRights);
         };
 
         // Remove user
-        public func removeUser(caller : Caller, mapId : MapId, user : Caller) : Result.Result<?T, Text> {
+        public func removeUser(caller : Caller, mapId : MapId, user : Principal) : Result.Result<?T, Text> {
             keyManager.removeUserRights(caller, mapId, user);
         };
 
