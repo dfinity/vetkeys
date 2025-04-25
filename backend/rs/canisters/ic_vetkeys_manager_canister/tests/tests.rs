@@ -242,7 +242,8 @@ fn load_key_manager_example_canister_wasm() -> Vec<u8> {
     assert!(output.status.success());
     let root_dir = String::from_utf8(output.stdout).expect("Failed to convert stdout to string");
     let wasm_path_string = format!(
-        "{root_dir}/target/wasm32-unknown-unknown/release/ic_vetkeys_manager_canister.wasm"
+        "{}/target/wasm32-unknown-unknown/release/ic_vetkeys_manager_canister.wasm",
+        root_dir.trim_end_matches('\n')
     );
     let wasm_path = Path::new(&wasm_path_string);
     let wasm_bytes = std::fs::read(wasm_path).expect(
