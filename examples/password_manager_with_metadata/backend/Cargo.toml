@@ -16,7 +16,7 @@ candid = { workspace = true }
 ic-cdk = { workspace = true }
 ic-cdk-macros = { workspace = true }
 ic-stable-structures = { workspace = true }
-ic-vetkeys = { path = "../../../backend/ic_vetkeys" }
+ic-vetkeys = { path = "../../../backend/rs/ic_vetkeys" }
 serde = { workspace = true }
 serde_cbor = { workspace = true }
 
