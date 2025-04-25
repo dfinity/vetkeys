@@ -1,7 +1,7 @@
 {
   "canisters": {
     "password_manager_with_metadata": {
-      "candid": "backend/backend.did",
+      "candid": "backend/rs/backend.did",
       "package": "ic-vetkd-example-password-manager-with-metadata-backend",
       "type": "rust",
       "metadata": [

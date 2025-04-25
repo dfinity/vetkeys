@@ -1,7 +1,7 @@
 {
   "canisters": {
     "basic_ibe": {
-      "candid": "backend/backend.did",
+      "candid": "backend/rs/backend.did",
       "package": "ic-vetkd-example-basic-ibe-backend",
       "type": "rust",
       "metadata": [
