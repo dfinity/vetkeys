@@ -1,3 +1,5 @@
+ROOT_DIR := $(shell git rev-parse --show-toplevel)
+
 .PHONY: compile-wasm
 .SILENT: compile-wasm
 compile-wasm:
@@ -6,7 +8,7 @@ compile-wasm:
 .PHONY: extract-candid
 .SILENT: extract-candid
 extract-candid: compile-wasm
-	candid-extractor ../../../target/wasm32-unknown-unknown/release/ic_vetkeys_encrypted_maps_canister.wasm > ic_vetkeys_encrypted_maps_canister.did
+	candid-extractor $(ROOT_DIR)/target/wasm32-unknown-unknown/release/ic_vetkeys_encrypted_maps_canister.wasm > ic_vetkeys_encrypted_maps_canister.did
 
 .PHONY: compile-wasm-test
 .SILENT: compile-wasm-test
@@ -20,7 +22,7 @@ deploy-test: compile-wasm-test
 	dfx canister create ic_vetkeys_encrypted_maps_canister && \
 	dfx build chainkey_testing_canister && \
 	dfx canister install --upgrade-unchanged --mode auto chainkey_testing_canister && \
-	dfx canister install --upgrade-unchanged --mode auto --wasm ../../../target/wasm32-unknown-unknown/release/ic_vetkeys_encrypted_maps_canister.wasm ic_vetkeys_encrypted_maps_canister
+	dfx canister install --upgrade-unchanged --mode auto --wasm $(ROOT_DIR)/target/wasm32-unknown-unknown/release/ic_vetkeys_encrypted_maps_canister.wasm ic_vetkeys_encrypted_maps_canister
 
 .PHONY: mock
 .SILENT: mock

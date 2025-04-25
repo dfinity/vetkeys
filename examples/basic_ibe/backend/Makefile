@@ -1,3 +1,6 @@
+
+ROOT_DIR := $(shell git rev-parse --show-toplevel)
+
 .PHONY: compile-wasm
 .SILENT: compile-wasm
 compile-wasm:
@@ -6,7 +9,7 @@ compile-wasm:
 .PHONY: extract-candid
 .SILENT: extract-candid
 extract-candid: compile-wasm
-	candid-extractor ../../../target/wasm32-unknown-unknown/release/ic_vetkd_example_basic_ibe_backend.wasm > backend.did
+	candid-extractor $(ROOT_DIR)/target/wasm32-unknown-unknown/release/ic_vetkd_example_basic_ibe_backend.wasm > backend.did
 
 .PHONY: compile-wasm-test
 .SILENT: compile-wasm-test
@@ -20,7 +23,7 @@ deploy-test: compile-wasm-test
 	dfx canister create basic_ibe && \
 	dfx build chainkey_testing_canister && \
 	dfx canister install --upgrade-unchanged --mode auto chainkey_testing_canister && \
-	dfx canister install --upgrade-unchanged --mode auto --wasm ../../../target/wasm32-unknown-unknown/release/ic_vetkd_example_basic_ibe_backend.wasm basic_ibe
+	dfx canister install --upgrade-unchanged --mode auto --wasm $(ROOT_DIR)/target/wasm32-unknown-unknown/release/ic_vetkd_example_basic_ibe_backend.wasm basic_ibe
 
 .PHONY: mock
 .SILENT: mock

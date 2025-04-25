@@ -235,14 +235,19 @@ impl TestEnvironment {
 }
 
 fn load_key_manager_example_canister_wasm() -> Vec<u8> {
-    println!("pwd: {:?}", std::env::current_dir().unwrap().to_str());
-    let wasm_path = Path::new(
-        "../../../target/wasm32-unknown-unknown/release/ic_vetkeys_manager_canister.wasm",
+    let output = std::process::Command::new("git")
+        .args(["rev-parse", "--show-toplevel"])
+        .output()
+        .expect("Failed to execute git command");
+    assert!(output.status.success());
+    let root_dir = String::from_utf8(output.stdout).expect("Failed to convert stdout to string");
+    let wasm_path_string = format!(
+        "{root_dir}/target/wasm32-unknown-unknown/release/ic_vetkeys_manager_canister.wasm"
     );
+    let wasm_path = Path::new(&wasm_path_string);
     let wasm_bytes = std::fs::read(wasm_path).expect(
-        "wasm does not exist - run `cargo build --release --target wasm32-unknown-unknown --features expose-testing-api`",
-    );
-
+"wasm does not exist - run `cargo build --release --target wasm32-unknown-unknown --features expose-testing-api`",
+);
     wasm_bytes
 }
 
