@@ -1,0 +1,150 @@
+.principal-container {
+  margin: 20px 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.principal-display {
+  font-family: monospace;
+  background-color: #f0f0f0;
+  padding: 5px 10px;
+  border-radius: 4px;
+}
+
+.lot-actions {
+  margin: 20px 0;
+  display: flex;
+  gap: 10px;
+}
+
+#lotForm {
+  max-width: 500px;
+  margin: 20px 0;
+  padding: 20px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+}
+
+#lotForm div {
+  margin-bottom: 15px;
+}
+
+#lotForm label {
+  display: block;
+  margin-bottom: 5px;
+  font-weight: bold;
+}
+
+#lotForm input,
+#lotForm textarea {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+#lotForm textarea {
+  height: 100px;
+  resize: vertical;
+}
+
+#lotForm button {
+  background-color: #4CAF50;
+  color: white;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+#lotForm button:hover {
+  background-color: #45a049;
+}
+
+#lotsList {
+  margin: 20px 0;
+}
+
+.lot {
+  margin: 20px 0;
+  padding: 15px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+}
+
+.lot h5 {
+  margin: 0 0 10px 0;
+  color: #333;
+}
+
+.lot p {
+  margin: 5px 0;
+  color: #666;
+}
+
+button {
+  padding: 8px 16px;
+  background-color: #007bff;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+button:hover {
+  background-color: #0056b3;
+}
+
+#loginButton {
+  background-color: #28a745;
+}
+
+#loginButton:hover {
+  background-color: #218838;
+}
+
+#logoutButton {
+  background-color: #dc3545;
+}
+
+#logoutButton:hover {
+  background-color: #c82333;
+}
+
+.bid-form {
+  margin-top: 15px;
+  padding: 15px;
+  background-color: #f8f9fa;
+  border-radius: 4px;
+}
+
+.bid-form div {
+  margin-bottom: 10px;
+}
+
+.bid-form label {
+  display: block;
+  margin-bottom: 5px;
+  font-weight: bold;
+}
+
+.bid-form input {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.bid-form button {
+  background-color: #28a745;
+  color: white;
+  padding: 8px 16px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.bid-form button:hover {
+  background-color: #218838;
+}
