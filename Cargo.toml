@@ -1,9 +1,9 @@
 [workspace]
 members = [
-    "backend/ic_vetkeys",
-    "backend/canisters/ic_vetkeys_manager_canister",
-    "backend/canisters/ic_vetkeys_encrypted_maps_canister",
-    "backend/ic_vetkeys_test_utils",
+    "backend/rs/ic_vetkeys",
+    "backend/rs/ic_vetkeys_test_utils",
+    "backend/rs/canisters/ic_vetkeys_encrypted_maps_canister",
+    "backend/rs/canisters/ic_vetkeys_manager_canister",
     "examples/basic_ibe/backend",
     "examples/password_manager_with_metadata/backend"
 ]
