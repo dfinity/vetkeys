@@ -174,7 +174,7 @@ module {
                     };
 
                     let newUsers = switch (Array.indexOf<Principal>(user, currentUsers, Principal.equal)) {
-                        case (?index) currentUsers;
+                        case (?_) currentUsers;
                         case (null) Array.append<Principal>(currentUsers, [user]);
                     };
 
@@ -249,7 +249,7 @@ module {
             };
         };
 
-        private func ensureUserCanRead(user : Principal, keyId : KeyId) : Result.Result<T, Text> {
+        public func ensureUserCanRead(user : Principal, keyId : KeyId) : Result.Result<T, Text> {
             if (Principal.equal(user, keyId.0)) {
                 return #ok(accessRightsOperations.ownerRights());
             };
@@ -260,6 +260,28 @@ module {
                     for ((k, rights) in entries.vals()) {
                         if (compareKeyIds(k, keyId) == #equal) {
                             if (accessRightsOperations.canRead(rights)) {
+                                return #ok(rights);
+                            } else {
+                                return #err("unauthorized");
+                            };
+                        };
+                    };
+                    #err("unauthorized");
+                };
+            };
+        };
+
+        public func ensureUserCanWrite(user : Principal, keyId : KeyId) : Result.Result<T, Text> {
+            if (Principal.equal(user, keyId.0)) {
+                return #ok(accessRightsOperations.ownerRights());
+            };
+
+            switch (accessControlMapOps().get(accessControl, user)) {
+                case (null) { #err("unauthorized") };
+                case (?entries) {
+                    for ((k, rights) in entries.vals()) {
+                        if (compareKeyIds(k, keyId) == #equal) {
+                            if (accessRightsOperations.canWrite(rights)) {
                                 return #ok(rights);
                             } else {
                                 return #err("unauthorized");

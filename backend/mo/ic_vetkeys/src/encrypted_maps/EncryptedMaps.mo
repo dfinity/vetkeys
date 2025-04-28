@@ -121,7 +121,7 @@ module {
 
         // Get encrypted value
         public func getEncryptedValue(caller : Caller, mapId : MapId, key : MapKey) : Result.Result<?EncryptedMapValue, Text> {
-            switch (keyManager.getUserRights(caller, mapId, caller)) {
+            switch (keyManager.ensureUserCanRead(caller, mapId)) {
                 case (#err(msg)) { #err(msg) };
                 case (#ok(_)) {
                     #ok(mapKeyValsMapOps().get(mapKeyVals, (mapId, key)));
@@ -192,31 +192,22 @@ module {
             key : MapKey,
             encryptedValue : EncryptedMapValue,
         ) : Result.Result<?EncryptedMapValue, Text> {
-            switch (keyManager.getUserRights(caller, mapId, caller)) {
+            switch (keyManager.ensureUserCanWrite(caller, mapId)) {
                 case (#err(msg)) { #err(msg) };
-                case (#ok(optRights)) {
-                    switch (optRights) {
-                        case (null) { #err("unauthorized") };
-                        case (?rights) {
-                            if (accessRightsOperations.canWrite(rights)) {
-                                let oldValue = mapKeyValsMapOps().get(mapKeyVals, (mapId, key));
-                                mapKeyVals := mapKeyValsMapOps().put(mapKeyVals, (mapId, key), encryptedValue);
+                case (#ok(_)) {
+                    let oldValue = mapKeyValsMapOps().get(mapKeyVals, (mapId, key));
+                    mapKeyVals := mapKeyValsMapOps().put(mapKeyVals, (mapId, key), encryptedValue);
 
-                                // Update mapKeys
-                                let currentKeys = switch (mapKeysMapOps().get(mapKeys, mapId)) {
-                                    case (null) { [] };
-                                    case (?ks) { ks };
-                                };
-                                if (Option.isNull(Array.find<MapKey>(currentKeys, func(k) = Blob.equal(k, key)))) {
-                                    mapKeys := mapKeysMapOps().put(mapKeys, mapId, Array.append<MapKey>(currentKeys, [key]));
-                                };
-
-                                #ok(oldValue);
-                            } else {
-                                #err("unauthorized");
-                            };
-                        };
+                    // Update mapKeys
+                    let currentKeys = switch (mapKeysMapOps().get(mapKeys, mapId)) {
+                        case (null) { [] };
+                        case (?ks) { ks };
                     };
+                    if (Option.isNull(Array.find<MapKey>(currentKeys, func(k) = Blob.equal(k, key)))) {
+                        mapKeys := mapKeysMapOps().put(mapKeys, mapId, Array.append<MapKey>(currentKeys, [key]));
+                    };
+
+                    #ok(oldValue);
                 };
             };
         };
@@ -229,32 +220,23 @@ module {
         ) : Result.Result<?EncryptedMapValue, Text> {
             switch (keyManager.getUserRights(caller, mapId, caller)) {
                 case (#err(msg)) { #err(msg) };
-                case (#ok(optRights)) {
-                    switch (optRights) {
-                        case (null) { #err("unauthorized") };
-                        case (?rights) {
-                            if (accessRightsOperations.canWrite(rights)) {
-                                let oldValue = mapKeyValsMapOps().get(mapKeyVals, (mapId, key));
-                                mapKeyVals := mapKeyValsMapOps().delete(mapKeyVals, (mapId, key));
+                case (#ok(_)) {
+                    let oldValue = mapKeyValsMapOps().get(mapKeyVals, (mapId, key));
+                    mapKeyVals := mapKeyValsMapOps().delete(mapKeyVals, (mapId, key));
 
-                                // Update mapKeys
-                                let currentKeys = switch (mapKeysMapOps().get(mapKeys, mapId)) {
-                                    case (null) { [] };
-                                    case (?ks) { ks };
-                                };
-                                let newKeys = Array.filter<MapKey>(currentKeys, func(k) = not Blob.equal(k, key));
-                                if (newKeys.size() == 0) {
-                                    mapKeys := mapKeysMapOps().delete(mapKeys, mapId);
-                                } else {
-                                    mapKeys := mapKeysMapOps().put(mapKeys, mapId, newKeys);
-                                };
-
-                                #ok(oldValue);
-                            } else {
-                                #err("unauthorized");
-                            };
-                        };
+                    // Update mapKeys
+                    let currentKeys = switch (mapKeysMapOps().get(mapKeys, mapId)) {
+                        case (null) { [] };
+                        case (?ks) { ks };
                     };
+                    let newKeys = Array.filter<MapKey>(currentKeys, func(k) = not Blob.equal(k, key));
+                    if (newKeys.size() == 0) {
+                        mapKeys := mapKeysMapOps().delete(mapKeys, mapId);
+                    } else {
+                        mapKeys := mapKeysMapOps().put(mapKeys, mapId, newKeys);
+                    };
+
+                    #ok(oldValue);
                 };
             };
         };

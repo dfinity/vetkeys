@@ -178,23 +178,19 @@ test(
             case (#err(e)) { Debug.trap("Failed to add key-value pair: " # e) };
         };
 
-        // Give read access to p2
-        switch (encryptedMaps.setUserRights(p1, (p1, mapName), p2, #Read)) {
-            case (#ok(_)) {};
-            case (#err(e)) { Debug.trap("Failed to set read access: " # e) };
-        };
+        for (accessRights in [#Read, #ReadWrite, #ReadWriteManage].vals()) {
+            // Give read access to p2
+            switch (encryptedMaps.setUserRights(p1, (p1, mapName), p2, accessRights)) {
+                case (#ok(_)) {};
+                case (#err(e)) { Debug.trap("Failed to set read access: " # e) };
+            };
 
-        // Add p2 access rights
-        switch (encryptedMaps.setUserRights(p1, (p1, mapName), p2, #ReadWriteManage)) {
-            case (#ok(_)) {};
-            case (#err(e)) { Debug.trap("Failed to set read access: " # e) };
-        };
-
-        // Verify p2 can read
-        switch (encryptedMaps.getEncryptedValue(p2, (p1, mapName), mapKey)) {
-            case (#ok(?_)) {};
-            case (unexpected) {
-                Debug.trap("Failed to read value: " # debug_show (unexpected));
+            // Verify p2 can read
+            switch (encryptedMaps.getEncryptedValue(p2, (p1, mapName), mapKey)) {
+                case (#ok(?_)) {};
+                case (unexpected) {
+                    Debug.trap("Failed to read value: " # debug_show (unexpected));
+                };
             };
         };
     },
