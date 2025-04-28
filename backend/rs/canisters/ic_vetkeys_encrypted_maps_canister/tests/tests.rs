@@ -3,7 +3,7 @@ use ic_vetkd_utils::TransportSecretKey;
 use ic_vetkeys::encrypted_maps::{VetKey, VetKeyVerificationKey};
 use ic_vetkeys::key_manager::key_id_to_derivation_id;
 use ic_vetkeys::types::{AccessRights, ByteBuf, TransportKey};
-use ic_vetkeys_test_utils::random_self_authenticating_principal;
+use ic_vetkeys_test_utils::{git_root_dir, random_self_authenticating_principal};
 use pocket_ic::{PocketIc, PocketIcBuilder};
 use rand::{CryptoRng, Rng, SeedableRng};
 use rand_chacha::ChaCha20Rng;
@@ -230,13 +230,14 @@ impl TestEnvironment {
 }
 
 fn load_key_manager_example_canister_wasm() -> Vec<u8> {
-    let wasm_path = Path::new(
-        "../../../target/wasm32-unknown-unknown/release/ic_vetkeys_encrypted_maps_canister.wasm",
+    let wasm_path_string = format!(
+        "{}/target/wasm32-unknown-unknown/release/ic_vetkeys_encrypted_maps_canister.wasm",
+        git_root_dir()
     );
+    let wasm_path = Path::new(&wasm_path_string);
     let wasm_bytes = std::fs::read(wasm_path).expect(
         "wasm does not exist - run `cargo build --release --target wasm32-unknown-unknown --features expose-testing-api`",
     );
-
     wasm_bytes
 }
 

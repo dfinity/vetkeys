@@ -1,3 +1,5 @@
+ROOT_DIR := $(shell git rev-parse --show-toplevel)
+
 .PHONY: compile-wasm
 .SILENT: compile-wasm
 compile-wasm:
@@ -6,7 +8,7 @@ compile-wasm:
 .PHONY: extract-candid
 .SILENT: extract-candid
 extract-candid: compile-wasm
-	candid-extractor ../../../target/wasm32-unknown-unknown/release/ic_vetkeys_manager_canister.wasm > ic_vetkeys_manager_canister.did
+	candid-extractor $(ROOT_DIR)/target/wasm32-unknown-unknown/release/ic_vetkeys_manager_canister.wasm > ic_vetkeys_manager_canister.did
 
 .PHONY: compile-wasm-test
 .SILENT: compile-wasm-test
@@ -20,7 +22,7 @@ deploy-test: compile-wasm-test
 	dfx canister create ic_vetkeys_manager_canister && \
 	dfx build chainkey_testing_canister && \
 	dfx canister install chainkey_testing_canister && \
-	dfx canister install --wasm ../../../target/wasm32-unknown-unknown/release/ic_vetkeys_manager_canister.wasm ic_vetkeys_manager_canister
+	dfx canister install --wasm $(ROOT_DIR)/target/wasm32-unknown-unknown/release/ic_vetkeys_manager_canister.wasm ic_vetkeys_manager_canister
 
 .PHONY: mock
 .SILENT: mock

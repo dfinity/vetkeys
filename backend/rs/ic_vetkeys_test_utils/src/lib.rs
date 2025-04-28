@@ -71,3 +71,14 @@ pub fn random_utf8_string<R: Rng + CryptoRng>(rng: &mut R, len: usize) -> String
         .take(len)
         .collect()
 }
+
+pub fn git_root_dir() -> String {
+    let output = std::process::Command::new("git")
+        .args(["rev-parse", "--show-toplevel"])
+        .output()
+        .expect("Failed to execute git command");
+    assert!(output.status.success());
+    let root_dir_with_newline =
+        String::from_utf8(output.stdout).expect("Failed to convert stdout to string");
+    root_dir_with_newline.trim_end_matches('\n').to_string()
+}
