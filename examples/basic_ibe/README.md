@@ -9,6 +9,8 @@ Note that generally it is possible for a canister to request a decryption key to
 However, doing so requires the canister to provide its own transport key instead of requesting a user's transport key and this inherently makes secrets public.
 A canister functionality for decrypting secrets can be detected by inspecting the code and, therefore, it is crucial that canisters using VetKeys have their code public to allow to verify that the canister handles secrets in a secure way.
 
+![UI Screenshot](ui_screenshot.png)
+
 ## Features
 
 - **Secure Messaging**: Uses IBE capabilities of IC Vetkeys to encrypt messages that can only be decrypted by the intended recipient.
