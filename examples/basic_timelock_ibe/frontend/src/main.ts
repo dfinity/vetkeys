@@ -280,31 +280,31 @@ async function placeBid(lotId: bigint, amount: number) {
   try {
     // Get the root IBE public key
     const rootIbePublicKey = await getRootIbePublicKey();
-
-    // Create a derived public key for this lot
-    const derivedPublicKey = rootIbePublicKey.deriveKey(
-      new TextEncoder().encode(lotId.toString())
-    );
+    const lotIdBytes = u128ToLeBytes(lotId);
+    const amountBytes = u128ToLeBytes(BigInt(amount));
 
     // Generate a random seed for encryption
     const seed = window.crypto.getRandomValues(new Uint8Array(32));
 
-    // Convert amount to bytes
-    const amountBytes = new TextEncoder().encode(amount.toString());
-
     // Encrypt the bid amount using IBE
     const encryptedAmount = IdentityBasedEncryptionCiphertext.encrypt(
-      derivedPublicKey,
-      new TextEncoder().encode(lotId.toString()),
+      rootIbePublicKey,
+      lotIdBytes,
       amountBytes,
       seed
     );
 
+    console.log("encryptedAmount", JSON.stringify(encryptedAmount.serialize()));
+
     // Place the bid
-    await getBasicTimelockIbeCanister().place_bid(
+    const result = await getBasicTimelockIbeCanister().place_bid(
       lotId,
       encryptedAmount.serialize()
     );
+    if ("Err" in result) {
+      alert(`Failed to place bid: ${result.Err}`);
+      return;
+    }
 
     alert("Bid placed successfully!");
     // Refresh the lots list
@@ -312,6 +312,18 @@ async function placeBid(lotId: bigint, amount: number) {
   } catch (error) {
     alert(`Failed to place bid: ${error}`);
   }
+}
+
+function u128ToLeBytes(value: bigint): Uint8Array {
+  const bytes = new Uint8Array(16);
+  let temp = value;
+
+  for (let i = 0; i < 16; i++) {
+    bytes[i] = Number(temp & 0xffn);
+    temp >>= 8n;
+  }
+
+  return bytes;
 }
 
 // Initialize auth

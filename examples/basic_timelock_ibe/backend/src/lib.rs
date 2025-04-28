@@ -50,6 +50,12 @@ fn post_upgrade() {
 #[update(guard = is_authenticated)]
 fn create_lot(name: String, description: String, duration_seconds: u16) -> Result<LotId, String> {
     let caller = ic_cdk::caller();
+    ic_cdk::println!(
+        "create_lot: name={:?}, description={:?}, duration_seconds={:?}",
+        name,
+        description,
+        duration_seconds
+    );
 
     if duration_seconds == 0 {
         return Err("Duration must be greater than 0".to_string());
@@ -143,16 +149,25 @@ fn get_lots() -> (OpenLotsResponse, ClosedLotsResponse) {
 #[update(guard = is_authenticated)]
 fn place_bid(lot_id: u128, encrypted_amount: Vec<u8>) -> Result<(), String> {
     let bidder = ic_cdk::caller();
+    let now = ic_cdk::api::time();
+    ic_cdk::println!(
+        "place_bid: lot_id={:?}, bidder={:?}, encrypted_amount={:?}",
+        lot_id,
+        bidder,
+        encrypted_amount
+    );
 
     LOTS.with_borrow(|lots| match lots.get(&lot_id) {
         Some(LotInformation {
             status: LotStatus::Open(_),
+            creator,
+            end_time,
             ..
-        }) => Err("lot is not open".to_string()),
+        }) if creator != bidder && now < end_time => Ok(()),
         Some(LotInformation { creator, .. }) if creator == bidder => {
             Err("lot creator cannot bid".to_string())
         }
-        Some(_) => Ok(()),
+        Some(_) => Err("lot is closed".to_string()),
         None => Err("lot not found".to_string()),
     })?;
 
@@ -175,8 +190,9 @@ fn place_bid(lot_id: u128, encrypted_amount: Vec<u8>) -> Result<(), String> {
 
 #[update]
 fn start_with_interval_secs(secs: u64) {
+    ic_cdk::println!("start_with_interval_secs: {:?}", secs);
     let secs = std::time::Duration::from_secs(secs);
-    ic_cdk_timers::set_timer_interval(secs, move || ic_cdk::spawn(close_one_lot_if_any_is_open()));
+    ic_cdk_timers::set_timer_interval(secs, || ic_cdk::spawn(close_one_lot_if_any_is_open()));
 }
 
 async fn close_one_lot_if_any_is_open() {
@@ -191,7 +207,7 @@ async fn close_one_lot_if_any_is_open() {
     let now = ic_cdk::api::time();
     let lot_to_close: Option<LotId> = OPEN_LOTS_DEADLINES.with_borrow_mut(|open_lots_deadlines| {
         open_lots_deadlines
-            .range(now..)
+            .iter()
             .take_while(|(deadline, _)| *deadline <= now)
             .next()
             .map(|(deadline, lot_to_close)| {
@@ -200,6 +216,8 @@ async fn close_one_lot_if_any_is_open() {
                 lot_to_close
             })
     });
+
+    ic_cdk::println!("close_one_lot_if_any_is_open: {:?}", lot_to_close);
 
     if let Some(lot_id) = lot_to_close {
         let encrypted_bids: Vec<EncryptedBid> = BIDS_ON_LOTS.with_borrow(|bids| {
@@ -271,7 +289,11 @@ async fn decrypt_bids(
     .expect("call to vetkd_encrypted_key failed");
 
     let ibe_decryption_key = transport_secret_key
-        .decrypt(&result.encrypted_key, &root_ibe_public_key, &dummy_seed)
+        .decrypt(
+            &result.encrypted_key,
+            &root_ibe_public_key,
+            &lot_id.to_le_bytes().to_vec(),
+        )
         .expect("failed to decrypt ibe key");
 
     let mut decrypted_bids = Vec::new();
@@ -279,7 +301,7 @@ async fn decrypt_bids(
     for encrypted_bid in encrypted_bids {
         let decrypted_bid: Result<u128, String> =
             ic_vetkd_utils::IBECiphertext::deserialize(&encrypted_bid.encrypted_amount)
-                .map_err(|_| "failed to deserialize ibe ciphertext".to_string())
+                .map_err(|e| format!("failed to deserialize ibe ciphertext: {e}"))
                 .and_then(|c| {
                     c.decrypt(&ibe_decryption_key)
                         .map_err(|_| "failed to decrypt ibe ciphertext".to_string())
