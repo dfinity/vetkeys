@@ -83,7 +83,7 @@ test(
                 assert e == "unauthorized";
             };
             case (unexpected) {
-                Debug.trap("user should not have access rights withh only read rights " # debug_show (unexpected));
+                Debug.trap("user should not have access rights with only read rights " # debug_show (unexpected));
             };
         };
 
