@@ -140,6 +140,22 @@ test(
                     Debug.trap("unexpected result in removing user rights: " # debug_show (unexpected));
                 };
             };
+
+            switch (keyManager.getUserRights(p2, (p1, keyName), p2)) {
+                case (#err e) {
+                    assert e == "unauthorized";
+                };
+                case (unexpected) {
+                    Debug.trap("user should not have access rights after removing user rights: " # debug_show (unexpected));
+                };
+            };
+
+            switch (keyManager.getUserRights(p1, (p1, keyName), p2)) {
+                case (#ok(null)) {};
+                case (unexpected) {
+                    Debug.trap("should not have access rights after removing user rights: " # debug_show (unexpected));
+                };
+            };
         };
     },
 );
