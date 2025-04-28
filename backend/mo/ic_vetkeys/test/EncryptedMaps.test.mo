@@ -215,6 +215,15 @@ test(
                 Debug.trap("Failed to modify value: " # debug_show (unexpected));
             };
         };
+
+        switch (encryptedMaps.getEncryptedValue(p1, (p1, mapName), mapKey)) {
+            case (#ok(?returnedNewValue)) {
+                assert returnedNewValue == newValue;
+            };
+            case (unexpected) {
+                Debug.trap("Failed to get value: " # debug_show (unexpected));
+            };
+        };
     },
 );
 
