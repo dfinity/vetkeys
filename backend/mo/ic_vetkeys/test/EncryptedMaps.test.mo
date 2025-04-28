@@ -95,11 +95,15 @@ test(
         assert encryptedMaps.removeUser(p2, (p1, mapName), p2) == #err("unauthorized");
         assert encryptedMaps.setUserRights(p2, (p1, mapName), p2, #Read) == #err("unauthorized");
 
+        assert encryptedMaps.insertEncryptedValue(p2, (p1, mapName), mapKey, mapValue) == #err("unauthorized");
+
         // Give read access and verify still can't write
         switch (encryptedMaps.setUserRights(p1, (p1, mapName), p2, #Read)) {
             case (#ok(_)) {};
             case (#err(e)) { Debug.trap("Failed to set read access: " # e) };
         };
+
+        assert encryptedMaps.insertEncryptedValue(p2, (p1, mapName), mapKey, mapValue) == #err("unauthorized");
 
         assert encryptedMaps.setUserRights(p2, (p1, mapName), p2, #Read) == #err("unauthorized");
     },
@@ -139,24 +143,6 @@ test(
                 Debug.trap("Failed to add key: " # debug_show (unexpected));
             };
         };
-    },
-);
-
-test(
-    "add a key to map by unauthorized fails",
-    func() {
-        let encryptedMaps = newEncryptedMaps();
-
-        // Try with unauthorized user
-        assert encryptedMaps.insertEncryptedValue(p2, (p1, mapName), mapKey, mapValue) == #err("unauthorized");
-
-        // Give read access and verify still can't write
-        switch (encryptedMaps.setUserRights(p1, (p1, mapName), p2, #Read)) {
-            case (#ok(_)) {};
-            case (#err(e)) { Debug.trap("Failed to set read access: " # e) };
-        };
-
-        assert encryptedMaps.insertEncryptedValue(p2, (p1, mapName), mapKey, mapValue) == #err("unauthorized");
     },
 );
 
