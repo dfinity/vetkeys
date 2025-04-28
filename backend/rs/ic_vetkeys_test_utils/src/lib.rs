@@ -78,5 +78,7 @@ pub fn git_root_dir() -> String {
         .output()
         .expect("Failed to execute git command");
     assert!(output.status.success());
-    String::from_utf8(output.stdout).expect("Failed to convert stdout to string")
+    let root_dir_with_newline =
+        String::from_utf8(output.stdout).expect("Failed to convert stdout to string");
+    root_dir_with_newline.trim_end_matches('\n').to_string()
 }

@@ -235,10 +235,9 @@ impl TestEnvironment {
 }
 
 fn load_key_manager_example_canister_wasm() -> Vec<u8> {
-    let root_dir = git_root_dir();
     let wasm_path_string = format!(
         "{}/target/wasm32-unknown-unknown/release/ic_vetkeys_manager_canister.wasm",
-        root_dir.trim_end_matches('\n')
+        git_root_dir()
     );
     let wasm_path = Path::new(&wasm_path_string);
     let wasm_bytes = std::fs::read(wasm_path).expect(
