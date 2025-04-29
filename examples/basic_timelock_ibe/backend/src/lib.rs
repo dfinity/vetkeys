@@ -206,7 +206,7 @@ async fn close_one_lot_if_any_is_open() {
         } else {
             get_root_ibe_public_key().await
         }
-        .to_vec();
+        .into_vec();
 
     let now = ic_cdk::api::time();
     let lot_to_close: Option<LotId> = OPEN_LOTS_DEADLINES.with_borrow_mut(|open_lots_deadlines| {
