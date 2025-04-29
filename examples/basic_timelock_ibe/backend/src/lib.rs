@@ -29,7 +29,7 @@ thread_local! {
         MEMORY_MANAGER.with(|m| m.borrow().get(MemoryId::new(2))),
     ));
 
-    static VETKD_ROOT_IBE_PUBLIC_KEY: RefCell<Option<VetKeyPublicKey>> = RefCell::new(None);
+    static VETKD_ROOT_IBE_PUBLIC_KEY: RefCell<Option<VetKeyPublicKey>> =  const { RefCell::new(None) };
 
     #[cfg(feature = "expose-testing-api")]
     static CANISTER_ID_VETKD_MOCK: RefCell<Option<Principal>> = const { RefCell::new(None) };
@@ -296,7 +296,7 @@ async fn decrypt_bids(
         .decrypt_and_verify(
             &transport_secret_key,
             &root_ibe_public_key,
-            &lot_id.to_le_bytes().to_vec(),
+            lot_id.to_le_bytes().as_ref(),
         )
         .expect("failed to decrypt ibe key");
 
@@ -316,7 +316,7 @@ async fn decrypt_bids(
                         .try_into()
                         .map_err(|_| "failed to convert amount to u128".to_string())
                 })
-                .map(|array| u128::from_le_bytes(array));
+                .map(u128::from_le_bytes);
         match decrypted_bid {
             Ok(amount) => {
                 decrypted_bids.push(DecryptedBid {
