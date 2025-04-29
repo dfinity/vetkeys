@@ -4,6 +4,7 @@ use ic_cdk::api::management_canister::provisional::CanisterId;
 use ic_cdk::{init, post_upgrade, query, update};
 use ic_stable_structures::memory_manager::{MemoryId, MemoryManager, VirtualMemory};
 use ic_stable_structures::{BTreeMap as StableBTreeMap, DefaultMemoryImpl};
+use ic_vetkd_utils::{DerivedPublicKey, EncryptedVetKey};
 use serde_bytes::ByteBuf;
 use std::cell::RefCell;
 use std::str::FromStr;
@@ -267,7 +268,7 @@ async fn close_one_lot_if_any_is_open() {
 async fn decrypt_bids(
     lot_id: LotId,
     encrypted_bids: Vec<EncryptedBid>,
-    root_ibe_public_key: Vec<u8>,
+    root_ibe_public_key_bytes: Vec<u8>,
 ) -> Vec<DecryptedBid> {
     let dummy_seed = vec![0; 32];
     let transport_secret_key = ic_vetkd_utils::TransportSecretKey::from_seed(dummy_seed.clone())
@@ -288,9 +289,12 @@ async fn decrypt_bids(
     .await
     .expect("call to vetkd_encrypted_key failed");
 
-    let ibe_decryption_key = transport_secret_key
-        .decrypt(
-            &result.encrypted_key,
+    let root_ibe_public_key = DerivedPublicKey::deserialize(&root_ibe_public_key_bytes).unwrap();
+    let encrypted_vetkey = EncryptedVetKey::deserialize(&result.encrypted_key).unwrap();
+
+    let ibe_decryption_key = encrypted_vetkey
+        .decrypt_and_verify(
+            &transport_secret_key,
             &root_ibe_public_key,
             &lot_id.to_le_bytes().to_vec(),
         )
