@@ -468,8 +468,8 @@ enum IbeDomainSeparators {
 const IBE_HEADER = new Uint8Array([0x49, 0x43, 0x20, 0x49, 0x42, 0x45, 0x00, 0x01]);
 const IBE_HEADER_BYTES = 8;
 
-function hashToMask(version: Uint8Array, seed: Uint8Array, msg: Uint8Array): bigint {
-    const ro_input = new Uint8Array([...version, ...seed, ...msg]);
+function hashToMask(header: Uint8Array, seed: Uint8Array, msg: Uint8Array): bigint {
+    const ro_input = new Uint8Array([...header, ...seed, ...msg]);
     return hashToScalar(ro_input, IbeDomainSeparators.HashToMask);
 }
 
