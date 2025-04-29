@@ -51,12 +51,6 @@ fn post_upgrade() {
 #[update(guard = is_authenticated)]
 fn create_lot(name: String, description: String, duration_seconds: u16) -> Result<LotId, String> {
     let caller = ic_cdk::caller();
-    ic_cdk::println!(
-        "create_lot: name={:?}, description={:?}, duration_seconds={:?}",
-        name,
-        description,
-        duration_seconds
-    );
 
     if duration_seconds == 0 {
         return Err("Duration must be greater than 0".to_string());
@@ -157,12 +151,6 @@ fn get_lots() -> (OpenLotsResponse, ClosedLotsResponse) {
 fn place_bid(lot_id: u128, encrypted_amount: Vec<u8>) -> Result<(), String> {
     let bidder = ic_cdk::caller();
     let now = ic_cdk::api::time();
-    ic_cdk::println!(
-        "place_bid: lot_id={:?}, bidder={:?}, encrypted_amount={:?}",
-        lot_id,
-        bidder,
-        encrypted_amount
-    );
 
     LOTS.with_borrow(|lots| match lots.get(&lot_id) {
         Some(LotInformation {
@@ -197,7 +185,6 @@ fn place_bid(lot_id: u128, encrypted_amount: Vec<u8>) -> Result<(), String> {
 
 #[update]
 fn start_with_interval_secs(secs: u64) {
-    ic_cdk::println!("start_with_interval_secs: {:?}", secs);
     let secs = std::time::Duration::from_secs(secs);
     ic_cdk_timers::set_timer_interval(secs, || ic_cdk::spawn(close_one_lot_if_any_is_open()));
 }
@@ -223,8 +210,6 @@ async fn close_one_lot_if_any_is_open() {
                 lot_to_close
             })
     });
-
-    ic_cdk::println!("close_one_lot_if_any_is_open: {:?}", lot_to_close);
 
     if let Some(lot_id) = lot_to_close {
         let encrypted_bids: Vec<EncryptedBid> = BIDS_ON_LOTS.with_borrow(|bids| {

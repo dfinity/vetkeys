@@ -418,8 +418,6 @@ async function placeBid(lotId: bigint, amount: number) {
       seed
     );
 
-    console.log("encryptedAmount", JSON.stringify(encryptedAmount.serialize()));
-
     // Place the bid
     const result = await getBasicTimelockIbeCanister().place_bid(
       lotId,
