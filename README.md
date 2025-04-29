@@ -32,8 +32,8 @@ For more documentation on VetKeys and the management canister API, see the [VetK
 
 Tools to help canister developers integrate VetKeys into their Internet Computer (ICP) applications.
 
-- **[KeyManager](./backend/ic_vetkeys/src/key_manager/README.md)** – a library for deriving and managing vetkeys.
-- **[EncryptedMaps](./backend/ic_vetkeys/src/encrypted_maps/README.md)** – a library for encrypting using vetkeys and securely storing key-value pairs.
+- **[KeyManager](./backend/rs/ic_vetkeys/src/key_manager/README.md)** – a library for deriving and managing encrypted cryptographic keys.
+- **[EncryptedMaps](./backend/rs/ic_vetkeys/src/encrypted_maps/README.md)** – a library for encrypting using vetkeys, and securely storing and sharing encrypted key-value pairs.
 
 ### **2. [VetKeys Frontend Library](./frontend/ic_vetkeys/README.md)** - Supports frontend developers
 

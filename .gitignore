@@ -88,3 +88,5 @@ node_modules
 **/*.sw?
 
 docs/
+# Motoko
+*.mops

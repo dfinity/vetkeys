@@ -1,12 +1,11 @@
-# Known failure: https://dfinity.atlassian.net/browse/EM-7
-name: examples-password-manager
+name: examples-basic-ibe
 on:
   push:
     branches:
       - main
   pull_request:
     paths:
-      - examples/password_manager/**
+      - examples/basic_ibe/**
       - backend/**
       - Cargo.toml
       - Cargo.lock
@@ -15,37 +14,39 @@ on:
       - package-lock.json
       - .github/workflows/provision-darwin.sh
       - .github/workflows/provision-linux.sh
-      - .github/workflows/examples-password-manager.yml
+      - .github/workflows/examples-basic-ibe.yml
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 jobs:
-  examples-password-manager-darwin:
+  examples-basic-ibe-darwin:
     runs-on: macos-15
     steps:
       - uses: actions/checkout@v4
       - name: Provision Darwin
         run: |
           bash .github/workflows/provision-darwin.sh
-      - name: Deploy Password Manager Darwin
+      - name: Deploy Basic IBE Darwin
         run: |
           set -eExuo pipefail
+          cargo install candid-extractor
           npm i
-          pushd examples/password_manager
+          pushd examples/basic_ibe
           ./deploy_locally.sh
           cd frontend
           npm run lint
-  examples-password-manager-linux:
+  examples-basic-ibe-linux:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
       - name: Provision Linux
         run: bash .github/workflows/provision-linux.sh
-      - name: Deploy Password Manager Linux
+      - name: Deploy Basic IBE Linux
         run: |
           set -eExuo pipefail
+          cargo install candid-extractor
           npm i
-          pushd examples/password_manager
+          pushd examples/basic_ibe
           ./deploy_locally.sh
           cd frontend
-          npm run lint
+          npm run lint 
