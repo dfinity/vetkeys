@@ -75,7 +75,7 @@ fn create_lot(name: String, description: String, duration_seconds: u16) -> Resul
             start_time,
             end_time: start_time + duration_seconds as u64 * NANOS_IN_SEC,
             creator: caller,
-            status: LotStatus::Open(0),
+            status: LotStatus::Open,
         };
 
         OPEN_LOTS_DEADLINES.with_borrow_mut(|open_lots_deadlines| {
@@ -115,30 +115,33 @@ async fn get_root_ibe_public_key() -> VetKeyPublicKey {
 
 #[query(guard = is_authenticated)]
 fn get_lots() -> (OpenLotsResponse, ClosedLotsResponse) {
-    let caller = ic_cdk::caller();
     let mut open_lots = OpenLotsResponse::default();
     let mut closed_lots = ClosedLotsResponse::default();
 
     LOTS.with_borrow(|lots| {
         for (lot_id, lot) in lots.iter() {
-            let have_i_bid = BIDS_ON_LOTS.with_borrow(|bids| bids.get(&(lot_id, caller)).is_some());
             match lot.status {
-                LotStatus::Open(_) => {
-                    open_lots.have_i_bid.push(have_i_bid);
+                LotStatus::Open => {
                     open_lots.lots.push(lot);
-                }
-                _ => {
-                    closed_lots.have_i_bid.push(have_i_bid);
-                    closed_lots.lots.push(lot);
-
-                    let bids: Vec<u128> = BIDS_ON_LOTS.with_borrow(|bids| {
+                    let bidders: Vec<Principal> = BIDS_ON_LOTS.with_borrow(|bids| {
                         bids.range((lot_id, Principal::management_canister())..)
                             .take_while(|((this_lot_id, _), _)| *this_lot_id == lot_id)
-                            .map(|(_, bid)| match bid {
+                            .map(|((_, bidder), _)| bidder)
+                            .collect()
+                    });
+                    open_lots.bidders.push(bidders);
+                }
+                _ => {
+                    closed_lots.lots.push(lot);
+
+                    let bids: Vec<(Principal, u128)> = BIDS_ON_LOTS.with_borrow(|bids| {
+                        bids.range((lot_id, Principal::management_canister())..)
+                            .take_while(|((this_lot_id, _), _)| *this_lot_id == lot_id)
+                            .map(|((_, bidder), bid)| match bid {
                                 Bid::Encrypted(_) => {
                                     panic!("bug: encrypted bid in a closed lot")
                                 }
-                                Bid::Decrypted(decrypted_bid) => decrypted_bid.amount,
+                                Bid::Decrypted(decrypted_bid) => (bidder, decrypted_bid.amount),
                             })
                             .collect()
                     });
@@ -163,7 +166,7 @@ fn place_bid(lot_id: u128, encrypted_amount: Vec<u8>) -> Result<(), String> {
 
     LOTS.with_borrow(|lots| match lots.get(&lot_id) {
         Some(LotInformation {
-            status: LotStatus::Open(_),
+            status: LotStatus::Open,
             creator,
             end_time,
             ..

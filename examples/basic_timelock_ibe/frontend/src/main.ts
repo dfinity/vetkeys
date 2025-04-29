@@ -214,24 +214,18 @@ async function listLots() {
         const bidFormId = `bidForm-${lot.id}`;
         openLotsDiv.innerHTML += `
           <div class="lot">
-            <h5>${lot.name}</h5>
-            <p>${lot.description}</p>
+            <h5>Name: ${lot.name}</h5>
+            <p>Description: ${lot.description}</p>
             <p>Ends at: ${new Date(Number(lot.end_time) / 1000000).toLocaleString()}</p>
-            <p>Status: ${lot.status}</p>
-            <p>Have I bid: ${openLots.have_i_bid[index] ? "Yes" : "No"}</p>
-            ${
-              !openLots.have_i_bid[index]
-                ? `
-              <form id="${bidFormId}" class="bid-form">
-                <div>
-                  <label for="bidAmount-${lot.id}">Bid Amount:</label>
-                  <input type="number" id="bidAmount-${lot.id}" min="1" required>
-                </div>
-                <button type="submit">Place Bid</button>
-              </form>
-            `
-                : ""
-            }
+            <p>Have I bid: ${openLots.bidders[index].find((bidder) => bidder.compareTo(myPrincipal as Principal) === "eq") ? "Yes" : "No"}</p>
+            <p>Bidders:${openLots.bidders[index].length === 0 ? " no bidders yet" : openLots.bidders[index].map((bidder) => "<br>" + bidder.toString()).join("")}</p>
+            <form id="${bidFormId}" class="bid-form">
+              <div>
+                <label for="bidAmount-${lot.id}">Bid Amount:</label>
+                <input type="number" id="bidAmount-${lot.id}" min="1" required>
+              </div>
+              <button type="submit">Place Bid</button>
+            </form>
           </div>
         `;
 
@@ -259,12 +253,16 @@ async function listLots() {
       closedLots.lots.forEach((lot, index) => {
         closedLotsDiv.innerHTML += `
           <div class="lot">
-            <h5>${lot.name}</h5>
-            <p>${lot.description}</p>
+            <h5>Name: ${lot.name}</h5>
+            <p>Description: ${lot.description}</p>
             <p>Ended at: ${new Date(Number(lot.end_time) / 1000000).toLocaleString()}</p>
-            <p>Status: ${lot.status}</p>
-            <p>Have I bid: ${closedLots.have_i_bid[index] ? "Yes" : "No"}</p>
-            <p>Bids: ${closedLots.bids[index].join(", ")}</p>
+            <p>Status: ${
+              "ClosedWithWinner" in lot.status
+                ? `Closed - Winner: ${lot.status.ClosedWithWinner.toString()}`
+                : `Closed - No Winner`
+            }</p>
+            <p>Have I bid: ${closedLots.bids[index].find((bid) => bid[0].compareTo(myPrincipal as Principal) === "eq") ? "Yes" : "No"}</p>
+            <p>Bids: ${closedLots.bids[index].length === 0 ? " no bids yet" : closedLots.bids[index].map((bid) => `<br>${bid[0].toString()}: ${bid[1]}`).join("")}</p>
           </div>
         `;
       });

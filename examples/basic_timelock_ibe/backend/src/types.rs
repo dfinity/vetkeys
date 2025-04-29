@@ -73,12 +73,10 @@ pub struct LotInformation {
     pub status: LotStatus,
 }
 
-pub type NumberOfBids = u64;
-
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug, Eq, PartialEq)]
 pub enum LotStatus {
     /// The auction is still open
-    Open(NumberOfBids),
+    Open,
     /// The auction is closed and the winner is the principal in the tuple
     ClosedWithWinner(Principal),
     /// The auction is closed and no bids were made
@@ -88,14 +86,13 @@ pub enum LotStatus {
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug, Default)]
 pub struct OpenLotsResponse {
     pub lots: Vec<LotInformation>,
-    pub have_i_bid: Vec<bool>,
+    pub bidders: Vec<Vec<Principal>>,
 }
 
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug, Default)]
 pub struct ClosedLotsResponse {
     pub lots: Vec<LotInformation>,
-    pub have_i_bid: Vec<bool>,
-    pub bids: Vec<Vec<u128>>,
+    pub bids: Vec<Vec<(Principal, u128)>>,
 }
 
 impl Storable for LotInformation {
