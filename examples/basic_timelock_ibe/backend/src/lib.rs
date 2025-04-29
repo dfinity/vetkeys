@@ -66,13 +66,14 @@ fn create_lot(name: String, description: String, duration_seconds: u16) -> Resul
         let lot_id = lots.len() as u128;
 
         const NANOS_IN_SEC: u64 = 1_000_000_000;
+        let start_time = ic_cdk::api::time();
 
         let lot = LotInformation {
             id: lot_id,
             name,
             description,
-            start_time: ic_cdk::api::time(),
-            end_time: ic_cdk::api::time() + duration_seconds as u64 * NANOS_IN_SEC,
+            start_time,
+            end_time: start_time + duration_seconds as u64 * NANOS_IN_SEC,
             creator: caller,
             status: LotStatus::Open(0),
         };
