@@ -49,9 +49,9 @@ const VETKD_SYSTEM_API_CANISTER_ID: &str = "aaaaa-aa";
 
 pub type VetKeyVerificationKey = ByteBuf;
 pub type VetKey = ByteBuf;
-pub type Creator = Principal;
+pub type Owner = Principal;
 pub type Caller = Principal;
-pub type KeyId = (Caller, KeyName);
+pub type KeyId = (Owner, KeyName);
 
 #[cfg(feature = "expose-testing-api")]
 thread_local! {
@@ -62,8 +62,8 @@ type Memory = VirtualMemory<DefaultMemoryImpl>;
 
 pub struct KeyManager<T: AccessControl> {
     pub domain_separator: StableCell<String, Memory>,
-    pub access_control: StableBTreeMap<(Caller, KeyId), T, Memory>,
-    pub shared_keys: StableBTreeMap<(KeyId, Caller), (), Memory>,
+    pub access_control: StableBTreeMap<(Principal, KeyId), T, Memory>,
+    pub shared_keys: StableBTreeMap<(KeyId, Principal), (), Memory>,
 }
 
 impl<T: AccessControl> KeyManager<T> {
@@ -229,11 +229,10 @@ impl<T: AccessControl> KeyManager<T> {
         }
 
         let has_shared_access = self.access_control.get(&(user, key_id));
-        if let Some(access_rights) = has_shared_access {
-            return Ok(access_rights);
+        match has_shared_access {
+            Some(access_rights) if access_rights.can_read() => Ok(access_rights),
+            _ => Err("unauthorized".to_string()),
         }
-
-        Err("unauthorized".to_string())
     }
 
     fn ensure_user_can_get_user_rights(&self, user: Principal, key_id: KeyId) -> Result<T, String> {
