@@ -65,12 +65,14 @@ fn create_lot(name: String, description: String, duration_seconds: u16) -> Resul
     let lot_id = LOTS.with_borrow_mut(|lots| {
         let lot_id = lots.len() as u128;
 
+        const NANOS_IN_SEC: u64 = 1_000_000_000;
+
         let lot = LotInformation {
             id: lot_id,
             name,
             description,
             start_time: ic_cdk::api::time(),
-            end_time: ic_cdk::api::time() + duration_seconds as u64 * 1_000_000_000,
+            end_time: ic_cdk::api::time() + duration_seconds as u64 * NANOS_IN_SEC,
             creator: caller,
             status: LotStatus::Open(0),
         };
