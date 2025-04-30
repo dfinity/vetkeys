@@ -65,7 +65,7 @@
         await refreshVaults(
             $auth.client.getIdentity().getPrincipal(),
             $auth.passwordManager,
-        ).catch((e) => showError(e, "Could not refresh vaults."));
+        ).catch((e: Error) => showError(e, "Could not refresh vaults."));
     }
 
     async function remove(sharing: Principal) {
@@ -95,10 +95,10 @@
         await refreshVaults(
             $auth.client.getIdentity().getPrincipal(),
             $auth.passwordManager,
-        ).catch((e) => showError(e, "Could not refresh vaults."));
+        ).catch((e: Error) => showError(e, "Could not refresh vaults."));
     }
 
-    function onKeyPress(e: any) {
+    function onKeyPress(e: KeyboardEvent) {
         if (
             e.key === "Enter" &&
             !editedVault.users.find(
@@ -106,7 +106,7 @@
                     user[0].compareTo(Principal.fromText(newSharing)) === "eq",
             )
         ) {
-            add();
+            void add();
         }
     }
 
@@ -162,7 +162,8 @@
             }}
             disabled={adding || removing || !canManage}
         >
-            <span>{accessRightsToString(sharing[1])} {sharing[0]}</span>
+            <span>{accessRightsToString(sharing[1])} {sharing[0].toText()}</span
+            >
             <svg
                 xmlns="http://www.w3.org/2000/svg"
                 fill="none"

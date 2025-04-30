@@ -1,10 +1,15 @@
 <script lang="ts">
     import type { Editor } from "typewriter-editor";
     import asRoot from "typewriter-editor/lib/asRoot.js";
+    // @ts-expect-error: svelte-icons have some problems with ts declarations
     import BubbleMenu from "typewriter-editor/lib/BubbleMenu.svelte";
+    // @ts-expect-error: svelte-icons have some problems with ts declarations
     import Heading from "svelte-icons/fa/FaHeading.svelte";
+    // @ts-expect-error: svelte-icons have some problems with ts declarations
     import Bold from "svelte-icons/fa/FaBold.svelte";
+    // @ts-expect-error: svelte-icons have some problems with ts declarations
     import Italic from "svelte-icons/fa/FaItalic.svelte";
+    // @ts-expect-error: svelte-icons have some problems with ts declarations
     import FaListUl from "svelte-icons/fa/FaListUl.svelte";
 
     export let editor: Editor;
