@@ -14,115 +14,115 @@ function ids(): [Ed25519KeyIdentity, Ed25519KeyIdentity] {
   return [randomId(), randomId()];
 }
 
-async function new_encrypted_maps(id: Ed25519KeyIdentity): Promise<EncryptedMaps> {
+async function newEncryptedMaps(id: Ed25519KeyIdentity): Promise<EncryptedMaps> {
   const host = 'http://localhost:8000';
   const agent = await HttpAgent.create({ fetch, host, identity: id, shouldFetchRootKey: true });
   const canisterId = process.env.CANISTER_ID_IC_VETKEYS_ENCRYPTED_MAPS_CANISTER as string;
   return new EncryptedMaps(new DefaultEncryptedMapsClient(agent, canisterId));
 }
 
-test('get_accessible_shared_map_names', async () => {
+test('getAccessibleSharedMapNames', async () => {
   const id = randomId();
-  const encrypted_maps = await new_encrypted_maps(id);
-  const names = await encrypted_maps.get_accessible_shared_map_names();
+  const encryptedMaps = await newEncryptedMaps(id);
+  const names = await encryptedMaps.getAccessibleSharedMapNames();
   expect(names.length === 0).toBeTruthy();
 });
 
 test('can get vetkey', async () => {
   const id = randomId();
-  const encrypted_maps = await new_encrypted_maps(id);
+  const encryptedMaps = await newEncryptedMaps(id);
   const owner = id.getPrincipal();
-  const vetkey = await encrypted_maps.getDerivedKeyMaterial(owner, new TextEncoder().encode("some key"));
-  const second_vetkey = await encrypted_maps.getDerivedKeyMaterial(owner, new TextEncoder().encode("some key"));
+  const vetkey = await encryptedMaps.getDerivedKeyMaterial(owner, new TextEncoder().encode("some key"));
+  const secondVetkey = await encryptedMaps.getDerivedKeyMaterial(owner, new TextEncoder().encode("some key"));
   expect(isEqualArrayThrowing(
-    await second_vetkey.decryptMessage(await vetkey.encryptMessage("message", "domain"), "domain"),
+    await secondVetkey.decryptMessage(await vetkey.encryptMessage("message", "domain"), "domain"),
     new TextEncoder().encode("message"),
   )).to.equal(true);
 });
 
 test('vetkey encryption roundtrip', async () => {
   const id = randomId();
-  const encrypted_maps = await new_encrypted_maps(id);
+  const encryptedMaps = await newEncryptedMaps(id);
   const owner = id.getPrincipal();
   const plaintext = Uint8Array.from([1, 2, 3, 4]);
 
-  const encryption_result = await encrypted_maps.encrypt_for(owner, new TextEncoder().encode("some map"), new TextEncoder().encode("some key"), plaintext);
-  const decrypted_ciphertext = await encrypted_maps.decrypt_for(owner, new TextEncoder().encode("some map"), new TextEncoder().encode("some key"), encryption_result);
-  expect(isEqualArrayThrowing(plaintext, decrypted_ciphertext)).to.equal(true);
+  const encryptionResult = await encryptedMaps.encryptFor(owner, new TextEncoder().encode("some map"), new TextEncoder().encode("some key"), plaintext);
+  const decryptedCiphertext = await encryptedMaps.decryptFor(owner, new TextEncoder().encode("some map"), new TextEncoder().encode("some key"), encryptionResult);
+  expect(isEqualArrayThrowing(plaintext, decryptedCiphertext)).to.equal(true);
 });
 
 test('cannot get unauthorized vetkey', async () => {
   const [id0, id1] = ids();
-  const encrypted_maps = await new_encrypted_maps(id0);
-  await expect(encrypted_maps.getDerivedKeyMaterial(id1.getPrincipal(), new TextEncoder().encode("some key"))).rejects.toThrow(Error("unauthorized"));
+  const encryptedMaps = await newEncryptedMaps(id0);
+  await expect(encryptedMaps.getDerivedKeyMaterial(id1.getPrincipal(), new TextEncoder().encode("some key"))).rejects.toThrow(Error("unauthorized"));
 });
 
 test('can share a key', async () => {
   const [id0, id1] = ids();
   const owner = id0.getPrincipal();
   const user = id1.getPrincipal();
-  const encrypted_maps_owner = await new_encrypted_maps(id0);
-  const encrypted_maps_user = await new_encrypted_maps(id1);
+  const encryptedMapsOwner = await newEncryptedMaps(id0);
+  const encryptedMapsUser = await newEncryptedMaps(id1);
 
   const rights = { 'ReadWrite': null };
-  expect((await encrypted_maps_owner.set_user_rights(owner, new TextEncoder().encode("some key"), user, rights))).toBeUndefined();
-  await expect(encrypted_maps_user.getDerivedKeyMaterial(owner, new TextEncoder().encode("some key"))).resolves.toBeDefined();
+  expect((await encryptedMapsOwner.setUserRights(owner, new TextEncoder().encode("some key"), user, rights))).toBeUndefined();
+  await expect(encryptedMapsUser.getDerivedKeyMaterial(owner, new TextEncoder().encode("some key"))).resolves.toBeDefined();
 });
 
 test('set value should work', async () => {
   const id = randomId();
-  const encrypted_maps = await new_encrypted_maps(id);
+  const encryptedMaps = await newEncryptedMaps(id);
   const owner = id.getPrincipal();
   const plaintext = new TextEncoder().encode("Hello, world!");
-  const map_key = new TextEncoder().encode("some key");
-  const map_name = new TextEncoder().encode("some map");
+  const mapKey = new TextEncoder().encode("some key");
+  const mapName = new TextEncoder().encode("some map");
 
-  await encrypted_maps.set_value(owner, map_name, map_key, plaintext);
+  await encryptedMaps.setValue(owner, mapName, mapKey, plaintext);
 
-  const expected_encryption_result = await encrypted_maps.encrypt_for(owner, map_name, map_key, plaintext);
+  const expectedEncryptionResult = await encryptedMaps.encryptFor(owner, mapName, mapKey, plaintext);
 
-  const get_value_result = await encrypted_maps.canister_client.get_encrypted_value(owner, { inner: map_name }, { inner: map_key });
-  if ("Err" in get_value_result) {
-    throw new Error(get_value_result.Err);
+  const getValueResult = await encryptedMaps.canisterClient.get_encrypted_value(owner, { inner: mapName }, { inner: mapKey });
+  if ("Err" in getValueResult) {
+    throw new Error(getValueResult.Err);
   }
-  if (get_value_result.Ok.length === 0) {
+  if (getValueResult.Ok.length === 0) {
     throw new Error("empty result");
   }
 
-  expect(expected_encryption_result.length).to.equal(12 + 16 + plaintext.length);
-  expect(get_value_result.Ok[0].inner.length).to.equal(12 + 16 + plaintext.length);
+  expect(expectedEncryptionResult.length).to.equal(12 + 16 + plaintext.length);
+  expect(getValueResult.Ok[0].inner.length).to.equal(12 + 16 + plaintext.length);
 
-  const try_decrypt_from_check = await encrypted_maps.decrypt_for(owner, map_name, map_key, Uint8Array.from(expected_encryption_result));
-  expect(isEqualArrayThrowing(try_decrypt_from_check, plaintext)).to.equal(true);
+  const tryDecryptFromCheck = await encryptedMaps.decryptFor(owner, mapName, mapKey, Uint8Array.from(expectedEncryptionResult));
+  expect(isEqualArrayThrowing(tryDecryptFromCheck, plaintext)).to.equal(true);
 
-  const try_decrypt_from_canister = await encrypted_maps.decrypt_for(owner, map_name, map_key, Uint8Array.from(get_value_result.Ok[0].inner));
-  expect(isEqualArrayThrowing(try_decrypt_from_canister, plaintext)).to.equal(true);
+  const tryDecryptFromCanister = await encryptedMaps.decryptFor(owner, mapName, mapKey, Uint8Array.from(getValueResult.Ok[0].inner));
+  expect(isEqualArrayThrowing(tryDecryptFromCanister, plaintext)).to.equal(true);
 });
 
 test('get value should work', async () => {
   const id = randomId();
-  const encrypted_maps = await new_encrypted_maps(id);
+  const encryptedMaps = await newEncryptedMaps(id);
   const owner = id.getPrincipal();
 
   const value = new TextEncoder().encode("Hello, world!");
 
-  const set_value_result = await encrypted_maps.set_value(owner, new TextEncoder().encode("some map"), new TextEncoder().encode("some key"), value);
+  const setValueResult = await encryptedMaps.setValue(owner, new TextEncoder().encode("some map"), new TextEncoder().encode("some key"), value);
 
-  expect(set_value_result).toBeFalsy();
+  expect(setValueResult).toBeFalsy();
 
-  const get_value_result = await encrypted_maps.get_value(owner, new TextEncoder().encode("some map"), new TextEncoder().encode("some key"));
+  const getValueResult = await encryptedMaps.getValue(owner, new TextEncoder().encode("some map"), new TextEncoder().encode("some key"));
 
-  expect(isEqualArrayThrowing(value, get_value_result)).to.equal(true);
+  expect(isEqualArrayThrowing(value, getValueResult)).to.equal(true);
 });
 
 test('get-set roundtrip should be consistent', async () => {
   const id = randomId();
-  const encrypted_maps = await new_encrypted_maps(id);
+  const encryptedMaps = await newEncryptedMaps(id);
   const owner = id.getPrincipal();
   const data = new TextEncoder().encode("Hello, world!");
 
-  await encrypted_maps.set_value(owner, new TextEncoder().encode("some map"), new TextEncoder().encode("some key"), data);
-  const result = await encrypted_maps.get_value(owner, new TextEncoder().encode("some map"), new TextEncoder().encode("some key"));
+  await encryptedMaps.setValue(owner, new TextEncoder().encode("some map"), new TextEncoder().encode("some key"), data);
+  const result = await encryptedMaps.getValue(owner, new TextEncoder().encode("some map"), new TextEncoder().encode("some key"));
   expect(isEqualArrayThrowing(data, result)).toBeTruthy();
 });
 
@@ -130,23 +130,23 @@ test('can get user rights', async () => {
   const [id0, id1] = ids();
   const owner = id0.getPrincipal();
   const user = id1.getPrincipal();
-  const encrypted_maps_owner = await new_encrypted_maps(id0);
-  const encrypted_maps_user = await new_encrypted_maps(id1);
+  const encryptedMapsOwner = await newEncryptedMaps(id0);
+  const encryptedMapsUser = await newEncryptedMaps(id1);
   const rights = { 'ReadWrite': null };
 
-  await encrypted_maps_owner.set_value(owner, new TextEncoder().encode("some map"), new TextEncoder().encode("some key"), new TextEncoder().encode("Hello, world!"));
-  const initialUserRights = await encrypted_maps_owner.get_user_rights(owner, new TextEncoder().encode("some key"), owner);
+  await encryptedMapsOwner.setValue(owner, new TextEncoder().encode("some map"), new TextEncoder().encode("some key"), new TextEncoder().encode("Hello, world!"));
+  const initialUserRights = await encryptedMapsOwner.getUserRights(owner, new TextEncoder().encode("some key"), owner);
   expect(initialUserRights).to.deep.equal({'ReadWriteManage': null});
 
-  expect((await encrypted_maps_owner.get_user_rights(owner, new TextEncoder().encode("some key"), user))).toBeUndefined();
-  const setUserRightsResult = await encrypted_maps_owner.set_user_rights(owner, new TextEncoder().encode("some key"), user, rights);
+  expect((await encryptedMapsOwner.getUserRights(owner, new TextEncoder().encode("some key"), user))).toBeUndefined();
+  const setUserRightsResult = await encryptedMapsOwner.setUserRights(owner, new TextEncoder().encode("some key"), user, rights);
   expect(setUserRightsResult).toBeUndefined();
-  expect((await encrypted_maps_user.get_user_rights(owner, new TextEncoder().encode("some key"), user))).to.deep.equal(rights);
+  expect((await encryptedMapsUser.getUserRights(owner, new TextEncoder().encode("some key"), user))).to.deep.equal(rights);
 });
 
 test('get map values should work', async () => {
   const id = randomId();
-  const encrypted_maps = await new_encrypted_maps(id);
+  const encryptedMaps = await newEncryptedMaps(id);
   const owner = id.getPrincipal();
   const key1 = new TextEncoder().encode("some key 1");
   const key2 = new TextEncoder().encode("some key 2");
@@ -156,10 +156,10 @@ test('get map values should work', async () => {
   const data3 = new TextEncoder().encode("Hello, world 3!");
   const mapName = new TextEncoder().encode("some map");
 
-  await encrypted_maps.set_value(owner, mapName, key1, data1);
-  await encrypted_maps.set_value(owner, mapName, key2, data2);
-  await encrypted_maps.set_value(owner, mapName, key3, data3);
-  const result = await encrypted_maps.get_values_for_map(owner, mapName);
+  await encryptedMaps.setValue(owner, mapName, key1, data1);
+  await encryptedMaps.setValue(owner, mapName, key2, data2);
+  await encryptedMaps.setValue(owner, mapName, key3, data3);
+  const result = await encryptedMaps.getValuesForMap(owner, mapName);
   expect(result.length).to.equal(3);
 
   const expectedMapValues: Array<[Uint8Array, Uint8Array]> = [
@@ -172,8 +172,8 @@ test('get map values should work', async () => {
 
 test("get all accessible values should work", async () => {
   const [id0, id1] = ids();
-  const encryptedMapsOwner = await new_encrypted_maps(id0);
-  const encryptedMapsSharesWithOwner = await new_encrypted_maps(id1);
+  const encryptedMapsOwner = await newEncryptedMaps(id0);
+  const encryptedMapsSharesWithOwner = await newEncryptedMaps(id1);
   const owner = id0.getPrincipal();
   const sharesWithOwner = id1.getPrincipal();
   const mapName1 = new TextEncoder().encode("some map 1");
@@ -187,22 +187,22 @@ test("get all accessible values should work", async () => {
   const data3 = new TextEncoder().encode("Hello, world 3!");
   const data4 = new TextEncoder().encode("Hello, world 4!");
 
-  await encryptedMapsOwner.set_value(owner, mapName1, key1, data1);
-  await encryptedMapsOwner.set_value(owner, mapName1, key2, data2);
-  await encryptedMapsSharesWithOwner.set_value(
+  await encryptedMapsOwner.setValue(owner, mapName1, key1, data1);
+  await encryptedMapsOwner.setValue(owner, mapName1, key2, data2);
+  await encryptedMapsSharesWithOwner.setValue(
     sharesWithOwner,
     mapName2,
     key3,
     data3
   );
-  await encryptedMapsSharesWithOwner.set_value(
+  await encryptedMapsSharesWithOwner.setValue(
     sharesWithOwner,
     mapName2,
     key4,
     data4
   );
 
-  await encryptedMapsSharesWithOwner.set_user_rights(
+  await encryptedMapsSharesWithOwner.setUserRights(
     sharesWithOwner,
     mapName2,
     owner,
@@ -210,7 +210,7 @@ test("get all accessible values should work", async () => {
   );
 
   const retrievedValues =
-    await encryptedMapsOwner.get_all_accessible_values();
+    await encryptedMapsOwner.getAllAccessibleValues();
 
   // 2 maps
   expect(retrievedValues.length).to.equal(2);

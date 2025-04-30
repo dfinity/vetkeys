@@ -33,7 +33,7 @@ import { AccessRights, ByteBuf } from "../declarations/ic_vetkeys_manager_canist
  * const encryptedMaps = new EncryptedMaps(encryptedMapsClientInstance);
  * 
  * // Retrieve shared maps
- * const sharedMaps = await encryptedMaps.get_accessible_shared_map_names();
+ * const sharedMaps = await encryptedMaps.getAccessibleSharedMapNames();
  * 
  * const mapOwner = Principal.fromText("aaaaa-aa");
  * const mapName = "passwords";
@@ -41,27 +41,27 @@ import { AccessRights, ByteBuf } from "../declarations/ic_vetkeys_manager_canist
  * 
  * // Store an encrypted value
  * const value = new TextEncoder().encode("my_secure_password");
- * const result = await encryptedMaps.set_value(mapOwner, mapName, mapKey, value);
+ * const result = await encryptedMaps.setValue(mapOwner, mapName, mapKey, value);
  * 
  * // Retrieve a stored value
- * const storedValue = await encryptedMaps.get_value(mapOwner, mapName, mapKey);
+ * const storedValue = await encryptedMaps.getValue(mapOwner, mapName, mapKey);
  * 
  * // Manage user access rights
  * const user = Principal.fromText("bbbbbb-bb");
  * const accessRights = { ReadWrite: null };
- * const result = await encryptedMaps.set_user_rights(mapOwner, mapName, user, accessRights);
+ * const result = await encryptedMaps.setUserRights(mapOwner, mapName, user, accessRights);
  * ```
  */
 export class EncryptedMaps {
     /**
      * The client instance for interacting with the EncryptedMaps canister.
      */
-    canister_client: EncryptedMapsClient;
+    canisterClient: EncryptedMapsClient;
 
     /**
      * The cached verification key for validating encrypted VetKeys.
      */
-    verification_key: Uint8Array | undefined = undefined;
+    verificationKey: Uint8Array | undefined = undefined;
 
     /**
      * Creates a new instance of the EncryptedMaps client.
@@ -73,21 +73,21 @@ export class EncryptedMaps {
      * const encryptedMaps = new EncryptedMaps(encryptedMapsClientInstance);
      * ```
      */
-    constructor(canister_client: EncryptedMapsClient) { this.canister_client = canister_client; }
+    constructor(canisterClient: EncryptedMapsClient) { this.canisterClient = canisterClient; }
 
     /**
      * Retrieves a list of maps that were shared with the user and the user still has access to.
      * 
      * @example
      * ```ts
-     * const sharedMaps = await encryptedMaps.get_accessible_shared_map_names();
+     * const sharedMaps = await encryptedMaps.getAccessibleSharedMapNames();
      * console.log("Shared Maps:", sharedMaps);
      * ```
      * 
      * @returns Promise resolving to an array of `[Principal, Uint8Array]` pairs representing accessible map identifiers.
      */
-    async get_accessible_shared_map_names(): Promise<[Principal, Uint8Array][]> {
-        return (await this.canister_client.get_accessible_shared_map_names()).map(([principal, byteBuf]) => {
+    async getAccessibleSharedMapNames(): Promise<[Principal, Uint8Array][]> {
+        return (await this.canisterClient.get_accessible_shared_map_names()).map(([principal, byteBuf]) => {
             return [principal, Uint8Array.from(byteBuf.inner)];
         });
     }
@@ -97,8 +97,8 @@ export class EncryptedMaps {
      * 
      * @returns Promise resolving to an array of map names
      */
-    async get_owned_non_empty_map_names(): Promise<Array<Uint8Array>> {
-        return (await this.canister_client.get_owned_non_empty_map_names()).map((byteBuf) => {
+    async getOwnedNonEmptyMapNames(): Promise<Array<Uint8Array>> {
+        return (await this.canisterClient.get_owned_non_empty_map_names()).map((byteBuf) => {
             return Uint8Array.from(byteBuf.inner);
         });
     }
@@ -108,15 +108,15 @@ export class EncryptedMaps {
      * 
      * @returns Promise resolving to an array of map data with decrypted values
      */
-    async get_all_accessible_values(): Promise<Array<[[Principal, Uint8Array], Array<[Uint8Array, Uint8Array]>]>> {
-        const result = await this.canister_client.get_all_accessible_encrypted_values();
+    async getAllAccessibleValues(): Promise<Array<[[Principal, Uint8Array], Array<[Uint8Array, Uint8Array]>]>> {
+        const result = await this.canisterClient.get_all_accessible_encrypted_values();
         const decryptedResult: Array<[[Principal, Uint8Array], Array<[Uint8Array, Uint8Array]>]> = [];
         for (const [mapId, encryptedValues] of result) {
             const mapName = Uint8Array.from(mapId[1].inner);
             const keyValues: Array<[Uint8Array, Uint8Array]> = [];
             for (const [mapKeyBytes, encryptedValue] of encryptedValues) {
                 const mapKey = Uint8Array.from(mapKeyBytes.inner);
-                const value = await this.decrypt_for(mapId[0], mapName, mapKey, Uint8Array.from(encryptedValue.inner));
+                const value = await this.decryptFor(mapId[0], mapName, mapKey, Uint8Array.from(encryptedValue.inner));
                 keyValues.push([mapKey, value]);
             };
             decryptedResult.push([[mapId[0], Uint8Array.from(mapId[1].inner)], keyValues]);
@@ -130,22 +130,22 @@ export class EncryptedMaps {
      * 
      * @returns Promise resolving to an array of map data
      */
-    async get_all_accessible_maps(): Promise<Array<MapData>> {
-        const accessibleEncryptedMaps = await this.canister_client.get_all_accessible_encrypted_maps();
+    async getAllAccessibleMaps(): Promise<Array<MapData>> {
+        const accessibleEncryptedMaps = await this.canisterClient.get_all_accessible_encrypted_maps();
         const result: Array<MapData> = [];
         for (const encryptedMapData of accessibleEncryptedMaps) {
             const mapName = Uint8Array.from(encryptedMapData.map_name.inner);
             const keyvals: Array<[Uint8Array, Uint8Array]> = [];
             for (const [mapKeyBytes, encryptedValue] of encryptedMapData.keyvals) {
                 const mapKey = Uint8Array.from(mapKeyBytes.inner);
-                const decrypted = await this.decrypt_for(encryptedMapData.map_owner, mapName, mapKey, Uint8Array.from(encryptedValue.inner));
+                const decrypted = await this.decryptFor(encryptedMapData.map_owner, mapName, mapKey, Uint8Array.from(encryptedValue.inner));
                 keyvals.push([mapKey, decrypted]);
             }
             result.push({
-                'access_control': encryptedMapData.access_control,
+                'accessControl': encryptedMapData.access_control,
                 'keyvals': keyvals,
-                'map_name': mapName,
-                'map_owner': encryptedMapData.map_owner,
+                'mapName': mapName,
+                'mapOwner': encryptedMapData.map_owner,
             })
         }
         return result;
@@ -160,34 +160,34 @@ export class EncryptedMaps {
      * const mapName = "passwords";
      * const mapKey = "email_account";
      * 
-     * const storedValue = await encryptedMaps.get_value(mapOwner, mapName, mapKey);
+     * const storedValue = await encryptedMaps.getValue(mapOwner, mapName, mapKey);
      * console.log("Decrypted Value:", new TextDecoder().decode(storedValue));
      * ```
      * 
-     * @param map_owner - The principal of the map owner
-     * @param map_name - The name/identifier of the map
-     * @param map_key - The key to retrieve
+     * @param mapOwner - The principal of the map owner
+     * @param mapName - The name/identifier of the map
+     * @param mapKey - The key to retrieve
      * @returns Promise resolving to the decrypted value
      * @throws Error if the operation fails
      */
-    async get_value(map_owner: Principal, map_name: Uint8Array, map_key: Uint8Array): Promise<Uint8Array> {
-        const encrypted_value = await this.canister_client.get_encrypted_value(map_owner, arrayToByteBuf(map_name), arrayToByteBuf(map_key));
-        if ("Err" in encrypted_value) { throw Error(encrypted_value.Err); }
-        else if (encrypted_value.Ok.length === 0) { return new Uint8Array(0); }
+    async getValue(mapOwner: Principal, mapName: Uint8Array, mapKey: Uint8Array): Promise<Uint8Array> {
+        const encryptedValue = await this.canisterClient.get_encrypted_value(mapOwner, arrayToByteBuf(mapName), arrayToByteBuf(mapKey));
+        if ("Err" in encryptedValue) { throw Error(encryptedValue.Err); }
+        else if (encryptedValue.Ok.length === 0) { return new Uint8Array(0); }
 
-        return await this.decrypt_for(map_owner, map_name, map_key, Uint8Array.from(encrypted_value.Ok[0].inner));
+        return await this.decryptFor(mapOwner, mapName, mapKey, Uint8Array.from(encryptedValue.Ok[0].inner));
     }
 
     /**
      * Retrieves all values from a specific map.
      * 
-     * @param map_owner - The principal of the map owner
-     * @param map_name - The name/identifier of the map
+     * @param mapOwner - The principal of the map owner
+     * @param mapName - The name/identifier of the map
      * @returns Promise resolving to an array of key-value pairs
      * @throws Error if the operation fails
      */
-    async get_values_for_map(map_owner: Principal, map_name: Uint8Array): Promise<Array<[Uint8Array, Uint8Array]>> {
-        const encryptedValues = await this.canister_client.get_encrypted_values_for_map(map_owner, arrayToByteBuf(map_name));
+    async getValuesForMap(mapOwner: Principal, mapName: Uint8Array): Promise<Array<[Uint8Array, Uint8Array]>> {
+        const encryptedValues = await this.canisterClient.get_encrypted_values_for_map(mapOwner, arrayToByteBuf(mapName));
         if ("Err" in encryptedValues) { throw Error(encryptedValues.Err); }
 
         const resultGet = new Array<[Uint8Array, Uint8Array]>();
@@ -198,7 +198,7 @@ export class EncryptedMaps {
         const result = new Array<[Uint8Array, Uint8Array]>();
         for (const [mapKey, mapValue] of encryptedValues.Ok) {
             const passwordName = Uint8Array.from(mapKey.inner);
-            const decrypted = await this.decrypt_for(map_owner, map_name, passwordName, Uint8Array.from(mapValue.inner));
+            const decrypted = await this.decryptFor(mapOwner, mapName, passwordName, Uint8Array.from(mapValue.inner));
             result.push([passwordName, decrypted]);
         }
         return result;
@@ -210,51 +210,51 @@ export class EncryptedMaps {
      * @example
      * ```ts
      * const value = new TextEncoder().encode("my_secure_password");
-     * const result = await encryptedMaps.set_value(mapOwner, mapName, mapKey, value);
+     * const result = await encryptedMaps.setValue(mapOwner, mapName, mapKey, value);
      * console.log("Replaced Value:", result);
      * ```
      * 
-     * @param map_owner - The principal of the map owner
-     * @param map_name - The name/identifier of the map
-     * @param map_key - The key to store
+     * @param mapOwner - The principal of the map owner
+     * @param mapName - The name/identifier of the map
+     * @param mapKey - The key to store
      * @param data - The value to store
      * @returns Promise resolving to the previous value if it existed
      * @throws Error if the operation fails
      */
-    async set_value(map_owner: Principal, map_name: Uint8Array, map_key: Uint8Array, data: Uint8Array): Promise<Uint8Array | undefined> {
-        const encrypted_value = await this.encrypt_for(map_owner, map_name, map_key, data);
-        const insertion_result = await this.canister_client.insert_encrypted_value(map_owner, arrayToByteBuf(map_name), arrayToByteBuf(map_key), { inner: encrypted_value });
-        if ("Err" in insertion_result) { throw Error(insertion_result.Err); }
-        else if (insertion_result.Ok.length === 0) { return undefined; }
-        return await this.decrypt_for(map_owner, map_name, map_key, Uint8Array.from(insertion_result.Ok[0].inner));
+    async setValue(mapOwner: Principal, mapName: Uint8Array, mapKey: Uint8Array, data: Uint8Array): Promise<Uint8Array | undefined> {
+        const encryptedValue = await this.encryptFor(mapOwner, mapName, mapKey, data);
+        const insertionResult = await this.canisterClient.insert_encrypted_value(mapOwner, arrayToByteBuf(mapName), arrayToByteBuf(mapKey), { inner: encryptedValue });
+        if ("Err" in insertionResult) { throw Error(insertionResult.Err); }
+        else if (insertionResult.Ok.length === 0) { return undefined; }
+        return await this.decryptFor(mapOwner, mapName, mapKey, Uint8Array.from(insertionResult.Ok[0].inner));
     }
 
     /**
      * Removes a value from a map.
      * 
-     * @param map_owner - The principal of the map owner
-     * @param map_name - The name/identifier of the map
-     * @param map_key - The key to remove
+     * @param mapOwner - The principal of the map owner
+     * @param mapName - The name/identifier of the map
+     * @param mapKey - The key to remove
      * @returns Promise resolving to the removed value if it existed
      * @throws Error if the operation fails
      */
-    async remove_encrypted_value(map_owner: Principal, map_name: Uint8Array, map_key: Uint8Array): Promise<Uint8Array | undefined> {
-        const encryptedResult = await this.canister_client.remove_encrypted_value(map_owner, arrayToByteBuf(map_name), arrayToByteBuf(map_key));
+    async removeEncryptedValue(mapOwner: Principal, mapName: Uint8Array, mapKey: Uint8Array): Promise<Uint8Array | undefined> {
+        const encryptedResult = await this.canisterClient.remove_encrypted_value(mapOwner, arrayToByteBuf(mapName), arrayToByteBuf(mapKey));
         if ("Err" in encryptedResult) { throw Error(encryptedResult.Err); }
         else if (encryptedResult.Ok.length === 0) { return undefined; }
-        return await this.decrypt_for(map_owner, map_name, map_key, Uint8Array.from(encryptedResult.Ok[0].inner));
+        return await this.decryptFor(mapOwner, mapName, mapKey, Uint8Array.from(encryptedResult.Ok[0].inner));
     }
 
     /**
      * Removes all values from a map.
      * 
-     * @param map_owner - The principal of the map owner
-     * @param map_name - The name/identifier of the map
+     * @param mapOwner - The principal of the map owner
+     * @param mapName - The name/identifier of the map
      * @returns Promise resolving to an array of removed keys
      * @throws Error if the operation fails
      */
-    async remove_map_values(map_owner: Principal, map_name: Uint8Array): Promise<Array<Uint8Array>> {
-        const encryptedResult = await this.canister_client.remove_map_values(map_owner, arrayToByteBuf(map_name));
+    async removeMapValues(mapOwner: Principal, mapName: Uint8Array): Promise<Array<Uint8Array>> {
+        const encryptedResult = await this.canisterClient.remove_map_values(mapOwner, arrayToByteBuf(mapName));
         if ("Err" in encryptedResult) { throw Error(encryptedResult.Err); }
         else {
             return encryptedResult.Ok.map((mapKey) => Uint8Array.from(mapKey.inner));
@@ -263,23 +263,23 @@ export class EncryptedMaps {
 
     /**
      * Retrieves the public verification key for validating encrypted VetKeys.
-     * The vetkeys obtained via `get_vetkey` are verified using this key,
-     * and, therefore, this method is not needed for using `get_vetkey`.
+     * The vetkeys obtained via `getVetkey` are verified using this key,
+     * and, therefore, this method is not needed for using `getVetkey`.
      * 
      * @example
      * ```ts
-     * const verificationKey = await encryptedMaps.get_vetkey_verification_key();
+     * const verificationKey = await encryptedMaps.getVetkeyVerificationKey();
      * console.log("Verification Key:", verificationKey);
      * ```
      * 
      * @returns Promise resolving to the verification key bytes
      */
-    async get_vetkey_verification_key(): Promise<Uint8Array> {
-        if (!this.verification_key) {
-            const verification_key = await this.canister_client.get_vetkey_verification_key();
-            this.verification_key = Uint8Array.from(verification_key.inner);
+    async getVetkeyVerificationKey(): Promise<Uint8Array> {
+        if (!this.verificationKey) {
+            const verificationKey = await this.canisterClient.get_vetkey_verification_key();
+            this.verificationKey = Uint8Array.from(verificationKey.inner);
         }
-        return this.verification_key;
+        return this.verificationKey;
     }
 
     /**
@@ -291,7 +291,7 @@ export class EncryptedMaps {
      * const user = Principal.fromText("bbbbbb-bb");
      * const accessRights = { ReadWrite: null };
      * 
-     * const result = await encryptedMaps.set_user_rights(
+     * const result = await encryptedMaps.setUserRights(
      *   owner,
      *   mapName,
      *   user,
@@ -303,12 +303,12 @@ export class EncryptedMaps {
      * @param owner - The principal of the map owner
      * @param map_name - The name/identifier of the map
      * @param user - The principal of the user to grant/modify rights for
-     * @param user_rights - The access rights to grant
+     * @param userRights - The access rights to grant
      * @returns Promise resolving to the previous access rights if they existed
      * @throws Error if the operation fails
      */
-    async set_user_rights(owner: Principal, map_name: Uint8Array, user: Principal, user_rights: AccessRights): Promise<AccessRights | undefined> {
-        const result = await this.canister_client.set_user_rights(owner, arrayToByteBuf(map_name), user, user_rights);
+    async setUserRights(owner: Principal, mapName: Uint8Array, user: Principal, userRights: AccessRights): Promise<AccessRights | undefined> {
+        const result = await this.canisterClient.set_user_rights(owner, arrayToByteBuf(mapName), user, userRights);
         if ('Err' in result) throw Error(result.Err);
         else if (result.Ok.length > 1) throw Error("Unexpected result from set_user_rights");
         const prevUserRights = result.Ok.length === 0 ? undefined : result.Ok[0];
@@ -325,13 +325,13 @@ export class EncryptedMaps {
      * ```
      * 
      * @param owner - The principal of the map owner
-     * @param map_name - The name/identifier of the map
+     * @param mapName - The name/identifier of the map
      * @param user - The principal of the user to check rights for
      * @returns Promise resolving to the user's access rights if they exist
      * @throws Error if the operation fails
      */
-    async get_user_rights(owner: Principal, map_name: Uint8Array, user: Principal): Promise<AccessRights | undefined> {
-        const result = await this.canister_client.get_user_rights(owner, arrayToByteBuf(map_name), user);
+    async getUserRights(owner: Principal, mapName: Uint8Array, user: Principal): Promise<AccessRights | undefined> {
+        const result = await this.canisterClient.get_user_rights(owner, arrayToByteBuf(mapName), user);
         if ('Err' in result) throw Error(result.Err);
         else if (result.Ok.length > 1) throw Error("Unexpected result from set_user_rights");
 
@@ -343,12 +343,12 @@ export class EncryptedMaps {
      * Gets all users that have access to a map and their access rights.
      * 
      * @param owner - The principal of the map owner
-     * @param map_name - The name/identifier of the map
+     * @param mapName - The name/identifier of the map
      * @returns Promise resolving to an array of user-access rights pairs
      * @throws Error if the operation fails
      */
-    async get_shared_user_access_for_map(owner: Principal, map_name: Uint8Array): Promise<Array<[Principal, AccessRights]>> {
-        const result = await this.canister_client.get_shared_user_access_for_map(owner, arrayToByteBuf(map_name));
+    async getSharedUserAccessForMap(owner: Principal, mapName: Uint8Array): Promise<Array<[Principal, AccessRights]>> {
+        const result = await this.canisterClient.get_shared_user_access_for_map(owner, arrayToByteBuf(mapName));
         if ("Err" in result) { throw Error(result.Err); }
         return result.Ok;
     }
@@ -363,13 +363,13 @@ export class EncryptedMaps {
      * ```
      * 
      * @param owner - The principal of the map owner
-     * @param map_name - The name/identifier of the map
+     * @param mapName - The name/identifier of the map
      * @param user - The principal of the user to remove
      * @returns Promise resolving to the previous access rights if they existed
      * @throws Error if the operation fails
      */
-    async remove_user(owner: Principal, map_name: Uint8Array, user: Principal): Promise<AccessRights | undefined> {
-        const result = await this.canister_client.remove_user(owner, arrayToByteBuf(map_name), user);
+    async removeUser(owner: Principal, mapName: Uint8Array, user: Principal): Promise<AccessRights | undefined> {
+        const result = await this.canisterClient.remove_user(owner, arrayToByteBuf(mapName), user);
         if ("Err" in result) { throw Error(result.Err); }
         const userRights = result.Ok.length === 0 ? undefined : result.Ok[0];
         return userRights;
@@ -378,23 +378,23 @@ export class EncryptedMaps {
     /**
      * Derives a key material for a specific map.
      * 
-     * @param map_owner - The principal of the map owner
-     * @param map_name - The name/identifier of the map
+     * @param mapOwner - The principal of the map owner
+     * @param mapName - The name/identifier of the map
      * @returns Promise resolving to the derived key material
      * @throws Error if the operation fails
      */
-    async getDerivedKeyMaterial(map_owner: Principal, map_name: Uint8Array): Promise<DerivedKeyMaterial> {
+    async getDerivedKeyMaterial(mapOwner: Principal, mapName: Uint8Array): Promise<DerivedKeyMaterial> {
         const tsk = TransportSecretKey.random();
-        const encrypted_vetkey = await this.canister_client.get_encrypted_vetkey(map_owner, arrayToByteBuf(map_name), arrayToByteBuf(tsk.publicKeyBytes()));
-        if ('Err' in encrypted_vetkey) {
-            throw Error(encrypted_vetkey.Err);
+        const encryptedVetkey = await this.canisterClient.get_encrypted_vetkey(mapOwner, arrayToByteBuf(mapName), arrayToByteBuf(tsk.publicKeyBytes()));
+        if ('Err' in encryptedVetkey) {
+            throw Error(encryptedVetkey.Err);
         } else {
-            const encrypted_key_bytes = Uint8Array.from(encrypted_vetkey.Ok.inner);
-            const verification_key = await this.get_vetkey_verification_key();
-            const derivationId = new Uint8Array([map_owner.toUint8Array().length, ...map_owner.toUint8Array(), ...map_name]);
+            const encryptedKeyBytes = Uint8Array.from(encryptedVetkey.Ok.inner);
+            const verificationKey = await this.getVetkeyVerificationKey();
+            const derivationId = new Uint8Array([mapOwner.toUint8Array().length, ...mapOwner.toUint8Array(), ...mapName]);
 
-            const encryptedVetKey = new EncryptedVetKey(encrypted_key_bytes);
-            const derivedPublicKey = DerivedPublicKey.deserialize(verification_key);
+            const encryptedVetKey = new EncryptedVetKey(encryptedKeyBytes);
+            const derivedPublicKey = DerivedPublicKey.deserialize(verificationKey);
             const vetKey = encryptedVetKey.decryptAndVerify(tsk, derivedPublicKey, derivationId);
             return await vetKey.asDerivedKeyMaterial();
         }
@@ -403,44 +403,44 @@ export class EncryptedMaps {
     /**
      * Encrypts a value for a specific map and key.
      * 
-     * @param map_owner - The principal of the map owner
-     * @param map_name - The name/identifier of the map
-     * @param map_key - The key to encrypt for
+     * @param mapOwner - The principal of the map owner
+     * @param mapName - The name/identifier of the map
+     * @param mapKey - The key to encrypt for
      * @param cleartext - The value to encrypt
      * @returns Promise resolving to the encrypted value
      */
-    async encrypt_for(map_owner: Principal, map_name: Uint8Array, map_key: Uint8Array, cleartext: Uint8Array): Promise<Uint8Array> {
-        const derivedKeyMaterial = await this.getDerivedKeyMaterialOrFetchIfNeeded(map_owner, map_name);
-        return await derivedKeyMaterial.encryptMessage(cleartext, map_key);
+    async encryptFor(mapOwner: Principal, mapName: Uint8Array, mapKey: Uint8Array, cleartext: Uint8Array): Promise<Uint8Array> {
+        const derivedKeyMaterial = await this.getDerivedKeyMaterialOrFetchIfNeeded(mapOwner, mapName);
+        return await derivedKeyMaterial.encryptMessage(cleartext, mapKey);
     }
 
     /**
      * Decrypts a value for a specific map and key.
      * 
-     * @param map_owner - The principal of the map owner
-     * @param map_name - The name/identifier of the map
-     * @param map_key - The key to decrypt for
-     * @param encrypted_value - The value to decrypt
+     * @param mapOwner - The principal of the map owner
+     * @param mapName - The name/identifier of the map
+     * @param mapKey - The key to decrypt for
+     * @param encryptedValue - The value to decrypt
      * @returns Promise resolving to the decrypted value
      */
-    async decrypt_for(map_owner: Principal, map_name: Uint8Array, map_key: Uint8Array, encrypted_value: Uint8Array): Promise<Uint8Array> {
-        const derivedKeyMaterial = await this.getDerivedKeyMaterialOrFetchIfNeeded(map_owner, map_name);
-        return await derivedKeyMaterial.decryptMessage(encrypted_value, map_key);
+    async decryptFor(mapOwner: Principal, mapName: Uint8Array, mapKey: Uint8Array, encryptedValue: Uint8Array): Promise<Uint8Array> {
+        const derivedKeyMaterial = await this.getDerivedKeyMaterialOrFetchIfNeeded(mapOwner, mapName);
+        return await derivedKeyMaterial.decryptMessage(encryptedValue, mapKey);
     }
 
     /**
      * Gets or fetches the derived key material for a map.
      * 
-     * @param map_owner - The principal of the map owner
-     * @param map_name - The name/identifier of the map
+     * @param mapOwner - The principal of the map owner
+     * @param mapName - The name/identifier of the map
      * @returns Promise resolving to the derived key material
      */
-    async getDerivedKeyMaterialOrFetchIfNeeded(map_owner: Principal, map_name: Uint8Array): Promise<DerivedKeyMaterial> {
-        const cachedRawDerivedKeyMaterial: CryptoKey | undefined = await get([map_owner.toString(), map_name]);
+    async getDerivedKeyMaterialOrFetchIfNeeded(mapOwner: Principal, mapName: Uint8Array): Promise<DerivedKeyMaterial> {
+        const cachedRawDerivedKeyMaterial: CryptoKey | undefined = await get([mapOwner.toString(), mapName]);
         if (cachedRawDerivedKeyMaterial) { return new DerivedKeyMaterial(cachedRawDerivedKeyMaterial); }
 
-        const derivedKeyMaterial = await this.getDerivedKeyMaterial(map_owner, map_name);
-        await set([map_owner.toString(), map_name], derivedKeyMaterial.getCryptoKey());
+        const derivedKeyMaterial = await this.getDerivedKeyMaterial(mapOwner, mapName);
+        await set([mapOwner.toString(), mapName], derivedKeyMaterial.getCryptoKey());
         return derivedKeyMaterial;
     }
 }
@@ -449,10 +449,10 @@ export class EncryptedMaps {
  * Interface for map data structure.
  */
 export interface MapData {
-    'access_control': Array<[Principal, AccessRights]>,
+    'accessControl': Array<[Principal, AccessRights]>,
     'keyvals': Array<[Uint8Array, Uint8Array]>,
-    'map_name': Uint8Array,
-    'map_owner': Principal,
+    'mapName': Uint8Array,
+    'mapOwner': Principal,
 }
 
 /**
@@ -471,10 +471,10 @@ export interface EncryptedMapsClient {
      * Gets all users that have access to a map and their access rights.
      * 
      * @param owner - The principal of the map owner
-     * @param map_name - The name/identifier of the map
+     * @param mapName - The name/identifier of the map
      * @returns Promise resolving to an array of user-access rights pairs, or an error if the operation fails
      */
-    get_shared_user_access_for_map(owner: Principal, map_name: ByteBuf): Promise<{ 'Ok': Array<[Principal, AccessRights]> } | { 'Err': string }>;
+    get_shared_user_access_for_map(owner: Principal, mapName: ByteBuf): Promise<{ 'Ok': Array<[Principal, AccessRights]> } | { 'Err': string }>;
 
     /**
      * Retrieves a list of non-empty maps owned by the caller.
@@ -500,92 +500,92 @@ export interface EncryptedMapsClient {
     /**
      * Retrieves an encrypted value from a map.
      * 
-     * @param map_owner - The principal of the map owner
-     * @param map_name - The name/identifier of the map
-     * @param map_key - The key to retrieve
+     * @param mapOwner - The principal of the map owner
+     * @param mapName - The name/identifier of the map
+     * @param mapKey - The key to retrieve
      * @returns Promise resolving to the encrypted value if it exists, or an error if the operation fails
      */
-    get_encrypted_value(map_owner: Principal, map_name: ByteBuf, map_key: ByteBuf): Promise<{ 'Ok': [] | [ByteBuf] } | { 'Err': string }>;
+    get_encrypted_value(mapOwner: Principal, mapName: ByteBuf, mapKey: ByteBuf): Promise<{ 'Ok': [] | [ByteBuf] } | { 'Err': string }>;
 
     /**
      * Retrieves all encrypted values from a specific map.
      * 
-     * @param map_owner - The principal of the map owner
-     * @param map_name - The name/identifier of the map
+     * @param mapOwner - The principal of the map owner
+     * @param mapName - The name/identifier of the map
      * @returns Promise resolving to an array of key-value pairs, or an error if the operation fails
      */
-    get_encrypted_values_for_map(map_owner: Principal, map_name: ByteBuf): Promise<{ 'Ok': Array<[ByteBuf, ByteBuf]> } | { 'Err': string }>;
+    get_encrypted_values_for_map(mapOwner: Principal, mapName: ByteBuf): Promise<{ 'Ok': Array<[ByteBuf, ByteBuf]> } | { 'Err': string }>;
 
     /**
      * Stores an encrypted value in a map.
      * 
-     * @param map_owner - The principal of the map owner
-     * @param map_name - The name/identifier of the map
-     * @param map_key - The key to store
+     * @param mapOwner - The principal of the map owner
+     * @param mapName - The name/identifier of the map
+     * @param mapKey - The key to store
      * @param data - The encrypted value to store
      * @returns Promise resolving to the previous value if it existed, or an error if the operation fails
      */
-    insert_encrypted_value(map_owner: Principal, map_name: ByteBuf, map_key: ByteBuf, data: ByteBuf): Promise<{ 'Ok': [] | [ByteBuf] } | { 'Err': string }>;
+    insert_encrypted_value(mapOwner: Principal, mapName: ByteBuf, mapKey: ByteBuf, data: ByteBuf): Promise<{ 'Ok': [] | [ByteBuf] } | { 'Err': string }>;
 
     /**
      * Removes a value from a map.
      * 
-     * @param map_owner - The principal of the map owner
-     * @param map_name - The name/identifier of the map
-     * @param map_key - The key to remove
+     * @param mapOwner - The principal of the map owner
+     * @param mapName - The name/identifier of the map
+     * @param mapKey - The key to remove
      * @returns Promise resolving to the removed value if it existed, or an error if the operation fails
      */
-    remove_encrypted_value(map_owner: Principal, map_name: ByteBuf, map_key: ByteBuf): Promise<{ 'Ok': [] | [ByteBuf] } | { 'Err': string }>;
+    remove_encrypted_value(mapOwner: Principal, mapName: ByteBuf, mapKey: ByteBuf): Promise<{ 'Ok': [] | [ByteBuf] } | { 'Err': string }>;
 
     /**
      * Removes all values from a map.
      * 
-     * @param map_owner - The principal of the map owner
-     * @param map_name - The name/identifier of the map
+     * @param mapOwner - The principal of the map owner
+     * @param mapName - The name/identifier of the map
      * @returns Promise resolving to an array of removed keys, or an error if the operation fails
      */
-    remove_map_values(map_owner: Principal, map_name: ByteBuf): Promise<{ 'Ok': Array<ByteBuf> } | { 'Err': string }>;
+    remove_map_values(mapOwner: Principal, mapName: ByteBuf): Promise<{ 'Ok': Array<ByteBuf> } | { 'Err': string }>;
 
     /**
      * Grants or modifies access rights for a user.
      * 
      * @param owner - The principal of the map owner
-     * @param map_name - The name/identifier of the map
+     * @param mapName - The name/identifier of the map
      * @param user - The principal of the user to grant/modify rights for
-     * @param user_rights - The access rights to grant
+     * @param userRights - The access rights to grant
      * @returns Promise resolving to the previous access rights if they existed, or an error if the operation fails
      */
-    set_user_rights(owner: Principal, map_name: ByteBuf, user: Principal, user_rights: AccessRights): Promise<{ 'Ok': [] | [AccessRights] } | { 'Err': string }>;
+    set_user_rights(owner: Principal, mapName: ByteBuf, user: Principal, userRights: AccessRights): Promise<{ 'Ok': [] | [AccessRights] } | { 'Err': string }>;
 
     /**
      * Checks a user's access rights.
      * 
      * @param owner - The principal of the map owner
-     * @param map_name - The name/identifier of the map
+     * @param mapName - The name/identifier of the map
      * @param user - The principal of the user to check rights for
      * @returns Promise resolving to the user's access rights if they exist, or an error if the operation fails
      */
-    get_user_rights(owner: Principal, map_name: ByteBuf, user: Principal): Promise<{ 'Ok': [] | [AccessRights] } | { 'Err': string }>;
+    get_user_rights(owner: Principal, mapName: ByteBuf, user: Principal): Promise<{ 'Ok': [] | [AccessRights] } | { 'Err': string }>;
 
     /**
      * Revokes a user's access.
      * 
      * @param owner - The principal of the map owner
-     * @param map_name - The name/identifier of the map
+     * @param mapName - The name/identifier of the map
      * @param user - The principal of the user to remove
      * @returns Promise resolving to the previous access rights if they existed, or an error if the operation fails
      */
-    remove_user(owner: Principal, map_name: ByteBuf, user: Principal): Promise<{ 'Ok': [] | [AccessRights] } | { 'Err': string }>;
+    remove_user(owner: Principal, mapName: ByteBuf, user: Principal): Promise<{ 'Ok': [] | [AccessRights] } | { 'Err': string }>;
 
     /**
      * Fetches an encrypted VetKey.
      * 
-     * @param map_owner - The principal of the map owner
-     * @param map_name - The name/identifier of the map
-     * @param transport_key - The public transport key to use for encryption
+     * @param mapOwner - The principal of the map owner
+     * @param mapName - The name/identifier of the map
+     * @param transportKey - The public transport key to use for encryption
      * @returns Promise resolving to the encrypted VetKey bytes, or an error if the operation fails
      */
-    get_encrypted_vetkey(map_owner: Principal, map_name: ByteBuf, transport_key: ByteBuf): Promise<{ 'Ok': ByteBuf } | { 'Err': string }>;
+    get_encrypted_vetkey(mapOwner: Principal, mapName: ByteBuf, transportKey: ByteBuf): Promise<{ 'Ok': ByteBuf } | { 'Err': string }>;
 
     /**
      * Retrieves the public verification key for validating encrypted VetKeys.

@@ -32,9 +32,9 @@ export class DefaultEncryptedMapsClient implements EncryptedMapsClient {
         return this.actor.get_all_accessible_encrypted_maps();
     }
 
-    get_encrypted_value(map_owner: Principal, map_name: ByteBuf, map_key: ByteBuf): Promise<{ 'Ok': [] | [ByteBuf] } |
+    get_encrypted_value(map_owner: Principal, map_name: ByteBuf, mapKey: ByteBuf): Promise<{ 'Ok': [] | [ByteBuf] } |
     { 'Err': string }> {
-        return this.actor.get_encrypted_value(map_owner, map_name, map_key);
+        return this.actor.get_encrypted_value(map_owner, map_name, mapKey);
     }
 
     get_encrypted_values_for_map(map_owner: Principal, map_name: ByteBuf): Promise<{ 'Ok': Array<[ByteBuf, ByteBuf]> } |
@@ -47,14 +47,14 @@ export class DefaultEncryptedMapsClient implements EncryptedMapsClient {
         return this.actor.get_encrypted_vetkey(map_owner, map_name, transport_key);
     }
 
-    insert_encrypted_value(map_owner: Principal, map_name: ByteBuf, map_key: ByteBuf, data: ByteBuf): Promise<{ 'Ok': [] | [ByteBuf] } |
+    insert_encrypted_value(map_owner: Principal, map_name: ByteBuf, mapKey: ByteBuf, data: ByteBuf): Promise<{ 'Ok': [] | [ByteBuf] } |
     { 'Err': string }> {
-        return this.actor.insert_encrypted_value(map_owner, map_name, map_key, data);
+        return this.actor.insert_encrypted_value(map_owner, map_name, mapKey, data);
     }
 
-    remove_encrypted_value(map_owner: Principal, map_name: ByteBuf, map_key: ByteBuf): Promise<{ 'Ok': [] | [ByteBuf] } |
+    remove_encrypted_value(map_owner: Principal, map_name: ByteBuf, mapKey: ByteBuf): Promise<{ 'Ok': [] | [ByteBuf] } |
     { 'Err': string }> {
-        return this.actor.remove_encrypted_value(map_owner, map_name, map_key);
+        return this.actor.remove_encrypted_value(map_owner, map_name, mapKey);
     }
 
     remove_map_values(map_owner: Principal, map_name: ByteBuf): Promise<{ 'Ok': Array<ByteBuf> } |

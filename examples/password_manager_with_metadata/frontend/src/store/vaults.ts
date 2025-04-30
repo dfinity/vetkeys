@@ -82,7 +82,7 @@ export async function addUser(
     userRights: AccessRights,
     passwordManager: PasswordManager,
 ) {
-    await passwordManager.encryptedMaps.set_user_rights(
+    await passwordManager.encryptedMaps.setUserRights(
         owner,
         new TextEncoder().encode(vaultName),
         user,
@@ -96,7 +96,7 @@ export async function removeUser(
     user: Principal,
     passwordManager: PasswordManager,
 ) {
-    await passwordManager.encryptedMaps.remove_user(
+    await passwordManager.encryptedMaps.removeUser(
         owner,
         new TextEncoder().encode(vaultName),
         user,

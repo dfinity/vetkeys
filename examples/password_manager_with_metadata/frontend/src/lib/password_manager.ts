@@ -30,7 +30,7 @@ export class PasswordManager {
         tags: string[],
         url: string,
     ): Promise<{ Ok: null } | { Err: string }> {
-        const encryptedPassword = await this.encryptedMaps.encrypt_for(
+        const encryptedPassword = await this.encryptedMaps.encryptFor(
             owner,
             new TextEncoder().encode(vault),
             new TextEncoder().encode(passwordName),
@@ -54,9 +54,9 @@ export class PasswordManager {
 
     async getDecryptedVaults(owner: Principal): Promise<VaultModel[]> {
         const vaultsSharedWithMe =
-            await this.encryptedMaps.get_accessible_shared_map_names();
+            await this.encryptedMaps.getAccessibleSharedMapNames();
         const vaultsOwnedByMeResult =
-            await this.encryptedMaps.get_owned_non_empty_map_names();
+            await this.encryptedMaps.getOwnedNonEmptyMapNames();
 
         const vaultIds = new Array<[Principal, Uint8Array]>();
         for (const vaultName of vaultsOwnedByMeResult) {
@@ -91,7 +91,7 @@ export class PasswordManager {
                 const passwordNameString = new TextDecoder().decode(
                     passwordNameBytes,
                 );
-                const data = await this.encryptedMaps.decrypt_for(
+                const data = await this.encryptedMaps.decryptFor(
                     otherOwner,
                     vaultName,
                     passwordNameBytes,
@@ -110,7 +110,7 @@ export class PasswordManager {
             }
 
             const usersResult =
-                await this.encryptedMaps.get_shared_user_access_for_map(
+                await this.encryptedMaps.getSharedUserAccessForMap(
                     otherOwner,
                     vaultName,
                 );
