@@ -21,7 +21,6 @@ export class PasswordManager {
         this.canisterClient = canisterClient;
         this.encryptedMaps = encryptedMaps;
     }
-    
 
     async setPassword(
         owner: Principal,
