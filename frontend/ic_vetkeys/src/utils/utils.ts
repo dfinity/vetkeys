@@ -468,8 +468,8 @@ enum IbeDomainSeparators {
 const IBE_HEADER = new Uint8Array([0x49, 0x43, 0x20, 0x49, 0x42, 0x45, 0x00, 0x01]);
 const IBE_HEADER_BYTES = 8;
 
-function hashToMask(version: Uint8Array, seed: Uint8Array, msg: Uint8Array): bigint {
-    const ro_input = new Uint8Array([...version, ...seed, ...msg]);
+function hashToMask(header: Uint8Array, seed: Uint8Array, msg: Uint8Array): bigint {
+    const ro_input = new Uint8Array([...header, ...seed, ...msg]);
     return hashToScalar(ro_input, IbeDomainSeparators.HashToMask);
 }
 
@@ -537,7 +537,7 @@ const SEED_BYTES = 32;
  * IBE (Identity Based Encryption)
  */
 export class IdentityBasedEncryptionCiphertext {
-    readonly #hdr: Uint8Array;
+    readonly #header: Uint8Array;
     readonly #c1: G2Point;
     readonly #c2: Uint8Array;
     readonly #c3: Uint8Array;
@@ -547,7 +547,7 @@ export class IdentityBasedEncryptionCiphertext {
      */
     serialize(): Uint8Array {
         const c1bytes = this.#c1.toRawBytes(true);
-        return new Uint8Array([...this.#hdr, ...c1bytes, ...this.#c2, ...this.#c3]);
+        return new Uint8Array([...this.#header, ...c1bytes, ...this.#c2, ...this.#c3]);
     }
 
     /**
@@ -558,16 +558,16 @@ export class IdentityBasedEncryptionCiphertext {
             throw new Error("Invalid IBE ciphertext");
         }
 
-        const hdr = bytes.subarray(0, IBE_HEADER_BYTES);
+        const header = bytes.subarray(0, IBE_HEADER_BYTES);
         const c1 = bls12_381.G2.ProjectivePoint.fromHex(bytes.subarray(IBE_HEADER_BYTES, IBE_HEADER_BYTES + G2_BYTES));
         const c2 = bytes.subarray(IBE_HEADER_BYTES + G2_BYTES, IBE_HEADER_BYTES + G2_BYTES + SEED_BYTES);
         const c3 = bytes.subarray(IBE_HEADER_BYTES + G2_BYTES + SEED_BYTES);
 
-        if(!isEqual(hdr, IBE_HEADER)) {
+        if(!isEqual(header, IBE_HEADER)) {
             throw new Error("Unexpected header for IBE ciphertext");
         }
 
-        return new IdentityBasedEncryptionCiphertext(hdr, c1, c2, c3);
+        return new IdentityBasedEncryptionCiphertext(header, c1, c2, c3);
     }
 
     /**
@@ -612,7 +612,7 @@ export class IdentityBasedEncryptionCiphertext {
 
         const msg = maskMsg(this.#c3, seed);
 
-        const t = hashToMask(this.#hdr, seed, msg);
+        const t = hashToMask(this.#header, seed, msg);
 
         const g2_t = bls12_381.G2.ProjectivePoint.BASE.multiply(t);
 
@@ -628,8 +628,8 @@ export class IdentityBasedEncryptionCiphertext {
     /**
      * Private constructor
      */
-    private constructor(hdr: Uint8Array, c1: G2Point, c2: Uint8Array, c3: Uint8Array) {
-        this.#hdr = hdr;
+    private constructor(header: Uint8Array, c1: G2Point, c2: Uint8Array, c3: Uint8Array) {
+        this.#header = header;
         this.#c1 = c1;
         this.#c2 = c2;
         this.#c3 = c3;
