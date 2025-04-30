@@ -1,0 +1,9 @@
+{
+    "entryPoints": [
+        "src/index.ts",
+        "src/tools/index.ts"
+    ],
+    "excludeInternal": true,
+    "excludeExternals": true,
+    "includeVersion": true,
+}
