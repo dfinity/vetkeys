@@ -42,7 +42,7 @@ async function initAuth() {
     }
 }
 
-await initAuth();
+void initAuth();
 
 export async function login() {
     const currentAuth = get(auth);
