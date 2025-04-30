@@ -224,7 +224,11 @@ async fn close_one_lot_if_any_is_open() {
 
         let decrypted_bids = decrypt_bids(lot_id, encrypted_bids, root_ibe_public_key).await;
 
-        let status = match decrypted_bids.iter().max_by(|x, y| x.amount.cmp(&y.amount)) {
+        let status = match decrypted_bids
+            .iter()
+            .rev() // reverse the bids to get the *oldest* maximum bid
+            .max_by(|x, y| x.amount.cmp(&y.amount))
+        {
             Some(winner_bid) => LotStatus::ClosedWithWinner(winner_bid.bidder),
             None => LotStatus::ClosedNoBids,
         };
