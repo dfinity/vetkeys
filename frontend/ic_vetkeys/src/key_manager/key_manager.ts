@@ -98,7 +98,7 @@ export class KeyManager {
      * const keyOwner = Principal.fromText("aaaaa-aa");
      * const vetkeyName = "my_secure_key";
      *
-     * const vetkey = await keyManager.get_vetkey(
+     * const vetkey = await keyManager.getVetkey(
      *   keyOwner,
      *   vetkeyName,
      * );
@@ -147,12 +147,12 @@ export class KeyManager {
 
     /**
      * Retrieves the public verification key for validating encrypted VetKeys.
-     * The vetkeys obtained via `get_vetkey` are verified using this key,
-     * and, therefore, this method is not needed for using `get_vetkey`.
+     * The vetkeys obtained via `getVetkey` are verified using this key,
+     * and, therefore, this method is not needed for using `getVetkey`.
      *
      * @example
      * ```ts
-     * const verificationKey = await keyManager.get_vetkey_verification_key();
+     * const verificationKey = await keyManager.getVetkeyVerificationKey();
      * console.log("Verification Key:", verificationKey);
      * ```
      *
@@ -249,7 +249,7 @@ export class KeyManager {
      *
      * @example
      * ```ts
-     * const removalResult = await keyManager.remove_user(owner, keyName, user);
+     * const removalResult = await keyManager.removeUser(owner, keyName, user);
      * console.log("User Removed:", removalResult);
      * ```
      *

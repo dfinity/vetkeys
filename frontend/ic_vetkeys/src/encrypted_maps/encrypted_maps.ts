@@ -301,7 +301,7 @@ export class EncryptedMaps {
      * ```
      * 
      * @param owner - The principal of the map owner
-     * @param map_name - The name/identifier of the map
+     * @param mapName - The name/identifier of the map
      * @param user - The principal of the user to grant/modify rights for
      * @param userRights - The access rights to grant
      * @returns Promise resolving to the previous access rights if they existed

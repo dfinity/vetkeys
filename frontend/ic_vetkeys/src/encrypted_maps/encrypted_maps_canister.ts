@@ -15,9 +15,9 @@ export class DefaultEncryptedMapsClient implements EncryptedMapsClient {
         return this.actor.get_accessible_shared_map_names();
     }
 
-    get_shared_user_access_for_map(owner: Principal, map_name: ByteBuf): Promise<{ 'Ok': Array<[Principal, AccessRights]> } |
+    get_shared_user_access_for_map(owner: Principal, mapName: ByteBuf): Promise<{ 'Ok': Array<[Principal, AccessRights]> } |
     { 'Err': string }> {
-        return this.actor.get_shared_user_access_for_map(owner, map_name);
+        return this.actor.get_shared_user_access_for_map(owner, mapName);
     }
 
     get_owned_non_empty_map_names(): Promise<Array<ByteBuf>> {
@@ -32,52 +32,52 @@ export class DefaultEncryptedMapsClient implements EncryptedMapsClient {
         return this.actor.get_all_accessible_encrypted_maps();
     }
 
-    get_encrypted_value(map_owner: Principal, map_name: ByteBuf, mapKey: ByteBuf): Promise<{ 'Ok': [] | [ByteBuf] } |
+    get_encrypted_value(mapOwner: Principal, mapName: ByteBuf, mapKey: ByteBuf): Promise<{ 'Ok': [] | [ByteBuf] } |
     { 'Err': string }> {
-        return this.actor.get_encrypted_value(map_owner, map_name, mapKey);
+        return this.actor.get_encrypted_value(mapOwner, mapName, mapKey);
     }
 
-    get_encrypted_values_for_map(map_owner: Principal, map_name: ByteBuf): Promise<{ 'Ok': Array<[ByteBuf, ByteBuf]> } |
+    get_encrypted_values_for_map(mapOwner: Principal, mapName: ByteBuf): Promise<{ 'Ok': Array<[ByteBuf, ByteBuf]> } |
     { 'Err': string }> {
-        return this.actor.get_encrypted_values_for_map(map_owner, map_name);
+        return this.actor.get_encrypted_values_for_map(mapOwner, mapName);
     }
 
-    get_encrypted_vetkey(map_owner: Principal, map_name: ByteBuf, transport_key: ByteBuf): Promise<{ 'Ok': ByteBuf } |
+    get_encrypted_vetkey(mapOwner: Principal, mapName: ByteBuf, transportKey: ByteBuf): Promise<{ 'Ok': ByteBuf } |
     { 'Err': string }> {
-        return this.actor.get_encrypted_vetkey(map_owner, map_name, transport_key);
+        return this.actor.get_encrypted_vetkey(mapOwner, mapName, transportKey);
     }
 
-    insert_encrypted_value(map_owner: Principal, map_name: ByteBuf, mapKey: ByteBuf, data: ByteBuf): Promise<{ 'Ok': [] | [ByteBuf] } |
+    insert_encrypted_value(mapOwner: Principal, mapName: ByteBuf, mapKey: ByteBuf, data: ByteBuf): Promise<{ 'Ok': [] | [ByteBuf] } |
     { 'Err': string }> {
-        return this.actor.insert_encrypted_value(map_owner, map_name, mapKey, data);
+        return this.actor.insert_encrypted_value(mapOwner, mapName, mapKey, data);
     }
 
-    remove_encrypted_value(map_owner: Principal, map_name: ByteBuf, mapKey: ByteBuf): Promise<{ 'Ok': [] | [ByteBuf] } |
+    remove_encrypted_value(mapOwner: Principal, mapName: ByteBuf, mapKey: ByteBuf): Promise<{ 'Ok': [] | [ByteBuf] } |
     { 'Err': string }> {
-        return this.actor.remove_encrypted_value(map_owner, map_name, mapKey);
+        return this.actor.remove_encrypted_value(mapOwner, mapName, mapKey);
     }
 
-    remove_map_values(map_owner: Principal, map_name: ByteBuf): Promise<{ 'Ok': Array<ByteBuf> } |
+    remove_map_values(mapOwner: Principal, mapName: ByteBuf): Promise<{ 'Ok': Array<ByteBuf> } |
     { 'Err': string }> {
-        return this.actor.remove_map_values(map_owner, map_name);
+        return this.actor.remove_map_values(mapOwner, mapName);
     }
 
     get_vetkey_verification_key(): Promise<ByteBuf> {
         return this.actor.get_vetkey_verification_key();
     }
 
-    set_user_rights(owner: Principal, map_name: ByteBuf, user: Principal, user_rights: AccessRights): Promise<{ 'Ok': [] | [AccessRights] } |
+    set_user_rights(owner: Principal, mapName: ByteBuf, user: Principal, userRights: AccessRights): Promise<{ 'Ok': [] | [AccessRights] } |
     { 'Err': string }> {
-        return this.actor.set_user_rights(owner, map_name, user, user_rights);
+        return this.actor.set_user_rights(owner, mapName, user, userRights);
     }
 
-    get_user_rights(owner: Principal, map_name: ByteBuf, user: Principal): Promise<{ 'Ok': [] | [AccessRights] } |
+    get_user_rights(owner: Principal, mapName: ByteBuf, user: Principal): Promise<{ 'Ok': [] | [AccessRights] } |
     { 'Err': string }> {
-        return this.actor.get_user_rights(owner, map_name, user);
+        return this.actor.get_user_rights(owner, mapName, user);
     }
 
-    remove_user(owner: Principal, map_name: ByteBuf, user: Principal): Promise<{ 'Ok': [] | [AccessRights] } |
+    remove_user(owner: Principal, mapName: ByteBuf, user: Principal): Promise<{ 'Ok': [] | [AccessRights] } |
     { 'Err': string }> {
-        return this.actor.remove_user(owner, map_name, user);
+        return this.actor.remove_user(owner, mapName, user);
     }
 }

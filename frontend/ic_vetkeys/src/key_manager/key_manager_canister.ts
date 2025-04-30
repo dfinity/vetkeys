@@ -7,7 +7,7 @@ import { KeyManagerClient } from "./key_manager.js";
 export class DefaultKeyManagerClient implements KeyManagerClient {
     canisterId: string;
     actor: ActorSubclass<_DEFAULT_KEY_MANAGER_SERVICE>;
-    verification_key: ByteBuf | undefined = undefined;
+    verificationKey: ByteBuf | undefined = undefined;
 
     constructor(agent: HttpAgent, canisterId: string) {
         this.canisterId = canisterId;
@@ -18,32 +18,32 @@ export class DefaultKeyManagerClient implements KeyManagerClient {
         return this.actor.get_accessible_shared_key_ids();
     }
 
-    set_user_rights(owner: Principal, vetkey_name: ByteBuf, user: Principal, user_rights: AccessRights): Promise<{ 'Ok': [] | [AccessRights] } |
+    set_user_rights(owner: Principal, vetkeyName: ByteBuf, user: Principal, userRights: AccessRights): Promise<{ 'Ok': [] | [AccessRights] } |
     { 'Err': string }> {
-        return this.actor.set_user_rights(owner, vetkey_name, user, user_rights);
+        return this.actor.set_user_rights(owner, vetkeyName, user, userRights);
     }
 
-    get_user_rights(owner: Principal, vetkey_name: ByteBuf, user: Principal): Promise<{ 'Ok': [] | [AccessRights] } |
+    get_user_rights(owner: Principal, vetkeyName: ByteBuf, user: Principal): Promise<{ 'Ok': [] | [AccessRights] } |
     { 'Err': string }> {
-        return this.actor.get_user_rights(owner, vetkey_name, user);
+        return this.actor.get_user_rights(owner, vetkeyName, user);
     }
 
-    remove_user(owner: Principal, vetkey_name: ByteBuf, user: Principal): Promise<{ 'Ok': [] | [AccessRights] } |
+    remove_user(owner: Principal, vetkeyName: ByteBuf, user: Principal): Promise<{ 'Ok': [] | [AccessRights] } |
     { 'Err': string }> {
-        return this.actor.remove_user(owner, vetkey_name, user);
+        return this.actor.remove_user(owner, vetkeyName, user);
     }
 
-    async get_encrypted_vetkey(key_owner: Principal, vetkey_name: ByteBuf, transport_key: ByteBuf): Promise<{ 'Ok': ByteBuf } |
+    async get_encrypted_vetkey(keyOwner: Principal, vetkeyName: ByteBuf, transportKey: ByteBuf): Promise<{ 'Ok': ByteBuf } |
     { 'Err': string }> {
-        return await this.actor.get_encrypted_vetkey(key_owner, vetkey_name, transport_key);
+        return await this.actor.get_encrypted_vetkey(keyOwner, vetkeyName, transportKey);
     }
 
     async get_vetkey_verification_key(): Promise<ByteBuf> {
-        if (this.verification_key) {
-            return this.verification_key;
+        if (this.verificationKey) {
+            return this.verificationKey;
         } else {
-            this.verification_key = await this.actor.get_vetkey_verification_key();
-            return this.verification_key;
+            this.verificationKey = await this.actor.get_vetkey_verification_key();
+            return this.verificationKey;
         }
     }
 }
