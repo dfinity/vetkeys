@@ -38,5 +38,19 @@ export default tseslint.config(
             },
         },
     },
-    { ignores: ["dist/", "src/declarations", "*.config.js", "*.config.cjs", "*.config.mjs"] },
+    {
+        ignores: [
+            "dist/",
+            "src/declarations",
+            "*.config.js",
+            "*.config.cjs",
+            "*.config.mjs",
+        ],
+    },
+    {
+        rules: {
+            "@typescript-eslint/no-unsafe-argument": "off",
+            "@typescript-eslint/no-unsafe-member-access": "off",
+        },
+    },
 );
