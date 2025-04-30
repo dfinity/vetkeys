@@ -1,7 +1,7 @@
 import { writable } from "svelte/store";
 import { type PasswordModel } from "../lib/password";
 import { type VaultModel } from "../lib/vault";
-import { auth } from "./auth";
+import { auth, type AuthState } from "./auth";
 import { showError } from "./notifications";
 import { type AccessRights } from "ic_vetkeys/tools";
 import type { Principal } from "@dfinity/principal";
@@ -103,38 +103,51 @@ export async function removeUser(
     );
 }
 
-auth.subscribe(async ($auth) => {
-    if ($auth.state === "initialized") {
-        if (vaultPollerHandle !== null) {
+auth.subscribe(() => {
+    void (async ($auth) => {
+        if (!$auth) {
+            throw Error("$auth is undefined");
+        }
+        const authTyped = $auth as AuthState;
+        if (authTyped.state === "initialized") {
+            if (vaultPollerHandle !== null) {
+                clearInterval(vaultPollerHandle);
+                vaultPollerHandle = null;
+            }
+
+            vaultsStore.set({
+                state: "loading",
+            });
+            try {
+                await refreshVaults(
+                    authTyped.client.getIdentity().getPrincipal(),
+                    authTyped.passwordManager,
+                ).catch((e) => showError(e as Error, "Could not poll vaults."));
+
+                vaultPollerHandle = setInterval(() => {
+                    void (async () => {
+                        await refreshVaults(
+                            authTyped.client.getIdentity().getPrincipal(),
+                            authTyped.passwordManager,
+                        ).catch((e) =>
+                            showError(e as Error, "Could not poll vaults."),
+                        );
+                    })();
+                }, 3000);
+            } catch {
+                vaultsStore.set({
+                    state: "error",
+                });
+            }
+        } else if (
+            authTyped.state === "anonymous" &&
+            vaultPollerHandle !== null
+        ) {
             clearInterval(vaultPollerHandle);
             vaultPollerHandle = null;
-        }
-
-        vaultsStore.set({
-            state: "loading",
-        });
-        try {
-            await refreshVaults(
-                $auth.client.getIdentity().getPrincipal(),
-                $auth.passwordManager,
-            ).catch((e) => showError(e, "Could not poll vaults."));
-
-            vaultPollerHandle = setInterval(async () => {
-                await refreshVaults(
-                    $auth.client.getIdentity().getPrincipal(),
-                    $auth.passwordManager,
-                ).catch((e) => showError(e, "Could not poll vaults."));
-            }, 3000);
-        } catch {
             vaultsStore.set({
-                state: "error",
+                state: "uninitialized",
             });
         }
-    } else if ($auth.state === "anonymous" && vaultPollerHandle !== null) {
-        clearInterval(vaultPollerHandle);
-        vaultPollerHandle = null;
-        vaultsStore.set({
-            state: "uninitialized",
-        });
-    }
+    })();
 });

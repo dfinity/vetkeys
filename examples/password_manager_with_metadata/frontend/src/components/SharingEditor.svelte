@@ -9,7 +9,7 @@
     } from "../store/vaults";
     import { addNotification, showError } from "../store/notifications";
     import { Principal } from "@dfinity/principal";
-    import type { AccessRights } from "ic_vetkeys";
+    import type { AccessRights } from "ic_vetkeys/tools";
 
     export let editedVault: VaultModel;
     export let canManage = false;
@@ -58,7 +58,7 @@
             newSharing = "";
             newSharingInput.focus();
         } catch (e) {
-            showError(e, "Could not add user.");
+            showError(e as Error, "Could not add user.");
         } finally {
             adding = false;
         }
@@ -88,7 +88,7 @@
                 message: "User successfully removed",
             });
         } catch (e) {
-            showError(e, "Could not remove user.");
+            showError(e as Error, "Could not remove user.");
         } finally {
             removing = false;
         }
@@ -98,7 +98,7 @@
         ).catch((e) => showError(e, "Could not refresh vaults."));
     }
 
-    function onKeyPress(e) {
+    function onKeyPress(e: any) {
         if (
             e.key === "Enter" &&
             !editedVault.users.find(
@@ -131,7 +131,9 @@
                 (vault) =>
                     vault.owner === vaultOwnewr && vault.name === vaultName,
             );
-            editedVault = vault;
+            if (vault) {
+                editedVault = vault;
+            }
         }
     }
 </script>
@@ -154,7 +156,9 @@
         <button
             class="btn btn-outline btn-sm flex items-center"
             on:click={() => {
-                remove(sharing[0]);
+                void (async () => {
+                    await remove(sharing[0]);
+                })();
             }}
             disabled={adding || removing || !canManage}
         >

@@ -1,3 +1,5 @@
+<script lang="ts"></script>
+
 <div class="navbar w-full border-b border-base-300 bg-base-100">
     <div class="flex-none lg:hidden">
         <label for="my-drawer-3" class="btn btn-square btn-ghost">

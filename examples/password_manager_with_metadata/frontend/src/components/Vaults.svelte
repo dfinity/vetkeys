@@ -64,7 +64,7 @@
                         class="bg-base rounded-md border border-base-300 p-4 transition-transform
 hover:-translate-y-2 dark:border-base-300 dark:bg-base-100"
                         use:link
-                        href={`/vaults/${vault.owner}/${vault.name}`}
+                        href={`/vaults/${vault.owner.toText()}/${vault.name}`}
                     >
                         <div class="pointer-events-none">
                             <h2 class="mb-2 line-clamp-3 text-lg font-bold">

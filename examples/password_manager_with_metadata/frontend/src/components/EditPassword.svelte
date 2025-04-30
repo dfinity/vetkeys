@@ -5,13 +5,14 @@
     import { vaultsStore, refreshVaults, setPassword } from "../store/vaults";
     import Header from "./Header.svelte";
     import PasswordEditor from "./PasswordEditor.svelte";
+    // @ts-expect-error: svelte-icons have some problems with ts declarations
     import Trash from "svelte-icons/fa/FaTrash.svelte";
     import { addNotification, showError } from "../store/notifications";
     import { auth } from "../store/auth";
     import Spinner from "./Spinner.svelte";
     import { onDestroy } from "svelte";
     import { Principal } from "@dfinity/principal";
-    import type { AccessRights } from "ic_vetkeys";
+    import type { AccessRights } from "ic_vetkeys/tools";
 
     export let currentRoute = "";
     const unsubscribe = location.subscribe((value) => {
@@ -76,7 +77,11 @@
                 (!vault ||
                     !vault.users.find((u) => u[0].compareTo(me) === "eq") ||
                     "Read" in
-                        vault.users.find((u) => u[0].compareTo(me) === "eq")[1])
+                        (
+                            vault.users.find(
+                                (u) => u[0].compareTo(me) === "eq",
+                            ) as [Principal, AccessRights]
+                        )[1])
             ) {
                 addNotification({
                     type: "error",
@@ -101,7 +106,10 @@
                 )
                 .catch((e) => {
                     deleting = false;
-                    showError(e, "Could not delete password for moving it.");
+                    showError(
+                        e as Error,
+                        "Could not delete password for moving it.",
+                    );
                     return;
                 });
 
@@ -115,7 +123,7 @@
                 $auth.passwordManager,
             )
                 .catch((e) => {
-                    showError(e, "Could not update password.");
+                    showError(e as Error, "Could not update password.");
                 })
                 .finally(() => {
                     updating = false;
@@ -131,7 +139,7 @@
                 $auth.passwordManager,
             )
                 .catch((e) => {
-                    showError(e, "Could not update password.");
+                    showError(e as Error, "Could not update password.");
                 })
                 .finally(() => {
                     updating = false;
@@ -146,10 +154,10 @@
         await refreshVaults(
             $auth.client.getIdentity().getPrincipal(),
             $auth.passwordManager,
-        ).catch((e) => showError(e, "Could not refresh passwords."));
+        ).catch((e) => showError(e as Error, "Could not refresh passwords."));
 
         if (move) {
-            replace(
+            void replace(
                 "/edit/vaults/" +
                     parentVaultOwner +
                     "/" +
@@ -173,20 +181,20 @@
             )
             .catch((e) => {
                 deleting = false;
-                showError(e, "Could not delete password.");
+                showError(e as Error, "Could not delete password.");
             });
 
         await refreshVaults(
             $auth.client.getIdentity().getPrincipal(),
             $auth.passwordManager,
         )
-            .catch((e) => showError(e, "Could not refresh passwords."))
+            .catch((e) => showError(e as Error, "Could not refresh passwords."))
             .finally(() => {
                 addNotification({
                     type: "success",
                     message: "Password deleted successfully",
                 });
-                replace("/vaults");
+                void replace("/vaults");
             });
     }
 
@@ -202,42 +210,43 @@
             parentVaultOwnerPrincipal = Principal.fromText(parentVaultOwner);
             parentVaultName = split[split.length - 2];
             passwordName = split[split.length - 1];
-            const searchedForPassword = $vaultsStore.list
-                .find(
-                    (v) =>
-                        v.owner.compareTo(
-                            Principal.fromText(parentVaultOwner),
-                        ) === "eq" && v.name === parentVaultName,
-                )
-                .passwords.find((p) => p[0] === passwordName);
+            const targetVault = $vaultsStore.list.find(
+                (v) =>
+                    v.owner.compareTo(Principal.fromText(parentVaultOwner)) ===
+                        "eq" && v.name === parentVaultName,
+            );
 
-            if (searchedForPassword) {
-                originalPassword = { ...searchedForPassword[1] };
-                url = originalPassword.metadata.url;
-                tags = originalPassword.metadata.tags;
-                tagsInput = tags.join(", ");
+            if (targetVault) {
+                const searchedForPassword = targetVault.passwords.find(
+                    (p) => p[0] === passwordName,
+                );
+
+                if (searchedForPassword) {
+                    originalPassword = { ...searchedForPassword[1] };
+                    url = originalPassword.metadata.url;
+                    tags = originalPassword.metadata.tags;
+                    tagsInput = tags.join(", ");
+                }
+
+                const myPrincipal = $auth.client.getIdentity().getPrincipal();
+
+                if (parentVaultOwnerPrincipal.compareTo(myPrincipal) === "eq") {
+                    accessRights = { ReadWriteManage: null };
+                } else {
+                    let foundAccessRights = targetVault.users.find(
+                        (u) => u[0].compareTo(myPrincipal) === "eq",
+                    );
+                    if (foundAccessRights) {
+                        accessRights = foundAccessRights[1] as AccessRights;
+                    }
+                }
+                editor = new Editor({
+                    modules: {
+                        placeholder: placeholder("Start typing..."),
+                    },
+                    html: originalPassword.content,
+                });
             }
-
-            const myPrincipal = $auth.client.getIdentity().getPrincipal();
-            accessRights =
-                parentVaultOwnerPrincipal.compareTo(myPrincipal) === "eq"
-                    ? { ReadWriteManage: null }
-                    : $vaultsStore.list
-                          .find(
-                              (v) =>
-                                  v.owner.compareTo(
-                                      parentVaultOwnerPrincipal,
-                                  ) === "eq" && v.name === parentVaultName,
-                          )
-                          .users.find(
-                              (u) => u[0].compareTo(myPrincipal) === "eq",
-                          )[1];
-            editor = new Editor({
-                modules: {
-                    placeholder: placeholder("Start typing..."),
-                },
-                html: originalPassword.content,
-            });
         }
     }
 </script>
@@ -247,9 +256,8 @@
         <span slot="title"> Edit password </span>
         <button
             slot="actions"
-            class="btn btn-ghost {deleting ? 'loading' : ''} {!!accessRights[
-                'Read'
-            ]}
+            class="btn btn-ghost {deleting ? 'loading' : ''} {'Read' in
+                accessRights}
                 ? 'hidden'
                 : ''}"
             on:click={deletePassword}

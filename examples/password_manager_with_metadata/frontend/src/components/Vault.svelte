@@ -6,10 +6,11 @@
     import { Principal } from "@dfinity/principal";
     import Header from "./Header.svelte";
     import Spinner from "./Spinner.svelte";
+    // @ts-expect-error: svelte-icons have some problems with ts declarations
     import GiOpenTreasureChest from "svelte-icons/gi/GiOpenTreasureChest.svelte";
     import { auth } from "../store/auth";
     import SharingEditor from "./SharingEditor.svelte";
-    import type { AccessRights } from "ic_vetkeys";
+    import type { AccessRights } from "ic_vetkeys/tools";
 
     export let vault: VaultModel = {
         name: "",
@@ -34,29 +35,34 @@
             currentRoute.split("/").length > 2
         ) {
             const split = currentRoute.split("/");
-            const vaultOwner = Principal.fromText(split[split.length - 2]);
             const vaultName = split[split.length - 1];
+            const vaultOwner = Principal.fromText(split[split.length - 2]);
             const searchedForVault = $vaultsStore.list.find(
                 (v) =>
                     v.owner.compareTo(vaultOwner) === "eq" &&
                     v.name === vaultName,
             );
-            if (searchedForVault) {
-                vault = searchedForVault;
-                vaultSummary += summarize(vault);
-                const me = $auth.client.getIdentity().getPrincipal();
-                accessRights =
-                    vault.owner.compareTo(me) === "eq"
-                        ? { ReadWriteManage: null }
-                        : vault.users.find(
-                              (user) => user[0].compareTo(me) === "eq",
-                          )[1];
-            } else {
+            if (!searchedForVault) {
                 vaultSummary =
                     "could not find vault " +
                     vaultName +
                     " owned by " +
                     vaultOwner.toText();
+            } else {
+                vault = searchedForVault;
+                vaultSummary += summarize(vault);
+                const me = $auth.client.getIdentity().getPrincipal();
+
+                if (vault.owner.compareTo(me) === "eq") {
+                    accessRights = { ReadWriteManage: null };
+                } else {
+                    const foundRights = vault.users.find(
+                        (user) => user[0].compareTo(me) === "eq",
+                    );
+                    accessRights = foundRights
+                        ? (foundRights[1] as AccessRights)
+                        : { Read: null };
+                }
             }
         }
     }
@@ -113,10 +119,9 @@
             >
                 {#each vault.passwords as password ((password[1].owner, password[1].parentVaultName, password[1].passwordName))}
                     <a
-                        class="bg-base rounded-md border border-base-300 p-4 transition-transform
-hover:-translate-y-2 dark:border-base-300 dark:bg-base-100"
+                        class="bg-base rounded-md·border·border-base-300·p-4·transition-transform⏎hover:-translate-y-2·dark:border-base-300·dark:bg-base-100"
                         use:link
-                        href={`/edit/vaults/${vault.owner}/${vault.name}/${password[1].passwordName}`}
+                        href={`/edit/vaults/${vault.owner.toText()}/${vault.name}/${password[1].passwordName}`}
                     >
                         <div class="pointer-events-none">
                             <h2
