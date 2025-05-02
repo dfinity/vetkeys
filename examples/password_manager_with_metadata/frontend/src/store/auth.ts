@@ -42,20 +42,20 @@ async function initAuth() {
     }
 }
 
-initAuth();
+void initAuth();
 
-export function login() {
+export async function login() {
     const currentAuth = get(auth);
 
     if (currentAuth.state === "anonymous") {
-        currentAuth.client.login({
+        await currentAuth.client.login({
             maxTimeToLive: BigInt(1800) * BigInt(1_000_000_000),
             identityProvider:
                 process.env.DFX_NETWORK === "ic"
                     ? "https://identity.ic0.app/#authorize"
                     : `http://${process.env.CANISTER_ID_INTERNET_IDENTITY}.localhost:8000/#authorize`,
-            onSuccess: () => {
-                authenticate(currentAuth.client);
+            onSuccess: async () => {
+                await authenticate(currentAuth.client);
             },
             onError: (e) =>
                 console.error(
@@ -74,7 +74,7 @@ export async function logout() {
             state: "anonymous",
             client: currentAuth.client,
         }));
-        replace("/");
+        await replace("/");
     }
 }
 
@@ -94,7 +94,7 @@ export async function authenticate(client: AuthClient) {
     } catch (e) {
         auth.update(() => ({
             state: "error",
-            error: e.message || "An error occurred",
+            error: (e as Error).message || "An error occurred",
         }));
     }
 }
@@ -104,8 +104,12 @@ function handleSessionTimeout() {
     // upon login the localstorage items may not be set, wait for next tick
     setTimeout(() => {
         try {
+            const rawDelegation = window.localStorage.getItem("ic-delegation");
+            if (!rawDelegation) {
+                throw new Error("No delegation found");
+            }
             const delegation = JSON.parse(
-                window.localStorage.getItem("ic-delegation"),
+                rawDelegation,
             ) as JsonnableDelegationChain;
 
             const expirationTimeMs =
@@ -115,10 +119,12 @@ function handleSessionTimeout() {
                 ) / 1000000;
 
             setTimeout(() => {
-                logout();
+                void logout();
             }, expirationTimeMs - Date.now());
         } catch (e) {
-            console.error("Could not handle delegation expiry: " + e);
+            console.error(
+                "Could not handle delegation expiry: " + (e as Error).message,
+            );
         }
     });
 }

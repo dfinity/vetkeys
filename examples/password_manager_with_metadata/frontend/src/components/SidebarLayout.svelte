@@ -1,7 +1,10 @@
 <script lang="ts">
     import { auth, logout } from "../store/auth";
+    // @ts-expect-error: svelte-icons have some problems with ts declarations
     import FaPlusSquare from "svelte-icons/fa/FaPlusSquare.svelte";
+    // @ts-expect-error: svelte-icons have some problems with ts declarations
     import GoDatabase from "svelte-icons/go/GoDatabase.svelte";
+    // @ts-expect-error: svelte-icons have some problems with ts declarations
     import FaDoorOpen from "svelte-icons/fa/FaDoorOpen.svelte";
     import Disclaimer from "./Disclaimer.svelte";
     import { Principal } from "@dfinity/principal";

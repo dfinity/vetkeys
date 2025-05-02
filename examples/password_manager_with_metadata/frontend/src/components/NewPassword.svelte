@@ -56,7 +56,7 @@
             tags,
             $auth.passwordManager,
         )
-            .catch((e) => {
+            .catch((e: Error) => {
                 showError(e, "Could not add password.");
             })
             .finally(() => {
@@ -75,7 +75,7 @@
         refreshVaults(
             $auth.client.getIdentity().getPrincipal(),
             $auth.passwordManager,
-        ).catch((e) => showError(e, "Could not refresh passwords."));
+        ).catch((e: Error) => showError(e, "Could not refresh passwords."));
     }
 
     function saveDraft() {

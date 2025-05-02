@@ -9,7 +9,7 @@
     } from "../store/vaults";
     import { addNotification, showError } from "../store/notifications";
     import { Principal } from "@dfinity/principal";
-    import type { AccessRights } from "ic_vetkeys";
+    import type { AccessRights } from "ic_vetkeys/tools";
 
     export let editedVault: VaultModel;
     export let canManage = false;
@@ -58,14 +58,14 @@
             newSharing = "";
             newSharingInput.focus();
         } catch (e) {
-            showError(e, "Could not add user.");
+            showError(e as Error, "Could not add user.");
         } finally {
             adding = false;
         }
         await refreshVaults(
             $auth.client.getIdentity().getPrincipal(),
             $auth.passwordManager,
-        ).catch((e) => showError(e, "Could not refresh vaults."));
+        ).catch((e: Error) => showError(e, "Could not refresh vaults."));
     }
 
     async function remove(sharing: Principal) {
@@ -88,17 +88,17 @@
                 message: "User successfully removed",
             });
         } catch (e) {
-            showError(e, "Could not remove user.");
+            showError(e as Error, "Could not remove user.");
         } finally {
             removing = false;
         }
         await refreshVaults(
             $auth.client.getIdentity().getPrincipal(),
             $auth.passwordManager,
-        ).catch((e) => showError(e, "Could not refresh vaults."));
+        ).catch((e: Error) => showError(e, "Could not refresh vaults."));
     }
 
-    function onKeyPress(e) {
+    function onKeyPress(e: KeyboardEvent) {
         if (
             e.key === "Enter" &&
             !editedVault.users.find(
@@ -106,7 +106,7 @@
                     user[0].compareTo(Principal.fromText(newSharing)) === "eq",
             )
         ) {
-            add();
+            void add();
         }
     }
 
@@ -131,7 +131,9 @@
                 (vault) =>
                     vault.owner === vaultOwnewr && vault.name === vaultName,
             );
-            editedVault = vault;
+            if (vault) {
+                editedVault = vault;
+            }
         }
     }
 </script>
@@ -154,11 +156,14 @@
         <button
             class="btn btn-outline btn-sm flex items-center"
             on:click={() => {
-                remove(sharing[0]);
+                void (async () => {
+                    await remove(sharing[0]);
+                })();
             }}
             disabled={adding || removing || !canManage}
         >
-            <span>{accessRightsToString(sharing[1])} {sharing[0]}</span>
+            <span>{accessRightsToString(sharing[1])} {sharing[0].toText()}</span
+            >
             <svg
                 xmlns="http://www.w3.org/2000/svg"
                 fill="none"
