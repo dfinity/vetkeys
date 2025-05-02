@@ -11,7 +11,7 @@
             "types": "./dist/types/index.d.ts"
         },
         "./tools": {
-            "import": "./dist/lib/tools/index.es.js",
+            "import": "./dist/lib/tools.es.js",
             "types": "./dist/types/tools/index.d.ts"
         }
     },
