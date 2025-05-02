@@ -12,7 +12,7 @@ let initialDraft: DraftModel = {
 try {
     const getDraft = localStorage.getItem("draft");
     if (getDraft) {
-        const savedDraft: DraftModel = JSON.parse(getDraft);
+        const savedDraft: DraftModel = JSON.parse(getDraft) as DraftModel;
         if ("content" in savedDraft && "tags" in savedDraft) {
             initialDraft = savedDraft;
         }

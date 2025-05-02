@@ -1,17 +1,16 @@
 <script lang="ts">
     import { type VaultModel, summarize } from "../lib/vault";
     import { link, location } from "svelte-spa-router";
-    import Password from "./Password.svelte";
-    import { createEventDispatcher, onDestroy } from "svelte";
+    import { onDestroy } from "svelte";
     import { vaultsStore } from "../store/vaults";
     import { Principal } from "@dfinity/principal";
-    import type { PasswordModel } from "../lib/password";
     import Header from "./Header.svelte";
     import Spinner from "./Spinner.svelte";
+    // @ts-expect-error: svelte-icons have some problems with ts declarations
     import GiOpenTreasureChest from "svelte-icons/gi/GiOpenTreasureChest.svelte";
     import { auth } from "../store/auth";
     import SharingEditor from "./SharingEditor.svelte";
-    import type { AccessRights } from "ic_vetkeys";
+    import type { AccessRights } from "ic_vetkeys/tools";
 
     export let vault: VaultModel = {
         name: "",
@@ -43,16 +42,20 @@
                     v.owner.compareTo(vaultOwner) === "eq" &&
                     v.name === vaultName,
             );
-            if (!!searchedForVault) {
+            if (searchedForVault) {
                 vault = searchedForVault;
                 vaultSummary += summarize(vault);
                 const me = $auth.client.getIdentity().getPrincipal();
-                accessRights =
-                    vault.owner.compareTo(me) === "eq"
-                        ? { ReadWriteManage: null }
-                        : vault.users.find(
-                              (user) => user[0].compareTo(me) === "eq",
-                          )[1];
+                if (vault.owner.compareTo(me) === "eq") {
+                    accessRights = { ReadWriteManage: null };
+                } else {
+                    const foundAccessRights = vault.users.find(
+                        (user) => user[0].compareTo(me) === "eq",
+                    );
+                    if (foundAccessRights) {
+                        accessRights = foundAccessRights[1];
+                    }
+                }
             } else {
                 vaultSummary =
                     "could not find vault " +
@@ -66,7 +69,7 @@
 
 <Header>
     <span slot="title" class="flex items-center gap-2 h-full">
-        <span style={`width: 64px; height: 64px;`} class="inline-block">
+        <span style="width: 64px; height: 64px;" class="inline-block">
             <GiOpenTreasureChest />
         </span>
         Vault: {vault.name}
@@ -118,7 +121,7 @@
                         class="p-4 rounded-md border border-base-300 dark:border-base-300 bg-base
 dark:bg-base-100 hover:-translate-y-2 transition-transform"
                         use:link
-                        href={`/edit/vaults/${vault.owner}/${vault.name}/${password[1].passwordName}`}
+                        href={`/edit/vaults/${vault.owner.toText()}/${vault.name}/${password[1].passwordName}`}
                     >
                         <div class="pointer-events-none">
                             <h2 class="text-lg font-bold mb-2 line-clamp-3">
@@ -132,7 +135,7 @@ dark:bg-base-100 hover:-translate-y-2 transition-transform"
         {/if}
         <div class="flex-grow"></div>
         <div class="text-center">
-            <a href={`/vaults`} use:link class="btn btn-primary">
+            <a href="/vaults" use:link class="btn btn-primary">
                 Back to overview
             </a>
         </div>

@@ -40,7 +40,7 @@
                 )
                 .passwords.find((p) => p[0] === passwordName);
 
-            if (!!searchedForPassword) {
+            if (searchedForPassword) {
                 password = searchedForPassword[1];
                 passwordSummary += summarize(password);
             } else {

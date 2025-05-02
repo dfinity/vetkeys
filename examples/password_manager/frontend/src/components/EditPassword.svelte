@@ -1,16 +1,15 @@
 <script lang="ts">
     import { replace, location, link } from "svelte-spa-router";
     import { Editor, placeholder } from "typewriter-editor";
-    import { extractTitle, type PasswordModel } from "../lib/password";
+    import { type PasswordModel } from "../lib/password";
     import {
         vaultsStore,
         refreshVaults,
         updatePassword,
-        addUser,
-        removeUser,
     } from "../store/vaults";
     import Header from "./Header.svelte";
     import PasswordEditor from "./PasswordEditor.svelte";
+    // @ts-expect-error: svelte-icons have some problems with ts declarations
     import Trash from "svelte-icons/fa/FaTrash.svelte";
     import { addNotification, showError } from "../store/notifications";
     import { auth } from "../store/auth";
@@ -66,13 +65,11 @@
                     v.name === editedPassword.parentVaultName,
             );
             const me = $auth.client.getIdentity().getPrincipal();
-            if (
-                editedPassword.owner.compareTo(me) !== "eq" &&
-                (!vault ||
-                    !vault.users.find((u) => u[0].compareTo(me) === "eq") ||
-                    "Read" in
-                        vault.users.find((u) => u[0].compareTo(me) === "eq")[1])
-            ) {
+            const accessRights =
+                vault && vault.users.find((u) => u[0].compareTo(me) === "eq");
+            const authorized = accessRights && "Read" in accessRights[1];
+
+            if (editedPassword.owner.compareTo(me) !== "eq" && !authorized) {
                 addNotification({
                     type: "error",
                     message: "unauthorized",
@@ -91,7 +88,7 @@
 
         if (move) {
             await $auth.encryptedMaps
-                .remove_encrypted_value(
+                .removeEncryptedValue(
                     originalPassword.owner,
                     new TextEncoder().encode(originalPassword.parentVaultName),
                     new TextEncoder().encode(originalPassword.passwordName),
@@ -141,7 +138,7 @@
         );
 
         if (move) {
-            replace(
+            void replace(
                 "/edit/vaults/" +
                     editedPassword.owner.toText() +
                     "/" +
@@ -158,7 +155,7 @@
         }
         deleting = true;
         await $auth.encryptedMaps
-            .remove_encrypted_value(
+            .removeEncryptedValue(
                 editedPassword.owner,
                 new TextEncoder().encode(editedPassword.parentVaultName),
                 new TextEncoder().encode(editedPassword.passwordName),
@@ -175,7 +172,7 @@
                     type: "success",
                     message: "Password deleted successfully",
                 });
-                replace("/vaults");
+                void replace("/vaults");
             });
     }
 
@@ -196,26 +193,30 @@
                         v.owner.compareTo(Principal.fromText(vaultOwner)) ===
                             "eq" && v.name === parentVaultName,
                 )
-                .passwords.find((p) => p[0] === passwordName);
+                ?.passwords.find((p) => p[0] === passwordName);
 
-            if (!!searchedForPassword) {
+            if (searchedForPassword) {
                 editedPassword = { ...searchedForPassword[1] };
             }
 
             const myPrincipal = $auth.client.getIdentity().getPrincipal();
-            accessRights =
-                editedPassword.owner.compareTo(myPrincipal) === "eq"
-                    ? { ReadWriteManage: null }
-                    : $vaultsStore.list
-                          .find(
-                              (v) =>
-                                  v.owner.compareTo(editedPassword.owner) ===
-                                      "eq" &&
-                                  v.name === editedPassword.parentVaultName,
-                          )
-                          .users.find(
-                              (u) => u[0].compareTo(myPrincipal) === "eq",
-                          )[1];
+
+            if (editedPassword.owner.compareTo(myPrincipal) === "eq") {
+                accessRights = { ReadWriteManage: null };
+            } else {
+                const foundAccessRights = $vaultsStore.list
+                    .find(
+                        (v) =>
+                            v.owner.compareTo(editedPassword.owner) === "eq" &&
+                            v.name === editedPassword.parentVaultName,
+                    )
+                    ?.users.find((u) => u[0].compareTo(myPrincipal) === "eq");
+
+                if (foundAccessRights) {
+                    accessRights = foundAccessRights[1];
+                }
+            }
+
             editor = new Editor({
                 modules: {
                     placeholder: placeholder("Start typing..."),
@@ -233,9 +234,8 @@
         <span slot="title"> Edit password </span>
         <button
             slot="actions"
-            class="btn btn-ghost {deleting ? 'loading' : ''} {!!accessRights[
-                'Read'
-            ]}
+            class="btn btn-ghost {deleting ? 'loading' : ''} {'Read' in
+                accessRights}
                 ? 'hidden'
                 : ''}"
             on:click={deletePassword}
@@ -277,7 +277,7 @@
             />
 
             <a
-                href={`/vaults/${editedPassword.owner}/${editedPassword.parentVaultName}`}
+                href={`/vaults/${editedPassword.owner.toText()}/${editedPassword.parentVaultName}`}
                 use:link
                 class="btn btn-primary"
             >

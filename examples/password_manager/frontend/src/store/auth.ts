@@ -31,7 +31,7 @@ export const auth = writable<AuthState>({
 async function initAuth() {
     const client = await AuthClient.create();
     if (await client.isAuthenticated()) {
-        authenticate(client);
+        void authenticate(client);
     } else {
         auth.update(() => ({
             state: "anonymous",
@@ -40,13 +40,13 @@ async function initAuth() {
     }
 }
 
-initAuth();
+void initAuth();
 
 export function login() {
     const currentAuth = get(auth);
 
     if (currentAuth.state === "anonymous") {
-        currentAuth.client.login({
+        void currentAuth.client.login({
             maxTimeToLive: BigInt(1800) * BigInt(1_000_000_000),
             identityProvider:
                 process.env.DFX_NETWORK === "ic"
@@ -66,7 +66,7 @@ export async function logout() {
             state: "anonymous",
             client: currentAuth.client,
         }));
-        replace("/");
+        void replace("/");
     }
 }
 
@@ -86,7 +86,7 @@ export async function authenticate(client: AuthClient) {
     } catch (e) {
         auth.update(() => ({
             state: "error",
-            error: e.message || "An error occurred",
+            error: (e as Error).message || "An error occurred",
         }));
     }
 }
@@ -97,7 +97,7 @@ function handleSessionTimeout() {
     setTimeout(() => {
         try {
             const delegation = JSON.parse(
-                window.localStorage.getItem("ic-delegation"),
+                window.localStorage.getItem("ic-delegation") || "{}",
             ) as JsonnableDelegationChain;
 
             const expirationTimeMs =
@@ -107,7 +107,7 @@ function handleSessionTimeout() {
                 ) / 1000000;
 
             setTimeout(() => {
-                logout();
+                void logout();
             }, expirationTimeMs - Date.now());
         } catch {
             console.error("Could not handle delegation expiry.");
