@@ -237,7 +237,7 @@
                         (u) => u[0].compareTo(myPrincipal) === "eq",
                     );
                     if (foundAccessRights) {
-                        accessRights = foundAccessRights[1] as AccessRights;
+                        accessRights = foundAccessRights[1];
                     }
                 }
                 editor = new Editor({

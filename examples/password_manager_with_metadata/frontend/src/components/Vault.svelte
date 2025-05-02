@@ -60,7 +60,7 @@
                         (user) => user[0].compareTo(me) === "eq",
                     );
                     accessRights = foundRights
-                        ? (foundRights[1] as AccessRights)
+                        ? foundRights[1]
                         : { Read: null };
                 }
             }
