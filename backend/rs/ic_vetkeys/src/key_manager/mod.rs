@@ -180,7 +180,7 @@ impl<T: AccessControl> KeyManager<T> {
         key_id: KeyId,
         user: Principal,
     ) -> Result<Option<T>, String> {
-        self.ensure_user_can_read(caller, key_id)?;
+        self.ensure_user_can_get_user_rights(caller, key_id)?;
         Ok(self.ensure_user_can_read(user, key_id).ok())
     }
 

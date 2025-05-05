@@ -30,6 +30,9 @@ jobs:
           cd backend/mo/ic_vetkeys
           mops install
           mops test
+          cd ../canisters/ic_vetkeys_manager_canister
+          dfx build --check
+          CUSTOM_WASM_PATH=$(pwd)/.dfx/local/canisters/ic_vetkeys_manager_canister/ic_vetkeys_manager_canister.wasm cargo test -p ic-vetkeys-manager-canister
   backend-motoko-tests-darwin:
     runs-on: macos-15
     steps:
@@ -45,3 +48,6 @@ jobs:
           cd backend/mo/ic_vetkeys
           mops install
           mops test
+          cd ../canisters/ic_vetkeys_manager_canister
+          dfx build --check
+          CUSTOM_WASM_PATH=$(pwd)/.dfx/local/canisters/ic_vetkeys_manager_canister/ic_vetkeys_manager_canister.wasm cargo test -p ic-vetkeys-manager-canister
