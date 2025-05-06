@@ -75,4 +75,5 @@ npm run dev
 
 ## Additional Resources
 
+- **[Basic IBE Example](../basic_ibe/)** - If you are interested in using IBE with users decrypting secrets.
 - **[What are VetKeys](https://internetcomputer.org/docs/building-apps/network-features/encryption/vetkeys)** - For more information about VetKeys and VetKD. 

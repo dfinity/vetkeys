@@ -48,4 +48,4 @@ npm run dev
 
 ## Additional Resources
 
-- **[Password Manager with Metadata](../password_manager_with_metadata/README.md)** - If you need to store additional metadata alongside passwords.
+- **[Password Manager with Metadata](../password_manager_with_metadata/)** - If you need to store additional metadata alongside passwords.
