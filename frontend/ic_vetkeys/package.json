@@ -8,11 +8,11 @@
     "exports": {
         ".": {
             "import": "./dist/lib/index.es.js",
-            "types": "./dist/types/index.d.ts"
+            "types": "./dist/types/src/index.d.ts"
         },
         "./tools": {
             "import": "./dist/lib/tools.es.js",
-            "types": "./dist/types/tools/index.d.ts"
+            "types": "./dist/types/src/tools/index.d.ts"
         }
     },
     "module": "dist/lib/index.es.js",
