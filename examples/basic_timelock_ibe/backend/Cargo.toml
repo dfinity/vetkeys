@@ -1,0 +1,29 @@
+[package]
+name = "ic-vetkd-example-basic-timelock-ibe-backend"
+authors.workspace = true
+description.workspace = true
+documentation.workspace = true
+edition.workspace = true
+version.workspace = true
+license.workspace = true
+
+[lib]
+path = "src/lib.rs"
+crate-type = ["cdylib"]
+
+[dependencies]
+candid = { workspace = true }
+getrandom = { version = "0.2", features = ["custom"]}
+ic-cdk = { workspace = true }
+ic-cdk-macros = { workspace = true }
+ic-cdk-timers = "0.11.0"
+ic-stable-structures = { workspace = true }
+ic-vetkd-utils = { version = "0.1.0", git = "https://github.com/dfinity/ic.git", default-features = false }
+ic-vetkeys = { path = "../../../backend/rs/ic_vetkeys" }
+serde = { workspace = true }
+serde_bytes = { workspace = true }
+serde_cbor = { workspace = true }
+serde_with = { workspace = true }
+
+[features]
+expose-testing-api = []

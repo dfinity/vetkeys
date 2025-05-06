@@ -1,6 +1,6 @@
 use candid::{decode_one, encode_args, encode_one, CandidType, Principal};
-use ic_vetkd_utils::TransportSecretKey;
-use ic_vetkeys::key_manager::{key_id_to_derivation_id, VetKey, VetKeyVerificationKey};
+use ic_vetkd_utils::{DerivedPublicKey, EncryptedVetKey, TransportSecretKey};
+use ic_vetkeys::key_manager::{key_id_to_derivation_input, VetKey, VetKeyVerificationKey};
 use ic_vetkeys::types::{AccessRights, ByteBuf, TransportKey};
 use ic_vetkeys_test_utils::{git_root_dir, random_self_authenticating_principal};
 use pocket_ic::{PocketIc, PocketIcBuilder};
@@ -52,7 +52,7 @@ fn encrypted_vetkey_should_validate() {
     let rng = &mut reproducible_rng();
     let env = TestEnvironment::new(rng);
 
-    let verification_key: VetKeyVerificationKey = env.update(
+    let verification_key_bytes: VetKeyVerificationKey = env.update(
         env.principal_0,
         "get_vetkey_verification_key",
         encode_one(()).unwrap(),
@@ -72,11 +72,15 @@ fn encrypted_vetkey_should_validate() {
             )
             .unwrap();
 
-        transport_key
-            .decrypt(
-                encrypted_vetkey.as_ref(),
-                verification_key.as_ref(),
-                &key_id_to_derivation_id(key_owner, key_name.as_ref()),
+        let derived_public_key =
+            DerivedPublicKey::deserialize(verification_key_bytes.as_ref()).unwrap();
+        let encrypted_vetkey = EncryptedVetKey::deserialize(encrypted_vetkey.as_ref()).unwrap();
+
+        encrypted_vetkey
+            .decrypt_and_verify(
+                &transport_key,
+                &derived_public_key,
+                &key_id_to_derivation_input(key_owner, key_name.as_ref()),
             )
             .expect("failed to decrypt and verify `vetkey");
     };
@@ -89,7 +93,7 @@ fn key_sharing_should_work() {
     let rng = &mut reproducible_rng();
     let env = TestEnvironment::new(rng);
 
-    let verification_key: VetKeyVerificationKey = env.update(
+    let verification_key_bytes: VetKeyVerificationKey = env.update(
         env.principal_0,
         "get_vetkey_verification_key",
         encode_one(()).unwrap(),
@@ -143,13 +147,19 @@ fn key_sharing_should_work() {
             )
             .unwrap();
 
-        transport_key
-            .decrypt(
-                encrypted_vetkey.as_ref(),
-                verification_key.as_ref(),
-                &key_id_to_derivation_id(key_owner, key_name.as_ref()),
+        let derived_public_key =
+            DerivedPublicKey::deserialize(verification_key_bytes.as_ref()).unwrap();
+        let encrypted_vetkey = EncryptedVetKey::deserialize(encrypted_vetkey.as_ref()).unwrap();
+
+        let vetkey = encrypted_vetkey
+            .decrypt_and_verify(
+                &transport_key,
+                &derived_public_key,
+                &key_id_to_derivation_input(key_owner, key_name.as_ref()),
             )
-            .expect("failed to decrypt and verify `vetkey")
+            .expect("failed to decrypt and verify `vetkey");
+
+        vetkey.signature_bytes().as_ref().to_vec()
     };
 
     assert_eq!(get_vetkey(env.principal_0), get_vetkey(env.principal_1));

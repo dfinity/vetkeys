@@ -28,20 +28,20 @@ For more documentation on VetKeys and the management canister API, see the [VetK
 
 ## Key Features
 
-### **1. [VetKeys Backend Library](./backend/ic_vetkeys/README.md)** - Supports canister developers
+### **1. [VetKeys Backend Library](./backend/rs/ic_vetkeys)** - Supports canister developers
 
 Tools to help canister developers integrate VetKeys into their Internet Computer (ICP) applications.
 
-- **[KeyManager](./backend/rs/ic_vetkeys/src/key_manager/README.md)** – a library for deriving and managing encrypted cryptographic keys.
-- **[EncryptedMaps](./backend/rs/ic_vetkeys/src/encrypted_maps/README.md)** – a library for encrypting using vetkeys, and securely storing and sharing encrypted key-value pairs.
+- **[KeyManager](./backend/rs/ic_vetkeys/src/key_manager)** – a library for deriving and managing encrypted cryptographic keys.
+- **[EncryptedMaps](./backend/rs/ic_vetkeys/src/encrypted_maps)** – a library for encrypting using vetkeys, and securely storing and sharing encrypted key-value pairs.
 
-### **2. [VetKeys Frontend Library](./frontend/ic_vetkeys/README.md)** - Supports frontend developers
+### **2. [VetKeys Frontend Library](./frontend/ic_vetkeys)** - Supports frontend developers
 
 Tools for frontend developers to interact with VetKD enabled canisters.
 
 - **[KeyManager](https://5lfyp-mqaaa-aaaag-aleqa-cai.icp0.io/classes/ic_vetkeys_tools.KeyManager.html)** – Facilitates interaction with a KeyManager-enabled canister.
 - **[EncryptedMaps](https://5lfyp-mqaaa-aaaag-aleqa-cai.icp0.io/classes/ic_vetkeys_tools.EncryptedMaps.html)** – Facilitates interaction with a EncryptedMaps-enabled canister.
-- **[Utils](./frontend/ic_vetkeys/src/utils/README.md)** – Utility functions for working with VetKeys.
+- **[Utils](https://5lfyp-mqaaa-aaaag-aleqa-cai.icp0.io/modules/ic_vetkeys.html)** – Utility functions for working with VetKeys.
 
 ### **3. VetKeys Password Manager** - Example application
 
@@ -49,5 +49,5 @@ The **VetKey Password Manager** is an example application demonstrating how to u
 
 The example application is available in two versions:
 
-- **[Basic Password Manager](./examples/password_manager/README.md)** - A simpler example without metadata.
-- **[Password Manager with Metadata](./examples/password_manager_with_metadata/README.md)** - Supports unencrypted metadata alongside encrypted passwords.
+- **[Basic Password Manager](./examples/password_manager)** - A simpler example without metadata.
+- **[Password Manager with Metadata](./examples/password_manager_with_metadata)** - Supports unencrypted metadata alongside encrypted passwords.

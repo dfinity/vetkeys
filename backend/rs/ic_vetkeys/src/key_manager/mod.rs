@@ -155,7 +155,7 @@ impl<T: AccessControl> KeyManager<T> {
         self.ensure_user_can_read(caller, key_id)?;
 
         let request = VetKDEncryptedKeyRequest {
-            derivation_id: key_id_to_derivation_id(key_id.0, key_id.1.as_ref()),
+            derivation_id: key_id_to_derivation_input(key_id.0, key_id.1.as_ref()),
             public_key_derivation_path: vec![self.domain_separator.get().to_bytes().to_vec()],
             key_id: bls12_381_test_key_1(),
             encryption_public_key: transport_key.into(),
@@ -281,7 +281,7 @@ fn vetkd_system_api_canister_id() -> CanisterId {
     CanisterId::from_str(VETKD_SYSTEM_API_CANISTER_ID).expect("failed to create canister ID")
 }
 
-pub fn key_id_to_derivation_id(principal: Principal, key_name: &[u8]) -> Vec<u8> {
+pub fn key_id_to_derivation_input(principal: Principal, key_name: &[u8]) -> Vec<u8> {
     let mut derivation_id = Vec::with_capacity(principal.as_slice().len() + 1 + key_name.len());
     derivation_id.push(principal.as_slice().len() as u8);
     derivation_id.extend(principal.as_slice());
