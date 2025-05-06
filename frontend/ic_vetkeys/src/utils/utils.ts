@@ -578,11 +578,11 @@ export class IdentityBasedEncryptionCiphertext {
      * or for any other purposes, compromises the security of the IBE scheme.
      *
      * Any user who is able to retrieve the VetKey for the specified
-     * derived public key and derivation_id will be able to decrypt
-     * this message.
+     * derived public key and identity will be able to decrypt this
+     * message.
      */
     static encrypt(dpk: DerivedPublicKey,
-                   derivation_id: Uint8Array,
+                   identity: Uint8Array,
                    msg: Uint8Array,
                    seed: Uint8Array): IdentityBasedEncryptionCiphertext {
 
@@ -592,7 +592,7 @@ export class IdentityBasedEncryptionCiphertext {
 
         const header = IBE_HEADER;
         const t = hashToMask(header, seed, msg);
-        const pt = augmentedHashToG1(dpk, derivation_id);
+        const pt = augmentedHashToG1(dpk, identity);
         const tsig = bls12_381.fields.Fp12.pow(bls12_381.pairing(pt, dpk.getPoint()), t);
 
         const c1 = bls12_381.G2.ProjectivePoint.BASE.multiply(t);
