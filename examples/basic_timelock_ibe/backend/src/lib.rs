@@ -92,7 +92,7 @@ async fn get_root_ibe_public_key() -> VetKeyPublicKey {
 
     let request = VetKDPublicKeyRequest {
         canister_id: None,
-        derivation_path: vec![DOMAIN_SEPARATOR.as_bytes().to_vec()],
+        context: DOMAIN_SEPARATOR.as_bytes().to_vec(),
         key_id: bls12_381_test_key_1(),
     };
 
@@ -270,19 +270,19 @@ async fn decrypt_bids(
         .expect("failed to create transport secret key");
 
     let request = VetKDEncryptedKeyRequest {
-        public_key_derivation_path: vec![DOMAIN_SEPARATOR.as_bytes().to_vec()],
-        derivation_id: lot_id.to_le_bytes().to_vec(),
+        context: DOMAIN_SEPARATOR.as_bytes().to_vec(),
+        input: lot_id.to_le_bytes().to_vec(),
         key_id: bls12_381_test_key_1(),
-        encryption_public_key: transport_secret_key.public_key().to_vec(),
+        transport_public_key: transport_secret_key.public_key().to_vec(),
     };
 
     let (result,) = ic_cdk::api::call::call::<_, (VetKDEncryptedKeyReply,)>(
         vetkd_system_api_canister_id(),
-        "vetkd_encrypted_key",
+        "vetkd_derive_key",
         (request,),
     )
     .await
-    .expect("call to vetkd_encrypted_key failed");
+    .expect("call to vetkd_derive_key failed");
 
     let root_ibe_public_key = DerivedPublicKey::deserialize(&root_ibe_public_key_bytes).unwrap();
     let encrypted_vetkey = EncryptedVetKey::deserialize(&result.encrypted_key).unwrap();
@@ -341,7 +341,7 @@ fn is_authenticated() -> Result<(), String> {
 
 fn bls12_381_test_key_1() -> VetKDKeyId {
     VetKDKeyId {
-        curve: VetKDCurve::Bls12_381,
+        curve: VetKDCurve::Bls12_381_G2,
         name: "insecure_test_key_1".to_string(),
     }
 }

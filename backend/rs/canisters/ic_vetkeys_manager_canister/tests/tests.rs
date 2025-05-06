@@ -1,6 +1,6 @@
 use candid::{decode_one, encode_args, encode_one, CandidType, Principal};
 use ic_vetkd_utils::{DerivedPublicKey, EncryptedVetKey, TransportSecretKey};
-use ic_vetkeys::key_manager::{key_id_to_derivation_input, VetKey, VetKeyVerificationKey};
+use ic_vetkeys::key_manager::{key_id_to_vetkd_input, VetKey, VetKeyVerificationKey};
 use ic_vetkeys::types::{AccessRights, ByteBuf, TransportKey};
 use ic_vetkeys_test_utils::{git_root_dir, random_self_authenticating_principal};
 use pocket_ic::{PocketIc, PocketIcBuilder};
@@ -80,7 +80,7 @@ fn encrypted_vetkey_should_validate() {
             .decrypt_and_verify(
                 &transport_key,
                 &derived_public_key,
-                &key_id_to_derivation_input(key_owner, key_name.as_ref()),
+                &key_id_to_vetkd_input(key_owner, key_name.as_ref()),
             )
             .expect("failed to decrypt and verify `vetkey");
     };
@@ -155,7 +155,7 @@ fn key_sharing_should_work() {
             .decrypt_and_verify(
                 &transport_key,
                 &derived_public_key,
-                &key_id_to_derivation_input(key_owner, key_name.as_ref()),
+                &key_id_to_vetkd_input(key_owner, key_name.as_ref()),
             )
             .expect("failed to decrypt and verify `vetkey");
 
@@ -257,7 +257,7 @@ fn load_key_manager_example_canister_wasm() -> Vec<u8> {
 }
 
 fn load_vetkd_mock_canister_wasm() -> Vec<u8> {
-    let wasm_url = "https://github.com/dfinity/chainkey-testing-canister/releases/download/v0.1.0/chainkey_testing_canister.wasm.gz";
+    let wasm_url = "https://github.com/dfinity/chainkey-testing-canister/releases/download/v0.2.0/chainkey_testing_canister.wasm.gz";
     reqwest::blocking::get(wasm_url)
         .unwrap()
         .bytes()

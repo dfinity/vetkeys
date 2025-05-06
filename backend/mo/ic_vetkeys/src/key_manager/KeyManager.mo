@@ -19,14 +19,14 @@ module {
     type VetkdSystemApi = actor {
         vetkd_public_key : ({
             canister_id : ?Principal;
-            derivation_path : [Blob];
+            context : Blob;
             key_id : { curve : { #bls12_381_g2 }; name : Text };
         }) -> async ({ public_key : Blob });
         vetkd_derive_encrypted_key : ({
-            derivation_path : [Blob];
-            derivation_id : Blob;
+            context : Blob;
+            input : Blob;
             key_id : { curve : { #bls12_381_g2 }; name : Text };
-            encryption_public_key : Blob;
+            transport_public_key : Blob;
         }) -> async ({ encrypted_key : Blob });
     };
 
@@ -98,11 +98,11 @@ module {
 
         // Get vetkey verification key
         public func getVetkeyVerificationKey() : async VetKeyVerificationKey {
-            let derivationPath = [domainSeparatorBytes];
+            let context = domainSeparatorBytes;
 
             let request = {
                 canister_id = null;
-                derivation_path = derivationPath;
+                context;
                 key_id = bls12_381TestKey1();
             };
 
@@ -120,13 +120,13 @@ module {
                         Blob.toArray(keyId.1),
                     ]);
 
-                    let derivationPath = [domainSeparatorBytes];
+                    let context = domainSeparatorBytes;
 
                     let request = {
-                        derivation_id = Blob.fromArray(derivationId);
-                        derivation_path = derivationPath;
+                        input = Blob.fromArray(derivationId);
+                        context;
                         key_id = bls12_381TestKey1();
-                        encryption_public_key = transportKey;
+                        transport_public_key = transportKey;
                     };
 
                     let (reply) = await (actor (managementCanisterPrincipalText) : VetkdSystemApi).vetkd_derive_encrypted_key(request);
