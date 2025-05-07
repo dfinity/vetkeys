@@ -3,10 +3,10 @@
 > [!IMPORTANT]  
 > These support libraries are under active development and are subject to change. Access to the repositories have been opened to allow for early feedback. Please check back regularly for updates.
 
-The **Basic Timelock IBE** example demonstrates how to use **[VetKeys](https://internetcomputer.org/docs/building-apps/network-features/encryption/vetkeys)** to implement secret-bid auction using Identity Based Encryption (IBE) on the **Internet Computer (IC)**. This application allows users authenticated using their **Internet Identity Principal** to create auction lots with a description and deadline and other users to place a secret bid for the lot. The bids in this example are just dummy integer values, contrary to real-world use cases where users would place bids holding some value.
+The **Basic Timelock IBE** example demonstrates how to use **[VetKeys](https://internetcomputer.org/docs/building-apps/network-features/encryption/vetkeys)** to implement a secret-bid auction using Identity Based Encryption (IBE) on the **Internet Computer (IC)**. This application allows users authenticated with their **Internet Identity Principal** to create auction lots with a description and deadline, and other users to place a secret bid for the lot. The bids in this example are just dummy integer values, contrary to real-world use cases where users would place bids holding some value.
 
 This canister (IC smart contract) ensures that:
-1. Only the authorized user can create auction lots and place secret bids until the lot is closed.
+1. Only authorized users can create auction lots and place secret bids until the lot is closed.
 2. The bids stay secret until the lot is closed.
 3. The winner is chosen fairly among all the placed bids, once the lot closes and the canister decrypts the secret bids. Note that once secret bids are decrpyted they inherently become public.
 
@@ -20,7 +20,7 @@ A canister functionality for decrypting secrets can be detected by inspecting th
 ## Features
 
 - **Secret Bid Placement**: Uses IBE capabilities of IC Vetkeys to encrypt messages that can only be decrypted by the intended recipient.
-- **Bid Id Based Encryption**: Each bid gets a unique bid id, and the secret bids are encrypted to the bid id as the public key identifier.
+- **Bid-Id-Based Encryption**: Each bid gets a unique bid id, and the secret bids are encrypted to the bid id as the public key identifier.
 - **Time-Based Access Control**: Messages can only be decrypted after a specified time period has elapsed.
 
 ## Efficiency
@@ -43,7 +43,7 @@ npm install
 
 ### Deploy the Canisters
 
-Run the local deployment script, which starts the local development environment (`dfx`) if necessary, builds both backend and frontend (asset) canisters, and installs them locally.
+Run the local deployment script, which starts the local development environment (`dfx`) if necessary, builds both backend and frontend (asset) canisters, and installs them locally, and prints the URL to the frontend to the terminal.
 ```bash
 bash deploy_locally.sh
 ```
@@ -56,9 +56,9 @@ Note that currently in a local deployment, the [chainkey *testing* canister](htt
 
 The backend consists of a canister that:
 * Lets users create auction lots with a description and duration.
-* Stores at most one encrypted bid from any authenticated user but the creator of the lot. Secret bids failing do decrypt are ignored. If a user provides multiple bids, only the last one is considered. The ciphertexts for secret bids of unexpectedly large size are rejected. Bids to expired lots are rejected.
+* Stores at most one encrypted bid from any authenticated user except the creator of the lot. Secret bids failing do decrypt are ignored. If a user provides multiple bids, only the last one is considered. The ciphertexts for secret bids of unexpectedly large size are rejected. Bids to expired lots are rejected.
 * Allows users to retrieve the status of the lot, including the winner and the decrypted bids once the lot is closed.
-* A timer inside the canister periodically runs and takes one closed lot that it decrypts. if multiple users provide the same bids, the bid that was placed first becomes the winner.
+* A timer inside the canister periodically runs and takes one closed lot that it decrypts. If multiple users provide the highest bid, the bid that was placed first wins.
 
 ### Frontend
 
