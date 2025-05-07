@@ -8,7 +8,7 @@ The **Basic Timelock IBE** example demonstrates how to use **[VetKeys](https://i
 This canister (IC smart contract) ensures that:
 1. Only authorized users can create auction lots and place secret bids until the lot is closed.
 2. The bids stay secret until the lot is closed.
-3. The winner is chosen fairly among all the placed bids, once the lot closes and the canister decrypts the secret bids. Note that once secret bids are decrpyted they inherently become public.
+3. The winner is chosen fairly among all the placed bids, once the lot closes and the canister decrypts the secret bids. Note that once secret bids are decrypted they inherently become public.
 
 Note that generally it is possible for a canister to request a decryption key to decrypt secrets at any time.
 The code of smart contract determines the rules for when the decryption happens.
@@ -56,7 +56,7 @@ Note that currently in a local deployment, the [chainkey *testing* canister](htt
 
 The backend consists of a canister that:
 * Lets users create auction lots with a description and duration.
-* Stores at most one encrypted bid from any authenticated user except the creator of the lot. Secret bids failing do decrypt are ignored. If a user provides multiple bids, only the last one is considered. The ciphertexts for secret bids of unexpectedly large size are rejected. Bids to expired lots are rejected.
+* Stores at most one encrypted bid from any authenticated user except the creator of the lot. Secret bids failing to decrypt are ignored. If a user provides multiple bids, only the last one is considered. The ciphertexts for secret bids of unexpectedly large size are rejected. Bids to expired lots are rejected.
 * Allows users to retrieve the status of the lot, including the winner and the decrypted bids once the lot is closed.
 * A timer inside the canister periodically runs and takes one closed lot that it decrypts. If multiple users provide the highest bid, the bid that was placed first wins.
 
