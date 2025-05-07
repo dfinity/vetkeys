@@ -33,6 +33,8 @@ thread_local! {
 
     static VETKD_ROOT_IBE_PUBLIC_KEY: RefCell<Option<VetKeyPublicKey>> =  const { RefCell::new(None) };
 
+    static BID_COUNTER: RefCell<BidCounter> = RefCell::new(0);
+
     #[cfg(feature = "expose-testing-api")]
     static CANISTER_ID_VETKD_MOCK: RefCell<Option<Principal>> = const { RefCell::new(None) };
 }
@@ -173,7 +175,11 @@ fn place_bid(lot_id: u128, encrypted_amount: Vec<u8>) -> Result<(), String> {
     }
 
     BIDS_ON_LOTS.with_borrow_mut(|bids| {
-        let bid_counter = bids.len() as BidCounter;
+        let bid_counter = BID_COUNTER.with_borrow_mut(|bid_counter| {
+            let old_bid_counter = *bid_counter;
+            *bid_counter += 1;
+            old_bid_counter
+        });
         bids.insert(
             (lot_id, bid_counter, bidder),
             Bid::Encrypted(EncryptedBid {
