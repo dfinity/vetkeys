@@ -1,0 +1,52 @@
+name: examples-basic-timelock-ibe
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    paths:
+      - examples/basic_timelock_ibe/**
+      - backend/**
+      - Cargo.toml
+      - Cargo.lock
+      - frontend/ic_vetkeys/**
+      - package.json
+      - package-lock.json
+      - .github/workflows/provision-darwin.sh
+      - .github/workflows/provision-linux.sh
+      - .github/workflows/examples-basic-timelock-ibe.yml
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  examples-basic-timelock-ibe-darwin:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Provision Darwin
+        run: |
+          bash .github/workflows/provision-darwin.sh
+      - name: Deploy Basic Timelock IBE Darwin
+        run: |
+          set -eExuo pipefail
+          cargo install candid-extractor
+          npm i
+          pushd examples/basic_timelock_ibe
+          ./deploy_locally.sh
+          cd frontend
+          npm run lint
+  examples-basic-timelock-ibe-linux:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Provision Linux
+        run: bash .github/workflows/provision-linux.sh
+      - name: Deploy Basic Timelock IBE Linux
+        run: |
+          set -eExuo pipefail
+          cargo install candid-extractor
+          npm i
+          pushd examples/basic_timelock_ibe
+          ./deploy_locally.sh
+          cd frontend
+          npm run lint 
