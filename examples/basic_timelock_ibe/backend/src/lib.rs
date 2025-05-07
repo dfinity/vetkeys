@@ -178,7 +178,7 @@ fn place_bid(lot_id: u128, encrypted_amount: Vec<u8>) -> Result<(), String> {
         if let Some((existing_bid_key, _existing_bid)) = bids
             .range((lot_id, 0, Principal::management_canister())..)
             .take_while(|((this_lot_id, _, _), _)| *this_lot_id == lot_id)
-            .filter(|((_, _, bidder), _)| bidder == bidder)
+            .filter(|((_, _, this_bidder), _)| *this_bidder == bidder)
             .next()
         {
             bids.remove(&existing_bid_key);
