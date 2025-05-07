@@ -37,7 +37,7 @@ use std::str::FromStr;
 use std::cell::RefCell;
 
 use crate::vetkd_api_types::{
-    VetKDCurve, VetKDEncryptedKeyReply, VetKDEncryptedKeyRequest, VetKDKeyId, VetKDPublicKeyReply,
+    VetKDCurve, VetKDDeriveKeyReply, VetKDDeriveKeyRequest, VetKDKeyId, VetKDPublicKeyReply,
     VetKDPublicKeyRequest,
 };
 
@@ -154,14 +154,14 @@ impl<T: AccessControl> KeyManager<T> {
 
         self.ensure_user_can_read(caller, key_id)?;
 
-        let request = VetKDEncryptedKeyRequest {
+        let request = VetKDDeriveKeyRequest {
             input: key_id_to_vetkd_input(key_id.0, key_id.1.as_ref()),
             context: self.domain_separator.get().to_bytes().to_vec(),
             key_id: bls12_381_test_key_1(),
             transport_public_key: transport_key.into(),
         };
 
-        let future = ic_cdk::api::call::call::<_, (VetKDEncryptedKeyReply,)>(
+        let future = ic_cdk::api::call::call::<_, (VetKDDeriveKeyReply,)>(
             vetkd_system_api_canister_id(),
             "vetkd_derive_key",
             (request,),

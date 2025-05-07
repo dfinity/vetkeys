@@ -269,14 +269,14 @@ async fn decrypt_bids(
     let transport_secret_key = ic_vetkd_utils::TransportSecretKey::from_seed(dummy_seed.clone())
         .expect("failed to create transport secret key");
 
-    let request = VetKDEncryptedKeyRequest {
+    let request = VetKDDeriveKeyRequest {
         context: DOMAIN_SEPARATOR.as_bytes().to_vec(),
         input: lot_id.to_le_bytes().to_vec(),
         key_id: bls12_381_test_key_1(),
         transport_public_key: transport_secret_key.public_key().to_vec(),
     };
 
-    let (result,) = ic_cdk::api::call::call::<_, (VetKDEncryptedKeyReply,)>(
+    let (result,) = ic_cdk::api::call::call::<_, (VetKDDeriveKeyReply,)>(
         vetkd_system_api_canister_id(),
         "vetkd_derive_key",
         (request,),

@@ -30,18 +30,18 @@ pub struct VetKDPublicKeyReply {
 }
 
 #[derive(CandidType, Deserialize, Clone, Debug)]
-pub struct VetKDEncryptedKeyRequest {
+pub struct VetKDDeriveKeyRequest {
+    #[serde(with = "serde_bytes")]
+    pub input: Vec<u8>,
     #[serde(with = "serde_bytes")]
     pub context: Vec<u8>,
     #[serde(with = "serde_bytes")]
-    pub input: Vec<u8>,
-    pub key_id: VetKDKeyId,
-    #[serde(with = "serde_bytes")]
     pub transport_public_key: Vec<u8>,
+    pub key_id: VetKDKeyId,
 }
 
 #[derive(CandidType, Deserialize)]
-pub struct VetKDEncryptedKeyReply {
+pub struct VetKDDeriveKeyReply {
     #[serde(with = "serde_bytes")]
     pub encrypted_key: Vec<u8>,
 }

@@ -80,14 +80,14 @@ async fn get_root_ibe_public_key() -> VetKeyPublicKey {
 /// Retrieves the caller's encrypted private IBE key for message decryption.
 async fn get_my_encrypted_ibe_key(transport_key: TransportPublicKey) -> EncryptedVetKey {
     let caller = ic_cdk::caller();
-    let request = VetKDEncryptedKeyRequest {
+    let request = VetKDDeriveKeyRequest {
         input: caller.as_ref().to_vec(),
         context: DOMAIN_SEPARATOR.as_bytes().to_vec(),
         key_id: bls12_381_test_key_1(),
         transport_public_key: transport_key.into_vec(),
     };
 
-    let (result,) = ic_cdk::api::call::call::<_, (VetKDEncryptedKeyReply,)>(
+    let (result,) = ic_cdk::api::call::call::<_, (VetKDDeriveKeyReply,)>(
         vetkd_system_api_canister_id(),
         "vetkd_derive_key",
         (request,),
