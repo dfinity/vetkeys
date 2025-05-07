@@ -1,11 +1,12 @@
-use crate::types::{DecryptedBid, EncryptedBid, LotId, LotInformation};
+use crate::types::{
+    BidCounter, DecryptedBid, EncryptedBid, LotId, LotInformation, VetKeyPublicKey,
+};
 use candid::Principal;
 use ic_cdk::api::management_canister::provisional::CanisterId;
 use ic_cdk::{init, post_upgrade, query, update};
 use ic_stable_structures::memory_manager::{MemoryId, MemoryManager, VirtualMemory};
 use ic_stable_structures::{BTreeMap as StableBTreeMap, DefaultMemoryImpl};
 use ic_vetkd_utils::{DerivedPublicKey, EncryptedVetKey};
-use serde_bytes::ByteBuf;
 use std::cell::RefCell;
 use std::str::FromStr;
 
@@ -13,7 +14,6 @@ mod types;
 use types::*;
 
 type Memory = VirtualMemory<DefaultMemoryImpl>;
-type VetKeyPublicKey = ByteBuf;
 
 thread_local! {
     static MEMORY_MANAGER: RefCell<MemoryManager<DefaultMemoryImpl>> =
@@ -22,7 +22,9 @@ thread_local! {
     static LOTS: RefCell<StableBTreeMap<LotId, LotInformation, Memory>> = RefCell::new(StableBTreeMap::init(
         MEMORY_MANAGER.with(|m| m.borrow().get(MemoryId::new(0))),
     ));
-    static BIDS_ON_LOTS: RefCell<StableBTreeMap<(LotId, Principal), Bid, Memory>> = RefCell::new(StableBTreeMap::init(
+    /// The bids include a bid counter to ensure that if multiple users provide the same highest bid, the bid that was placed first wins.
+    /// The counter is not unique for a lot, it is monotonically increasing for all bids.
+    static BIDS_ON_LOTS: RefCell<StableBTreeMap<(LotId, BidCounter, Principal), Bid, Memory>> = RefCell::new(StableBTreeMap::init(
         MEMORY_MANAGER.with(|m| m.borrow().get(MemoryId::new(1))),
     ));
     static OPEN_LOTS_DEADLINES: RefCell<StableBTreeMap<u64, LotId, Memory>> = RefCell::new(StableBTreeMap::init(
@@ -118,9 +120,9 @@ fn get_lots() -> (OpenLotsResponse, ClosedLotsResponse) {
                 LotStatus::Open => {
                     open_lots.lots.push(lot);
                     let bidders: Vec<Principal> = BIDS_ON_LOTS.with_borrow(|bids| {
-                        bids.range((lot_id, Principal::management_canister())..)
-                            .take_while(|((this_lot_id, _), _)| *this_lot_id == lot_id)
-                            .map(|((_, bidder), _)| bidder)
+                        bids.range((lot_id, 0, Principal::management_canister())..)
+                            .take_while(|((this_lot_id, _, _), _)| *this_lot_id == lot_id)
+                            .map(|((_, _, bidder), _)| bidder)
                             .collect()
                     });
                     open_lots.bidders.push(bidders);
@@ -129,9 +131,9 @@ fn get_lots() -> (OpenLotsResponse, ClosedLotsResponse) {
                     closed_lots.lots.push(lot);
 
                     let bids: Vec<(Principal, u128)> = BIDS_ON_LOTS.with_borrow(|bids| {
-                        bids.range((lot_id, Principal::management_canister())..)
-                            .take_while(|((this_lot_id, _), _)| *this_lot_id == lot_id)
-                            .map(|((_, bidder), bid)| match bid {
+                        bids.range((lot_id, 0, Principal::management_canister())..)
+                            .take_while(|((this_lot_id, _, _), _)| *this_lot_id == lot_id)
+                            .map(|((_, _, bidder), bid)| match bid {
                                 Bid::Encrypted(_) => {
                                     panic!("bug: encrypted bid in a closed lot")
                                 }
@@ -171,8 +173,9 @@ fn place_bid(lot_id: u128, encrypted_amount: Vec<u8>) -> Result<(), String> {
     }
 
     BIDS_ON_LOTS.with_borrow_mut(|bids| {
+        let bid_counter = bids.len() as BidCounter;
         bids.insert(
-            (lot_id, bidder),
+            (lot_id, bid_counter, bidder),
             Bid::Encrypted(EncryptedBid {
                 encrypted_amount,
                 bidder,
@@ -212,15 +215,19 @@ async fn close_one_lot_if_any_is_open() {
     });
 
     if let Some(lot_id) = lot_to_close {
-        let encrypted_bids: Vec<EncryptedBid> = BIDS_ON_LOTS.with_borrow(|bids| {
-            bids.range((lot_id, Principal::management_canister())..)
-                .take_while(|((this_lot_id, _), _)| *this_lot_id == lot_id)
-                .map(|(_, bid)| match bid {
-                    Bid::Encrypted(encrypted_bid) => encrypted_bid,
-                    Bid::Decrypted(_) => panic!("bug: decrypted bid in a closed lot"),
-                })
-                .collect()
-        });
+        let (bid_counters, encrypted_bids): (Vec<BidCounter>, Vec<EncryptedBid>) = BIDS_ON_LOTS
+            .with_borrow(|bids| {
+                bids.range((lot_id, 0, Principal::management_canister())..)
+                    .take_while(|((this_lot_id, _, _), _)| *this_lot_id == lot_id)
+                    .map(|((_, bid_counter, _), bid)| {
+                        let encrypted_bid = match bid {
+                            Bid::Encrypted(encrypted_bid) => encrypted_bid,
+                            Bid::Decrypted(_) => panic!("bug: decrypted bid in a closed lot"),
+                        };
+                        (bid_counter, encrypted_bid)
+                    })
+                    .collect()
+            });
 
         let decrypted_bids = decrypt_bids(lot_id, encrypted_bids, root_ibe_public_key).await;
 
@@ -234,10 +241,12 @@ async fn close_one_lot_if_any_is_open() {
         };
 
         BIDS_ON_LOTS.with_borrow_mut(|bids| {
-            for decrypted_bid in decrypted_bids {
+            for (bid_counter, decrypted_bid) in
+                bid_counters.into_iter().zip(decrypted_bids.into_iter())
+            {
                 // replace the encrypted bid with the decrypted bid
                 bids.insert(
-                    (lot_id, decrypted_bid.bidder),
+                    (lot_id, bid_counter, decrypted_bid.bidder),
                     Bid::Decrypted(decrypted_bid),
                 );
             }

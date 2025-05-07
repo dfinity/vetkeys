@@ -2,9 +2,12 @@ use candid::{CandidType, Principal};
 use ic_cdk::api::management_canister::main::CanisterId;
 use ic_stable_structures::{storable::Bound, Storable};
 use serde::{Deserialize, Serialize};
+use serde_bytes::ByteBuf;
 use std::borrow::Cow;
 
 pub type LotId = u128;
+pub type VetKeyPublicKey = ByteBuf;
+pub type BidCounter = u128;
 
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
 pub struct EncryptedBid {
