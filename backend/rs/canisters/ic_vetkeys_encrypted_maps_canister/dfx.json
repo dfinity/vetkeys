@@ -15,6 +15,10 @@
     "local": {
       "bind": "localhost:8000",
       "type": "ephemeral"
+    },
+    "shared": {
+      "bind": "localhost:8000",
+      "type": "persistent"
     }
   }
 }
