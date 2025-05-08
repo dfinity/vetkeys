@@ -10,28 +10,6 @@ compile-wasm:
 extract-candid: compile-wasm
 	candid-extractor $(ROOT_DIR)/target/wasm32-unknown-unknown/release/ic_vetkeys_manager_canister.wasm > ic_vetkeys_manager_canister.did
 
-.PHONY: compile-wasm-test
-.SILENT: compile-wasm-test
-compile-wasm-test:
-	cargo build --release --target wasm32-unknown-unknown --features expose-testing-api
-
-.PHONY: deploy-test
-.SILENT: deploy-test
-deploy-test: compile-wasm-test
-	dfx canister create chainkey_testing_canister && \
-	dfx canister create ic_vetkeys_manager_canister && \
-	dfx build chainkey_testing_canister && \
-	dfx canister install chainkey_testing_canister && \
-	dfx canister install --wasm $(ROOT_DIR)/target/wasm32-unknown-unknown/release/ic_vetkeys_manager_canister.wasm ic_vetkeys_manager_canister
-
-.PHONY: mock
-.SILENT: mock
-mock: deploy-test
-	VETKD_MOCK_CANISTER_ID=$(shell dfx canister id chainkey_testing_canister); \
-	echo "Changing to using mock canister instead of management canister for vetkd to "$${VETKD_MOCK_CANISTER_ID}""; \
-    CMD="dfx canister call ic_vetkeys_manager_canister set_vetkd_testing_canister_id '(principal "\"$${VETKD_MOCK_CANISTER_ID}\"")'"; \
-	eval "$${CMD}"
-
 .PHONY: export-cmd
 .SILENT: export-cmd
 export-cmd:

@@ -21,9 +21,6 @@ thread_local! {
     static INBOXES: RefCell<StableBTreeMap<Principal, Inbox, Memory>> = RefCell::new(StableBTreeMap::init(
         MEMORY_MANAGER.with(|m| m.borrow().get(MemoryId::new(0))),
     ));
-
-    #[cfg(feature = "expose-testing-api")]
-    static CANISTER_ID_VETKD_MOCK: RefCell<Option<Principal>> = const { RefCell::new(None) };
 }
 
 static DOMAIN_SEPARATOR: &str = "basic_ibe_example_dapp";
@@ -62,7 +59,7 @@ async fn get_root_ibe_public_key() -> VetKeyPublicKey {
     let request = VetKDPublicKeyRequest {
         canister_id: None,
         context: DOMAIN_SEPARATOR.as_bytes().to_vec(),
-        key_id: bls12_381_test_key_1(),
+        key_id: bls12_381_dfx_test_key(),
     };
 
     let (result,) = ic_cdk::api::call::call::<_, (VetKDPublicKeyReply,)>(
@@ -83,7 +80,7 @@ async fn get_my_encrypted_ibe_key(transport_key: TransportPublicKey) -> Encrypte
     let request = VetKDDeriveKeyRequest {
         input: caller.as_ref().to_vec(),
         context: DOMAIN_SEPARATOR.as_bytes().to_vec(),
-        key_id: bls12_381_test_key_1(),
+        key_id: bls12_381_dfx_test_key(),
         transport_public_key: transport_key.into_vec(),
     };
 
@@ -119,29 +116,15 @@ fn remove_my_message_by_index(message_index: usize) -> Result<(), String> {
     })
 }
 
-fn bls12_381_test_key_1() -> VetKDKeyId {
+fn bls12_381_dfx_test_key() -> VetKDKeyId {
     VetKDKeyId {
         curve: VetKDCurve::Bls12_381_G2,
-        name: "insecure_test_key_1".to_string(),
+        name: "dfx_test_key".to_string(),
     }
 }
 
 fn vetkd_system_api_canister_id() -> CanisterId {
-    #[cfg(feature = "expose-testing-api")]
-    {
-        if let Some(canister_id) = CANISTER_ID_VETKD_MOCK.with(|cell| cell.borrow().clone()) {
-            return canister_id;
-        }
-    }
     CanisterId::from_str(CANISTER_ID_VETKD_SYSTEM_API).expect("failed to create canister ID")
-}
-
-#[cfg(feature = "expose-testing-api")]
-#[update]
-fn set_vetkd_testing_canister_id(vetkd_testing_canister: Principal) {
-    CANISTER_ID_VETKD_MOCK.with(|cell| {
-        *cell.borrow_mut() = Some(vetkd_testing_canister);
-    });
 }
 
 ic_cdk::export_candid!();

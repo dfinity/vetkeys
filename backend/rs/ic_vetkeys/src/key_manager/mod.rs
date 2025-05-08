@@ -33,9 +33,6 @@ use ic_stable_structures::{DefaultMemoryImpl, StableBTreeMap, StableCell, Storab
 use std::future::Future;
 use std::str::FromStr;
 
-#[cfg(feature = "expose-testing-api")]
-use std::cell::RefCell;
-
 use crate::vetkd_api_types::{
     VetKDCurve, VetKDDeriveKeyReply, VetKDDeriveKeyRequest, VetKDKeyId, VetKDPublicKeyReply,
     VetKDPublicKeyRequest,
@@ -52,11 +49,6 @@ pub type VetKey = ByteBuf;
 pub type Owner = Principal;
 pub type Caller = Principal;
 pub type KeyId = (Owner, KeyName);
-
-#[cfg(feature = "expose-testing-api")]
-thread_local! {
-    static VETKD_TESTING_CANISTER_ID: RefCell<Option<Principal>> = const { RefCell::new(None) };
-}
 
 type Memory = VirtualMemory<DefaultMemoryImpl>;
 
@@ -128,7 +120,7 @@ impl<T: AccessControl> KeyManager<T> {
         let request = VetKDPublicKeyRequest {
             canister_id: None,
             context: self.domain_separator.get().to_bytes().to_vec(),
-            key_id: bls12_381_test_key_1(),
+            key_id: bls12_381_dfx_test_key(),
         };
 
         let future = ic_cdk::api::call::call::<_, (VetKDPublicKeyReply,)>(
@@ -157,14 +149,15 @@ impl<T: AccessControl> KeyManager<T> {
         let request = VetKDDeriveKeyRequest {
             input: key_id_to_vetkd_input(key_id.0, key_id.1.as_ref()),
             context: self.domain_separator.get().to_bytes().to_vec(),
-            key_id: bls12_381_test_key_1(),
+            key_id: bls12_381_dfx_test_key(),
             transport_public_key: transport_key.into(),
         };
 
-        let future = ic_cdk::api::call::call::<_, (VetKDDeriveKeyReply,)>(
+        let future = ic_cdk::api::call::call_with_payment128::<_, (VetKDDeriveKeyReply,)>(
             vetkd_system_api_canister_id(),
             "vetkd_derive_key",
             (request,),
+            26_153_846_153,
         );
 
         Ok(future.map(|call_result| {
@@ -264,20 +257,14 @@ impl<T: AccessControl> KeyManager<T> {
     }
 }
 
-fn bls12_381_test_key_1() -> VetKDKeyId {
+fn bls12_381_dfx_test_key() -> VetKDKeyId {
     VetKDKeyId {
         curve: VetKDCurve::Bls12_381_G2,
-        name: "insecure_test_key_1".to_string(),
+        name: "dfx_test_key".to_string(),
     }
 }
 
 fn vetkd_system_api_canister_id() -> CanisterId {
-    #[cfg(feature = "expose-testing-api")]
-    {
-        if let Some(canister_id) = VETKD_TESTING_CANISTER_ID.with(|cell| cell.borrow().clone()) {
-            return canister_id;
-        }
-    }
     CanisterId::from_str(VETKD_SYSTEM_API_CANISTER_ID).expect("failed to create canister ID")
 }
 
@@ -287,13 +274,6 @@ pub fn key_id_to_vetkd_input(principal: Principal, key_name: &[u8]) -> Vec<u8> {
     vetkd_input.extend(principal.as_slice());
     vetkd_input.extend(key_name);
     vetkd_input
-}
-
-#[cfg(feature = "expose-testing-api")]
-pub fn set_vetkd_testing_canister_id(canister_id: Principal) {
-    VETKD_TESTING_CANISTER_ID.with(|cell| {
-        *cell.borrow_mut() = Some(canister_id);
-    });
 }
 
 #[cfg(test)]

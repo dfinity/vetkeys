@@ -33,6 +33,3 @@ pocket-ic = { workspace = true }
 rand = { workspace = true }
 rand_chacha = { workspace = true }
 strum = "0.26.3"
-
-[features]
-expose-testing-api = []

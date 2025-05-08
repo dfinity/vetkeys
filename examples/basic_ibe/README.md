@@ -37,8 +37,6 @@ Run the local deployment script, which starts the local development environment 
 bash deploy_locally.sh
 ```
 
-Note that currently in a local deployment, the [chainkey *testing* canister](https://github.com/dfinity/chainkey-testing-canister) is used to mock the VetKD protocol.
-
 ## Example Components
 
 ### Backend
