@@ -51,12 +51,6 @@ pub struct SendMessageRequest {
 }
 
 #[derive(CandidType, Deserialize, Clone, Debug)]
-pub struct GetEncryptedIbeKeyRequest {
-    #[serde(with = "serde_bytes")]
-    pub public_transport_key: Vec<u8>,
-}
-
-#[derive(CandidType, Deserialize, Clone, Debug)]
 pub enum VetKDCurve {
     #[serde(rename = "bls12_381_g2")]
     #[allow(non_camel_case_types)]
