@@ -15,7 +15,7 @@ function ids(): [Ed25519KeyIdentity, Ed25519KeyIdentity] {
 }
 
 async function newEncryptedMaps(id: Ed25519KeyIdentity): Promise<EncryptedMaps> {
-  const host = 'http://localhost:8000';
+  const host = 'http://localhost:4943';
   const agent = await HttpAgent.create({ fetch, host, identity: id, shouldFetchRootKey: true });
   const canisterId = process.env.CANISTER_ID_IC_VETKEYS_ENCRYPTED_MAPS_CANISTER as string;
   return new EncryptedMaps(new DefaultEncryptedMapsClient(agent, canisterId));
