@@ -2,7 +2,6 @@ use candid::{CandidType, Principal};
 use ic_cdk::api::management_canister::main::CanisterId;
 use ic_stable_structures::{storable::Bound, Storable};
 use serde::{Deserialize, Serialize};
-use serde_with::serde_as;
 use std::borrow::Cow;
 
 pub const MAX_MESSAGES_PER_INBOX: usize = 1000;
@@ -59,8 +58,9 @@ pub struct GetEncryptedIbeKeyRequest {
 
 #[derive(CandidType, Deserialize, Clone, Debug)]
 pub enum VetKDCurve {
-    #[serde(rename = "bls12_381")]
-    Bls12_381,
+    #[serde(rename = "bls12_381_g2")]
+    #[allow(non_camel_case_types)]
+    Bls12_381_G2,
 }
 
 #[derive(CandidType, Deserialize, Clone, Debug)]
@@ -69,12 +69,11 @@ pub(crate) struct VetKDKeyId {
     pub name: String,
 }
 
-#[serde_as]
 #[derive(CandidType, Deserialize)]
 pub(crate) struct VetKDPublicKeyRequest {
     pub canister_id: Option<CanisterId>,
-    #[serde_as(as = "Vec<serde_with::Bytes>")]
-    pub derivation_path: Vec<Vec<u8>>,
+    #[serde(with = "serde_bytes")]
+    pub context: Vec<u8>,
     pub key_id: VetKDKeyId,
 }
 
@@ -84,20 +83,19 @@ pub(crate) struct VetKDPublicKeyReply {
     pub public_key: Vec<u8>,
 }
 
-#[serde_as]
 #[derive(CandidType, Deserialize, Clone, Debug)]
-pub(crate) struct VetKDEncryptedKeyRequest {
-    #[serde_as(as = "Vec<serde_with::Bytes>")]
-    pub public_key_derivation_path: Vec<Vec<u8>>,
+pub(crate) struct VetKDDeriveKeyRequest {
     #[serde(with = "serde_bytes")]
-    pub derivation_id: Vec<u8>,
+    pub input: Vec<u8>,
+    #[serde(with = "serde_bytes")]
+    pub context: Vec<u8>,
+    #[serde(with = "serde_bytes")]
+    pub transport_public_key: Vec<u8>,
     pub key_id: VetKDKeyId,
-    #[serde(with = "serde_bytes")]
-    pub encryption_public_key: Vec<u8>,
 }
 
 #[derive(CandidType, Deserialize)]
-pub(crate) struct VetKDEncryptedKeyReply {
+pub(crate) struct VetKDDeriveKeyReply {
     #[serde(with = "serde_bytes")]
     pub encrypted_key: Vec<u8>,
 }

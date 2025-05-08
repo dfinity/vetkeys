@@ -37,7 +37,7 @@ use std::str::FromStr;
 use std::cell::RefCell;
 
 use crate::vetkd_api_types::{
-    VetKDCurve, VetKDEncryptedKeyReply, VetKDEncryptedKeyRequest, VetKDKeyId, VetKDPublicKeyReply,
+    VetKDCurve, VetKDDeriveKeyReply, VetKDDeriveKeyRequest, VetKDKeyId, VetKDPublicKeyReply,
     VetKDPublicKeyRequest,
 };
 
@@ -127,7 +127,7 @@ impl<T: AccessControl> KeyManager<T> {
 
         let request = VetKDPublicKeyRequest {
             canister_id: None,
-            derivation_path: vec![self.domain_separator.get().to_bytes().to_vec()],
+            context: self.domain_separator.get().to_bytes().to_vec(),
             key_id: bls12_381_test_key_1(),
         };
 
@@ -154,21 +154,21 @@ impl<T: AccessControl> KeyManager<T> {
 
         self.ensure_user_can_read(caller, key_id)?;
 
-        let request = VetKDEncryptedKeyRequest {
-            derivation_id: key_id_to_derivation_input(key_id.0, key_id.1.as_ref()),
-            public_key_derivation_path: vec![self.domain_separator.get().to_bytes().to_vec()],
+        let request = VetKDDeriveKeyRequest {
+            input: key_id_to_vetkd_input(key_id.0, key_id.1.as_ref()),
+            context: self.domain_separator.get().to_bytes().to_vec(),
             key_id: bls12_381_test_key_1(),
-            encryption_public_key: transport_key.into(),
+            transport_public_key: transport_key.into(),
         };
 
-        let future = ic_cdk::api::call::call::<_, (VetKDEncryptedKeyReply,)>(
+        let future = ic_cdk::api::call::call::<_, (VetKDDeriveKeyReply,)>(
             vetkd_system_api_canister_id(),
-            "vetkd_encrypted_key",
+            "vetkd_derive_key",
             (request,),
         );
 
         Ok(future.map(|call_result| {
-            let (reply,) = call_result.expect("call to vetkd_encrypted_key failed");
+            let (reply,) = call_result.expect("call to vetkd_derive_key failed");
             VetKey::from(reply.encrypted_key)
         }))
     }
@@ -266,7 +266,7 @@ impl<T: AccessControl> KeyManager<T> {
 
 fn bls12_381_test_key_1() -> VetKDKeyId {
     VetKDKeyId {
-        curve: VetKDCurve::Bls12_381,
+        curve: VetKDCurve::Bls12_381_G2,
         name: "insecure_test_key_1".to_string(),
     }
 }
@@ -281,12 +281,12 @@ fn vetkd_system_api_canister_id() -> CanisterId {
     CanisterId::from_str(VETKD_SYSTEM_API_CANISTER_ID).expect("failed to create canister ID")
 }
 
-pub fn key_id_to_derivation_input(principal: Principal, key_name: &[u8]) -> Vec<u8> {
-    let mut derivation_id = Vec::with_capacity(principal.as_slice().len() + 1 + key_name.len());
-    derivation_id.push(principal.as_slice().len() as u8);
-    derivation_id.extend(principal.as_slice());
-    derivation_id.extend(key_name);
-    derivation_id
+pub fn key_id_to_vetkd_input(principal: Principal, key_name: &[u8]) -> Vec<u8> {
+    let mut vetkd_input = Vec::with_capacity(principal.as_slice().len() + 1 + key_name.len());
+    vetkd_input.push(principal.as_slice().len() as u8);
+    vetkd_input.extend(principal.as_slice());
+    vetkd_input.extend(key_name);
+    vetkd_input
 }
 
 #[cfg(feature = "expose-testing-api")]

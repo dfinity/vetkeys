@@ -130,7 +130,7 @@ export class KeyManager {
             const derivedPublicKey = DerivedPublicKey.deserialize(
                 Uint8Array.from(verificationKey),
             );
-            const derivationId = new Uint8Array([
+            const input = new Uint8Array([
                 keyOwner.toUint8Array().length,
                 ...keyOwner.toUint8Array(),
                 ...vetkeyName,
@@ -139,7 +139,7 @@ export class KeyManager {
             const vetkey = encryptedDetkey.decryptAndVerify(
                 tsk,
                 derivedPublicKey,
-                derivationId,
+                input,
             );
             return vetkey.signatureBytes();
         }
