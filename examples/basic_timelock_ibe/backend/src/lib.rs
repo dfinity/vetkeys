@@ -33,7 +33,7 @@ thread_local! {
 
     static VETKD_ROOT_IBE_PUBLIC_KEY: RefCell<Option<VetKeyPublicKey>> =  const { RefCell::new(None) };
 
-    static BID_COUNTER: RefCell<BidCounter> = RefCell::new(0);
+    static BID_COUNTER: RefCell<BidCounter> = const { RefCell::new(0) };
 
     #[cfg(feature = "expose-testing-api")]
     static CANISTER_ID_VETKD_MOCK: RefCell<Option<Principal>> = const { RefCell::new(None) };
@@ -178,8 +178,7 @@ fn place_bid(lot_id: u128, encrypted_amount: Vec<u8>) -> Result<(), String> {
         if let Some((existing_bid_key, _existing_bid)) = bids
             .range((lot_id, 0, Principal::management_canister())..)
             .take_while(|((this_lot_id, _, _), _)| *this_lot_id == lot_id)
-            .filter(|((_, _, this_bidder), _)| *this_bidder == bidder)
-            .next()
+            .find(|((_, _, this_bidder), _)| *this_bidder == bidder)
         {
             bids.remove(&existing_bid_key);
         }

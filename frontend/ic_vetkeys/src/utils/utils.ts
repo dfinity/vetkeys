@@ -1,10 +1,10 @@
-import { bls12_381 } from '@noble/curves/bls12-381';
-import { ProjPointType } from '@noble/curves/abstract/weierstrass';
-import { Fp, Fp2, Fp12 } from '@noble/curves/abstract/tower';
-import { hash_to_field } from '@noble/curves/abstract/hash-to-curve';
-import { shake256 } from '@noble/hashes/sha3';
-import { hkdf } from '@noble/hashes/hkdf';
-import { sha256 } from '@noble/hashes/sha256';
+import { bls12_381 } from "@noble/curves/bls12-381";
+import { ProjPointType } from "@noble/curves/abstract/weierstrass";
+import { Fp, Fp2, Fp12 } from "@noble/curves/abstract/tower";
+import { hash_to_field, Opts } from "@noble/curves/abstract/hash-to-curve";
+import { shake256 } from "@noble/hashes/sha3";
+import { hkdf } from "@noble/hashes/hkdf";
+import { sha256 } from "@noble/hashes/sha256";
 
 export type G1Point = ProjPointType<Fp>;
 export type G2Point = ProjPointType<Fp2>;
@@ -32,7 +32,7 @@ export class TransportSecretKey {
      * For most applications, prefer using the static method random
      */
     constructor(sk: Uint8Array) {
-        if(sk.length !== 32) {
+        if (sk.length !== 32) {
             throw new Error("Invalid size for transport secret key");
         }
 
@@ -101,7 +101,9 @@ export class DerivedPublicKey {
      * the `vetkd_public_key` management canister interface.
      */
     static deserialize(bytes: Uint8Array): DerivedPublicKey {
-        return new DerivedPublicKey(bls12_381.G2.ProjectivePoint.fromHex(bytes));
+        return new DerivedPublicKey(
+            bls12_381.G2.ProjectivePoint.fromHex(bytes),
+        );
     }
 
     /**
@@ -121,12 +123,13 @@ export class DerivedPublicKey {
      * of `vetkd_public_key`
      */
     deriveKey(context: Uint8Array): DerivedPublicKey {
-        if(context.length === 0) {
+        if (context.length === 0) {
             return this;
         } else {
             const dst = "ic-vetkd-bls12-381-g2-context";
             const offset = hashToScalar(prefixWithLen(context), dst);
-            const g2_offset = bls12_381.G2.ProjectivePoint.BASE.multiply(offset);
+            const g2_offset =
+                bls12_381.G2.ProjectivePoint.BASE.multiply(offset);
             return new DerivedPublicKey(this.getPoint().add(g2_offset));
         }
     }
@@ -157,7 +160,6 @@ export class DerivedPublicKey {
     constructor(pk: G2Point) {
         this.#pk = pk;
     }
-
 }
 
 /**
@@ -168,13 +170,17 @@ export class DerivedPublicKey {
  */
 export function hashToScalar(input: Uint8Array, domainSep: string): bigint {
     const params = {
-      p: bls12_381.params.r,
-      m: 1,
-      DST: domainSep,
+        p: bls12_381.params.r,
+        m: 1,
+        DST: domainSep,
     };
 
-    // @ts-expect-error (https://github.com/paulmillr/noble-curves/issues/179)
-    const options = Object.assign({}, bls12_381.G2.CURVE.htfDefaults, params);
+    const options = Object.assign(
+        {},
+        // @ts-expect-error (https://github.com/paulmillr/noble-curves/issues/179)
+        bls12_381.G2.CURVE.htfDefaults,
+        params,
+    ) as Opts;
 
     const scalars = hash_to_field(input, 1, options);
 
@@ -185,10 +191,10 @@ export function hashToScalar(input: Uint8Array, domainSep: string): bigint {
  * @internal helper for data encoding
  */
 function asBytes(input: Uint8Array | string): Uint8Array {
-    if(typeof input === "string") {
-        return new TextEncoder().encode(input as string);
+    if (typeof input === "string") {
+        return new TextEncoder().encode(input);
     } else {
-        return input as Uint8Array;
+        return input;
     }
 }
 
@@ -202,7 +208,11 @@ function asBytes(input: Uint8Array | string): Uint8Array {
  * "my-app" is deriving two keys, one for usage "foo" and the other for
  * "bar". You might use as domain separators "my-app-foo" and "my-app-bar".
  */
-export function deriveSymmetricKey(input: Uint8Array, domainSep: Uint8Array | string, outputLength: number): Uint8Array {
+export function deriveSymmetricKey(
+    input: Uint8Array,
+    domainSep: Uint8Array | string,
+    outputLength: number,
+): Uint8Array {
     const no_salt = new Uint8Array();
     return hkdf(sha256, input, no_salt, domainSep, outputLength);
 }
@@ -212,13 +222,18 @@ export function deriveSymmetricKey(input: Uint8Array, domainSep: Uint8Array | st
  *
  * This is not normally needed by applications using VetKD.
  */
-export function augmentedHashToG1(pk: DerivedPublicKey, message: Uint8Array): G1Point {
+export function augmentedHashToG1(
+    pk: DerivedPublicKey,
+    message: Uint8Array,
+): G1Point {
     const domainSep = "BLS_SIG_BLS12381G1_XMD:SHA-256_SSWU_RO_AUG_";
     const pkbytes = pk.publicKeyBytes();
     const input = new Uint8Array([...pkbytes, ...message]);
-    const pt = bls12_381.G1.ProjectivePoint.fromAffine(bls12_381.G1.hashToCurve(input, {
-        DST: domainSep
-    }).toAffine());
+    const pt = bls12_381.G1.ProjectivePoint.fromAffine(
+        bls12_381.G1.hashToCurve(input, {
+            DST: domainSep,
+        }).toAffine(),
+    );
 
     return pt;
 }
@@ -263,7 +278,10 @@ export class VetKey {
      * "my-app" is deriving two keys, one for usage "foo" and the other for
      * "bar". You might use as domain separators "my-app-foo" and "my-app-bar".
      */
-    deriveSymmetricKey(domainSep: Uint8Array | string, outputLength: number): Uint8Array {
+    deriveSymmetricKey(
+        domainSep: Uint8Array | string,
+        outputLength: number,
+    ): Uint8Array {
         return deriveSymmetricKey(this.#bytes, domainSep, outputLength);
     }
 
@@ -319,7 +337,13 @@ export class DerivedKeyMaterial {
      */
     static async setup(bytes: Uint8Array) {
         const exportable = false;
-        const hkdf = await window.crypto.subtle.importKey("raw", bytes, "HKDF", exportable, ["deriveKey"]);
+        const hkdf = await window.crypto.subtle.importKey(
+            "raw",
+            bytes,
+            "HKDF",
+            exportable,
+            ["deriveKey"],
+        );
         return new DerivedKeyMaterial(hkdf);
     }
 
@@ -337,7 +361,9 @@ export class DerivedKeyMaterial {
      *
      * The CryptoKey is not exportable
      */
-    async deriveAesGcmCryptoKey(domainSep: Uint8Array | string): Promise<CryptoKey> {
+    async deriveAesGcmCryptoKey(
+        domainSep: Uint8Array | string,
+    ): Promise<CryptoKey> {
         const exportable = false;
 
         const algorithm = {
@@ -353,7 +379,13 @@ export class DerivedKeyMaterial {
             length: 32 * 8,
         };
 
-        return window.crypto.subtle.deriveKey(algorithm, this.#hkdf, gcmParams, exportable, ["encrypt", "decrypt"]);
+        return window.crypto.subtle.deriveKey(
+            algorithm,
+            this.#hkdf,
+            gcmParams,
+            exportable,
+            ["encrypt", "decrypt"],
+        );
     }
 
     /**
@@ -361,13 +393,22 @@ export class DerivedKeyMaterial {
      *
      * The GCM key is derived using HKDF with the provided domain separator
      */
-    async encryptMessage(message: Uint8Array | string, domainSep: Uint8Array | string): Promise<Uint8Array> {
+    async encryptMessage(
+        message: Uint8Array | string,
+        domainSep: Uint8Array | string,
+    ): Promise<Uint8Array> {
         const gcmKey = await this.deriveAesGcmCryptoKey(domainSep);
 
         // The nonce must never be reused with a given key
         const nonce = window.crypto.getRandomValues(new Uint8Array(12));
 
-        const ciphertext = new Uint8Array(await window.crypto.subtle.encrypt({ name: "AES-GCM", iv: nonce }, gcmKey, asBytes(message)));
+        const ciphertext = new Uint8Array(
+            await window.crypto.subtle.encrypt(
+                { name: "AES-GCM", iv: nonce },
+                gcmKey,
+                asBytes(message),
+            ),
+        );
 
         // Concatenate the nonce to the beginning of the ciphertext
         return new Uint8Array([...nonce, ...ciphertext]);
@@ -378,12 +419,17 @@ export class DerivedKeyMaterial {
      *
      * The GCM key is derived using HKDF with the provided domain separator
      */
-    async decryptMessage(message: Uint8Array, domainSep: Uint8Array | string): Promise<Uint8Array> {
+    async decryptMessage(
+        message: Uint8Array,
+        domainSep: Uint8Array | string,
+    ): Promise<Uint8Array> {
         const NonceLength = 12;
         const TagLength = 16;
 
-        if(message.length < NonceLength + TagLength) {
-            throw new Error("Invalid ciphertext, too short to possibly be valid");
+        if (message.length < NonceLength + TagLength) {
+            throw new Error(
+                "Invalid ciphertext, too short to possibly be valid",
+            );
         }
 
         const nonce = message.slice(0, NonceLength); // first 12 bytes are the nonce
@@ -392,11 +438,13 @@ export class DerivedKeyMaterial {
         const gcmKey = await this.deriveAesGcmCryptoKey(domainSep);
 
         try {
-            const ptext = await window.crypto.subtle.decrypt({ name: "AES-GCM", iv: nonce }, gcmKey, ciphertext);
+            const ptext = await window.crypto.subtle.decrypt(
+                { name: "AES-GCM", iv: nonce },
+                gcmKey,
+                ciphertext,
+            );
             return new Uint8Array(ptext);
-        }
-        /* eslint-disable @typescript-eslint/no-unused-vars */
-        catch(e) {
+        } catch {
             throw new Error("Decryption failed");
         }
     }
@@ -412,42 +460,60 @@ export class EncryptedVetKey {
      * managment canister interface
      */
     constructor(bytes: Uint8Array) {
-        if(bytes.length !== G1_BYTES + G2_BYTES + G1_BYTES) {
+        if (bytes.length !== G1_BYTES + G2_BYTES + G1_BYTES) {
             throw new Error("Invalid EncryptedVetKey serialization");
         }
 
-        this.#c1 = bls12_381.G1.ProjectivePoint.fromHex(bytes.subarray(0, G1_BYTES));
-        this.#c2 = bls12_381.G2.ProjectivePoint.fromHex(bytes.subarray(G1_BYTES, G1_BYTES + G2_BYTES));
-        this.#c3 = bls12_381.G1.ProjectivePoint.fromHex(bytes.subarray(G1_BYTES + G2_BYTES));
+        this.#c1 = bls12_381.G1.ProjectivePoint.fromHex(
+            bytes.subarray(0, G1_BYTES),
+        );
+        this.#c2 = bls12_381.G2.ProjectivePoint.fromHex(
+            bytes.subarray(G1_BYTES, G1_BYTES + G2_BYTES),
+        );
+        this.#c3 = bls12_381.G1.ProjectivePoint.fromHex(
+            bytes.subarray(G1_BYTES + G2_BYTES),
+        );
     }
 
     /**
      * Decrypt the encrypted key returning a VetKey
      */
-    decryptAndVerify(tsk: TransportSecretKey, dpk: DerivedPublicKey, input: Uint8Array): VetKey {
+    decryptAndVerify(
+        tsk: TransportSecretKey,
+        dpk: DerivedPublicKey,
+        input: Uint8Array,
+    ): VetKey {
         // Check that c1 and c2 have the same discrete logarithm, ie that e(c1, g2) == e(g1, c2)
 
         const g1 = bls12_381.G1.ProjectivePoint.BASE;
         const neg_g2 = bls12_381.G2.ProjectivePoint.BASE.negate();
         const gt_one = bls12_381.fields.Fp12.ONE;
 
-        const c1_c2 = bls12_381.pairingBatch([ { g1: this.#c1, g2: neg_g2 }, { g1: g1, g2: this.#c2 }]);
+        const c1_c2 = bls12_381.pairingBatch([
+            { g1: this.#c1, g2: neg_g2 },
+            { g1: g1, g2: this.#c2 },
+        ]);
 
-        if(!bls12_381.fields.Fp12.eql(c1_c2, gt_one)) {
+        if (!bls12_381.fields.Fp12.eql(c1_c2, gt_one)) {
             throw new Error("Invalid VetKey");
         }
 
         // Compute the purported vetkd k
-        const c1_tsk = this.#c1.multiply(bls12_381.G1.normPrivateKeyToScalar(tsk.getSecretKey()));
+        const c1_tsk = this.#c1.multiply(
+            bls12_381.G1.normPrivateKeyToScalar(tsk.getSecretKey()),
+        );
         const k = this.#c3.subtract(c1_tsk);
 
         // Verify that k is a valid BLS signature
         const msg = augmentedHashToG1(dpk, input);
-        const check = bls12_381.pairingBatch([{ g1: k, g2: neg_g2}, { g1: msg, g2: dpk.getPoint() }]);
+        const check = bls12_381.pairingBatch([
+            { g1: k, g2: neg_g2 },
+            { g1: msg, g2: dpk.getPoint() },
+        ]);
 
         const valid = bls12_381.fields.Fp12.eql(check, gt_one);
 
-        if(valid) {
+        if (valid) {
             return new VetKey(k);
         } else {
             throw new Error("Invalid VetKey");
@@ -465,35 +531,47 @@ enum IbeDomainSeparators {
 }
 
 // "IC IBE" (ASCII) plus 0x00 0x01 for future extensions/ciphersuites
-const IBE_HEADER = new Uint8Array([0x49, 0x43, 0x20, 0x49, 0x42, 0x45, 0x00, 0x01]);
+const IBE_HEADER = new Uint8Array([
+    0x49, 0x43, 0x20, 0x49, 0x42, 0x45, 0x00, 0x01,
+]);
 const IBE_HEADER_BYTES = 8;
 
-function hashToMask(header: Uint8Array, seed: Uint8Array, msg: Uint8Array): bigint {
+function hashToMask(
+    header: Uint8Array,
+    seed: Uint8Array,
+    msg: Uint8Array,
+): bigint {
     const ro_input = new Uint8Array([...header, ...seed, ...msg]);
     return hashToScalar(ro_input, IbeDomainSeparators.HashToMask);
 }
 
 function xorBuf(a: Uint8Array, b: Uint8Array): Uint8Array {
-    if(a.length !== b.length) {
+    if (a.length !== b.length) {
         throw new Error("xorBuf arguments should have the same length");
     }
     const c = new Uint8Array(a.length);
-    for(let i = 0; i < a.length; i++) {
+    for (let i = 0; i < a.length; i++) {
         c[i] = a[i] ^ b[i];
     }
     return c;
 }
 
 function maskSeed(seed: Uint8Array, t: Uint8Array): Uint8Array {
-    if(t.length !== 576) {
+    if (t.length !== 576) {
         throw new Error("Unexpected size for Gt element");
     }
-    const mask = deriveSymmetricKey(t, IbeDomainSeparators.MaskSeed, seed.length);
+    const mask = deriveSymmetricKey(
+        t,
+        IbeDomainSeparators.MaskSeed,
+        seed.length,
+    );
     return xorBuf(mask, seed);
 }
 
 function maskMsg(msg: Uint8Array, seed: Uint8Array): Uint8Array {
-    const domain_sep = IbeDomainSeparators.MaskMsg.concat(msg.length.toString());
+    const domain_sep = IbeDomainSeparators.MaskMsg.concat(
+        msg.length.toString(),
+    );
     const xof_seed = deriveSymmetricKey(seed, domain_sep, 32);
 
     const mask = shake256(xof_seed, { dkLen: msg.length });
@@ -512,7 +590,7 @@ function serializeGtElem(gt: Fp12): Uint8Array {
     for (let i = 0; i < 12; ++i) {
         const idx = shuffle[i];
         for (let j = 0; j < 48; ++j) {
-            bytes[48*i + j] = enc[48*idx + j];
+            bytes[48 * i + j] = enc[48 * idx + j];
         }
     }
 
@@ -521,14 +599,14 @@ function serializeGtElem(gt: Fp12): Uint8Array {
 
 function isEqual(x: Uint8Array, y: Uint8Array): boolean {
     if (x.length !== y.length) {
-        return false
+        return false;
     }
 
     let diff = 0;
     for (let i = 0; i < x.length; ++i) {
         diff |= x[i] ^ y[i];
     }
-    return (diff == 0);
+    return diff == 0;
 }
 
 const SEED_BYTES = 32;
@@ -547,23 +625,33 @@ export class IdentityBasedEncryptionCiphertext {
      */
     serialize(): Uint8Array {
         const c1bytes = this.#c1.toRawBytes(true);
-        return new Uint8Array([...this.#header, ...c1bytes, ...this.#c2, ...this.#c3]);
+        return new Uint8Array([
+            ...this.#header,
+            ...c1bytes,
+            ...this.#c2,
+            ...this.#c3,
+        ]);
     }
 
     /**
      * Deserialize an IBE ciphertext
      */
     static deserialize(bytes: Uint8Array): IdentityBasedEncryptionCiphertext {
-        if(bytes.length < IBE_HEADER_BYTES + G2_BYTES + SEED_BYTES) {
+        if (bytes.length < IBE_HEADER_BYTES + G2_BYTES + SEED_BYTES) {
             throw new Error("Invalid IBE ciphertext");
         }
 
         const header = bytes.subarray(0, IBE_HEADER_BYTES);
-        const c1 = bls12_381.G2.ProjectivePoint.fromHex(bytes.subarray(IBE_HEADER_BYTES, IBE_HEADER_BYTES + G2_BYTES));
-        const c2 = bytes.subarray(IBE_HEADER_BYTES + G2_BYTES, IBE_HEADER_BYTES + G2_BYTES + SEED_BYTES);
+        const c1 = bls12_381.G2.ProjectivePoint.fromHex(
+            bytes.subarray(IBE_HEADER_BYTES, IBE_HEADER_BYTES + G2_BYTES),
+        );
+        const c2 = bytes.subarray(
+            IBE_HEADER_BYTES + G2_BYTES,
+            IBE_HEADER_BYTES + G2_BYTES + SEED_BYTES,
+        );
         const c3 = bytes.subarray(IBE_HEADER_BYTES + G2_BYTES + SEED_BYTES);
 
-        if(!isEqual(header, IBE_HEADER)) {
+        if (!isEqual(header, IBE_HEADER)) {
             throw new Error("Unexpected header for IBE ciphertext");
         }
 
@@ -581,22 +669,26 @@ export class IdentityBasedEncryptionCiphertext {
      * derived public key and identity will be able to decrypt this
      * message.
      */
-    static encrypt(dpk: DerivedPublicKey,
-                   identity: Uint8Array,
-                   msg: Uint8Array,
-                   seed: Uint8Array): IdentityBasedEncryptionCiphertext {
-
-        if(seed.length !== SEED_BYTES) {
+    static encrypt(
+        dpk: DerivedPublicKey,
+        identity: Uint8Array,
+        msg: Uint8Array,
+        seed: Uint8Array,
+    ): IdentityBasedEncryptionCiphertext {
+        if (seed.length !== SEED_BYTES) {
             throw new Error("IBE seed must be exactly SEED_BYTES long");
         }
 
         const header = IBE_HEADER;
         const t = hashToMask(header, seed, msg);
         const pt = augmentedHashToG1(dpk, identity);
-        const tsig = bls12_381.fields.Fp12.pow(bls12_381.pairing(pt, dpk.getPoint()), t);
+        const tsig = bls12_381.fields.Fp12.pow(
+            bls12_381.pairing(pt, dpk.getPoint()),
+            t,
+        );
 
         const c1 = bls12_381.G2.ProjectivePoint.BASE.multiply(t);
-        const c2 = maskSeed(seed, serializeGtElem(tsig))
+        const c2 = maskSeed(seed, serializeGtElem(tsig));
         const c3 = maskMsg(msg, seed);
 
         return new IdentityBasedEncryptionCiphertext(header, c1, c2, c3);
@@ -618,7 +710,7 @@ export class IdentityBasedEncryptionCiphertext {
 
         const valid = isEqual(g2_t.toRawBytes(true), this.#c1.toRawBytes(true));
 
-        if(valid) {
+        if (valid) {
             return msg;
         } else {
             throw new Error("Decryption failed");
@@ -628,7 +720,12 @@ export class IdentityBasedEncryptionCiphertext {
     /**
      * Private constructor
      */
-    private constructor(header: Uint8Array, c1: G2Point, c2: Uint8Array, c3: Uint8Array) {
+    private constructor(
+        header: Uint8Array,
+        c1: G2Point,
+        c2: Uint8Array,
+        c3: Uint8Array,
+    ) {
         this.#header = header;
         this.#c1 = c1;
         this.#c2 = c2;

@@ -10,11 +10,5 @@
       "candid": "https://github.com/dfinity/chainkey-testing-canister/releases/download/v0.2.0/chainkey_testing_canister.did",
       "wasm": "https://github.com/dfinity/chainkey-testing-canister/releases/download/v0.2.0/chainkey_testing_canister.wasm.gz"
     }
-  },
-  "networks": {
-    "local": {
-      "bind": "localhost:8000",
-      "type": "ephemeral"
-    }
   }
 }
