@@ -557,7 +557,7 @@ export class EncryptedMaps {
         } else {
             const encryptedKeyBytes = Uint8Array.from(encryptedVetkey.Ok.inner);
             const verificationKey = await this.getVetkeyVerificationKey();
-            const derivationId = new Uint8Array([
+            const input = new Uint8Array([
                 mapOwner.toUint8Array().length,
                 ...mapOwner.toUint8Array(),
                 ...mapName,
@@ -569,7 +569,7 @@ export class EncryptedMaps {
             const vetKey = encryptedVetKey.decryptAndVerify(
                 tsk,
                 derivedPublicKey,
-                derivationId,
+                input,
             );
             return await vetKey.asDerivedKeyMaterial();
         }

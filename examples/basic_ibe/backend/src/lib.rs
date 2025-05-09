@@ -61,7 +61,7 @@ fn send_message(request: SendMessageRequest) -> Result<(), String> {
 async fn get_root_ibe_public_key() -> VetKeyPublicKey {
     let request = VetKDPublicKeyRequest {
         canister_id: None,
-        derivation_path: vec![DOMAIN_SEPARATOR.as_bytes().to_vec()],
+        context: DOMAIN_SEPARATOR.as_bytes().to_vec(),
         key_id: bls12_381_test_key_1(),
     };
 
@@ -80,20 +80,20 @@ async fn get_root_ibe_public_key() -> VetKeyPublicKey {
 /// Retrieves the caller's encrypted private IBE key for message decryption.
 async fn get_my_encrypted_ibe_key(transport_key: TransportPublicKey) -> EncryptedVetKey {
     let caller = ic_cdk::caller();
-    let request = VetKDEncryptedKeyRequest {
-        derivation_id: caller.as_ref().to_vec(),
-        public_key_derivation_path: vec![DOMAIN_SEPARATOR.as_bytes().to_vec()],
+    let request = VetKDDeriveKeyRequest {
+        input: caller.as_ref().to_vec(),
+        context: DOMAIN_SEPARATOR.as_bytes().to_vec(),
         key_id: bls12_381_test_key_1(),
-        encryption_public_key: transport_key.into_vec(),
+        transport_public_key: transport_key.into_vec(),
     };
 
-    let (result,) = ic_cdk::api::call::call::<_, (VetKDEncryptedKeyReply,)>(
+    let (result,) = ic_cdk::api::call::call::<_, (VetKDDeriveKeyReply,)>(
         vetkd_system_api_canister_id(),
-        "vetkd_encrypted_key",
+        "vetkd_derive_key",
         (request,),
     )
     .await
-    .expect("call to vetkd_encrypted_key failed");
+    .expect("call to vetkd_derive_key failed");
 
     EncryptedVetKey::from(result.encrypted_key)
 }
@@ -121,7 +121,7 @@ fn remove_my_message_by_index(message_index: usize) -> Result<(), String> {
 
 fn bls12_381_test_key_1() -> VetKDKeyId {
     VetKDKeyId {
-        curve: VetKDCurve::Bls12_381,
+        curve: VetKDCurve::Bls12_381_G2,
         name: "insecure_test_key_1".to_string(),
     }
 }

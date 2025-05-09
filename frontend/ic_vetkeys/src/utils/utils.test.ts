@@ -95,7 +95,7 @@ test("protocol flow with precomputed data", () => {
         "911969d56f42875d37a92d7eaa5d43293eff9f9a20ba4c60523e70a695eaeadeb721659b52a49d74e67841ad19033a12",
     );
 
-    const did = hexToBytes("6d657373616765");
+    const identity = hexToBytes("6d657373616765");
 
     const dpk = DerivedPublicKey.deserialize(
         hexToBytes(
@@ -109,27 +109,11 @@ test("protocol flow with precomputed data", () => {
         ),
     );
 
-    const vetkd = ek.decryptAndVerify(tsk, dpk, did);
-
-    assertEqual(
-        bytesToHex(vetkd.signatureBytes()),
-        "987db5406ce297e729c8564a106dc896943b00216a095fe9c5d32a16a330c02eb80e6f468ede83cde5462b5145b58f65",
-    );
-
-    const symKey = vetkd.deriveSymmetricKey(
-        "QUUX-V01-CS02-with-expander-SHA256-128",
-        32,
-    );
-    assertEqual(
-        bytesToHex(symKey),
-        "ed2984e1a5eca6d49294e96db7f31b9f47fb3ae5f48383926f16811ffb9fd991",
-    );
-
     const message = hexToBytes("f00f11");
     const seed = new Uint8Array(32);
     const ibe = IdentityBasedEncryptionCiphertext.encrypt(
         dpk,
-        did,
+        identity,
         message,
         seed,
     );
@@ -143,8 +127,24 @@ test("protocol flow with precomputed data", () => {
         ibe.serialize(),
     );
 
+    const vetkd = ek.decryptAndVerify(tsk, dpk, identity);
+
+    assertEqual(
+        bytesToHex(vetkd.signatureBytes()),
+        "987db5406ce297e729c8564a106dc896943b00216a095fe9c5d32a16a330c02eb80e6f468ede83cde5462b5145b58f65",
+    );
+
     const rec = ibeRec.decrypt(vetkd);
     assertEqual(bytesToHex(rec), "f00f11");
+
+    const symKey = vetkd.deriveSymmetricKey(
+        "QUUX-V01-CS02-with-expander-SHA256-128",
+        32,
+    );
+    assertEqual(
+        bytesToHex(symKey),
+        "ed2984e1a5eca6d49294e96db7f31b9f47fb3ae5f48383926f16811ffb9fd991",
+    );
 });
 
 test("hash to scalar", () => {

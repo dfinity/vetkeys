@@ -244,7 +244,7 @@ export function augmentedHashToG1(
  * This is the end product of executing the VetKD protocol.
  *
  * Internally a VetKey is a valid BLS signature for the bytestring
- * `derivation_id` which provided when calling the `vetkd_derive_encrypted_key`
+ * `input` which provided when calling the `vetkd_derive_encrypted_key`
  * management canister interface.
  *
  * For certain usages, such as a beacon, the VetKey is actually used directly.
@@ -481,7 +481,7 @@ export class EncryptedVetKey {
     decryptAndVerify(
         tsk: TransportSecretKey,
         dpk: DerivedPublicKey,
-        derivation_id: Uint8Array,
+        input: Uint8Array,
     ): VetKey {
         // Check that c1 and c2 have the same discrete logarithm, ie that e(c1, g2) == e(g1, c2)
 
@@ -505,7 +505,7 @@ export class EncryptedVetKey {
         const k = this.#c3.subtract(c1_tsk);
 
         // Verify that k is a valid BLS signature
-        const msg = augmentedHashToG1(dpk, derivation_id);
+        const msg = augmentedHashToG1(dpk, input);
         const check = bls12_381.pairingBatch([
             { g1: k, g2: neg_g2 },
             { g1: msg, g2: dpk.getPoint() },
@@ -666,12 +666,12 @@ export class IdentityBasedEncryptionCiphertext {
      * or for any other purposes, compromises the security of the IBE scheme.
      *
      * Any user who is able to retrieve the VetKey for the specified
-     * derived public key and derivation_id will be able to decrypt
-     * this message.
+     * derived public key and identity will be able to decrypt this
+     * message.
      */
     static encrypt(
         dpk: DerivedPublicKey,
-        derivation_id: Uint8Array,
+        identity: Uint8Array,
         msg: Uint8Array,
         seed: Uint8Array,
     ): IdentityBasedEncryptionCiphertext {
@@ -681,7 +681,7 @@ export class IdentityBasedEncryptionCiphertext {
 
         const header = IBE_HEADER;
         const t = hashToMask(header, seed, msg);
-        const pt = augmentedHashToG1(dpk, derivation_id);
+        const pt = augmentedHashToG1(dpk, identity);
         const tsig = bls12_381.fields.Fp12.pow(
             bls12_381.pairing(pt, dpk.getPoint()),
             t,
