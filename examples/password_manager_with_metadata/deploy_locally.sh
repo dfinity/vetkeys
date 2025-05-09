@@ -6,7 +6,7 @@ set -e
 dfx --version >> /dev/null
 
 # Run `dfx` if it is not already running.
-dfx ping &> /dev/null || dfx start --background --clean --replica >> /dev/null
+dfx ping &> /dev/null || dfx start --background --clean >> /dev/null
 
 # Deploy the Internet Identity canister and export the environment variable of
 # the canister ID.
