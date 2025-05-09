@@ -26,7 +26,7 @@ A canister functionality for decrypting secrets can be detected by inspecting th
 ## Efficiency
 
 - **Reducing the Number of VetKeys for Decryption**: In the current implementation, the bids are encrypted with the unique public key corresponding to the bid id. This is not strictly necessary and can be optimized if there is a need. For example, the bids could be decrypted based on a timestamp, e.g., every minute. All bids that were closed in that minute would be decrypted with one VetKey. The required change would be to encrypt bids with a predefined timestamp as the public key identifier instead of the bid id.
-- **Public Key Retrieval**: Currently, the backend canister, upon first usage of the IBE public key, is making a call to the management canister to fetch this root public key. This key is then cached in the canister. The frontend then fetches the public key from the backend canister. A possible yet minor optimization would be to directly derive this key in the frontend (which can be found in the developer documentation), instead of making canister calls.
+- **Public Key Retrieval**: It is possible to use one public key to encrypt bids for multiple auction lots. The subkey derivation for a concrete lot can happen on the client side, i.e., in the frontend. It is already the case in this example. A further possible yet minor optimization would be to directly derive this key in the frontend or the backend instead of fetching it from the management canister, thus reducing the latency.
 
 ## Setup
 
