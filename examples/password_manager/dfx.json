@@ -18,11 +18,5 @@
         ],
         "type": "assets"
       }
-    },
-    "networks": {
-      "local": {
-        "bind": "localhost:8000",
-        "type": "ephemeral"
-      }
     }
   }

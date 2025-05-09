@@ -5,6 +5,9 @@ set -e
 # Check that `dfx` is installed.
 dfx --version >> /dev/null
 
+# Run `dfx` if it is not already running.
+dfx ping &> /dev/null || dfx start --background --clean >> /dev/null
+
 # Deploy the Internet Identity canister and export the environment variable of
 # the canister ID.
 dfx deps pull && dfx deps init && dfx deps deploy &&
@@ -12,8 +15,6 @@ dfx deps pull && dfx deps init && dfx deps deploy &&
 
 # Deploy the backend canister.
 pushd ../../backend/rs/canisters/ic_vetkeys_encrypted_maps_canister
-    # Run `dfx` if it is not already running.
-    dfx ping &> /dev/null || dfx start --background --clean >> /dev/null
     dfx deploy
 popd
 
