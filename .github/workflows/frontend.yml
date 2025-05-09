@@ -31,7 +31,6 @@ jobs:
           eval $(make export-cmd)
           popd
           pushd backend/rs/canisters/ic_vetkeys_manager_canister
-          dfx start --background
           make mock
           eval $(make export-cmd)
           popd
@@ -56,7 +55,6 @@ jobs:
           eval $(make export-cmd)
           popd
           pushd backend/rs/canisters/ic_vetkeys_manager_canister
-          dfx start --background
           make mock
           eval $(make export-cmd)
           popd
