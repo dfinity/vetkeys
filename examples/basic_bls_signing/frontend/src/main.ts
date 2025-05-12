@@ -4,10 +4,13 @@ import { Principal } from "@dfinity/principal";
 import { AuthClient } from "@dfinity/auth-client";
 import type { ActorSubclass } from "@dfinity/agent";
 import { _SERVICE } from "../../src/declarations/basic_bls_signing/basic_bls_signing.did";
+import { DerivedPublicKey, augmentedHashToG1 } from "ic_vetkeys";
+import { bls12_381 } from "@noble/curves/bls12-381";
 
 let myPrincipal: Principal | undefined = undefined;
 let authClient: AuthClient | undefined;
 let basicBlsSigningCanister: ActorSubclass<_SERVICE> | undefined;
+let rootPublicKey: DerivedPublicKey | undefined;
 
 function getBasicBlsSigningCanister(): ActorSubclass<_SERVICE> {
   if (basicBlsSigningCanister) return basicBlsSigningCanister;
@@ -201,9 +204,22 @@ document
   });
 
 async function listSignatures() {
+  console.log("if (!rootPublicKey)");
+  if (!rootPublicKey) {
+    console.log("Getting root public key");
+    const rootPublicKeyRaw =
+      await getBasicBlsSigningCanister().get_root_public_key();
+    rootPublicKey = DerivedPublicKey.deserialize(
+      Uint8Array.from(rootPublicKeyRaw),
+    );
+    console.log("Root public key:", rootPublicKey);
+  }
+
   try {
+    console.log("Listing signatures");
     const signatures =
       await getBasicBlsSigningCanister().get_published_signatures();
+    console.log("Signatures:", JSON.stringify(signatures));
     const signaturesDiv = document.getElementById("signatures")!;
     signaturesDiv.innerHTML = "";
 
@@ -233,9 +249,29 @@ async function listSignatures() {
 }
 
 // Placeholder verification function
-function verifySignature(_message: string, _signature: Uint8Array): boolean {
-  // TODO: Implement actual verification
-  return true;
+function verifySignature(message: string, signature: Uint8Array): boolean {
+  if (!rootPublicKey) {
+    throw new Error("Root public key not found");
+  }
+  const domainSepBytes = new TextEncoder().encode("basic_bls_signing_dapp");
+  const domainSetLength = domainSepBytes.length;
+  const context = new Uint8Array([
+    domainSetLength,
+    ...domainSepBytes,
+    ...myPrincipal!.toUint8Array(),
+  ]);
+
+  const signatureG1 = bls12_381.G1.ProjectivePoint.fromHex(signature);
+
+  const dpk = rootPublicKey.deriveKey(context);
+  const messageBytes = new TextEncoder().encode(message);
+  const msg = augmentedHashToG1(dpk, messageBytes);
+  const check = bls12_381.pairingBatch([
+    { g1: signatureG1, g2: bls12_381.G2.ProjectivePoint.BASE },
+    { g1: msg, g2: dpk.getPoint() },
+  ]);
+
+  return bls12_381.fields.Fp12.eql(check, bls12_381.fields.Fp12.ONE);
 }
 
 // Initialize auth

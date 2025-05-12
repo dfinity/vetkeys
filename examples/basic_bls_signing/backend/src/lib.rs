@@ -42,7 +42,7 @@ async fn sign_message(message: RawMessage) -> RawSignature {
         input: message.as_bytes().to_vec(),
         context: context.clone(),
         key_id: bls12_381_dfx_test_key(),
-        transport_public_key: transport_public_key,
+        transport_public_key,
     };
 
     let (VetKDDeriveKeyReply { encrypted_key },) =
@@ -90,13 +90,13 @@ fn publish_my_signature_no_verification(message: RawMessage, signature: RawSigna
 
 #[query]
 fn get_published_signatures() -> Vec<Signature> {
-    PUBLISHED_SIGNATURES.with_borrow(|log| log.iter().map(|s| s.clone()).collect())
+    PUBLISHED_SIGNATURES.with_borrow(|log| log.iter().collect())
 }
 
 #[query]
 async fn get_root_public_key() -> VetKeyPublicKey {
     match VETKD_ROOT_IBE_PUBLIC_KEY.with(|v| v.borrow().to_owned()) {
-        Some(root_ibe_public_key) => root_ibe_public_key.into(),
+        Some(root_ibe_public_key) => root_ibe_public_key,
         None => {
             let request = VetKDPublicKeyRequest {
                 canister_id: None,
@@ -104,11 +104,10 @@ async fn get_root_public_key() -> VetKeyPublicKey {
                 key_id: bls12_381_dfx_test_key(),
             };
 
-            let (result,) = ic_cdk::api::call::call_with_payment128::<_, (VetKDPublicKeyReply,)>(
+            let (result,) = ic_cdk::api::call::call::<_, (VetKDPublicKeyReply,)>(
                 CanisterId::from_str("aaaaa-aa").unwrap(),
                 "vetkd_public_key",
                 (request,),
-                26_153_846_153,
             )
             .await
             .expect("call to vetkd_public_key failed");
@@ -124,8 +123,8 @@ fn get_context(signer: Principal) -> Vec<u8> {
     const DOMAIN_SEPARATOR_LENGTH: u8 = DOMAIN_SEPARATOR.len() as u8;
     [DOMAIN_SEPARATOR_LENGTH]
         .into_iter()
-        .chain(DOMAIN_SEPARATOR.into_iter())
-        .chain(signer.as_ref().into_iter().cloned())
+        .chain(DOMAIN_SEPARATOR)
+        .chain(signer.as_ref().iter().cloned())
         .collect()
 }
 
