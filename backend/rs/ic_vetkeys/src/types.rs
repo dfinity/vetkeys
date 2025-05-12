@@ -101,6 +101,9 @@ pub trait AccessControl:
     fn owner_rights() -> Self;
 }
 
+/// Efficiently serializable and deserializable byte vector that is `Storable` with `ic_stable_structures`.
+/// See, e.g., https://mmapped.blog/posts/01-effective-rust-canisters#serde-bytes for more details regarding why `Vec<u8>` does not work out of the box.
+/// Also, we cannot use `serde_bytes::ByteBuf` directly because it is not `Storable`.
 #[derive(CandidType, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Clone, Debug)]
 pub struct ByteBuf {
     #[serde(with = "serde_bytes")]

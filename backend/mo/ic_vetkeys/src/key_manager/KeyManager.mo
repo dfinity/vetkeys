@@ -346,7 +346,7 @@ module {
     };
 
     // Helper function for BLS12-381 test key
-    func bls12_381TestKey1() : { curve : { #bls12_381 }; name : Text } {
-        { curve = #bls12_381; name = "insecure_test_key_1" };
+    func bls12_381TestKey1() : { curve : { #bls12_381_g2 }; name : Text } {
+        { curve = #bls12_381_g2; name = "dfx_test_key" };
     };
 };

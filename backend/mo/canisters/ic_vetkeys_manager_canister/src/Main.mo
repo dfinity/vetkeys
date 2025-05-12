@@ -4,24 +4,32 @@ import Principal "mo:base/Principal";
 import Text "mo:base/Text";
 import Blob "mo:base/Blob";
 import Result "mo:base/Result";
+import Array "mo:base/Array";
 
 actor {
     var keyManager = KeyManager.KeyManager<Types.AccessRights>("key_manager", Types.accessRightsOperations());
+    /// In this canister, we use the `ByteBuf` type to represent blobs. The reason is that we want to be consistent with the Rust canister implementation.
+    /// Unfortunately, the `Blob` type cannot be serialized/deserialized in the current Rust implementation efficiently without nesting it in another type.
     public type ByteBuf = { inner : Blob };
     public type Result<Ok, Err> = {
         #Ok : Ok;
         #Err : Err;
     };
 
-    public query (msg) func get_accessible_shared_key_ids() : async [(Principal, Blob)] {
-        keyManager.getAccessibleSharedKeyIds(msg.caller);
+    public query (msg) func get_accessible_shared_key_ids() : async [(Principal, ByteBuf)] {
+        Array.map<(Principal, Blob), (Principal, ByteBuf)>(
+            keyManager.getAccessibleSharedKeyIds(msg.caller),
+            func((principal, blob) : (Principal, Blob)) {
+                (principal, { inner = blob });
+            },
+        );
     };
 
     public query (msg) func get_shared_user_access_for_key(
         key_owner : Principal,
-        key_name : Blob,
+        key_name : ByteBuf,
     ) : async Result<[(Principal, Types.AccessRights)], Text> {
-        convertResult(keyManager.getSharedUserAccessForKey(msg.caller, (key_owner, key_name)));
+        convertResult(keyManager.getSharedUserAccessForKey(msg.caller, (key_owner, key_name.inner)));
     };
 
     public shared func get_vetkey_verification_key() : async ByteBuf {
@@ -64,11 +72,6 @@ actor {
         user : Principal,
     ) : async Result<?Types.AccessRights, Text> {
         convertResult(keyManager.removeUserRights(msg.caller, (key_owner, key_name.inner), user));
-    };
-
-    // Testing API
-    public func set_vetkd_testing_canister_id(vetkd_testing_canister : Principal) {
-        keyManager.setVetKDTestingCanister(Principal.toText(vetkd_testing_canister));
     };
 
     /// Convert to the result type compatible with Rust's `Result`
