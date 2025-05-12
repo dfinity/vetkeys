@@ -131,7 +131,7 @@ module {
                         transport_public_key = transportKey;
                     };
 
-                    let (reply) = await (actor ("aaaaa-aa") : VetkdSystemApi).vetkd_derive_key(request);
+                    let (reply) = await (with cycles = 26_153_846_153) (actor ("aaaaa-aa") : VetkdSystemApi).vetkd_derive_key(request);
                     #ok(reply.encrypted_key);
                 };
             };
