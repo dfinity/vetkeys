@@ -7,7 +7,7 @@ export const idlFactory = ({ IDL }) => {
   });
   return IDL.Service({
     'get_published_signatures' : IDL.Func([], [IDL.Vec(Signature)], ['query']),
-    'get_root_public_key' : IDL.Func([], [IDL.Vec(IDL.Nat8)], ['query']),
+    'get_root_public_key' : IDL.Func([], [IDL.Vec(IDL.Nat8)], []),
     'publish_my_signature_no_verification' : IDL.Func(
         [IDL.Text, IDL.Vec(IDL.Nat8)],
         [],

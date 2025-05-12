@@ -93,7 +93,7 @@ fn get_published_signatures() -> Vec<Signature> {
     PUBLISHED_SIGNATURES.with_borrow(|log| log.iter().collect())
 }
 
-#[query]
+#[update]
 async fn get_root_public_key() -> VetKeyPublicKey {
     match VETKD_ROOT_IBE_PUBLIC_KEY.with(|v| v.borrow().to_owned()) {
         Some(root_ibe_public_key) => root_ibe_public_key,
