@@ -101,6 +101,7 @@ button:focus-visible {
 #loginButton {
   background-color: #28a745;
   color: white;
+  min-width: 120px;
 }
 
 #loginButton:hover {
@@ -228,6 +229,16 @@ button:focus-visible {
   color: #dc3545;
 }
 
+.verification-status.valid {
+  color: #2ecc71;
+  font-weight: bold;
+}
+
+.verification-status.invalid {
+  color: #e74c3c;
+  font-weight: bold;
+}
+
 .principal {
   font-family: monospace;
   color: #a8a6a6;
@@ -239,11 +250,20 @@ button:focus-visible {
 }
 
 .principal-me::before {
-  content: "👤 ";
+  content: "ME";
+  background-color: #646cff;
+  color: white;
+  padding: 0.1rem 0.3rem;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  margin-right: 0.5rem;
 }
 
 .login-container {
+  display: flex;
+  justify-content: center;
   margin: 2rem 0;
+  width: 100%;
 }
 
 /* Responsive design */
@@ -312,4 +332,25 @@ button:focus-visible {
   .principal {
     color: #666;
   }
+}
+
+.no-signatures {
+  text-align: center;
+  padding: 2rem;
+  background-color: #1a1a1a;
+  border-radius: 8px;
+  margin: 1rem 0;
+}
+
+.no-signatures p {
+  color: #a8a6a6;
+  font-size: 1.1rem;
+  margin: 0;
+}
+
+.timestamp {
+  color: #a8a6a6;
+  font-size: 0.9rem;
+  margin-top: 0.5rem;
+  font-style: italic;
 }

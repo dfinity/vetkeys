@@ -39,7 +39,7 @@ function getBasicBlsSigningCanister(): ActorSubclass<_SERVICE> {
             identity: authClient.getIdentity(),
             host,
           },
-        }
+        },
   );
 
   return basicBlsSigningCanister;
@@ -121,11 +121,11 @@ document.querySelector<HTMLDivElement>("#app")!.innerHTML = `
     </div>
     <div id="signingActions" class="buttons" style="display: none;">
       <button id="signMessageButton">Sign Message</button>
-      <button id="customSignatureButton">Provide Custom Signature</button>
+      <button id="customSignatureButton">Add Custom Signature</button>
       <button id="listSignaturesButton">List Signatures</button>
     </div>
     <div id="customSignatureForm" style="display: none;">
-      <h3>Provide Custom Signature</h3>
+      <h3>Add Custom Signature</h3>
       <form id="submitSignatureForm">
         <div>
           <label for="message">Message</label>
@@ -157,12 +157,12 @@ document
         const signature =
           await getBasicBlsSigningCanister().sign_message(message);
         const publish = confirm(
-          "Signature generated successfully. Would you like to publish it?"
+          "Signature generated successfully. Would you like to publish it?",
         );
         if (publish) {
           await getBasicBlsSigningCanister().publish_my_signature_no_verification(
             message,
-            signature
+            signature,
           );
           alert("Signature published successfully!");
         }
@@ -195,11 +195,11 @@ document
 
     try {
       const signature = new Uint8Array(
-        signatureHex.match(/.{1,2}/g)!.map((byte) => parseInt(byte, 16))
+        signatureHex.match(/.{1,2}/g)!.map((byte) => parseInt(byte, 16)),
       );
       await getBasicBlsSigningCanister().publish_my_signature_no_verification(
         message,
-        signature
+        signature,
       );
       alert("Signature published successfully!");
       document.getElementById("customSignatureForm")!.style.display = "none";
@@ -209,54 +209,66 @@ document
   });
 
 async function listSignatures() {
-  console.log("if (!rootPublicKey)");
   if (!rootPublicKey) {
-    console.log("Getting root public key");
     const rootPublicKeyRaw =
       await getBasicBlsSigningCanister().get_root_public_key();
     rootPublicKey = DerivedPublicKey.deserialize(
-      Uint8Array.from(rootPublicKeyRaw)
+      Uint8Array.from(rootPublicKeyRaw),
     );
-    console.log("Root public key:", rootPublicKey);
   }
 
-  try {
-    console.log("Listing signatures");
-    const signatures =
-      await getBasicBlsSigningCanister().get_published_signatures();
-    const signaturesDiv = document.getElementById("signatures")!;
-    signaturesDiv.innerHTML = "";
+  const signatures =
+    await getBasicBlsSigningCanister().get_published_signatures();
+  const signaturesDiv = document.getElementById("signatures")!;
+  signaturesDiv.innerHTML = "";
 
-    signatures.forEach((signatureData) => {
-      const isMe =
-        myPrincipal && signatureData.signer.compareTo(myPrincipal) === "eq";
-      const signatureHex = Array.from(signatureData.signature)
-        .map((b) => b.toString(16).padStart(2, "0"))
-        .join("");
-
-      const signatureElement = document.createElement("div");
-      signatureElement.className = "signature";
-      signatureElement.innerHTML = `
-        <h5>Signed message: ${signatureData.message}</h5>
-        <p class="principal ${isMe ? "principal-me" : ""}">${signatureData.signer.toString()}</p>
-        <p class="signature-hex">${signatureHex}</p>
-        <p class="verification-status">Verification: ${verifySignature(signatureData.message, Uint8Array.from(signatureData.signature), signatureData.signer) ? "Valid" : "Invalid"}</p>
+  if (signatures.length === 0) {
+    signaturesDiv.innerHTML = `
+        <div class="no-signatures">
+          <p>No signatures have been published yet.</p>
+        </div>
       `;
-      signaturesDiv.appendChild(signatureElement);
-    });
+  } else {
+    signatures
+      .slice()
+      .reverse()
+      .forEach((signatureData) => {
+        const isMe =
+          myPrincipal && signatureData.signer.compareTo(myPrincipal) === "eq";
+        const signatureHex = Array.from(signatureData.signature)
+          .map((b) => b.toString(16).padStart(2, "0"))
+          .join("");
 
-    document.getElementById("signaturesList")!.style.display = "block";
-    document.getElementById("customSignatureForm")!.style.display = "none";
-  } catch (error) {
-    alert(`Error listing signatures: ${error}`);
+        // Convert nanoseconds to milliseconds and create a Date object
+        const timestamp = new Date(Number(signatureData.timestamp) / 1_000_000);
+        const formattedDate = timestamp.toLocaleString();
+
+        const signatureElement = document.createElement("div");
+        signatureElement.className = "signature";
+        const isValid = verifySignature(
+          signatureData.message,
+          Uint8Array.from(signatureData.signature),
+          signatureData.signer,
+        );
+        signatureElement.innerHTML = `
+          <h5>Signed message: ${signatureData.message}</h5>
+          <p class="principal ${isMe ? "principal-me" : ""}">${signatureData.signer.toString()}</p>
+          <p class="signature-hex">${signatureHex}</p>
+          <p class="verification-status ${isValid ? "valid" : "invalid"}">Verification: ${isValid ? "Valid" : "Invalid"}</p>
+          <p class="timestamp">Added: ${formattedDate}</p>
+        `;
+        signaturesDiv.appendChild(signatureElement);
+      });
   }
+
+  document.getElementById("signaturesList")!.style.display = "block";
+  document.getElementById("customSignatureForm")!.style.display = "none";
 }
 
-// Placeholder verification function
 function verifySignature(
   message: string,
   signature: Uint8Array,
-  signer: Principal
+  signer: Principal,
 ): boolean {
   if (!rootPublicKey) {
     throw new Error("Root public key not found");
@@ -268,26 +280,33 @@ function verifySignature(
     ...domainSepBytes,
     ...signer.toUint8Array(),
   ]);
-  console.log("Context: ", context.toString());
+  const signatureG1 = bls12_381.G1.ProjectivePoint.fromHex(signature);
+  const negG2 = bls12_381.G2.ProjectivePoint.BASE.negate();
+  const dpk = rootPublicKey.deriveKey(context);
+  console.log(
+    "message=",
+    message,
+    "signature=",
+    signature.toString(),
+    "signer=",
+    signer.toString(),
+    "context=",
+    context.toString(),
+    "rootPublicKey=",
+    rootPublicKey.getPoint().toHex(),
+    "dpk=",
+    dpk.getPoint().toHex(),
+  );
+  const messageBytes = new TextEncoder().encode(message);
+  const msg = augmentedHashToG1(dpk, messageBytes);
+  const check = bls12_381.pairingBatch([
+    { g1: signatureG1, g2: negG2 },
+    { g1: msg, g2: dpk.getPoint() },
+  ]);
 
-  try {
-    const signatureG1 = bls12_381.G1.ProjectivePoint.fromHex(signature);
-    const negG2 = bls12_381.G2.ProjectivePoint.BASE.negate();
+  const gtOne = bls12_381.fields.Fp12.ONE;
 
-    const dpk = rootPublicKey.deriveKey(context);
-    const messageBytes = new TextEncoder().encode(message);
-    const msg = augmentedHashToG1(dpk, messageBytes);
-    const check = bls12_381.pairingBatch([
-      { g1: signatureG1, g2: negG2 },
-      { g1: msg, g2: dpk.getPoint() },
-    ]);
-
-    const gtOne = bls12_381.fields.Fp12.ONE;
-
-    return bls12_381.fields.Fp12.eql(check, gtOne);
-  } catch {
-    return false;
-  }
+  return bls12_381.fields.Fp12.eql(check, gtOne);
 }
 
 // Initialize auth
