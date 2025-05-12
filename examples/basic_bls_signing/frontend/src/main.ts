@@ -1,3 +1,8 @@
+// Required to run `npm run dev`.
+if (!window.global) {
+  window.global = window;
+}
+
 import "./style.css";
 import { createActor } from "../../src/declarations/basic_bls_signing";
 import { Principal } from "@dfinity/principal";
@@ -210,7 +215,7 @@ async function listSignatures() {
     const rootPublicKeyRaw =
       await getBasicBlsSigningCanister().get_root_public_key();
     rootPublicKey = DerivedPublicKey.deserialize(
-      Uint8Array.from(rootPublicKeyRaw),
+      Uint8Array.from(rootPublicKeyRaw)
     );
     console.log("Root public key:", rootPublicKey);
   }
@@ -219,7 +224,6 @@ async function listSignatures() {
     console.log("Listing signatures");
     const signatures =
       await getBasicBlsSigningCanister().get_published_signatures();
-    console.log("Signatures:", JSON.stringify(signatures));
     const signaturesDiv = document.getElementById("signatures")!;
     signaturesDiv.innerHTML = "";
 
@@ -236,7 +240,7 @@ async function listSignatures() {
         <h5>Signed message: ${signatureData.message}</h5>
         <p class="principal ${isMe ? "principal-me" : ""}">${signatureData.signer.toString()}</p>
         <p class="signature-hex">${signatureHex}</p>
-        <p class="verification-status">Verification: ${verifySignature(signatureData.message, Uint8Array.from(signatureData.signature)) ? "Valid" : "Invalid"}</p>
+        <p class="verification-status">Verification: ${verifySignature(signatureData.message, Uint8Array.from(signatureData.signature), signatureData.signer) ? "Valid" : "Invalid"}</p>
       `;
       signaturesDiv.appendChild(signatureElement);
     });
@@ -249,7 +253,11 @@ async function listSignatures() {
 }
 
 // Placeholder verification function
-function verifySignature(message: string, signature: Uint8Array): boolean {
+function verifySignature(
+  message: string,
+  signature: Uint8Array,
+  signer: Principal
+): boolean {
   if (!rootPublicKey) {
     throw new Error("Root public key not found");
   }
@@ -258,20 +266,28 @@ function verifySignature(message: string, signature: Uint8Array): boolean {
   const context = new Uint8Array([
     domainSetLength,
     ...domainSepBytes,
-    ...myPrincipal!.toUint8Array(),
+    ...signer.toUint8Array(),
   ]);
+  console.log("Context: ", context.toString());
 
-  const signatureG1 = bls12_381.G1.ProjectivePoint.fromHex(signature);
+  try {
+    const signatureG1 = bls12_381.G1.ProjectivePoint.fromHex(signature);
+    const negG2 = bls12_381.G2.ProjectivePoint.BASE.negate();
 
-  const dpk = rootPublicKey.deriveKey(context);
-  const messageBytes = new TextEncoder().encode(message);
-  const msg = augmentedHashToG1(dpk, messageBytes);
-  const check = bls12_381.pairingBatch([
-    { g1: signatureG1, g2: bls12_381.G2.ProjectivePoint.BASE },
-    { g1: msg, g2: dpk.getPoint() },
-  ]);
+    const dpk = rootPublicKey.deriveKey(context);
+    const messageBytes = new TextEncoder().encode(message);
+    const msg = augmentedHashToG1(dpk, messageBytes);
+    const check = bls12_381.pairingBatch([
+      { g1: signatureG1, g2: negG2 },
+      { g1: msg, g2: dpk.getPoint() },
+    ]);
 
-  return bls12_381.fields.Fp12.eql(check, bls12_381.fields.Fp12.ONE);
+    const gtOne = bls12_381.fields.Fp12.ONE;
+
+    return bls12_381.fields.Fp12.eql(check, gtOne);
+  } catch {
+    return false;
+  }
 }
 
 // Initialize auth
