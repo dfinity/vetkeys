@@ -11,11 +11,6 @@
         }
       ]
     },
-    "chainkey_testing_canister": {
-      "type": "custom",
-      "candid": "https://github.com/dfinity/chainkey-testing-canister/releases/download/v0.2.0/chainkey_testing_canister.did",
-      "wasm": "https://github.com/dfinity/chainkey-testing-canister/releases/download/v0.2.0/chainkey_testing_canister.wasm.gz"
-    },
     "internet-identity": {
       "type": "pull",
       "id": "rdmx6-jaaaa-aaaaa-aaadq-cai"

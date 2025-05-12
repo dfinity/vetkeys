@@ -19,6 +19,3 @@ ic-stable-structures = { workspace = true }
 ic-vetkeys = { path = "../../../backend/rs/ic_vetkeys" }
 serde = { workspace = true }
 serde_cbor = { workspace = true }
-
-[features]
-expose-testing-api = ["ic-vetkeys/expose-testing-api"]

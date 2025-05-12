@@ -26,7 +26,3 @@ pocket-ic = { workspace = true }
 rand = { workspace = true }
 rand_chacha = { workspace = true }
 reqwest = "0.12.12"
-
-[features]
-expose-testing-api = ["ic-vetkeys/expose-testing-api"]
-

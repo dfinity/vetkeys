@@ -51,4 +51,4 @@ npm run dev
 
 ## Additional Resources
 
-- **[Basic Password Manager](../password_manager/README.md)** - If you want a simpler example without metadata.
+- **[Basic Password Manager](../password_manager/)** - If you want a simpler example without metadata.

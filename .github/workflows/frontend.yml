@@ -25,15 +25,6 @@ jobs:
         run: |
           set -eExuo pipefail
           npm install
-          pushd backend/rs/canisters/ic_vetkeys_encrypted_maps_canister
-          dfx start --background
-          make mock
-          eval $(make export-cmd)
-          popd
-          pushd backend/rs/canisters/ic_vetkeys_manager_canister
-          make mock
-          eval $(make export-cmd)
-          popd
           cd frontend/ic_vetkeys
           npm run build
           npm run test
@@ -49,15 +40,6 @@ jobs:
         run: |
           set -eExuo pipefail
           npm install
-          pushd backend/rs/canisters/ic_vetkeys_encrypted_maps_canister
-          dfx start --background
-          make mock
-          eval $(make export-cmd)
-          popd
-          pushd backend/rs/canisters/ic_vetkeys_manager_canister
-          make mock
-          eval $(make export-cmd)
-          popd
           cd frontend/ic_vetkeys
           npm run build
           npm run test

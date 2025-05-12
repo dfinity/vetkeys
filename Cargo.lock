@@ -1153,6 +1153,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "ic-management-canister-types"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "90253c6ac92f9a0b548a53a02c2d29dfa0f04a6c1ae919b86a6f54d4767d78b9"
+dependencies = [
+ "candid",
+ "serde",
+ "serde_bytes",
+]
+
+[[package]]
 name = "ic-stable-structures"
 version = "0.6.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1949,9 +1960,9 @@ checksum = "7edddbd0b52d732b21ad9a5fab5c704c14cd949e5e9a1ec5929a24fded1b904c"
 
 [[package]]
 name = "pocket-ic"
-version = "7.0.0"
+version = "9.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ccd672d6b262731dccae40cb561e4c578709ea9987fbf649377d51077bf16db3"
+checksum = "1d0dee25e0f699db883fa2228b18b6e86ae874a0f538dd362aef70679ca5cc6d"
 dependencies = [
  "backoff",
  "base64 0.13.1",
@@ -1959,6 +1970,7 @@ dependencies = [
  "flate2",
  "hex",
  "ic-certification 3.0.3",
+ "ic-management-canister-types",
  "ic-transport-types 0.39.3",
  "reqwest",
  "schemars",
@@ -1970,6 +1982,7 @@ dependencies = [
  "slog",
  "strum",
  "strum_macros",
+ "tempfile",
  "thiserror 2.0.12",
  "tokio",
  "tracing",

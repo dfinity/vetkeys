@@ -174,13 +174,8 @@ impl TestEnvironment {
             .with_application_subnet()
             .with_ii_subnet()
             .with_fiduciary_subnet()
+            .with_nonmainnet_features(true)
             .build();
-
-        let vetkd_mock_canister_id = pic.create_canister();
-        pic.add_cycles(vetkd_mock_canister_id, 2_000_000_000_000);
-
-        let vetkd_mock_wasm_bytes = load_vetkd_mock_canister_wasm();
-        pic.install_canister(vetkd_mock_canister_id, vetkd_mock_wasm_bytes, vec![], None);
 
         let example_canister_id = pic.create_canister();
         pic.add_cycles(example_canister_id, 2_000_000_000_000);
@@ -197,14 +192,6 @@ impl TestEnvironment {
             principal_0: random_self_authenticating_principal(rng),
             principal_1: random_self_authenticating_principal(rng),
         };
-
-        // Set the vetkd mock canister ID in the example canister, requires the
-        // `--features expose-testing-api`.
-        let _: () = env.update(
-            vetkd_mock_canister_id,
-            "set_vetkd_testing_canister_id",
-            encode_one(vetkd_mock_canister_id).unwrap(),
-        );
 
         env
     }
@@ -247,18 +234,9 @@ fn load_key_manager_example_canister_wasm() -> Vec<u8> {
     );
     let wasm_path = Path::new(&wasm_path_string);
     let wasm_bytes = std::fs::read(wasm_path).expect(
-        "wasm does not exist - run `cargo build --release --target wasm32-unknown-unknown --features expose-testing-api`",
+        "wasm does not exist - run `cargo build --release --target wasm32-unknown-unknown`",
     );
     wasm_bytes
-}
-
-fn load_vetkd_mock_canister_wasm() -> Vec<u8> {
-    let wasm_url = "https://github.com/dfinity/chainkey-testing-canister/releases/download/v0.2.0/chainkey_testing_canister.wasm.gz";
-    reqwest::blocking::get(wasm_url)
-        .unwrap()
-        .bytes()
-        .unwrap()
-        .to_vec()
 }
 
 fn random_transport_key<R: Rng + CryptoRng>(rng: &mut R) -> TransportSecretKey {

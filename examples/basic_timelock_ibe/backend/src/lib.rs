@@ -34,9 +34,6 @@ thread_local! {
     static VETKD_ROOT_IBE_PUBLIC_KEY: RefCell<Option<VetKeyPublicKey>> =  const { RefCell::new(None) };
 
     static BID_COUNTER: RefCell<BidCounter> = const { RefCell::new(0) };
-
-    #[cfg(feature = "expose-testing-api")]
-    static CANISTER_ID_VETKD_MOCK: RefCell<Option<Principal>> = const { RefCell::new(None) };
 }
 
 const DOMAIN_SEPARATOR: &str = "basic_timelock_ibe_example_dapp";
@@ -97,7 +94,7 @@ async fn get_root_ibe_public_key() -> VetKeyPublicKey {
     let request = VetKDPublicKeyRequest {
         canister_id: None,
         context: DOMAIN_SEPARATOR.as_bytes().to_vec(),
-        key_id: bls12_381_test_key_1(),
+        key_id: bls12_381_dfx_test_key(),
     };
 
     let (result,) = ic_cdk::api::call::call::<_, (VetKDPublicKeyReply,)>(
@@ -296,7 +293,7 @@ async fn decrypt_bids(
     let request = VetKDDeriveKeyRequest {
         context: DOMAIN_SEPARATOR.as_bytes().to_vec(),
         input: lot_id.to_le_bytes().to_vec(),
-        key_id: bls12_381_test_key_1(),
+        key_id: bls12_381_dfx_test_key(),
         transport_public_key: transport_secret_key.public_key().to_vec(),
     };
 
@@ -363,29 +360,15 @@ fn is_authenticated() -> Result<(), String> {
     }
 }
 
-fn bls12_381_test_key_1() -> VetKDKeyId {
+fn bls12_381_dfx_test_key() -> VetKDKeyId {
     VetKDKeyId {
         curve: VetKDCurve::Bls12_381_G2,
-        name: "insecure_test_key_1".to_string(),
+        name: "dfx_test_key".to_string(),
     }
 }
 
 fn vetkd_system_api_canister_id() -> CanisterId {
-    #[cfg(feature = "expose-testing-api")]
-    {
-        if let Some(canister_id) = CANISTER_ID_VETKD_MOCK.with(|cell| cell.borrow().clone()) {
-            return canister_id;
-        }
-    }
     CanisterId::from_str(CANISTER_ID_VETKD_SYSTEM_API).expect("failed to create canister ID")
-}
-
-#[cfg(feature = "expose-testing-api")]
-#[update]
-fn set_vetkd_testing_canister_id(vetkd_testing_canister: Principal) {
-    CANISTER_ID_VETKD_MOCK.with(|cell| {
-        *cell.borrow_mut() = Some(vetkd_testing_canister);
-    });
 }
 
 // In the following, we register a custom getrandom implementation because

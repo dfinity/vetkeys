@@ -52,7 +52,6 @@ module {
     public class KeyManager<T>(domainSeparator : Text, accessRightsOperations : Types.AccessControlOperations<T>) {
         public var accessControl : OrderedMap.Map<Principal, [(KeyId, T)]> = accessControlMapOps().empty();
         public var sharedKeys : OrderedMap.Map<KeyId, [Principal]> = sharedKeysMapOps().empty();
-        var managementCanisterPrincipalText = "aaaaa-aa";
         let domainSeparatorBytes = Text.encodeUtf8(domainSeparator);
 
         // Get accessible shared key IDs for a caller
@@ -107,7 +106,7 @@ module {
                 key_id = bls12_381TestKey1();
             };
 
-            let (reply) = await (actor (managementCanisterPrincipalText) : VetkdSystemApi).vetkd_public_key(request);
+            let (reply) = await (actor ("aaaaa-aa") : VetkdSystemApi).vetkd_public_key(request);
             reply.public_key;
         };
 
@@ -132,7 +131,7 @@ module {
                         transport_public_key = transportKey;
                     };
 
-                    let (reply) = await (actor (managementCanisterPrincipalText) : VetkdSystemApi).vetkd_derive_key(request);
+                    let (reply) = await (actor ("aaaaa-aa") : VetkdSystemApi).vetkd_derive_key(request);
                     #ok(reply.encrypted_key);
                 };
             };
@@ -294,10 +293,6 @@ module {
                     #err("unauthorized");
                 };
             };
-        };
-
-        public func setVetKDTestingCanister(canister : Text) {
-            managementCanisterPrincipalText := canister;
         };
 
         private func ensureUserCanGetUserRights(user : Principal, keyId : KeyId) : Result.Result<T, Text> {
