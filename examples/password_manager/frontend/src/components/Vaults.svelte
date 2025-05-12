@@ -2,8 +2,6 @@
     import { type VaultModel } from "../lib/vault";
     import { vaultsStore } from "../store/vaults";
     import Header from "./Header.svelte";
-    import Password from "./Password.svelte";
-    import Vault from "./Vault.svelte";
     import Spinner from "./Spinner.svelte";
     import { link } from "svelte-spa-router";
 
@@ -66,11 +64,11 @@
                         class="p-4 rounded-md border border-base-300 dark:border-base-300 bg-base
 dark:bg-base-100 hover:-translate-y-2 transition-transform"
                         use:link
-                        href={`/vaults/${vault.owner}/${vault.name}`}
+                        href={`/vaults/${vault.owner.toText()}/${vault.name}`}
                     >
                         <div class="pointer-events-none">
                             <h2 class="text-lg font-bold mb-2 line-clamp-3">
-                                "{vault.name}" owned by {vault.owner}
+                                "{vault.name}" owned by {vault.owner.toText()}
                             </h2>
                         </div>
                     </a>

@@ -1,40 +1,19 @@
 <script lang="ts">
-    import { replace } from "svelte-spa-router";
-    import Router from "svelte-spa-router";
-    import { Editor, placeholder } from "typewriter-editor";
-    import { extractTitle, type VaultModel } from "../lib/vault";
-    import { vaultsStore, refreshVaults } from "../store/vaults";
+    import { type VaultModel } from "../lib/vault";
+    import { vaultsStore } from "../store/vaults";
     import Header from "./Header.svelte";
     import SharingEditor from "./SharingEditor.svelte";
+    // @ts-expect-error: svelte-icons have some problems with ts declarations
     import Trash from "svelte-icons/fa/FaTrash.svelte";
-    import { addNotification, showError } from "../store/notifications";
     import { auth } from "../store/auth";
     import Spinner from "./Spinner.svelte";
 
     export let currentRoute = "";
 
     let editedVault: VaultModel;
-    let editor: Editor;
     let updating = false;
     let deleting = false;
-    let canManage;
-
-    async function save() {
-        if ($auth.state !== "initialized") {
-            return;
-        }
-        const html = editor.getText();
-        updating = true;
-
-        addNotification({
-            type: "success",
-            message: "Vault saved successfully",
-        });
-
-        await refreshVaults($auth.encryptedMaps).catch((e) =>
-            showError(e, "Could not refresh notes."),
-        );
-    }
+    let canManage = false;
 
     function deleteVault() {}
 
@@ -50,16 +29,17 @@
 
             if (vault) {
                 editedVault = { ...vault };
-                editor = new Editor({
-                    modules: {
-                        placeholder: placeholder("Start typing..."),
-                    },
-                });
                 const me = $auth.client.getIdentity().getPrincipal();
-                canManage =
-                    vault.owner.compareTo(me) === "eq" ||
-                    "ReadWriteManage" in
-                        vault.users.find(([p, r]) => p.compareTo(me) === "eq");
+                if (vault.owner.compareTo(me) === "eq") {
+                    canManage = true;
+                } else {
+                    const user = vault.users.find(
+                        ([p]) => p.compareTo(me) === "eq",
+                    );
+                    if (user) {
+                        canManage = "ReadWriteManage" in user[1];
+                    }
+                }
             }
         }
     }

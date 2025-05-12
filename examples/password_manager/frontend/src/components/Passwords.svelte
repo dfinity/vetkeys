@@ -62,9 +62,7 @@
                 class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 max-w-7xl"
             >
                 {#each filteredVaults as vault (vault.name)}
-                    {#each Array.from(vault.passwords
-                            .values()
-                            .map(([name, password]) => password)) as password}
+                    {#each Array.from(vault.passwords.map(([, password]) => password)) as password (password.passwordName)}
                         <Password {password} />
                     {/each}
                 {/each}

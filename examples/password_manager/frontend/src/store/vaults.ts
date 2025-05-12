@@ -3,10 +3,7 @@ import { passwordFromContent, type PasswordModel } from "../lib/password";
 import { vaultFromContent, type VaultModel } from "../lib/vault";
 import { auth } from "./auth";
 import { showError } from "./notifications";
-import {
-    type AccessRights,
-    EncryptedMaps
-} from "ic_vetkeys/tools";
+import { type AccessRights, EncryptedMaps } from "ic_vetkeys/tools";
 import type { Principal } from "@dfinity/principal";
 
 export const vaultsStore = writable<
@@ -67,7 +64,12 @@ export async function addPassword(
     password: PasswordModel,
     encryptedMaps: EncryptedMaps,
 ) {
-    await encryptedMaps.setValue(password.owner, new TextEncoder().encode(password.parentVaultName), new TextEncoder().encode(password.passwordName), new TextEncoder().encode(password.content));
+    await encryptedMaps.setValue(
+        password.owner,
+        new TextEncoder().encode(password.parentVaultName),
+        new TextEncoder().encode(password.passwordName),
+        new TextEncoder().encode(password.content),
+    );
 }
 
 export async function removePassword(
@@ -85,7 +87,12 @@ export async function updatePassword(
     password: PasswordModel,
     encryptedMaps: EncryptedMaps,
 ) {
-    await encryptedMaps.setValue(password.owner, new TextEncoder().encode(password.parentVaultName), new TextEncoder().encode(password.passwordName), new TextEncoder().encode(password.content));
+    await encryptedMaps.setValue(
+        password.owner,
+        new TextEncoder().encode(password.parentVaultName),
+        new TextEncoder().encode(password.passwordName),
+        new TextEncoder().encode(password.content),
+    );
 }
 
 export async function addUser(
@@ -109,39 +116,48 @@ export async function removeUser(
     user: Principal,
     encryptedMaps: EncryptedMaps,
 ) {
-    await encryptedMaps.removeUser(owner, new TextEncoder().encode(vaultName), user);
+    await encryptedMaps.removeUser(
+        owner,
+        new TextEncoder().encode(vaultName),
+        user,
+    );
 }
 
-auth.subscribe(async ($auth) => {
-    if ($auth.state === "initialized") {
-        if (vaultPollerHandle !== null) {
-            clearInterval(vaultPollerHandle);
-            vaultPollerHandle = null;
-        }
+auth.subscribe(() => {
+    void (async ($auth) => {
+        if ($auth && $auth.state === "initialized") {
+            if (vaultPollerHandle !== null) {
+                clearInterval(vaultPollerHandle);
+                vaultPollerHandle = null;
+            }
 
-        vaultsStore.set({
-            state: "loading",
-        });
-        try {
-            await refreshVaults($auth.encryptedMaps).catch((e) =>
-                showError(e, "Could not poll vaults."),
-            );
-
-            vaultPollerHandle = setInterval(async () => {
-                await refreshVaults($auth.encryptedMaps).catch((e) =>
+            vaultsStore.set({
+                state: "loading",
+            });
+            try {
+                await refreshVaults($auth.encryptedMaps).catch((e: Error) =>
                     showError(e, "Could not poll vaults."),
                 );
-            }, 3000);
-        } catch {
+
+                vaultPollerHandle = setInterval(() => {
+                    void (async () => {
+                        await refreshVaults($auth.encryptedMaps).catch(
+                            (e: Error) =>
+                                showError(e, "Could not poll vaults."),
+                        );
+                    });
+                }, 3000);
+            } catch {
+                vaultsStore.set({
+                    state: "error",
+                });
+            }
+        } else if ($auth.state === "anonymous" && vaultPollerHandle !== null) {
+            clearInterval(vaultPollerHandle);
+            vaultPollerHandle = null;
             vaultsStore.set({
-                state: "error",
+                state: "uninitialized",
             });
         }
-    } else if ($auth.state === "anonymous" && vaultPollerHandle !== null) {
-        clearInterval(vaultPollerHandle);
-        vaultPollerHandle = null;
-        vaultsStore.set({
-            state: "uninitialized",
-        });
-    }
+    })();
 });

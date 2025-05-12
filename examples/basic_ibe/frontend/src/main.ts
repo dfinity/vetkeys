@@ -32,7 +32,7 @@ function getBasicIbeCanister(): ActorSubclass<_SERVICE> {
   }
   const host =
     process.env.DFX_NETWORK === "ic"
-      ? `https://${process.env.CANISTER_ID_PASSWORD_MANAGER_WITH_METADATA}.ic0.app`
+      ? `https://${process.env.CANISTER_ID_BASIC_IBE}.ic0.app`
       : "http://localhost:8000";
 
   basicIbeCanister = createActor(

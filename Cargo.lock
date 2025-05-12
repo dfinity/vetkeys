@@ -890,6 +890,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "hkdf"
+version = "0.12.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7b5f8eb2ad728638ea2c7d47a21db23b7b58a72ed6a38256b8a1849f15fbbdf7"
+dependencies = [
+ "hmac",
+]
+
+[[package]]
 name = "hmac"
 version = "0.12.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1106,6 +1115,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "ic-cdk-timers"
+version = "0.11.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fb8fd812a9e26f6aa00594546f8fbf4d4853f39c3ba794c8ff11ecf86fd3c9e4"
+dependencies = [
+ "futures",
+ "ic-cdk",
+ "ic0",
+ "serde",
+ "serde_bytes",
+ "slotmap",
+]
+
+[[package]]
 name = "ic-certification"
 version = "2.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1204,6 +1227,24 @@ dependencies = [
 ]
 
 [[package]]
+name = "ic-vetkd-example-basic-timelock-ibe-backend"
+version = "0.1.0"
+dependencies = [
+ "candid",
+ "getrandom 0.2.15",
+ "ic-cdk",
+ "ic-cdk-macros",
+ "ic-cdk-timers",
+ "ic-stable-structures",
+ "ic-vetkd-utils",
+ "ic-vetkeys",
+ "serde",
+ "serde_bytes",
+ "serde_cbor",
+ "serde_with",
+]
+
+[[package]]
 name = "ic-vetkd-example-password-manager-with-metadata-backend"
 version = "0.1.0"
 dependencies = [
@@ -1219,9 +1260,10 @@ dependencies = [
 [[package]]
 name = "ic-vetkd-utils"
 version = "0.1.0"
-source = "git+https://github.com/dfinity/ic.git#14b374b5a029d967f3b4e499d71224ad99814d19"
+source = "git+https://github.com/dfinity/ic.git#b8ee431b0f5744724473092fac621311a74e47e2"
 dependencies = [
  "getrandom 0.2.15",
+ "hkdf",
  "ic_bls12_381",
  "lazy_static",
  "pairing",
@@ -2671,6 +2713,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8347046d4ebd943127157b94d63abb990fcf729dc4e9978927fdf4ac3c998d06"
 dependencies = [
  "erased-serde",
+]
+
+[[package]]
+name = "slotmap"
+version = "1.0.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "dbff4acf519f630b3a3ddcfaea6c06b42174d9a44bc70c620e9ed1649d58b82a"
+dependencies = [
+ "version_check",
 ]
 
 [[package]]

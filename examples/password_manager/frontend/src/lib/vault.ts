@@ -38,18 +38,16 @@ export function summarize(vault: VaultModel, maxLength = 1500) {
     return text.slice(0, maxLength) + (text.length > maxLength ? "..." : "");
 }
 
-function extractTitleFromDomEl(el: HTMLElement) {
+function extractTitleFromDomEl(el: HTMLElement): string {
     const title = el.querySelector("h1");
     if (title) {
         return title.innerText;
     }
 
-    const blockElements = el.querySelectorAll(
-        "h1,h2,p,li",
-    ) as NodeListOf<HTMLElement>;
+    const blockElements = el.querySelectorAll("h1,h2,p,li");
     for (const el of blockElements) {
-        if (el.innerText?.trim().length > 0) {
-            return el.innerText.trim();
+        if (el.textContent && el.textContent?.trim().length > 0) {
+            return el.textContent.trim();
         }
     }
     return "";

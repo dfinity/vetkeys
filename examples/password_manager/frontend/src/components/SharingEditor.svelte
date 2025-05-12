@@ -9,7 +9,7 @@
     } from "../store/vaults";
     import { addNotification, showError } from "../store/notifications";
     import { Principal } from "@dfinity/principal";
-    import type { AccessRights } from "ic_vetkeys";
+    import type { AccessRights } from "ic_vetkeys/tools";
 
     export let editedVault: VaultModel;
     export let canManage = false;
@@ -33,8 +33,7 @@
         const selectedIndex = selectElement.selectedIndex;
         const selectedValue = selectElement.options[selectedIndex].value;
 
-        if (selectedValue === "Read") {
-        } else if (selectedValue === "ReadWrite") {
+        if (selectedValue === "ReadWrite") {
             accessRights = { ReadWrite: null };
         } else if (selectedValue === "ReadWriteManage") {
             accessRights = { ReadWriteManage: null };
@@ -97,7 +96,7 @@
         );
     }
 
-    function onKeyPress(e) {
+    function onKeyPress(e: KeyboardEvent) {
         if (
             e.key === "Enter" &&
             !editedVault.users.find(
@@ -105,7 +104,7 @@
                     user[0].compareTo(Principal.fromText(newSharing)) === "eq",
             )
         ) {
-            add();
+            void add();
         }
     }
 
@@ -130,7 +129,9 @@
                 (vault) =>
                     vault.owner === vaultOwnewr && vault.name === vaultName,
             );
-            editedVault = vault;
+            if (vault) {
+                editedVault = vault;
+            }
         }
     }
 </script>
@@ -148,11 +149,11 @@
     <p class="mt-3">Users with whom the vault is shared:</p>
 {/if}
 <div class="flex flex-wrap space-x-2 mt-2">
-    {#each editedVault.users as sharing}
+    {#each editedVault.users as sharing (sharing[0].toText())}
         <button
             class="btn btn-outline btn-sm flex items-center"
             on:click={() => {
-                remove(sharing[0]);
+                void remove(sharing[0]);
             }}
             disabled={adding || removing || !canManage}
         >

@@ -13,8 +13,8 @@
     },
     "chainkey_testing_canister": {
       "type": "custom",
-      "candid": "https://github.com/dfinity/chainkey-testing-canister/releases/download/v0.1.0/chainkey_testing_canister.did",
-      "wasm": "https://github.com/dfinity/chainkey-testing-canister/releases/download/v0.1.0/chainkey_testing_canister.wasm.gz"
+      "candid": "https://github.com/dfinity/chainkey-testing-canister/releases/download/v0.2.0/chainkey_testing_canister.did",
+      "wasm": "https://github.com/dfinity/chainkey-testing-canister/releases/download/v0.2.0/chainkey_testing_canister.wasm.gz"
     },
     "internet-identity": {
       "type": "pull",

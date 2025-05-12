@@ -4,12 +4,12 @@ function make_and_copy_declarations () {
     DIR=$1
     NAME=$2
 
-    pushd $DIR
+    pushd "$DIR""$NAME"
     make extract-candid
-    dfx generate
+    dfx generate $NAME
     popd
 
-    mkdir -p declarations
+    rm -r "src/declarations/$NAME"
     mv "$DIR/""$NAME""/src/declarations/""$NAME" "src/declarations/"
 }
 
