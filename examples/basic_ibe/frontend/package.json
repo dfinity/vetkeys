@@ -11,9 +11,6 @@
     "preview": "vite preview",
     "lint": "eslint"
   },
-  "peerDependencies": {
-    "ic_vetkeys": "^0.1.0"
-  },
   "devDependencies": {
     "@eslint/js": "^9.24.0",
     "@rollup/plugin-typescript": "^12.1.2",
@@ -25,5 +22,8 @@
   "dependencies": {
     "@dfinity/auth-client": "^2.4.1",
     "@dfinity/principal": "^2.4.1"
+  },
+  "peerDependencies": {
+    "@dfinity/vetkeys": "^0.1.0"
   }
 }

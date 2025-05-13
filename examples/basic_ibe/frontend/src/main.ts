@@ -7,7 +7,7 @@ import {
   EncryptedVetKey,
   VetKey,
   IdentityBasedEncryptionCiphertext,
-} from "ic_vetkeys";
+} from "@dfinity/vetkeys";
 import {
   Inbox,
   _SERVICE,

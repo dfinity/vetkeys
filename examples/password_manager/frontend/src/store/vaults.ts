@@ -3,7 +3,7 @@ import { passwordFromContent, type PasswordModel } from "../lib/password";
 import { vaultFromContent, type VaultModel } from "../lib/vault";
 import { auth } from "./auth";
 import { showError } from "./notifications";
-import { type AccessRights, EncryptedMaps } from "ic_vetkeys/tools";
+import { type AccessRights, EncryptedMaps } from "@dfinity/vetkeys/tools";
 import type { Principal } from "@dfinity/principal";
 
 export const vaultsStore = writable<

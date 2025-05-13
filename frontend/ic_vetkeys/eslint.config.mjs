@@ -21,6 +21,7 @@ export default tseslint.config(
         ignores: [
             "dist/",
             "src/declarations",
+            "coverage/",
             "*.config.js",
             "*.config.cjs",
             "*.config.mjs",

@@ -1,7 +1,42 @@
 {
-    "name": "ic_vetkeys",
+    "name": "@dfinity/vetkeys",
     "version": "0.1.0",
+    "author": "DFINITY Stiftung <sdk@dfinity.org>",
+    "description": "JavaScript and TypeScript library to interact with vetKeys on the Internet Computer",
+    "homepage": "https://internetcomputer.org/docs/building-apps/network-features/encryption/vetkeys",
     "license": "Apache-2.0",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/dfinity/vetkd-devkit.git",
+        "directory": "frontend/ic_vetkeys"
+    },
+    "bugs": {
+        "url": "https://github.com/dfinity/vetkd-devkit/issues"
+    },
+    "keywords": [
+        "internet computer",
+        "internet-computer",
+        "ic",
+        "icp",
+        "dfinity",
+        "vetkeys",
+        "encryption",
+        "decryption",
+        "threshold",
+        "motoko",
+        "rust",
+        "javascript",
+        "typescript",
+        "blockchain",
+        "crypto",
+        "distributed",
+        "api",
+        "bls",
+        "bls12-381",
+        "ibe",
+        "signature",
+        "signing"
+    ],
     "files": [
         "dist"
     ],
@@ -41,7 +76,7 @@
     },
     "scripts": {
         "build": "tsc && vite build",
-        "coverage": "vitest run --coverage",
+        "coverage": "npm run test:deploy_all && export $(cat .test1.env .test2.env | xargs) && vitest run --coverage",
         "lint": "eslint",
         "make:docs": "mkdir -p $(git rev-parse --show-toplevel)/docs/tools && typedoc --out $(git rev-parse --show-toplevel)/docs",
         "prettier": "prettier --write .",

@@ -35,7 +35,7 @@ import {
  *
  * @example
  * ```ts
- * import { EncryptedMaps } from "ic_vetkeys/tools";
+ * import { EncryptedMaps } from "@dfinity/vetkeys/tools";
  *
  * // Initialize the EncryptedMaps Client
  * const encryptedMaps = new EncryptedMaps(encryptedMapsClientInstance);
@@ -76,7 +76,7 @@ export class EncryptedMaps {
      *
      * @example
      * ```ts
-     * import { EncryptedMaps } from "ic_vetkeys/tools";
+     * import { EncryptedMaps } from "@dfinity/vetkeys/tools";
      *
      * const encryptedMaps = new EncryptedMaps(encryptedMapsClientInstance);
      * ```

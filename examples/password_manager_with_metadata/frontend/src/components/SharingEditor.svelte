@@ -9,7 +9,7 @@
     } from "../store/vaults";
     import { addNotification, showError } from "../store/notifications";
     import { Principal } from "@dfinity/principal";
-    import type { AccessRights } from "ic_vetkeys/tools";
+    import type { AccessRights } from "@dfinity/vetkeys/tools";
 
     export let editedVault: VaultModel;
     export let canManage = false;
