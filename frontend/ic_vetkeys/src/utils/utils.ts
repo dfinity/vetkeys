@@ -569,6 +569,14 @@ function maskSeed(seed: Uint8Array, t: Uint8Array): Uint8Array {
 }
 
 function maskMsg(msg: Uint8Array, seed: Uint8Array): Uint8Array {
+    /*
+    Zero prefix the length up to 20 digits, which is sufficient to be fixed
+    length for any 64-bit length. This ensures all of the MaskMsg domain
+    separators are of equal length. With how we use the domain separators, this
+    padding isn't required - we only need uniquness - but having variable
+    length domain separators is generally not considered a good practice and is
+    easily avoidable here.
+    */
     const domain_sep = IbeDomainSeparators.MaskMsg.concat(
         msg.length.toString().padStart(20, "0")
     );
