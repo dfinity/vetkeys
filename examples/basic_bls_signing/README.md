@@ -7,6 +7,8 @@ The **Basic BLS signing** example demonstrates how to use **[VetKeys](https://in
 
 Since for confirming that the canister can only produce signatures in the intended way users need to inspect the code installed in the canister, it is crucial that canisters using VetKeys have their code public.
 
+![UI Screenshot](ui_screenshot.png)
+
 ## Features
 
 - **Signer Authorization**: Only authorized users can produce signatures and only for their own identity.
