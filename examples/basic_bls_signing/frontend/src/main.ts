@@ -280,33 +280,24 @@ function verifySignature(
     ...domainSepBytes,
     ...signer.toUint8Array(),
   ]);
-  const signatureG1 = bls12_381.G1.ProjectivePoint.fromHex(signature);
-  const negG2 = bls12_381.G2.ProjectivePoint.BASE.negate();
-  const dpk = rootPublicKey.deriveKey(context);
-  console.log(
-    "message=",
-    message,
-    "signature=",
-    signature.toString(),
-    "signer=",
-    signer.toString(),
-    "context=",
-    context.toString(),
-    "rootPublicKey=",
-    rootPublicKey.getPoint().toHex(),
-    "dpk=",
-    dpk.getPoint().toHex(),
-  );
-  const messageBytes = new TextEncoder().encode(message);
-  const msg = augmentedHashToG1(dpk, messageBytes);
-  const check = bls12_381.pairingBatch([
-    { g1: signatureG1, g2: negG2 },
-    { g1: msg, g2: dpk.getPoint() },
-  ]);
 
-  const gtOne = bls12_381.fields.Fp12.ONE;
+  try {
+    const signatureG1 = bls12_381.G1.ProjectivePoint.fromHex(signature);
+    const negG2 = bls12_381.G2.ProjectivePoint.BASE.negate();
+    const dpk = rootPublicKey.deriveKey(context);
+    const messageBytes = new TextEncoder().encode(message);
+    const msg = augmentedHashToG1(dpk, messageBytes);
+    const check = bls12_381.pairingBatch([
+      { g1: signatureG1, g2: negG2 },
+      { g1: msg, g2: dpk.getPoint() },
+    ]);
 
-  return bls12_381.fields.Fp12.eql(check, gtOne);
+    const gtOne = bls12_381.fields.Fp12.ONE;
+
+    return bls12_381.fields.Fp12.eql(check, gtOne);
+  } catch {
+    return false;
+  }
 }
 
 // Initialize auth
