@@ -578,7 +578,7 @@ function maskMsg(msg: Uint8Array, seed: Uint8Array): Uint8Array {
     easily avoidable here.
     */
     const domain_sep = IbeDomainSeparators.MaskMsg.concat(
-        msg.length.toString().padStart(20, "0")
+        msg.length.toString().padStart(20, "0"),
     );
     const xof_seed = deriveSymmetricKey(seed, domain_sep, 32);
 
