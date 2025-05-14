@@ -2,7 +2,7 @@
     "name": "@dfinity/vetkeys",
     "version": "0.1.0",
     "author": "DFINITY Stiftung <sdk@dfinity.org>",
-    "description": "JavaScript and TypeScript library to interact with vetKeys on the Internet Computer",
+    "description": "JavaScript and TypeScript library to use Internet Computer vetKeys",
     "homepage": "https://internetcomputer.org/docs/building-apps/network-features/encryption/vetkeys",
     "license": "Apache-2.0",
     "repository": {
