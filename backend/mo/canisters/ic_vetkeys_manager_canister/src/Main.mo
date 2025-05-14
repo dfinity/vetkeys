@@ -11,6 +11,8 @@ actor {
     /// In this canister, we use the `ByteBuf` type to represent blobs. The reason is that we want to be consistent with the Rust canister implementation.
     /// Unfortunately, the `Blob` type cannot be serialized/deserialized in the current Rust implementation efficiently without nesting it in another type.
     public type ByteBuf = { inner : Blob };
+
+    /// The result type compatible with Rust's `Result`.
     public type Result<Ok, Err> = {
         #Ok : Ok;
         #Err : Err;
