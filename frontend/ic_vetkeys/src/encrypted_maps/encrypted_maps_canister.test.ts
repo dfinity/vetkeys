@@ -223,7 +223,7 @@ test("can get user rights", async () => {
     const user = id1.getPrincipal();
     const encryptedMapsOwner = await newEncryptedMaps(id0);
     const encryptedMapsUser = await newEncryptedMaps(id1);
-    const rights = { ReadWrite: null };
+    const rights = { ReadWriteManage: null };
 
     await encryptedMapsOwner.setValue(
         owner,
