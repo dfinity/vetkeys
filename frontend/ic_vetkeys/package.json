@@ -81,6 +81,7 @@
         "make:docs": "mkdir -p $(git rev-parse --show-toplevel)/docs/tools && typedoc --out $(git rev-parse --show-toplevel)/docs",
         "prettier": "prettier --write .",
         "prettier-check": "prettier --check .",
+        "test_utils": "vitest utils",
         "test": "npm run test:deploy_all && export $(cat .test1.env .test2.env | xargs) && vitest",
         "test:deploy_all": "npm run test:deploy_key_manager_canister && npm run test:deploy_encrypted_maps_canister",
         "test:deploy_key_manager_canister": "cd $(git rev-parse --show-toplevel)/backend/rs/canisters/ic_vetkeys_manager_canister && dfx start --clean --background; dfx deploy && grep CANISTER_ID .env > $(git rev-parse --show-toplevel)/frontend/ic_vetkeys/.test1.env",
