@@ -102,9 +102,7 @@ export class MasterPublicKey {
      * the `vetkd_public_key` management canister interface.
      */
     static deserialize(bytes: Uint8Array): MasterPublicKey {
-        return new MasterPublicKey(
-            bls12_381.G2.ProjectivePoint.fromHex(bytes),
-        );
+        return new MasterPublicKey(bls12_381.G2.ProjectivePoint.fromHex(bytes))
     }
 
     /**
@@ -190,7 +188,10 @@ export class DerivedPublicKey {
         } else {
             const dst = "ic-vetkd-bls12-381-g2-context";
             const pkbytes = this.publicKeyBytes();
-            const ro_input = new Uint8Array([...prefixWithLen(pkbytes), ...prefixWithLen(context)]);
+            const ro_input = new Uint8Array([
+                ...prefixWithLen(pkbytes),
+                ...prefixWithLen(context),
+            ]);
             const offset = hashToScalar(ro_input, dst);
             const g2_offset =
                 bls12_381.G2.ProjectivePoint.BASE.multiply(offset);
