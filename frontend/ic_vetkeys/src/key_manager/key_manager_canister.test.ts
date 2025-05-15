@@ -116,7 +116,7 @@ test("sharing rights are consistent", async () => {
     const keyManagerUser = await newKeyManager(id1).catch((err) => {
         throw err;
     });
-    const rights = { ReadWrite: null };
+    const rights = { ReadWriteManage: null };
 
     expect(
         await keyManagerOwner.setUserRights(

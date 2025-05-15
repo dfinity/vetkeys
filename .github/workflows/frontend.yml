@@ -6,6 +6,7 @@ on:
   pull_request:
     paths:
       - frontend/ic_vetkeys/**
+      - backend/**
       - package.json
       - package-lock.json
       - .github/workflows/frontend_ic_vetkeys.yml
