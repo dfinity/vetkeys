@@ -9,7 +9,7 @@ import { Principal } from "@dfinity/principal";
 import { AuthClient } from "@dfinity/auth-client";
 import type { ActorSubclass } from "@dfinity/agent";
 import { _SERVICE } from "../../src/declarations/basic_bls_signing/basic_bls_signing.did";
-import { DerivedPublicKey, augmentedHashToG1 } from "ic_vetkeys";
+import { DerivedPublicKey, augmentedHashToG1 } from "@dfinity/vetkeys";
 import { bls12_381 } from "@noble/curves/bls12-381";
 
 let myPrincipal: Principal | undefined = undefined;

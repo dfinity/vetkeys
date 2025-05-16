@@ -12,7 +12,7 @@
       "lint": "eslint"
     },
     "peerDependencies": {
-      "ic_vetkeys": "^0.1.0"
+      "@dfinity/vetkeys": "^0.1.0"
     },
     "devDependencies": {
       "@eslint/js": "^9.24.0",
