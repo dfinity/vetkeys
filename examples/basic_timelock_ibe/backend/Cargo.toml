@@ -18,7 +18,6 @@ ic-cdk = { workspace = true }
 ic-cdk-macros = { workspace = true }
 ic-cdk-timers = "0.11.0"
 ic-stable-structures = { workspace = true }
-ic-vetkd-utils = { version = "0.1.0", git = "https://github.com/dfinity/ic.git", default-features = false }
 ic-vetkeys = { path = "../../../backend/rs/ic_vetkeys" }
 serde = { workspace = true }
 serde_bytes = { workspace = true }

@@ -7,6 +7,8 @@
 
 This crate contains a set of tools designed to help canister developers integrate **VetKeys** into their Internet Computer (ICP) applications.
 
+## Utilities for obtaining and decrypting verifiably-encrypted keys via the Internet Computer's proposed vetKD system API. The API is located in the crate root.
+
 ## [Encrypted Maps](./src/encrypted_maps/README.md)
 An efficient canister library facilitating access control and encrypted storage for a collection of maps contatining key-value pairs. It can be used in combination with the [frontend encrypted maps library](https://github.com/dfinity/vetkd-devkit/blob/main/frontend/ic_vetkeys/src/encrypted_maps/README.md).
 

@@ -21,7 +21,6 @@ serde = { workspace = true }
 
 [dev-dependencies]
 ic-vetkeys-test-utils = { path = "../../ic_vetkeys_test_utils" }
-ic-vetkd-utils = { workspace = true }
 pocket-ic = { workspace = true }
 rand = { workspace = true }
 rand_chacha = { workspace = true }

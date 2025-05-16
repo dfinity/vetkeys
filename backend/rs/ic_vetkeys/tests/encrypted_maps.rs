@@ -45,7 +45,7 @@ fn unauthorized_delete_map_values_fails() {
     let mut encrypted_maps = random_encrypted_maps(rng);
 
     encrypted_maps
-        .insert_encrypted_value(caller, (caller, name.clone()), key, encrypted_value)
+        .insert_encrypted_value(caller, (caller, name), key, encrypted_value)
         .unwrap();
     let result = encrypted_maps.remove_map_values(unauthorized, (caller, name));
     assert_eq!(result, Err("unauthorized".to_string()));
@@ -61,16 +61,11 @@ fn can_add_user_to_map() {
     let user_to_be_added = random_self_authenticating_principal(rng);
     let access_rights = random_access_rights(rng);
     assert_eq!(
-        encrypted_maps.get_user_rights(caller, (caller, name.clone()), user_to_be_added,),
+        encrypted_maps.get_user_rights(caller, (caller, name), user_to_be_added,),
         Ok(None)
     );
     assert_eq!(
-        encrypted_maps.set_user_rights(
-            caller,
-            (caller, name.clone()),
-            user_to_be_added,
-            access_rights
-        ),
+        encrypted_maps.set_user_rights(caller, (caller, name), user_to_be_added, access_rights),
         Ok(None)
     );
     assert_eq!(
@@ -78,7 +73,7 @@ fn can_add_user_to_map() {
         Ok(Some(access_rights))
     );
     assert_eq!(
-        encrypted_maps.get_user_rights(caller, (caller, name.clone()), user_to_be_added,),
+        encrypted_maps.get_user_rights(caller, (caller, name), user_to_be_added,),
         Ok(Some(access_rights))
     );
 }
@@ -149,12 +144,7 @@ fn can_remove_user_from_map() {
     let user_to_be_added = random_self_authenticating_principal(rng);
     let access_rights = random_access_rights(rng);
     assert_eq!(
-        encrypted_maps.set_user_rights(
-            caller,
-            (caller, name.clone()),
-            user_to_be_added,
-            access_rights,
-        ),
+        encrypted_maps.set_user_rights(caller, (caller, name), user_to_be_added, access_rights,),
         Ok(None)
     );
     assert_eq!(
@@ -176,12 +166,8 @@ fn add_or_remove_user_by_unauthorized_fails() {
         let user_to_be_added = random_self_authenticating_principal(rng);
 
         assert_matches!(
-            encrypted_maps.set_user_rights(
-                caller,
-                (caller, name.clone()),
-                user_to_be_added,
-                access_rights,
-            ),
+            encrypted_maps
+                .set_user_rights(caller, (caller, name), user_to_be_added, access_rights,),
             Ok(_)
         );
 
@@ -191,13 +177,13 @@ fn add_or_remove_user_by_unauthorized_fails() {
     for unauthorized_caller in unauthorized_callers {
         for target in [random_self_authenticating_principal(rng), caller] {
             assert_eq!(
-                encrypted_maps.remove_user(unauthorized_caller, (caller, name.clone()), target),
+                encrypted_maps.remove_user(unauthorized_caller, (caller, name), target),
                 Err("unauthorized".to_string())
             );
             assert_eq!(
                 encrypted_maps.set_user_rights(
                     unauthorized_caller,
-                    (caller, name.clone()),
+                    (caller, name),
                     target,
                     AccessRights::Read,
                 ),
@@ -235,8 +221,8 @@ fn add_a_key_to_map_by_unauthorized_fails() {
     assert_eq!(
         encrypted_maps.insert_encrypted_value(
             unauthorized_caller,
-            (caller, name.clone()),
-            key.clone(),
+            (caller, name),
+            key,
             value.clone()
         ),
         Err("unauthorized".to_string())
@@ -245,12 +231,8 @@ fn add_a_key_to_map_by_unauthorized_fails() {
     let readonly_caller = random_self_authenticating_principal(rng);
 
     assert_eq!(
-        encrypted_maps.set_user_rights(
-            caller,
-            (caller, name.clone()),
-            readonly_caller,
-            AccessRights::Read,
-        ),
+        encrypted_maps
+            .set_user_rights(caller, (caller, name), readonly_caller, AccessRights::Read,),
         Ok(None)
     );
 
@@ -270,7 +252,7 @@ fn can_remove_a_key_from_map() {
     let key = random_key(rng);
     let value = random_bytebuf(rng, 0..2_000_000);
     encrypted_maps
-        .insert_encrypted_value(caller, (caller, name.clone()), key.clone(), value.clone())
+        .insert_encrypted_value(caller, (caller, name), key, value.clone())
         .unwrap();
     assert_eq!(
         encrypted_maps.remove_encrypted_value(caller, (caller, name), key),
@@ -288,28 +270,20 @@ fn remove_of_key_from_map_by_unauthorized_fails() {
     let key = random_key(rng);
     let value = random_bytebuf(rng, 0..2_000_000);
     encrypted_maps
-        .insert_encrypted_value(caller, (caller, name.clone()), key.clone(), value.clone())
+        .insert_encrypted_value(caller, (caller, name), key, value)
         .unwrap();
 
     let unauthorized_caller = random_self_authenticating_principal(rng);
     assert_eq!(
-        encrypted_maps.remove_encrypted_value(
-            unauthorized_caller,
-            (caller, name.clone()),
-            key.clone()
-        ),
+        encrypted_maps.remove_encrypted_value(unauthorized_caller, (caller, name), key),
         Err("unauthorized".to_string())
     );
 
     let readonly_caller = random_self_authenticating_principal(rng);
 
     assert_eq!(
-        encrypted_maps.set_user_rights(
-            caller,
-            (caller, name.clone()),
-            readonly_caller,
-            AccessRights::Read,
-        ),
+        encrypted_maps
+            .set_user_rights(caller, (caller, name), readonly_caller, AccessRights::Read,),
         Ok(None)
     );
 
@@ -333,7 +307,7 @@ fn can_access_map_values() {
         let key = random_key(rng);
         let value = random_bytebuf(rng, 0..100);
         encrypted_maps
-            .insert_encrypted_value(caller, (caller, name.clone()), key.clone(), value.clone())
+            .insert_encrypted_value(caller, (caller, name), key, value.clone())
             .unwrap();
 
         for access_rights in AccessRights::iter() {
@@ -341,7 +315,7 @@ fn can_access_map_values() {
             assert_eq!(
                 encrypted_maps.set_user_rights(
                     caller,
-                    (caller, name.clone()),
+                    (caller, name),
                     user_to_be_added,
                     access_rights,
                 ),
@@ -350,13 +324,13 @@ fn can_access_map_values() {
             authorized_users.push((user_to_be_added, access_rights));
         }
 
-        keyvals.push((key.clone(), value));
+        keyvals.push((key, value));
     }
 
     for (key, value) in keyvals.clone() {
         for (user, _access_rights) in authorized_users.iter() {
             assert_eq!(
-                encrypted_maps.get_encrypted_value(*user, (caller, name.clone()), key.clone()),
+                encrypted_maps.get_encrypted_value(*user, (caller, name), key),
                 Ok(Some(value.clone()))
             );
         }
@@ -366,7 +340,7 @@ fn can_access_map_values() {
         let expected_map = BTreeMap::from_iter(keyvals.clone().into_iter());
         let computed_map_single = BTreeMap::from_iter(
             encrypted_maps
-                .get_encrypted_values_for_map(user, (caller, name.clone()))
+                .get_encrypted_values_for_map(user, (caller, name))
                 .expect("failed to obtain values")
                 .into_iter(),
         );
@@ -396,7 +370,7 @@ fn can_access_map_values() {
         );
 
         let all_destructured = all_values.into_iter().next().unwrap();
-        assert_eq!((caller, name.clone()), all_destructured.0);
+        assert_eq!((caller, name), all_destructured.0);
         let computed_map_wildcard = BTreeMap::from_iter(all_destructured.1.into_iter());
         assert_eq!(expected_map, computed_map_wildcard);
 
@@ -427,7 +401,7 @@ fn can_modify_a_key_value_in_map() {
     let key = random_key(rng);
     let value = random_bytebuf(rng, 0..2_000_000);
     encrypted_maps
-        .insert_encrypted_value(caller, (caller, name.clone()), key.clone(), value.clone())
+        .insert_encrypted_value(caller, (caller, name), key, value.clone())
         .unwrap();
 
     let new_value = random_bytebuf(rng, 0..2_000_000);
@@ -447,7 +421,7 @@ fn modify_a_key_value_in_map_by_unauthorized_fails() {
     let key = random_key(rng);
     let value = random_bytebuf(rng, 0..2_000_000);
     encrypted_maps
-        .insert_encrypted_value(caller, (caller, name.clone()), key.clone(), value.clone())
+        .insert_encrypted_value(caller, (caller, name), key, value.clone())
         .unwrap();
 
     let unauthorized_caller = random_self_authenticating_principal(rng);
@@ -455,8 +429,8 @@ fn modify_a_key_value_in_map_by_unauthorized_fails() {
     assert_eq!(
         encrypted_maps.insert_encrypted_value(
             unauthorized_caller,
-            (caller, name.clone()),
-            key.clone(),
+            (caller, name),
+            key,
             new_value.clone()
         ),
         Err("unauthorized".to_string())
@@ -465,12 +439,8 @@ fn modify_a_key_value_in_map_by_unauthorized_fails() {
     let readonly_caller = random_self_authenticating_principal(rng);
 
     assert_eq!(
-        encrypted_maps.set_user_rights(
-            caller,
-            (caller, name.clone()),
-            readonly_caller,
-            AccessRights::Read,
-        ),
+        encrypted_maps
+            .set_user_rights(caller, (caller, name), readonly_caller, AccessRights::Read,),
         Ok(None)
     );
 
@@ -504,7 +474,7 @@ fn can_get_owned_map_names() {
             let key = random_key(rng);
             let value = random_bytebuf(rng, 0..2_000_000);
             encrypted_maps
-                .insert_encrypted_value(caller, (caller, name.clone()), key.clone(), value.clone())
+                .insert_encrypted_value(caller, (caller, name), key, value.clone())
                 .unwrap();
         }
 
@@ -514,11 +484,11 @@ fn can_get_owned_map_names() {
             assert!(map_names.contains(map_name));
         }
 
-        let should_remove_map = rng.random_bool(0.2);
+        let should_remove_map = rng.gen_bool(0.2);
 
         if should_remove_map {
             encrypted_maps
-                .remove_map_values(caller, (caller, name.clone()))
+                .remove_map_values(caller, (caller, name))
                 .unwrap();
             expected_map_names.pop();
         }
@@ -528,7 +498,7 @@ fn can_get_owned_map_names() {
 fn random_encrypted_maps<R: Rng + CryptoRng>(rng: &mut R) -> EncryptedMaps<AccessRights> {
     let memory_manager = MemoryManager::init(DefaultMemoryImpl::default());
     let (memory_id_encrypted_maps, memory_ids_key_manager) = random_unique_memory_ids(rng);
-    let domain_separator_len = rng.random_range(0..32);
+    let domain_separator_len = rng.gen_range(0..32);
     EncryptedMaps::init(
         &random_utf8_string(rng, domain_separator_len),
         memory_manager.get(MemoryId::new(memory_id_encrypted_maps)),

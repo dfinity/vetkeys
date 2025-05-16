@@ -13,23 +13,39 @@ crate-type = ["lib"]
 [dependencies]
 anyhow = { workspace = true }
 candid = { workspace = true }
+# Enable `custom` feature of getrandom dependency. See lib.rs for more details.
+getrandom = { version = "0.2.0", features = ["custom"] }
+ic_bls12_381 = { version = "0.10.1", default-features = false, features = [
+    "groups",
+    "pairings",
+    "alloc",
+    "experimental",
+    "zeroize",
+] }
+hkdf = { version = "0.12" }
 futures = "0.3.31"
 hex = { workspace = true }
 ic-cdk = { workspace = true }
 ic-cdk-macros = { workspace = true }
 ic-stable-structures = { workspace = true }
 lazy_static = { workspace = true }
+pairing = "0.23.0"
+rand = { workspace = true }
+rand_chacha = { workspace = true }
 serde = { workspace = true }
 serde_bytes = { workspace = true }
 serde_with = { workspace = true }
+sha2 = "0.10.9"
+sha3 = "0.10.8"
+subtle = "2.6.1"
 strum = "0.26.3"
 strum_macros = "0.26.3"
+zeroize = { version = "1.8.1", features = ["zeroize_derive"] }
 
 [dev-dependencies]
 assert_matches = "1.5.0"
+hex = { workspace = true }
 ic-agent = "0.38.2"
 ic-vetkeys-test-utils = { path = "../ic_vetkeys_test_utils" }
 pocket-ic = { workspace = true }
-rand = { workspace = true }
-rand_chacha = { workspace = true }
 strum = "0.26.3"

@@ -6,7 +6,7 @@ use ic_cdk::api::management_canister::provisional::CanisterId;
 use ic_cdk::{init, post_upgrade, query, update};
 use ic_stable_structures::memory_manager::{MemoryId, MemoryManager, VirtualMemory};
 use ic_stable_structures::{BTreeMap as StableBTreeMap, DefaultMemoryImpl};
-use ic_vetkd_utils::{DerivedPublicKey, EncryptedVetKey};
+use ic_vetkeys::{DerivedPublicKey, EncryptedVetKey};
 use std::cell::RefCell;
 use std::str::FromStr;
 
@@ -287,7 +287,7 @@ async fn decrypt_bids(
     root_ibe_public_key_bytes: Vec<u8>,
 ) -> Vec<DecryptedBid> {
     let dummy_seed = vec![0; 32];
-    let transport_secret_key = ic_vetkd_utils::TransportSecretKey::from_seed(dummy_seed.clone())
+    let transport_secret_key = ic_vetkeys::TransportSecretKey::from_seed(dummy_seed.clone())
         .expect("failed to create transport secret key");
 
     let request = VetKDDeriveKeyRequest {
@@ -320,7 +320,7 @@ async fn decrypt_bids(
 
     for encrypted_bid in encrypted_bids {
         let decrypted_bid: Result<u128, String> =
-            ic_vetkd_utils::IBECiphertext::deserialize(&encrypted_bid.encrypted_amount)
+            ic_vetkeys::IBECiphertext::deserialize(&encrypted_bid.encrypted_amount)
                 .map_err(|e| format!("failed to deserialize ibe ciphertext: {e}"))
                 .and_then(|c| {
                     c.decrypt(&ibe_decryption_key)

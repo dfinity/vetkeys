@@ -1078,7 +1078,7 @@ dependencies = [
  "serde_bytes",
  "serde_cbor",
  "serde_repr",
- "sha2 0.10.8",
+ "sha2 0.10.9",
  "simple_asn1",
  "thiserror 1.0.69",
  "time",
@@ -1137,7 +1137,7 @@ dependencies = [
  "hex",
  "serde",
  "serde_bytes",
- "sha2 0.10.8",
+ "sha2 0.10.9",
 ]
 
 [[package]]
@@ -1149,7 +1149,7 @@ dependencies = [
  "hex",
  "serde",
  "serde_bytes",
- "sha2 0.10.8",
+ "sha2 0.10.9",
 ]
 
 [[package]]
@@ -1186,7 +1186,7 @@ dependencies = [
  "serde_bytes",
  "serde_cbor",
  "serde_repr",
- "sha2 0.10.8",
+ "sha2 0.10.9",
  "thiserror 1.0.69",
 ]
 
@@ -1204,7 +1204,7 @@ dependencies = [
  "serde_bytes",
  "serde_cbor",
  "serde_repr",
- "sha2 0.10.8",
+ "sha2 0.10.9",
  "thiserror 2.0.12",
 ]
 
@@ -1219,7 +1219,7 @@ dependencies = [
  "lazy_static",
  "pairing",
  "rand 0.8.5",
- "sha2 0.10.8",
+ "sha2 0.10.9",
 ]
 
 [[package]]
@@ -1247,7 +1247,6 @@ dependencies = [
  "ic-cdk-macros",
  "ic-cdk-timers",
  "ic-stable-structures",
- "ic-vetkd-utils",
  "ic-vetkeys",
  "serde",
  "serde_bytes",
@@ -1269,25 +1268,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "ic-vetkd-utils"
-version = "0.1.0"
-source = "git+https://github.com/dfinity/ic.git#97a0e6132a593608c2bc48179c1a63b477844e5d"
-dependencies = [
- "getrandom 0.2.15",
- "hkdf",
- "ic_bls12_381",
- "lazy_static",
- "pairing",
- "rand 0.8.5",
- "rand_chacha 0.3.1",
- "sha2 0.10.8",
- "sha3",
- "subtle",
- "wasm-bindgen",
- "zeroize",
-]
-
-[[package]]
 name = "ic-vetkeys"
 version = "0.1.0"
 dependencies = [
@@ -1295,21 +1275,29 @@ dependencies = [
  "assert_matches",
  "candid",
  "futures",
+ "getrandom 0.2.15",
  "hex",
+ "hkdf",
  "ic-agent",
  "ic-cdk",
  "ic-cdk-macros",
  "ic-stable-structures",
  "ic-vetkeys-test-utils",
+ "ic_bls12_381",
  "lazy_static",
+ "pairing",
  "pocket-ic",
- "rand 0.9.0",
- "rand_chacha 0.9.0",
+ "rand 0.8.5",
+ "rand_chacha 0.3.1",
  "serde",
  "serde_bytes",
  "serde_with",
+ "sha2 0.10.9",
+ "sha3",
  "strum",
  "strum_macros",
+ "subtle",
+ "zeroize",
 ]
 
 [[package]]
@@ -1320,12 +1308,11 @@ dependencies = [
  "ic-cdk",
  "ic-cdk-macros",
  "ic-stable-structures",
- "ic-vetkd-utils",
  "ic-vetkeys",
  "ic-vetkeys-test-utils",
  "pocket-ic",
- "rand 0.9.0",
- "rand_chacha 0.9.0",
+ "rand 0.8.5",
+ "rand_chacha 0.3.1",
  "reqwest",
  "serde",
 ]
@@ -1338,12 +1325,11 @@ dependencies = [
  "ic-cdk",
  "ic-cdk-macros",
  "ic-stable-structures",
- "ic-vetkd-utils",
  "ic-vetkeys",
  "ic-vetkeys-test-utils",
  "pocket-ic",
- "rand 0.9.0",
- "rand_chacha 0.9.0",
+ "rand 0.8.5",
+ "rand_chacha 0.3.1",
  "reqwest",
  "serde",
 ]
@@ -1357,11 +1343,13 @@ dependencies = [
  "hex",
  "ic-stable-structures",
  "ic-vetkeys",
+ "ic_bls12_381",
  "lazy_static",
- "rand 0.9.0",
- "rand_chacha 0.9.0",
+ "rand 0.8.5",
+ "rand_chacha 0.3.1",
  "serde",
  "serde_bytes",
+ "sha2 0.10.9",
 ]
 
 [[package]]
@@ -1394,7 +1382,7 @@ dependencies = [
  "crc32fast",
  "data-encoding",
  "serde",
- "sha2 0.10.8",
+ "sha2 0.10.9",
  "thiserror 1.0.69",
 ]
 
@@ -1606,7 +1594,7 @@ dependencies = [
  "ecdsa",
  "elliptic-curve",
  "once_cell",
- "sha2 0.10.8",
+ "sha2 0.10.9",
  "signature",
 ]
 
@@ -1858,7 +1846,7 @@ dependencies = [
  "ecdsa",
  "elliptic-curve",
  "primeorder",
- "sha2 0.10.8",
+ "sha2 0.10.9",
 ]
 
 [[package]]
@@ -1978,7 +1966,7 @@ dependencies = [
  "serde_bytes",
  "serde_cbor",
  "serde_json",
- "sha2 0.10.8",
+ "sha2 0.10.9",
  "slog",
  "strum",
  "strum_macros",
@@ -2645,9 +2633,9 @@ dependencies = [
 
 [[package]]
 name = "sha2"
-version = "0.10.8"
+version = "0.10.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "793db75ad2bcafc3ffa7c68b215fee268f537982cd901d132f89c6343f3a3dc8"
+checksum = "a7507d819769d01a365ab707794a4084392c824f54a7a6a7862f8c3d0892b283"
 dependencies = [
  "cfg-if",
  "cpufeatures",
