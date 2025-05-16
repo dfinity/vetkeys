@@ -1153,6 +1153,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "ic-dummy-getrandom-for-wasm"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e16d0dde1892f34bc07df75d68137abdecef8effb819c5b1003ee31654a81b9e"
+dependencies = [
+ "getrandom 0.2.15",
+]
+
+[[package]]
 name = "ic-management-canister-types"
 version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1229,6 +1238,7 @@ dependencies = [
  "candid",
  "ic-cdk",
  "ic-cdk-macros",
+ "ic-dummy-getrandom-for-wasm",
  "ic-stable-structures",
  "ic-vetkeys",
  "serde",
@@ -1246,6 +1256,7 @@ dependencies = [
  "ic-cdk",
  "ic-cdk-macros",
  "ic-cdk-timers",
+ "ic-dummy-getrandom-for-wasm",
  "ic-stable-structures",
  "ic-vetkeys",
  "serde",
@@ -1261,6 +1272,7 @@ dependencies = [
  "candid",
  "ic-cdk",
  "ic-cdk-macros",
+ "ic-dummy-getrandom-for-wasm",
  "ic-stable-structures",
  "ic-vetkeys",
  "serde",
@@ -1275,7 +1287,6 @@ dependencies = [
  "assert_matches",
  "candid",
  "futures",
- "getrandom 0.2.15",
  "hex",
  "hkdf",
  "ic-agent",
@@ -1307,6 +1318,7 @@ dependencies = [
  "candid",
  "ic-cdk",
  "ic-cdk-macros",
+ "ic-dummy-getrandom-for-wasm",
  "ic-stable-structures",
  "ic-vetkeys",
  "ic-vetkeys-test-utils",
@@ -1324,6 +1336,7 @@ dependencies = [
  "candid",
  "ic-cdk",
  "ic-cdk-macros",
+ "ic-dummy-getrandom-for-wasm",
  "ic-stable-structures",
  "ic-vetkeys",
  "ic-vetkeys-test-utils",

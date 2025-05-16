@@ -17,6 +17,7 @@ getrandom = { version = "0.2", features = ["custom"]}
 ic-cdk = { workspace = true }
 ic-cdk-macros = { workspace = true }
 ic-cdk-timers = "0.11.0"
+ic-dummy-getrandom-for-wasm = { workspace = true }
 ic-stable-structures = { workspace = true }
 ic-vetkeys = { path = "../../../backend/rs/ic_vetkeys" }
 serde = { workspace = true }

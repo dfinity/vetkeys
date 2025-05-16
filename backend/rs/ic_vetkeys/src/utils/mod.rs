@@ -5,7 +5,6 @@
 #![forbid(unsafe_code)]
 #![warn(rust_2018_idioms)]
 #![forbid(missing_docs)]
-#![allow(clippy::mem_forget)]
 
 use ic_bls12_381::{
     hash_to_curve::{ExpandMsgXmd, HashToCurve},

@@ -13,8 +13,6 @@ crate-type = ["lib"]
 [dependencies]
 anyhow = { workspace = true }
 candid = { workspace = true }
-# Enable `custom` feature of getrandom dependency. See lib.rs for more details.
-getrandom = { version = "0.2.0", features = ["custom"] }
 ic_bls12_381 = { version = "0.10.1", default-features = false, features = [
     "groups",
     "pairings",
