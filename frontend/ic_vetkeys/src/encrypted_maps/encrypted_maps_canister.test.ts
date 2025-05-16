@@ -3,7 +3,7 @@ import { DefaultEncryptedMapsClient } from "./encrypted_maps_canister";
 import { expect, test } from "vitest";
 import fetch from "isomorphic-fetch";
 import { Ed25519KeyIdentity } from "@dfinity/identity";
-import { EncryptedMaps } from "./encrypted_maps";
+import { EncryptedMaps } from "./index";
 import { randomBytes } from "node:crypto";
 
 function randomId(): Ed25519KeyIdentity {

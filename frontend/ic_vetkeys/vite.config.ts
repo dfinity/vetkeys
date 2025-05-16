@@ -8,7 +8,8 @@ export default defineConfig({
         lib: {
             entry: {
                 index: path.resolve(__dirname, 'src/index.ts'),
-                tools: path.resolve(__dirname, 'src/tools/index.ts'),
+                key_manager: path.resolve(__dirname, 'src/key_manager/index.ts'),
+                encrypted_maps: path.resolve(__dirname, 'src/encrypted_maps/index.ts'),
             },
             name: 'ic_vetkeys',
             formats: ['es'],

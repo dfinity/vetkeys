@@ -1,3 +1,15 @@
+/**
+ * @module @dfinity/vetkeys/key_manager
+ *
+ * @description See { @link KeyManager }.
+ *
+ * > [!IMPORTANT]
+ * > These support libraries are under active development and are subject to change. Access to the repositories has been opened to allow for early feedback. Check back regularly for updates.
+ * >
+ * > Please share your feedback on the [developer forum](https://forum.dfinity.org/t/threshold-key-derivation-privacy-on-the-ic/16560/179).
+ *
+ */
+
 import { Principal } from "@dfinity/principal";
 import {
     TransportSecretKey,
@@ -5,6 +17,12 @@ import {
     DerivedPublicKey,
 } from "../utils/utils";
 import {
+    AccessRights,
+    ByteBuf,
+} from "../declarations/ic_vetkeys_manager_canister/ic_vetkeys_manager_canister.did";
+
+export { DefaultKeyManagerClient } from "./key_manager_canister";
+export type {
     AccessRights,
     ByteBuf,
 } from "../declarations/ic_vetkeys_manager_canister/ic_vetkeys_manager_canister.did";
@@ -32,7 +50,7 @@ import {
  *
  * @example
  * ```ts
- * import { KeyManager } from "@dfinity/vetkeys/tools";
+ * import { KeyManager } from "@dfinity/vetkeys/key_manager";
  *
  * // Initialize the KeyManager
  * const keyManager = new KeyManager(keyManagerClientInstance);
@@ -62,7 +80,7 @@ export class KeyManager {
      *
      * @example
      * ```ts
-     * import { KeyManager } from "@dfinity/vetkeys/tools";
+     * import { KeyManager } from "@dfinity/vetkeys/key_manager";
      *
      * const keyManager = new KeyManager(keyManagerClientInstance);
      * ```

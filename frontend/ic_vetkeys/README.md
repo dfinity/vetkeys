@@ -9,7 +9,7 @@
 
 <br>
 
-This package contains two entry points:
+This package contains three entry points:
 
 <br>
 
@@ -21,16 +21,16 @@ Provides frontend utilities for the low-level use of VetKeys such as decryption 
 
 <br>
 
-[`ic_vetkeys/tools`](https://5lfyp-mqaaa-aaaag-aleqa-cai.icp0.io/modules/ic_vetkeys_tools.html)
+[`ic_vetkeys/key_manager`](https://5lfyp-mqaaa-aaaag-aleqa-cai.icp0.io/modules/ic_vetkeys_key_manager.html)
 
 ---
 
-Provides high-level tools for frontend integration with the Internet Computer (ICP) applications using the respective [`ic_vetkeys` backend tools](https://docs.rs/ic_vetkeys/latest/).
+A frontend library facilitating communication with a [key manager enabled canister](https://docs.rs/ic_vetkeys/latest/TODO).
 
-### [Encrypted Maps](https://5lfyp-mqaaa-aaaag-aleqa-cai.icp0.io/classes/ic_vetkeys_tools.EncryptedMaps.html)
+<br>
+
+[`ic_vetkeys/encrypted_maps`](https://5lfyp-mqaaa-aaaag-aleqa-cai.icp0.io/modules/ic_vetkeys_encrypted_maps.html)
+
+---
 
 A frontend library facilitating communication with an [encrypted maps enabled canister](https://docs.rs/ic_vetkeys/latest/TODO).
-
-### [Key Manager](https://5lfyp-mqaaa-aaaag-aleqa-cai.icp0.io/classes/ic_vetkeys_tools.KeyManager.html)
-
-A frontend library facilitating communication with a [key manager enabled canister](https://docs.rs/ic_vetkeys/latest/TODO).

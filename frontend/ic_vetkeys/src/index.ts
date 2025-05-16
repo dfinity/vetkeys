@@ -1,5 +1,5 @@
 /**
- * @module ic_vetkeys
+ * @module @dfinity/vetkeys
  *
  * @description Provides frontend utilities for the low-level use of Verifiably Encrypted Threshold Keys (VetKeys) on the Internet Computer (IC) such as decryption of encrypted VetKeys, identity based encryption (IBE), and symmetric key derivation from a VetKey.
  *

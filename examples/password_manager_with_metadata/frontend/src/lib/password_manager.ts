@@ -1,6 +1,6 @@
 import "./init.ts";
 import { type ActorSubclass, type HttpAgentOptions } from "@dfinity/agent";
-import { EncryptedMaps } from "@dfinity/vetkeys/tools";
+import { EncryptedMaps } from "@dfinity/vetkeys/encrypted_maps";
 import { createEncryptedMaps } from "./encrypted_maps";
 import type { Principal } from "@dfinity/principal";
 import { createActor } from "../declarations/index";

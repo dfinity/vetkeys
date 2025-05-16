@@ -7,7 +7,7 @@ import {
     ByteBuf,
     EncryptedMapData,
 } from "../declarations/ic_vetkeys_encrypted_maps_canister/ic_vetkeys_encrypted_maps_canister.did";
-import { EncryptedMapsClient } from "./encrypted_maps";
+import { EncryptedMapsClient } from "./index";
 
 export class DefaultEncryptedMapsClient implements EncryptedMapsClient {
     actor: ActorSubclass<_DEFAULT_ENCRYPTED_MAPS_SERVICE>;

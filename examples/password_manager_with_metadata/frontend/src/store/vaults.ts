@@ -3,7 +3,7 @@ import { type PasswordModel } from "../lib/password";
 import { type VaultModel } from "../lib/vault";
 import { auth, type AuthState } from "./auth";
 import { showError } from "./notifications";
-import { type AccessRights } from "@dfinity/vetkeys/tools";
+import { type AccessRights } from "@dfinity/vetkeys/encrypted_maps";
 import type { Principal } from "@dfinity/principal";
 import type { PasswordManager } from "../lib/password_manager";
 
