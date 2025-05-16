@@ -32,7 +32,7 @@ import {
  *
  * @example
  * ```ts
- * import { KeyManager } from "ic_vetkeys/tools";
+ * import { KeyManager } from "@dfinity/vetkeys/tools";
  *
  * // Initialize the KeyManager
  * const keyManager = new KeyManager(keyManagerClientInstance);
@@ -62,7 +62,7 @@ export class KeyManager {
      *
      * @example
      * ```ts
-     * import { KeyManager } from "ic_vetkeys/tools";
+     * import { KeyManager } from "@dfinity/vetkeys/tools";
      *
      * const keyManager = new KeyManager(keyManagerClientInstance);
      * ```

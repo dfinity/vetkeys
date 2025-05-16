@@ -4,7 +4,7 @@ import { Principal } from "@dfinity/principal";
 import {
   DerivedPublicKey,
   IdentityBasedEncryptionCiphertext,
-} from "ic_vetkeys";
+} from "@dfinity/vetkeys";
 import {
   _SERVICE,
   LotInformation,

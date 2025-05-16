@@ -1,6 +1,6 @@
 import type { Principal } from "@dfinity/principal";
 import type { PasswordModel } from "./password";
-import type { AccessRights } from "ic_vetkeys/tools";
+import type { AccessRights } from "@dfinity/vetkeys/tools";
 
 export interface VaultModel {
     owner: Principal;

@@ -86,6 +86,69 @@ function prefixWithLen(input: Uint8Array): Uint8Array {
 }
 
 /**
+ * VetKD master key
+ *
+ * The VetKD subnet contains a small number of master keys, from which canister
+ * keys are derived. In turn, many keys can be derived from the canister keys
+ * using a context string.
+ */
+export class MasterPublicKey {
+    readonly #pk: G2Point;
+
+    /**
+     * Read a MasterPublicKey from the bytestring encoding
+     *
+     * Normally the bytes provided here will have been returned by
+     * the `vetkd_public_key` management canister interface.
+     */
+    static deserialize(bytes: Uint8Array): MasterPublicKey {
+        return new MasterPublicKey(bls12_381.G2.ProjectivePoint.fromHex(bytes));
+    }
+
+    /**
+     * Derive a canister master key from the subnet master key
+     *
+     * To create the derived public key in VetKD, a two step derivation is performed. The first step
+     * creates a key that is specific to the canister that is making VetKD requests to the
+     * management canister, sometimes called canister master key.
+     *
+     * This function can be used to compute canister master keys knowing just the subnet master key
+     * plus the canister identity. This avoids having to interact with the IC for performing this
+     * computation.
+     */
+    deriveKey(canister_id: Uint8Array): DerivedPublicKey {
+        const dst = "ic-vetkd-bls12-381-g2-canister-id";
+        const pkbytes = this.publicKeyBytes();
+        const ro_input = new Uint8Array([
+            ...prefixWithLen(pkbytes),
+            ...prefixWithLen(canister_id),
+        ]);
+        const offset = hashToScalar(ro_input, dst);
+        const g2_offset = bls12_381.G2.ProjectivePoint.BASE.multiply(offset);
+        return new DerivedPublicKey(this.#pk.add(g2_offset));
+    }
+
+    /**
+     * Return the bytestring encoding of the master public key
+     */
+    publicKeyBytes(): Uint8Array {
+        return this.#pk.toRawBytes(true);
+    }
+
+    /**
+     * TODO CRP-2797 add getter for the production subnet key once this has been
+     * generated.
+     */
+
+    /**
+     * @internal constructor
+     */
+    constructor(pk: G2Point) {
+        this.#pk = pk;
+    }
+}
+
+/**
  * VetKD derived public key
  *
  * An unencrypted VetKey is a BLS signature generated with a canister-specific
@@ -127,7 +190,12 @@ export class DerivedPublicKey {
             return this;
         } else {
             const dst = "ic-vetkd-bls12-381-g2-context";
-            const offset = hashToScalar(prefixWithLen(context), dst);
+            const pkbytes = this.publicKeyBytes();
+            const ro_input = new Uint8Array([
+                ...prefixWithLen(pkbytes),
+                ...prefixWithLen(context),
+            ]);
+            const offset = hashToScalar(ro_input, dst);
             const g2_offset =
                 bls12_381.G2.ProjectivePoint.BASE.multiply(offset);
             return new DerivedPublicKey(this.getPoint().add(g2_offset));
@@ -569,8 +637,16 @@ function maskSeed(seed: Uint8Array, t: Uint8Array): Uint8Array {
 }
 
 function maskMsg(msg: Uint8Array, seed: Uint8Array): Uint8Array {
+    /*
+    Zero prefix the length up to 20 digits, which is sufficient to be fixed
+    length for any 64-bit length. This ensures all of the MaskMsg domain
+    separators are of equal length. With how we use the domain separators, this
+    padding isn't required - we only need uniquness - but having variable
+    length domain separators is generally not considered a good practice and is
+    easily avoidable here.
+    */
     const domain_sep = IbeDomainSeparators.MaskMsg.concat(
-        msg.length.toString(),
+        msg.length.toString().padStart(20, "0"),
     );
     const xof_seed = deriveSymmetricKey(seed, domain_sep, 32);
 

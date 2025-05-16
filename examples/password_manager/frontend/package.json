@@ -11,9 +11,6 @@
     "prettier-check": "prettier --check .",
     "preview": "vite preview"
   },
-  "peerDependencies": {
-    "ic_vetkeys": "^0.1.0"
-  },
   "devDependencies": {
     "@rollup/plugin-typescript": "^12.1.2",
     "@tsconfig/svelte": "^5.0.4",
@@ -40,5 +37,8 @@
     "svelte-spa-router": "^4.0.1",
     "tailwindcss": "^3.0.17",
     "typewriter-editor": "^0.9.4"
+  },
+  "peerDependencies": {
+    "@dfinity/vetkeys": "^0.1.0"
   }
 }

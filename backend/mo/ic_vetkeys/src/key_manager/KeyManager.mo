@@ -7,6 +7,7 @@ import OrderedMap "mo:base/OrderedMap";
 import Result "mo:base/Result";
 import Types "../Types";
 import Text "mo:base/Text";
+import Nat8 "mo:base/Nat8";
 
 module {
     public type VetKeyVerificationKey = Blob;
@@ -114,8 +115,10 @@ module {
             switch (ensureUserCanRead(caller, keyId)) {
                 case (#err(msg)) { #err(msg) };
                 case (#ok(_)) {
+                    let principalBytes = Blob.toArray(Principal.toBlob(keyId.0));
                     let input = Array.flatten<Nat8>([
-                        Blob.toArray(Principal.toBlob(keyId.0)),
+                        [Nat8.fromNat(Array.size<Nat8>(principalBytes))],
+                        principalBytes,
                         Blob.toArray(keyId.1),
                     ]);
 
@@ -128,7 +131,7 @@ module {
                         transport_public_key = transportKey;
                     };
 
-                    let (reply) = await (actor ("aaaaa-aa") : VetkdSystemApi).vetkd_derive_key(request);
+                    let (reply) = await (with cycles = 26_153_846_153) (actor ("aaaaa-aa") : VetkdSystemApi).vetkd_derive_key(request);
                     #ok(reply.encrypted_key);
                 };
             };
