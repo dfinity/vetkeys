@@ -51,7 +51,7 @@ export function login() {
             identityProvider:
                 process.env.DFX_NETWORK === "ic"
                     ? "https://identity.ic0.app/#authorize"
-                    : `http://${process.env.CANISTER_ID_INTERNET_IDENTITY}.localhost:8000/#authorize`,
+                    : `http://${process.env.CANISTER_ID_INTERNET_IDENTITY}.localhost:4943/#authorize`,
             onSuccess: () => authenticate(currentAuth.client),
         });
     }

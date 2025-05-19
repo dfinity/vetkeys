@@ -57,13 +57,13 @@ async function getRootIbePublicKey(): Promise<DerivedPublicKey> {
 }
 
 export function login(client: AuthClient) {
-    client.login({
+    void client.login({
         maxTimeToLive: BigInt(1800) * BigInt(1_000_000_000),
         identityProvider:
             process.env.DFX_NETWORK === "ic"
                 ? "https://identity.ic0.app/#authorize"
                 : `http://${process.env.CANISTER_ID_INTERNET_IDENTITY}.localhost:8000/#authorize`,
-        onSuccess: async () => {
+        onSuccess: () => {
             myPrincipal = client.getIdentity().getPrincipal();
             updateUI(true);
         },
@@ -74,7 +74,7 @@ export function login(client: AuthClient) {
 }
 
 export function logout() {
-    authClient?.logout();
+    void authClient?.logout();
     myPrincipal = undefined;
     updateUI(false);
 
@@ -115,7 +115,7 @@ function updateUI(isAuthenticated: boolean) {
     }
 }
 
-async function handleLogin() {
+function handleLogin() {
     if (!authClient) {
         alert("Auth client not initialized");
         return;
@@ -170,21 +170,22 @@ document.getElementById("createLotButton")!.addEventListener("click", () => {
     document.getElementById("lotForm")!.style.display = "block";
     document.getElementById("lotsList")!.style.display = "none";
 });
-document.getElementById("listLotsButton")!.addEventListener("click", listLots);
-document
-    .getElementById("createLotForm")!
-    .addEventListener("submit", async (e) => {
-        e.preventDefault();
-        const name = (document.getElementById("lotName") as HTMLInputElement)
-            .value;
-        const description = (
-            document.getElementById("lotDescription") as HTMLTextAreaElement
-        ).value;
-        const duration = parseInt(
-            (document.getElementById("lotDuration") as HTMLInputElement).value,
-        );
-        await createLot(name, description, duration);
-    });
+document.getElementById("listLotsButton")!.addEventListener("click", () => {
+    void (async () => {
+        await listLots();
+    })();
+});
+document.getElementById("createLotForm")!.addEventListener("submit", (e) => {
+    (e as Event).preventDefault();
+    const name = (document.getElementById("lotName") as HTMLInputElement).value;
+    const description = (
+        document.getElementById("lotDescription") as HTMLTextAreaElement
+    ).value;
+    const duration = parseInt(
+        (document.getElementById("lotDuration") as HTMLInputElement).value,
+    );
+    void createLot(name, description, duration);
+});
 
 async function createLot(
     name: string,
@@ -334,7 +335,7 @@ async function listLots() {
                 if (!isCreator) {
                     const bidForm = lotDiv.querySelector(`#bidForm-${lot.id}`);
                     if (bidForm) {
-                        bidForm.addEventListener("submit", async (e) => {
+                        bidForm.addEventListener("submit", (e) => {
                             e.preventDefault();
                             const amount = parseInt(
                                 (
@@ -343,7 +344,7 @@ async function listLots() {
                                     ) as HTMLInputElement
                                 ).value,
                             );
-                            await placeBid(lot.id, amount);
+                            void placeBid(lot.id, amount);
                         });
                     }
                 }
@@ -411,7 +412,7 @@ async function listLots() {
 
         document.getElementById("lotsList")!.style.display = "block";
     } catch (error) {
-        alert(`Failed to list lots: ${error}`);
+        alert(`Failed to list lots: ${error as Error}`);
     }
 }
 
@@ -447,7 +448,7 @@ async function placeBid(lotId: bigint, amount: number) {
         // Refresh the lots list
         await listLots();
     } catch (error) {
-        alert(`Failed to place bid: ${error}`);
+        alert(`Failed to place bid: ${error as Error}`);
     }
 }
 
@@ -464,4 +465,4 @@ function u128ToLeBytes(value: bigint): Uint8Array {
 }
 
 // Initialize auth
-initAuth();
+void initAuth();

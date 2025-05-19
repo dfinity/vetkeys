@@ -11,7 +11,7 @@ export async function createEncryptedMaps(
     const host =
         process.env.DFX_NETWORK === "ic"
             ? `https://${process.env.CANISTER_ID_IC_VETKEYS_ENCRYPTED_MAPS_CANISTER}.ic0.app`
-            : "http://localhost:8000";
+            : "http://localhost:4943";
     const hostOptions = { host };
 
     if (!agentOptions) {

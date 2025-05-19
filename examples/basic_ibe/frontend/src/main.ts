@@ -114,7 +114,7 @@ async function sendMessage() {
             alert("Message sent successfully!");
         }
     } catch (error) {
-        alert("Error sending message: " + error);
+        alert("Error sending message: " + (error as Error).message);
     }
 }
 
@@ -209,7 +209,7 @@ async function displayMessages(inbox: Inbox) {
     // Add event listeners to delete buttons
     const deleteButtons = document.querySelectorAll(".delete-button");
     deleteButtons.forEach((button) => {
-        button.addEventListener("click", async (e) => {
+        button.addEventListener("click", (e) => {
             const target = e.target as HTMLButtonElement;
             const index = parseInt(target.dataset.index!);
 
@@ -218,51 +218,56 @@ async function displayMessages(inbox: Inbox) {
                 (btn) => ((btn as HTMLButtonElement).disabled = true),
             );
 
-            try {
-                const result =
-                    await getBasicIbeCanister().remove_my_message_by_index(
-                        BigInt(index),
-                    );
-                if ("Err" in result) {
-                    alert("Error deleting message: " + result.Err);
-                } else {
-                    // Remove the message element from the DOM
-                    const messageElement = target.closest(".message");
-                    if (messageElement) {
-                        messageElement.remove();
+            void (async () => {
+                try {
+                    const result =
+                        await getBasicIbeCanister().remove_my_message_by_index(
+                            BigInt(index),
+                        );
+                    if ("Err" in result) {
+                        alert("Error deleting message: " + result.Err);
+                    } else {
+                        // Remove the message element from the DOM
+                        const messageElement = target.closest(".message");
+                        if (messageElement) {
+                            messageElement.remove();
 
-                        // If this was the last message, show the "no messages" message
-                        const messagesDiv =
-                            document.getElementById("messages")!;
-                        if (messagesDiv.children.length === 0) {
-                            const noMessagesDiv = document.createElement("div");
-                            noMessagesDiv.className = "no-messages";
-                            noMessagesDiv.textContent =
-                                "No messages in the inbox.";
-                            messagesDiv.appendChild(noMessagesDiv);
+                            // If this was the last message, show the "no messages" message
+                            const messagesDiv =
+                                document.getElementById("messages")!;
+                            if (messagesDiv.children.length === 0) {
+                                const noMessagesDiv =
+                                    document.createElement("div");
+                                noMessagesDiv.className = "no-messages";
+                                noMessagesDiv.textContent =
+                                    "No messages in the inbox.";
+                                messagesDiv.appendChild(noMessagesDiv);
+                            }
                         }
                     }
+                } catch (error) {
+                    alert(
+                        "Error deleting message: " + (error as Error).message,
+                    );
+                } finally {
+                    // Re-enable all delete buttons
+                    deleteButtons.forEach(
+                        (btn) => ((btn as HTMLButtonElement).disabled = false),
+                    );
                 }
-            } catch (error) {
-                alert("Error deleting message: " + error);
-            } finally {
-                // Re-enable all delete buttons
-                deleteButtons.forEach(
-                    (btn) => ((btn as HTMLButtonElement).disabled = false),
-                );
-            }
+            })();
         });
     });
 }
 
 export function login(client: AuthClient) {
-    client.login({
+    void client.login({
         maxTimeToLive: BigInt(1800) * BigInt(1_000_000_000),
         identityProvider:
             process.env.DFX_NETWORK === "ic"
                 ? "https://identity.ic0.app/#authorize"
                 : `http://${process.env.CANISTER_ID_INTERNET_IDENTITY}.localhost:8000/#authorize`,
-        onSuccess: async () => {
+        onSuccess: () => {
             myPrincipal = client.getIdentity().getPrincipal();
             updateUI(true);
         },
@@ -273,7 +278,7 @@ export function login(client: AuthClient) {
 }
 
 export function logout() {
-    authClient?.logout();
+    void authClient?.logout();
     const messagesDiv = document.getElementById("messages")!;
     messagesDiv.innerHTML = "";
     ibePrivateKey = undefined;
@@ -310,7 +315,7 @@ function updateUI(isAuthenticated: boolean) {
     }
 }
 
-async function handleLogin() {
+function handleLogin() {
     if (!authClient) {
         alert("Auth client not initialized");
         return;
@@ -340,10 +345,16 @@ document.querySelector<HTMLDivElement>("#app")!.innerHTML = `
 // Add event listeners
 document.getElementById("loginButton")!.addEventListener("click", handleLogin);
 document.getElementById("logoutButton")!.addEventListener("click", logout);
-document.getElementById("sendMessage")!.addEventListener("click", sendMessage);
-document
-    .getElementById("showMessages")!
-    .addEventListener("click", showMessages);
+document.getElementById("sendMessage")!.addEventListener("click", () => {
+    void (async () => {
+        await sendMessage();
+    })();
+});
+document.getElementById("showMessages")!.addEventListener("click", () => {
+    void (async () => {
+        await showMessages();
+    })();
+});
 
 // Initialize auth
-initAuth();
+void initAuth();
