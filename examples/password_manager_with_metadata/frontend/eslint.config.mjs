@@ -10,7 +10,6 @@ import svelte from "eslint-plugin-svelte";
 export default tseslint.config(
     eslint.configs.recommended,
     tseslint.configs.recommendedTypeChecked,
-    tseslint.configs.recommended,
     ...svelte.configs.recommended,
     eslintPluginPrettierRecommended,
     {
