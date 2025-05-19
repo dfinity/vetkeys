@@ -1319,7 +1319,6 @@ dependencies = [
  "ic-cdk",
  "ic-cdk-macros",
  "ic-dummy-getrandom-for-wasm",
- "ic-stable-structures",
  "ic-vetkeys",
  "ic-vetkeys-test-utils",
  "pocket-ic",

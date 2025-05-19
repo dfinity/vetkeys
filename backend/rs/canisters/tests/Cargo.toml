@@ -16,7 +16,6 @@ candid = { workspace = true }
 ic-cdk = { workspace = true }
 ic-cdk-macros = { workspace = true }
 ic-dummy-getrandom-for-wasm = { workspace = true }
-ic-stable-structures = { workspace = true }
 ic-vetkeys = { path = "../../ic_vetkeys" }
 serde = { workspace = true }
 
