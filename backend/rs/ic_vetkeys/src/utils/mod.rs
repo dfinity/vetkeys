@@ -664,8 +664,8 @@ pub mod management_canister {
             input,
             context,
             key_id,
-            // Encryption with the G1 generator produces unencrypted vetKeys
-            transport_public_key: G1Affine::generator().to_compressed().to_vec(),
+            // Encryption with the G1 identity element produces unencrypted vetKeys
+            transport_public_key: G1Affine::identity().to_compressed().to_vec(),
         };
 
         let reply: (VetKDDeriveKeyReply,) =
@@ -684,21 +684,13 @@ pub mod management_canister {
 
         let bytes = reply.0.encrypted_key;
 
-        let c1_bytes: [u8; 48] = bytes[..G1AFFINE_BYTES]
-            .try_into()
-            .map_err(|_| DeriveUnencryptedVetkeyError::InvalidReply)?;
         let c3_bytes: [u8; 48] = bytes
             [EncryptedVetKey::C3_OFFSET..EncryptedVetKey::C3_OFFSET + G1AFFINE_BYTES]
             .try_into()
             .map_err(|_| DeriveUnencryptedVetkeyError::InvalidReply)?;
 
-        let opt_c1 = option_from_ctoption(G1Affine::from_compressed(&c1_bytes));
-        let opt_c3 = option_from_ctoption(G1Affine::from_compressed(&c3_bytes));
-
-        if let (Some(c1), Some(c3)) = (opt_c1, opt_c3) {
-            // Multiplication of `c1` and `transport_secret_key` is not needed anymore because `c1 == c1 * transport_secret_key` (cf. `EncryptedVetKey::decrypt_and_verify`)
-            let k = G1Affine::from(G1Projective::from(c3) - c1);
-            Ok(VetKey::new(k))
+        if let Some(c3) = option_from_ctoption(G1Affine::from_compressed(&c3_bytes)) {
+            Ok(VetKey::new(c3))
         } else {
             Err(DeriveUnencryptedVetkeyError::InvalidReply)
         }
