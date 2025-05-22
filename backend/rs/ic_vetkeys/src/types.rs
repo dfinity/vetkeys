@@ -16,10 +16,6 @@ pub type TransportKey = ByteBuf;
 pub type EncryptedMapValue = ByteBuf;
 
 /// Access rights of a user to a vetKey in [`crate::key_manager::KeyManager`] and/or an encrypted map in [`crate::encrypted_maps::EncryptedMaps`].
-///
-/// - **Read**: 
-/// - **ReadWrite**: User can update the key.
-/// - **ReadWriteManage**: User can view/share/revoke access.
 #[repr(u8)]
 #[derive(
     CandidType,
