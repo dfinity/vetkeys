@@ -109,19 +109,22 @@ test("BLS signature verification", () => {
     );
 
     const msg = new TextEncoder().encode("message");
+    const wrongMsg = new TextEncoder().encode("this is some other message");
 
     const signatureHex = "987db5406ce297e729c8564a106dc896943b00216a095fe9c5d32a16a330c02eb80e6f468ede83cde5462b5145b58f65"
     // Test verification works passing a hex string
     assertEqual(verifyBlsSignature(pk, msg, signatureHex), true);
+    assertEqual(verifyBlsSignature(pk, wrongMsg, signatureHex), false);
 
     // Test verification works passing a binary string
     const signatureBytes = hexToBytes(signatureHex);
     assertEqual(verifyBlsSignature(pk, msg, signatureBytes), true);
+    assertEqual(verifyBlsSignature(pk, wrongMsg, signatureBytes), false);
 
     // Test verification works passing a point objecet
     const signaturePoint = bls12_381.G1.ProjectivePoint.fromHex(signatureHex);
     assertEqual(verifyBlsSignature(pk, msg, signaturePoint), true);
-
+    assertEqual(verifyBlsSignature(pk, wrongMsg, signaturePoint), false);
 });
 
 test("protocol flow with precomputed data", () => {

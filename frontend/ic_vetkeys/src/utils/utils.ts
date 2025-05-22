@@ -313,9 +313,10 @@ export function augmentedHashToG1(
  * provided BLS signature is the valid one for the provided public key and
  * message.
  *
- * When a VetKey struct is created (VetKey.decryptAndVerify) the signature (aka
- * vetkey) is already verified, so using this function is only necessary when
- * using a vetkey as a VRF or for threshold BLS signatures.
+ * When a VetKey struct is created (using EncryptedVetKey.decryptAndVerify) the signature
+ * is already verified, so using this function is only necessary when
+ * using a vetKey as a VRF or for threshold BLS signatures, with the bytes obtained
+ * from VetKey.signatureBytes.
  */
 export function verifyBlsSignature(
     pk: DerivedPublicKey,
@@ -596,7 +597,7 @@ export class EncryptedVetKey {
             throw new Error("Invalid VetKey");
         }
 
-        // Compute the purported vetkey k
+        // Compute the purported vetKey k
         const c1_tsk = this.#c1.multiply(
             bls12_381.G1.normPrivateKeyToScalar(tsk.getSecretKey()),
         );
