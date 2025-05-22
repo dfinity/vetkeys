@@ -15,6 +15,11 @@ pub type MapKey = Blob<32>;
 pub type TransportKey = ByteBuf;
 pub type EncryptedMapValue = ByteBuf;
 
+/// The system enforces access control based on [`AccessRights`], allowing fine-grained control over key usage:
+///
+/// - **Read**: User can retrieve the encrypted key.
+/// - **ReadWrite**: User can update the key.
+/// - **ReadWriteManage**: User can view/share/revoke access.
 #[repr(u8)]
 #[derive(
     CandidType,
@@ -102,7 +107,7 @@ pub trait AccessControl:
 }
 
 /// Efficiently serializable and deserializable byte vector that is `Storable` with `ic_stable_structures`.
-/// See, e.g., https://mmapped.blog/posts/01-effective-rust-canisters#serde-bytes for more details regarding why `Vec<u8>` does not work out of the box.
+/// See, e.g., [https://mmapped.blog/posts/01-effective-rust-canisters#serde-bytes](https://mmapped.blog/posts/01-effective-rust-canisters#serde-bytes) for more details regarding why `Vec<u8>` does not work out of the box.
 /// Also, we cannot use `serde_bytes::ByteBuf` directly because it is not `Storable`.
 #[derive(CandidType, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Clone, Debug)]
 pub struct ByteBuf {
