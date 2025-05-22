@@ -326,7 +326,10 @@ export function verifyBlsSignature(
     const neg_g2 = bls12_381.G2.ProjectivePoint.BASE.negate();
     const gt_one = bls12_381.fields.Fp12.ONE;
 
-    const signaturePt = signature instanceof bls12_381.G1.ProjectivePoint ? signature : bls12_381.G1.ProjectivePoint.fromHex(signature);
+    const signaturePt =
+        signature instanceof bls12_381.G1.ProjectivePoint
+            ? signature
+            : bls12_381.G1.ProjectivePoint.fromHex(signature);
 
     const messageG1 = augmentedHashToG1(pk, message);
     const check = bls12_381.pairingBatch([
