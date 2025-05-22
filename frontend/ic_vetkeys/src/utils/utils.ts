@@ -320,14 +320,16 @@ export function augmentedHashToG1(
 export function verifyBlsSignature(
     pk: DerivedPublicKey,
     message: Uint8Array,
-    signature: G1Point,
+    signature: G1Point | Uint8Array,
 ): boolean {
     const neg_g2 = bls12_381.G2.ProjectivePoint.BASE.negate();
     const gt_one = bls12_381.fields.Fp12.ONE;
 
+    const signaturePt = signature instanceof bls12_381.G1.ProjectivePoint ? signature : bls12_381.G1.ProjectivePoint.fromHex(signature);
+
     const messageG1 = augmentedHashToG1(pk, message);
     const check = bls12_381.pairingBatch([
-        { g1: signature, g2: neg_g2 },
+        { g1: signaturePt, g2: neg_g2 },
         { g1: messageG1, g2: pk.getPoint() },
     ]);
 

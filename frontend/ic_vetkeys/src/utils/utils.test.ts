@@ -8,8 +8,10 @@ import {
     augmentedHashToG1,
     deriveSymmetricKey,
     hashToScalar,
+    verifyBlsSignature,
 } from "./utils";
 import { expect, test } from "vitest";
+import { bls12_381 } from "@noble/curves/bls12-381";
 
 function hexToBytes(hex: string): Uint8Array {
     const bytes = new Uint8Array(hex.length / 2);
@@ -97,6 +99,29 @@ test("augmented hash to G1", () => {
     const calculated = augmentedHashToG1(pk, msg);
 
     assertEqual(bytesToHex(calculated.toRawBytes(true)), expected);
+});
+
+test("BLS signature verification", () => {
+    const pk = DerivedPublicKey.deserialize(
+        hexToBytes(
+            "972c4c6cc184b56121a1d27ef1ca3a2334d1a51be93573bd18e168f78f8fe15ce44fb029ffe8e9c3ee6bea2660f4f35e0774a35a80d6236c050fd8f831475b5e145116d3e83d26c533545f64b08464e4bcc755f990a381efa89804212d4eef5f",
+        ),
+    );
+
+    const msg = new TextEncoder().encode("message");
+
+    const signatureHex = "987db5406ce297e729c8564a106dc896943b00216a095fe9c5d32a16a330c02eb80e6f468ede83cde5462b5145b58f65"
+    // Test verification works passing a hex string
+    assertEqual(verifyBlsSignature(pk, msg, signatureHex), true);
+
+    // Test verification works passing a binary string
+    const signatureBytes = hexToBytes(signatureHex);
+    assertEqual(verifyBlsSignature(pk, msg, signatureBytes), true);
+
+    // Test verification works passing a point objecet
+    const signaturePoint = bls12_381.G1.ProjectivePoint.fromHex(signatureHex);
+    assertEqual(verifyBlsSignature(pk, msg, signaturePoint), true);
+
 });
 
 test("protocol flow with precomputed data", () => {
