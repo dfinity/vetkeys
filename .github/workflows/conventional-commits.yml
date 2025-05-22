@@ -6,7 +6,8 @@ on:
       - reopened
       - edited
       - synchronize
-
+    paths:
+      - **
 jobs:
   check:
     runs-on: ubuntu-latest
