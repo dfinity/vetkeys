@@ -612,7 +612,7 @@ fn verify_bls_signature_pt(dpk: &DerivedPublicKey, input: &[u8], signature: &G1A
 
     use pairing::group::Group;
     let is_valid =
-        gt_multipairing(&[(&signature, &G2PREPARED_NEG_G), (&msg, &dpk_prep)]).is_identity();
+        gt_multipairing(&[(signature, &G2PREPARED_NEG_G), (&msg, &dpk_prep)]).is_identity();
     bool::from(is_valid)
 }
 
