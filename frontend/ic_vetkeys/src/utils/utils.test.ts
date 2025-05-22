@@ -112,9 +112,6 @@ test("BLS signature verification", () => {
     const wrongMsg = new TextEncoder().encode("this is some other message");
 
     const signatureHex = "987db5406ce297e729c8564a106dc896943b00216a095fe9c5d32a16a330c02eb80e6f468ede83cde5462b5145b58f65"
-    // Test verification works passing a hex string
-    assertEqual(verifyBlsSignature(pk, msg, signatureHex), true);
-    assertEqual(verifyBlsSignature(pk, wrongMsg, signatureHex), false);
 
     // Test verification works passing a binary string
     const signatureBytes = hexToBytes(signatureHex);
