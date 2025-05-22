@@ -335,6 +335,8 @@ impl EncryptedVetKey {
         derived_public_key: &DerivedPublicKey,
         input: &[u8],
     ) -> Result<VetKey, String> {
+        use pairing::group::Group;
+
         // Check that c1 and c2 have the same discrete logarithm
 
         let c2_prep = G2Prepared::from(self.c2);
@@ -352,12 +354,7 @@ impl EncryptedVetKey {
         let k = G1Affine::from(G1Projective::from(&self.c3) - self.c1 * tsk.secret_key);
 
         // Check that the VetKey is a valid BLS signature
-        let msg = augmented_hash_to_g1(&derived_public_key.point, input);
-        let dpk_prep = G2Prepared::from(derived_public_key.point);
-
-        use pairing::group::Group;
-        let is_valid = gt_multipairing(&[(&k, &G2PREPARED_NEG_G), (&msg, &dpk_prep)]).is_identity();
-        if bool::from(is_valid) {
+        if verify_bls_signature_pt(derived_public_key, input, &k) {
             Ok(VetKey::new(k))
         } else {
             Err("invalid encrypted key: verification failed".to_string())
@@ -587,6 +584,36 @@ impl IBECiphertext {
             Err("decryption failed".to_string())
         }
     }
+}
+
+/// Verify an augmented BLS signature
+///
+/// Returns true if and only if the provided signature is valid with respect to
+/// the provided public key and input
+pub fn verify_bls_signature(dpk: &DerivedPublicKey, input: &[u8], signature: &[u8]) -> bool {
+    let signature: G1Affine = match signature.try_into() {
+        Ok(bytes) => match option_from_ctoption(G1Affine::from_compressed(&bytes)) {
+            Some(pt) => pt,
+            None => return false,
+        },
+        Err(_) => return false,
+    };
+
+    verify_bls_signature_pt(dpk, input, &signature)
+}
+
+/// Verify an augmented BLS signature
+///
+/// Returns true if and only if the provided signature is valid with respect to
+/// the provided public key and input
+fn verify_bls_signature_pt(dpk: &DerivedPublicKey, input: &[u8], signature: &G1Affine) -> bool {
+    let msg = augmented_hash_to_g1(&dpk.point, input);
+    let dpk_prep = G2Prepared::from(dpk.point);
+
+    use pairing::group::Group;
+    let is_valid =
+        gt_multipairing(&[(&signature, &G2PREPARED_NEG_G), (&msg, &dpk_prep)]).is_identity();
+    bool::from(is_valid)
 }
 
 fn augmented_hash_to_g1(pk: &G2Affine, data: &[u8]) -> G1Affine {
