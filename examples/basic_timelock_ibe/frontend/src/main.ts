@@ -1,3 +1,8 @@
+// Required to run `npm run dev`.
+if (!window.global) {
+    window.global = window;
+}
+
 import "./style.css";
 import { createActor } from "../../src/declarations/basic_timelock_ibe";
 import { Principal } from "@dfinity/principal";
@@ -76,6 +81,7 @@ export function login(client: AuthClient) {
 export function logout() {
     void authClient?.logout();
     myPrincipal = undefined;
+    basicTimelockIbeCanister = undefined;
     updateUI(false);
 
     // Reset the lots list and form visibility
@@ -126,7 +132,7 @@ function handleLogin() {
 
 document.querySelector<HTMLDivElement>("#app")!.innerHTML = `
   <div>
-    <h1>Basic Timelock IBE Secret Bid Auction using VetKeys</h1>
+    <h1>Secret Bid Auction using VetKeys (Basic Timelock IBE)</h1>
     <div class="principal-container">
       <div id="principalDisplay" class="principal-display"></div>
       <button id="logoutButton" style="display: none;">Logout</button>
@@ -300,7 +306,7 @@ async function listLots() {
             heading.textContent = "Open Lots";
             fragment.appendChild(heading);
 
-            openLots.lots.forEach((lot, index) => {
+            openLots.lots.reverse().forEach((lot, index) => {
                 const lotDiv = document.createElement("div");
                 lotDiv.className = "lot";
                 const isCreator =
@@ -365,7 +371,7 @@ async function listLots() {
             heading.textContent = "Closed Lots";
             fragment.appendChild(heading);
 
-            closedLots.lots.forEach((lot, index) => {
+            closedLots.lots.reverse().forEach((lot, index) => {
                 const lotDiv = document.createElement("div");
                 lotDiv.className = "lot";
                 const isWinner =
