@@ -398,9 +398,9 @@ impl EncryptedVetKey {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-/// An identity, used for identity based encryption
+/// An identity, used for identity based encryption (IBE)
 ///
-/// As far as the IBE encryption scheme goes this is simply an opauqe bytestring
+/// As far as the IBE scheme goes this is simply an opauqe bytestring
 /// We provide a type to make code using the IBE a bit easier to understand
 pub struct Identity {
     val: Vec<u8>,
