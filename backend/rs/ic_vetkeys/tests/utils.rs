@@ -112,12 +112,7 @@ fn protocol_flow_with_emulated_server_side() {
 
     let msg = rng.gen::<[u8; 32]>().to_vec();
     let seed = IbeSeed::random(&mut rng);
-    let ctext = IbeCiphertext::encrypt(
-        &dpk,
-        &IbeIdentity::from_bytes(&identity),
-        &msg,
-        &seed,
-    );
+    let ctext = IbeCiphertext::encrypt(&dpk, &IbeIdentity::from_bytes(&identity), &msg, &seed);
 
     let ptext = ctext.decrypt(&vetkey).expect("IBE decryption failed");
     assert_eq!(ptext, msg);
@@ -167,12 +162,7 @@ fn protocol_flow_with_fixed_rng_has_expected_outputs() {
 
     let msg = hex::decode("f00f11").unwrap();
     let seed = IbeSeed::from_bytes(&[0u8; 32]);
-    let ctext = IbeCiphertext::encrypt(
-        &dpk,
-        &IbeIdentity::from_bytes(&identity),
-        &msg,
-        &seed,
-    );
+    let ctext = IbeCiphertext::encrypt(&dpk, &IbeIdentity::from_bytes(&identity), &msg, &seed);
 
     let ctext_bytes = ctext.serialize();
 
@@ -181,8 +171,7 @@ fn protocol_flow_with_fixed_rng_has_expected_outputs() {
 
     assert_eq!(
         ctext,
-        IbeCiphertext::deserialize(&ctext_bytes)
-            .expect("Deserializing IbeCiphertext failed")
+        IbeCiphertext::deserialize(&ctext_bytes).expect("Deserializing IbeCiphertext failed")
     );
 
     let vetkey = ek.decrypt_and_verify(&tsk, &dpk, &identity).unwrap();

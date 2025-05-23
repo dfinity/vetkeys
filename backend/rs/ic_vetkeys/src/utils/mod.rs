@@ -620,7 +620,12 @@ impl IbeCiphertext {
     /// To decrypt this message requires using the VetKey associated with the
     /// provided derived public key (ie the same master key and context string),
     /// and with an `input` equal to the provided `identity` parameter.
-    pub fn encrypt(dpk: &DerivedPublicKey, identity: &IbeIdentity, msg: &[u8], seed: &IbeSeed) -> Self {
+    pub fn encrypt(
+        dpk: &DerivedPublicKey,
+        identity: &IbeIdentity,
+        msg: &[u8],
+        seed: &IbeSeed,
+    ) -> Self {
         let header = IBE_HEADER.to_vec();
 
         let t = Self::hash_to_mask(&header, seed.value(), msg);
