@@ -772,19 +772,25 @@ export class Seed {
     }
 
     /**
-    * Create a seed for IBE encryption from a byte string
-    *
-    * Thiss input should be randomly chosen by a secure random number generator.
-    * If the seed is not securely generated the IBE scheme will be insecure.
-    *
-    * If the input is exactly 256 bits it is used directly. Otherwise the input
-    * is hashed with HKDF to produce a 256 bit seed.
-    */
+     * Create a seed for IBE encryption from a byte string
+     *
+     * Thiss input should be randomly chosen by a secure random number generator.
+     * If the seed is not securely generated the IBE scheme will be insecure.
+     *
+     * If the input is exactly 256 bits it is used directly. Otherwise the input
+     * is hashed with HKDF to produce a 256 bit seed.
+     */
     static fromBytes(bytes: Uint8Array) {
-        if(bytes.length == SEED_BYTES) {
+        if (bytes.length == SEED_BYTES) {
             return new Seed(bytes);
         } else {
-            return new Seed(deriveSymmetricKey(bytes, "ic-vetkd-bls12-381-ibe-hash-seed", SEED_BYTES));
+            return new Seed(
+                deriveSymmetricKey(
+                    bytes,
+                    "ic-vetkd-bls12-381-ibe-hash-seed",
+                    SEED_BYTES,
+                ),
+            );
         }
     }
 
@@ -792,7 +798,9 @@ export class Seed {
      * Create a random seed for IBE encryption
      */
     static random() {
-        return new Seed(window.crypto.getRandomValues(new Uint8Array(SEED_BYTES)));
+        return new Seed(
+            window.crypto.getRandomValues(new Uint8Array(SEED_BYTES)),
+        );
     }
 
     /**
@@ -802,7 +810,6 @@ export class Seed {
         return this.#seed;
     }
 }
-
 
 /**
  * IBE (Identity Based Encryption)
