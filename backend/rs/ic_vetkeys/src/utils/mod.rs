@@ -711,7 +711,7 @@ pub mod management_canister {
     /// * `key_id` - the key ID of the threshold key deployed on the Internet Computer
     ///
     /// # Returns
-    /// * `Ok([u8; 48])` - The signature on success
+    /// * `Ok(Vec<u8>)` - The signature on success
     /// * `Err(VetKDDeriveKeyCallError)` - If derivation fails due to unsupported curve or canister call error
     pub async fn sign_with_bls(
         message: Vec<u8>,
@@ -728,6 +728,9 @@ pub mod management_canister {
     /// * `context` - the identity of the signer
     /// * `key_id` - the key ID of the threshold key deployed on the Internet Computer
     ///
+    /// # Returns
+    /// * `Ok(Vec<u8>)` - The public key on success
+    /// * `Err((RejectionCode, String))` - If the canister call fails
     pub async fn bls_public_key(
         canister_id: Option<CanisterId>,
         context: Vec<u8>,
