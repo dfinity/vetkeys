@@ -774,14 +774,18 @@ export class IbeSeed {
     /**
      * Create a seed for IBE encryption from a byte string
      *
-     * Thiss input should be randomly chosen by a secure random number generator.
+     * This input should be randomly chosen by a secure random number generator.
      * If the seed is not securely generated the IBE scheme will be insecure.
+     *
+     * At least 128 bits (16 bytes) must be provided.
      *
      * If the input is exactly 256 bits it is used directly. Otherwise the input
      * is hashed with HKDF to produce a 256 bit seed.
      */
     static fromBytes(bytes: Uint8Array) {
-        if (bytes.length == SEED_BYTES) {
+        if (bytes.length < 16) {
+            throw new Error("Insufficient input material for IbeSeed derivation");
+        } else if (bytes.length == SEED_BYTES) {
             return new IbeSeed(bytes);
         } else {
             return new IbeSeed(

@@ -161,7 +161,7 @@ fn protocol_flow_with_fixed_rng_has_expected_outputs() {
     let identity = hex::decode("6d657373616765").unwrap();
 
     let msg = hex::decode("f00f11").unwrap();
-    let seed = IbeSeed::from_bytes(&[0u8; 32]);
+    let seed = IbeSeed::from_bytes(&[0u8; 32]).unwrap();
     let ctext = IbeCiphertext::encrypt(&dpk, &IbeIdentity::from_bytes(&identity), &msg, &seed);
 
     let ctext_bytes = ctext.serialize();

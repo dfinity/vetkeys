@@ -454,9 +454,15 @@ impl IbeSeed {
     /// This input should be randomly chosen by a secure random number generator.
     /// If the seed is not securely generated the IBE scheme will be insecure.
     ///
+    /// At least 128 bits (16 bytes) must be provided.
+    ///
     /// If the input is exactly 256 bits it is used directly. Otherwise the input
     /// is hashed with HKDF to produce a 256 bit seed.
-    pub fn from_bytes(bytes: &[u8]) -> Self {
+    pub fn from_bytes(bytes: &[u8]) -> Result<Self, String> {
+        if bytes.len() < 16 {
+            return Err("Insufficient input material for IbeSeed derivation".to_string())
+        }
+
         let mut val = [0u8; IBE_SEED_BYTES];
         if bytes.len() == IBE_SEED_BYTES {
             val.copy_from_slice(bytes)
@@ -466,7 +472,7 @@ impl IbeSeed {
             val.copy_from_slice(&hkdf);
         }
 
-        Self { val }
+        Ok(Self { val })
     }
 
     fn value(&self) -> &[u8; IBE_SEED_BYTES] {
