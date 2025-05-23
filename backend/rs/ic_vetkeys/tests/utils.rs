@@ -111,7 +111,7 @@ fn protocol_flow_with_emulated_server_side() {
     let vetkey = ek.decrypt_and_verify(&tsk, &dpk, &identity).unwrap();
 
     let msg = rng.gen::<[u8; 32]>().to_vec();
-    let seed = Seed::random(&mut rng);
+    let seed = IbeSeed::random(&mut rng);
     let ctext = IbeCiphertext::encrypt(
         &dpk,
         &IbeIdentity::from_bytes(&identity),
@@ -166,7 +166,7 @@ fn protocol_flow_with_fixed_rng_has_expected_outputs() {
     let identity = hex::decode("6d657373616765").unwrap();
 
     let msg = hex::decode("f00f11").unwrap();
-    let seed = Seed::from_bytes(&[0u8; 32]);
+    let seed = IbeSeed::from_bytes(&[0u8; 32]);
     let ctext = IbeCiphertext::encrypt(
         &dpk,
         &IbeIdentity::from_bytes(&identity),

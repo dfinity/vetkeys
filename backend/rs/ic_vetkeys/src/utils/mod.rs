@@ -436,11 +436,11 @@ impl IbeIdentity {
 const IBE_SEED_BYTES: usize = 32;
 
 /// A random seed, used for identity based encryption
-pub struct Seed {
+pub struct IbeSeed {
     val: [u8; IBE_SEED_BYTES],
 }
 
-impl Seed {
+impl IbeSeed {
     /// Create a random seed for IBE encryption
     pub fn random<R: rand::CryptoRng + rand::RngCore>(rng: &mut R) -> Self {
         use rand::Rng;
@@ -620,7 +620,7 @@ impl IbeCiphertext {
     /// To decrypt this message requires using the VetKey associated with the
     /// provided derived public key (ie the same master key and context string),
     /// and with an `input` equal to the provided `identity` parameter.
-    pub fn encrypt(dpk: &DerivedPublicKey, identity: &IbeIdentity, msg: &[u8], seed: &Seed) -> Self {
+    pub fn encrypt(dpk: &DerivedPublicKey, identity: &IbeIdentity, msg: &[u8], seed: &IbeSeed) -> Self {
         let header = IBE_HEADER.to_vec();
 
         let t = Self::hash_to_mask(&header, seed.value(), msg);

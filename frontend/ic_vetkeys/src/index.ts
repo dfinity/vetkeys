@@ -20,7 +20,7 @@
  *   VetKey,
  *   IbeCiphertext,
  *   IbeIdentity,
- *   Seed,
+ *   IbeSeed,
  * } from "ic_vetkd_sdk_utils";
  *
  * // 1. Generate a Transport Secret Key for decrypting VetKD-derived keys
@@ -49,7 +49,7 @@
  *   dpk,
  *   IbeIdentity.fromBytes(input),
  *   message,
- *   Seed.random()
+ *   IbeSeed.random()
  * );
  * const serializedCiphertext = ciphertext.serialize();
  *

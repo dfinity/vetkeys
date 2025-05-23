@@ -4,7 +4,7 @@ import {
     IbeIdentity,
     IbeCiphertext,
     MasterPublicKey,
-    Seed,
+    IbeSeed,
     TransportSecretKey,
     VetKey,
     augmentedHashToG1,
@@ -156,7 +156,7 @@ test("protocol flow with precomputed data", () => {
     );
 
     const message = hexToBytes("f00f11");
-    const seed = Seed.fromBytes(new Uint8Array(32));
+    const seed = IbeSeed.fromBytes(new Uint8Array(32));
     const ibe = IbeCiphertext.encrypt(
         dpk,
         IbeIdentity.fromBytes(identity),

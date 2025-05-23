@@ -759,7 +759,7 @@ const SEED_BYTES = 32;
 /**
  * A random seed, used for identity based encryption
  */
-export class Seed {
+export class IbeSeed {
     readonly #seed: Uint8Array;
 
     private constructor(seed: Uint8Array) {
@@ -782,9 +782,9 @@ export class Seed {
      */
     static fromBytes(bytes: Uint8Array) {
         if (bytes.length == SEED_BYTES) {
-            return new Seed(bytes);
+            return new IbeSeed(bytes);
         } else {
-            return new Seed(
+            return new IbeSeed(
                 deriveSymmetricKey(
                     bytes,
                     "ic-vetkd-bls12-381-ibe-hash-seed",
@@ -798,7 +798,7 @@ export class Seed {
      * Create a random seed for IBE encryption
      */
     static random() {
-        return new Seed(
+        return new IbeSeed(
             window.crypto.getRandomValues(new Uint8Array(SEED_BYTES)),
         );
     }
@@ -873,7 +873,7 @@ export class IbeCiphertext {
         dpk: DerivedPublicKey,
         identity: IbeIdentity,
         msg: Uint8Array,
-        seed: Seed,
+        seed: IbeSeed,
     ): IbeCiphertext {
         const header = IBE_HEADER;
         const t = hashToMask(header, seed.getBytes(), msg);

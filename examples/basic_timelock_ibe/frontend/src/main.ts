@@ -10,7 +10,7 @@ import {
     DerivedPublicKey,
     IbeCiphertext,
     IbeIdentity,
-    Seed,
+    IbeSeed,
 } from "@dfinity/vetkeys";
 import {
     _SERVICE,
@@ -436,7 +436,7 @@ async function placeBid(lotId: bigint, amount: number) {
             rootIbePublicKey,
             IbeIdentity.fromBytes(lotIdBytes),
             amountBytes,
-            Seed.random(),
+            IbeSeed.random(),
         );
 
         // Place the bid

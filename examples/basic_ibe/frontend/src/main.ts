@@ -8,7 +8,7 @@ import {
     VetKey,
     IbeCiphertext,
     IbeIdentity,
-    Seed,
+    IbeSeed,
 } from "@dfinity/vetkeys";
 import {
     Inbox,
@@ -100,7 +100,7 @@ async function sendMessage() {
             publicKey,
             IbeIdentity.fromPrincipal(receiverPrincipal),
             new TextEncoder().encode(message),
-            Seed.random(),
+            IbeSeed.random(),
         );
 
         const result = await getBasicIbeCanister().send_message({
