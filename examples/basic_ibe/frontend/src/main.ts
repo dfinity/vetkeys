@@ -6,7 +6,9 @@ import {
     DerivedPublicKey,
     EncryptedVetKey,
     VetKey,
-    IdentityBasedEncryptionCiphertext,
+    IbeCiphertext,
+    Identity,
+    Seed,
 } from "@dfinity/vetkeys";
 import {
     Inbox,
@@ -93,14 +95,12 @@ async function sendMessage() {
 
     try {
         const publicKey = await getRootIbePublicKey();
-        const seed = new Uint8Array(32);
-        window.crypto.getRandomValues(seed);
 
-        const encryptedMessage = IdentityBasedEncryptionCiphertext.encrypt(
+        const encryptedMessage = IbeCiphertext.encrypt(
             publicKey,
-            receiverPrincipal.toUint8Array(),
+            Identity.fromPrincipal(receiverPrincipal),
             new TextEncoder().encode(message),
-            seed,
+            Seed.random(),
         );
 
         const result = await getBasicIbeCanister().send_message({
@@ -126,7 +126,7 @@ async function showMessages() {
 async function decryptMessage(encryptedMessage: Uint8Array): Promise<string> {
     const ibeKey = await getMyIbePrivateKey();
     const ciphertext =
-        IdentityBasedEncryptionCiphertext.deserialize(encryptedMessage);
+        IbeCiphertext.deserialize(encryptedMessage);
     const plaintext = ciphertext.decrypt(ibeKey);
     return new TextDecoder().decode(plaintext);
 }

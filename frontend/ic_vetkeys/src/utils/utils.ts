@@ -5,6 +5,7 @@ import { hash_to_field, Opts } from "@noble/curves/abstract/hash-to-curve";
 import { shake256 } from "@noble/hashes/sha3";
 import { hkdf } from "@noble/hashes/hkdf";
 import { sha256 } from "@noble/hashes/sha256";
+import type { Principal } from "@dfinity/principal";
 
 export type G1Point = ProjPointType<Fp>;
 export type G2Point = ProjPointType<Fp2>;
@@ -711,12 +712,102 @@ function isEqual(x: Uint8Array, y: Uint8Array): boolean {
     return diff == 0;
 }
 
+/**
+ * An identity used for identity based encryption
+ *
+ * As far as the IBE encryption scheme goes this is simply an opauqe bytestring
+ * We provide a type to make code using the IBE a bit easier to understand
+ */
+export class Identity {
+    readonly #identity: Uint8Array;
+
+    private constructor(identity: Uint8Array) {
+        this.#identity = identity;
+    }
+
+    /**
+     * Create an identity from a byte string
+     */
+    static fromBytes(bytes: Uint8Array) {
+        return new Identity(bytes);
+    }
+
+    /**
+     * Create an identity from a string
+     */
+    static fromString(bytes: string) {
+        return Identity.fromBytes(new TextEncoder().encode(bytes));
+    }
+
+    /**
+     * Create an identity from a Principal
+     */
+    static fromPrincipal(principal: Principal) {
+        return Identity.fromBytes(principal.toUint8Array());
+    }
+
+    /**
+     * @internal getter returning the encoded
+     */
+    getBytes(): Uint8Array {
+        return this.#identity;
+    }
+}
+
 const SEED_BYTES = 32;
+
+/**
+ * A random seed, used for identity based encryption
+ */
+export class Seed {
+    readonly #seed: Uint8Array;
+
+    private constructor(seed: Uint8Array) {
+        // This should never happen as our callers ensure this
+        if (seed.length !== SEED_BYTES) {
+            throw new Error("IBE seed must be exactly SEED_BYTES long");
+        }
+
+        this.#seed = seed;
+    }
+
+    /**
+    * Create a seed for IBE encryption from a byte string
+    *
+    * Thiss input should be randomly chosen by a secure random number generator.
+    * If the seed is not securely generated the IBE scheme will be insecure.
+    *
+    * If the input is exactly 256 bits it is used directly. Otherwise the input
+    * is hashed with HKDF to produce a 256 bit seed.
+    */
+    static fromBytes(bytes: Uint8Array) {
+        if(bytes.length == SEED_BYTES) {
+            return new Seed(bytes);
+        } else {
+            return new Seed(deriveSymmetricKey(bytes, "ic-vetkd-bls12-381-ibe-hash-seed", SEED_BYTES));
+        }
+    }
+
+    /**
+     * Create a random seed for IBE encryption
+     */
+    static random() {
+        return new Seed(window.crypto.getRandomValues(new Uint8Array(SEED_BYTES)));
+    }
+
+    /**
+     * @internal getter returning the seed bytes
+     */
+    getBytes(): Uint8Array {
+        return this.#seed;
+    }
+}
+
 
 /**
  * IBE (Identity Based Encryption)
  */
-export class IdentityBasedEncryptionCiphertext {
+export class IbeCiphertext {
     readonly #header: Uint8Array;
     readonly #c1: G2Point;
     readonly #c2: Uint8Array;
@@ -738,7 +829,7 @@ export class IdentityBasedEncryptionCiphertext {
     /**
      * Deserialize an IBE ciphertext
      */
-    static deserialize(bytes: Uint8Array): IdentityBasedEncryptionCiphertext {
+    static deserialize(bytes: Uint8Array): IbeCiphertext {
         if (bytes.length < IBE_HEADER_BYTES + G2_BYTES + SEED_BYTES) {
             throw new Error("Invalid IBE ciphertext");
         }
@@ -757,7 +848,7 @@ export class IdentityBasedEncryptionCiphertext {
             throw new Error("Unexpected header for IBE ciphertext");
         }
 
-        return new IdentityBasedEncryptionCiphertext(header, c1, c2, c3);
+        return new IbeCiphertext(header, c1, c2, c3);
     }
 
     /**
@@ -773,27 +864,23 @@ export class IdentityBasedEncryptionCiphertext {
      */
     static encrypt(
         dpk: DerivedPublicKey,
-        identity: Uint8Array,
+        identity: Identity,
         msg: Uint8Array,
-        seed: Uint8Array,
-    ): IdentityBasedEncryptionCiphertext {
-        if (seed.length !== SEED_BYTES) {
-            throw new Error("IBE seed must be exactly SEED_BYTES long");
-        }
-
+        seed: Seed,
+    ): IbeCiphertext {
         const header = IBE_HEADER;
-        const t = hashToMask(header, seed, msg);
-        const pt = augmentedHashToG1(dpk, identity);
+        const t = hashToMask(header, seed.getBytes(), msg);
+        const pt = augmentedHashToG1(dpk, identity.getBytes());
         const tsig = bls12_381.fields.Fp12.pow(
             bls12_381.pairing(pt, dpk.getPoint()),
             t,
         );
 
         const c1 = bls12_381.G2.ProjectivePoint.BASE.multiply(t);
-        const c2 = maskSeed(seed, serializeGtElem(tsig));
-        const c3 = maskMsg(msg, seed);
+        const c2 = maskSeed(seed.getBytes(), serializeGtElem(tsig));
+        const c3 = maskMsg(msg, seed.getBytes());
 
-        return new IdentityBasedEncryptionCiphertext(header, c1, c2, c3);
+        return new IbeCiphertext(header, c1, c2, c3);
     }
 
     /**

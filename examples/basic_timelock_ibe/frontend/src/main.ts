@@ -8,7 +8,9 @@ import { createActor } from "../../src/declarations/basic_timelock_ibe";
 import { Principal } from "@dfinity/principal";
 import {
     DerivedPublicKey,
-    IdentityBasedEncryptionCiphertext,
+    IbeCiphertext,
+    Identity,
+    Seed,
 } from "@dfinity/vetkeys";
 import {
     _SERVICE,
@@ -429,15 +431,12 @@ async function placeBid(lotId: bigint, amount: number) {
         const lotIdBytes = u128ToLeBytes(lotId);
         const amountBytes = u128ToLeBytes(BigInt(amount));
 
-        // Generate a random seed for encryption
-        const seed = window.crypto.getRandomValues(new Uint8Array(32));
-
         // Encrypt the bid amount using IBE
-        const encryptedAmount = IdentityBasedEncryptionCiphertext.encrypt(
+        const encryptedAmount = IbeCiphertext.encrypt(
             rootIbePublicKey,
-            lotIdBytes,
+            Identity.fromBytes(lotIdBytes),
             amountBytes,
-            seed,
+            Seed.random(),
         );
 
         // Place the bid
