@@ -421,11 +421,11 @@ impl Identity {
 
     /// Create an identity from a Principal
     pub fn from_principal(principal: &candid::Principal) -> Self {
-        Self::from_bytes(&principal.as_slice())
+        Self::from_bytes(principal.as_slice())
     }
 
     /// Return the bytestring of this identity
-    pub fn as_ref(&self) -> &[u8] {
+    pub fn value(&self) -> &[u8] {
         &self.val
     }
 }
@@ -459,7 +459,7 @@ impl Seed {
     pub fn from_bytes(bytes: &[u8]) -> Self {
         let mut val = [0u8; IBE_SEED_BYTES];
         if bytes.len() == IBE_SEED_BYTES {
-            val.copy_from_slice(&bytes)
+            val.copy_from_slice(bytes)
         } else {
             let hkdf =
                 derive_symmetric_key(bytes, "ic-vetkd-bls12-381-ibe-hash-seed", IBE_SEED_BYTES);
@@ -469,7 +469,7 @@ impl Seed {
         Self { val }
     }
 
-    fn as_ref(&self) -> &[u8; IBE_SEED_BYTES] {
+    fn value(&self) -> &[u8; IBE_SEED_BYTES] {
         &self.val
     }
 }
@@ -622,15 +622,15 @@ impl IdentityBasedEncryptionCiphertext {
     pub fn encrypt(dpk: &DerivedPublicKey, identity: &Identity, msg: &[u8], seed: &Seed) -> Self {
         let header = IBE_HEADER.to_vec();
 
-        let t = Self::hash_to_mask(&header, seed.as_ref(), msg);
+        let t = Self::hash_to_mask(&header, seed.value(), msg);
 
-        let pt = augmented_hash_to_g1(&dpk.point, identity.as_ref());
+        let pt = augmented_hash_to_g1(&dpk.point, identity.value());
 
         let tsig = ic_bls12_381::pairing(&pt, &dpk.point) * t;
 
         let c1 = G2Affine::from(G2Affine::generator() * t);
-        let c2 = Self::mask_seed(seed.as_ref(), &tsig);
-        let c3 = Self::mask_msg(msg, seed.as_ref());
+        let c2 = Self::mask_seed(seed.value(), &tsig);
+        let c3 = Self::mask_msg(msg, seed.value());
 
         Self { header, c1, c2, c3 }
     }
