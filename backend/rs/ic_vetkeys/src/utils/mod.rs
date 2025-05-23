@@ -588,10 +588,18 @@ impl IBECiphertext {
 
 /// Verify an augmented BLS signature
 ///
+/// Augmented BLS signatures include the public key as part of the input, and
+/// "under the hood" a vetKey is an augmented BLS signature. This function allows
+/// verifying, for example, that a vetKey used as a VRF output is in fact a valid
+/// signature.
+///
+/// See <https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-bls-signature#name-message-augmentation>
+/// for more details on BLS message augmentation.
+///
 /// Returns true if and only if the provided signature is valid with respect to
 /// the provided public key and input
 pub fn verify_bls_signature(dpk: &DerivedPublicKey, input: &[u8], signature: &[u8]) -> bool {
-    let signature: G1Affine = match signature.try_into() {
+    let signature: G1Affine = match <[u8; 48]>::try_from(signature) {
         Ok(bytes) => match option_from_ctoption(G1Affine::from_compressed(&bytes)) {
             Some(pt) => pt,
             None => return false,
