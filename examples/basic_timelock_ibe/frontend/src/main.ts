@@ -9,7 +9,7 @@ import { Principal } from "@dfinity/principal";
 import {
     DerivedPublicKey,
     IbeCiphertext,
-    Identity,
+    IbeIdentity,
     Seed,
 } from "@dfinity/vetkeys";
 import {
@@ -434,7 +434,7 @@ async function placeBid(lotId: bigint, amount: number) {
         // Encrypt the bid amount using IBE
         const encryptedAmount = IbeCiphertext.encrypt(
             rootIbePublicKey,
-            Identity.fromBytes(lotIdBytes),
+            IbeIdentity.fromBytes(lotIdBytes),
             amountBytes,
             Seed.random(),
         );

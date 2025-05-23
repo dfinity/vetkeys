@@ -402,11 +402,11 @@ impl EncryptedVetKey {
 ///
 /// As far as the IBE scheme goes this is simply an opauqe bytestring
 /// We provide a type to make code using the IBE a bit easier to understand
-pub struct Identity {
+pub struct IbeIdentity {
     val: Vec<u8>,
 }
 
-impl Identity {
+impl IbeIdentity {
     /// Create an identity from an arbitrary byte string
     pub fn from_bytes(bytes: &[u8]) -> Self {
         Self {
@@ -620,7 +620,7 @@ impl IbeCiphertext {
     /// To decrypt this message requires using the VetKey associated with the
     /// provided derived public key (ie the same master key and context string),
     /// and with an `input` equal to the provided `identity` parameter.
-    pub fn encrypt(dpk: &DerivedPublicKey, identity: &Identity, msg: &[u8], seed: &Seed) -> Self {
+    pub fn encrypt(dpk: &DerivedPublicKey, identity: &IbeIdentity, msg: &[u8], seed: &Seed) -> Self {
         let header = IBE_HEADER.to_vec();
 
         let t = Self::hash_to_mask(&header, seed.value(), msg);

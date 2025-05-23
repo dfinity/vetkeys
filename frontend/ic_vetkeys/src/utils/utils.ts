@@ -718,7 +718,7 @@ function isEqual(x: Uint8Array, y: Uint8Array): boolean {
  * As far as the IBE encryption scheme goes this is simply an opauqe bytestring
  * We provide a type to make code using the IBE a bit easier to understand
  */
-export class Identity {
+export class IbeIdentity {
     readonly #identity: Uint8Array;
 
     private constructor(identity: Uint8Array) {
@@ -729,21 +729,21 @@ export class Identity {
      * Create an identity from a byte string
      */
     static fromBytes(bytes: Uint8Array) {
-        return new Identity(bytes);
+        return new IbeIdentity(bytes);
     }
 
     /**
      * Create an identity from a string
      */
     static fromString(bytes: string) {
-        return Identity.fromBytes(new TextEncoder().encode(bytes));
+        return IbeIdentity.fromBytes(new TextEncoder().encode(bytes));
     }
 
     /**
      * Create an identity from a Principal
      */
     static fromPrincipal(principal: Principal) {
-        return Identity.fromBytes(principal.toUint8Array());
+        return IbeIdentity.fromBytes(principal.toUint8Array());
     }
 
     /**
@@ -871,7 +871,7 @@ export class IbeCiphertext {
      */
     static encrypt(
         dpk: DerivedPublicKey,
-        identity: Identity,
+        identity: IbeIdentity,
         msg: Uint8Array,
         seed: Seed,
     ): IbeCiphertext {

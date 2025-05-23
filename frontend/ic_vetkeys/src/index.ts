@@ -19,7 +19,7 @@
  *   EncryptedKey,
  *   VetKey,
  *   IbeCiphertext,
- *   Identity,
+ *   IbeIdentity,
  *   Seed,
  * } from "ic_vetkd_sdk_utils";
  *
@@ -47,7 +47,7 @@
  * // 6. Encrypt the message
  * const ciphertext = IbeCiphertext.encrypt(
  *   dpk,
- *   Identity.fromBytes(input),
+ *   IbeIdentity.fromBytes(input),
  *   message,
  *   Seed.random()
  * );

@@ -1,7 +1,7 @@
 import {
     DerivedPublicKey,
     EncryptedVetKey,
-    Identity,
+    IbeIdentity,
     IbeCiphertext,
     MasterPublicKey,
     Seed,
@@ -159,7 +159,7 @@ test("protocol flow with precomputed data", () => {
     const seed = Seed.fromBytes(new Uint8Array(32));
     const ibe = IbeCiphertext.encrypt(
         dpk,
-        Identity.fromBytes(identity),
+        IbeIdentity.fromBytes(identity),
         message,
         seed,
     );

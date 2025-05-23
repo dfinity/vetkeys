@@ -7,7 +7,7 @@ import {
     EncryptedVetKey,
     VetKey,
     IbeCiphertext,
-    Identity,
+    IbeIdentity,
     Seed,
 } from "@dfinity/vetkeys";
 import {
@@ -98,7 +98,7 @@ async function sendMessage() {
 
         const encryptedMessage = IbeCiphertext.encrypt(
             publicKey,
-            Identity.fromPrincipal(receiverPrincipal),
+            IbeIdentity.fromPrincipal(receiverPrincipal),
             new TextEncoder().encode(message),
             Seed.random(),
         );

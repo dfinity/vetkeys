@@ -114,7 +114,7 @@ fn protocol_flow_with_emulated_server_side() {
     let seed = Seed::random(&mut rng);
     let ctext = IbeCiphertext::encrypt(
         &dpk,
-        &Identity::from_bytes(&identity),
+        &IbeIdentity::from_bytes(&identity),
         &msg,
         &seed,
     );
@@ -169,7 +169,7 @@ fn protocol_flow_with_fixed_rng_has_expected_outputs() {
     let seed = Seed::from_bytes(&[0u8; 32]);
     let ctext = IbeCiphertext::encrypt(
         &dpk,
-        &Identity::from_bytes(&identity),
+        &IbeIdentity::from_bytes(&identity),
         &msg,
         &seed,
     );
