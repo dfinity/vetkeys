@@ -7,7 +7,7 @@ use rand::{CryptoRng, Rng};
 use std::path::Path;
 
 #[test]
-fn public_vetkey_should_be_equal_to_decrypted_vetkey() {
+fn bls_signature_should_be_equal_to_decrypted_vetkey() {
     let rng = &mut reproducible_rng();
     let env = TestEnvironment::new();
     let input = random_bytes(rng, 10);
@@ -42,6 +42,28 @@ fn public_vetkey_should_be_equal_to_decrypted_vetkey() {
         .unwrap();
 
     assert_eq!(bls_signature, decrypted_vetkey.signature_bytes().to_vec());
+}
+
+#[test]
+fn bls_public_key_should_be_equal_to_verification_key() {
+    let rng = &mut reproducible_rng();
+    let env = TestEnvironment::new();
+    let context = random_bytes(rng, 10);
+    let key_id = VetKDKeyId {
+        curve: VetKDCurve::Bls12_381_G2,
+        name: "dfx_test_key".to_string(),
+    };
+    let bls_public_key: Vec<u8> = env.update(
+        Principal::anonymous(),
+        "bls_public_key",
+        encode_args((context.clone(), key_id.clone())).unwrap(),
+    );
+    let verification_key: Vec<u8> = env.update(
+        Principal::anonymous(),
+        "get_verification_key",
+        encode_args((context.clone(), key_id.clone())).unwrap(),
+    );
+    assert_eq!(bls_public_key, verification_key);
 }
 struct TestEnvironment {
     pic: PocketIc,

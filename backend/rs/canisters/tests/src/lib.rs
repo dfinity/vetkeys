@@ -39,6 +39,13 @@ async fn vetkd_derive_key(
 }
 
 #[update]
+async fn bls_public_key(context: Vec<u8>, key_id: VetKDKeyId) -> Vec<u8> {
+    ic_vetkeys::management_canister::bls_public_key(None, context, key_id)
+        .await
+        .expect("bls_public_key call failed")
+}
+
+#[update]
 async fn get_verification_key(context: Vec<u8>, key_id: VetKDKeyId) -> Vec<u8> {
     let request = VetKDPublicKeyRequest {
         canister_id: None,
