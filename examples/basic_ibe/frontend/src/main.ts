@@ -125,8 +125,7 @@ async function showMessages() {
 
 async function decryptMessage(encryptedMessage: Uint8Array): Promise<string> {
     const ibeKey = await getMyIbePrivateKey();
-    const ciphertext =
-        IbeCiphertext.deserialize(encryptedMessage);
+    const ciphertext = IbeCiphertext.deserialize(encryptedMessage);
     const plaintext = ciphertext.decrypt(ibeKey);
     return new TextDecoder().decode(plaintext);
 }
