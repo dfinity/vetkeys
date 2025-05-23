@@ -111,8 +111,13 @@ fn protocol_flow_with_emulated_server_side() {
     let vetkey = ek.decrypt_and_verify(&tsk, &dpk, &identity).unwrap();
 
     let msg = rng.gen::<[u8; 32]>().to_vec();
-    let seed = rng.gen::<[u8; 32]>().to_vec();
-    let ctext = IBECiphertext::encrypt(&dpk, &identity, &msg, &seed).unwrap();
+    let seed = Seed::random(&mut rng);
+    let ctext = IdentityBasedEncryptionCiphertext::encrypt(
+        &dpk,
+        &Identity::from_bytes(&identity),
+        &msg,
+        &seed,
+    );
 
     let ptext = ctext.decrypt(&vetkey).expect("IBE decryption failed");
     assert_eq!(ptext, msg);
@@ -161,8 +166,13 @@ fn protocol_flow_with_fixed_rng_has_expected_outputs() {
     let identity = hex::decode("6d657373616765").unwrap();
 
     let msg = hex::decode("f00f11").unwrap();
-    let seed: [u8; 32] = [0u8; 32];
-    let ctext = IBECiphertext::encrypt(&dpk, &identity, &msg, &seed).unwrap();
+    let seed = Seed::from_bytes(&[0u8; 32]);
+    let ctext = IdentityBasedEncryptionCiphertext::encrypt(
+        &dpk,
+        &Identity::from_bytes(&identity),
+        &msg,
+        &seed,
+    );
 
     let ctext_bytes = ctext.serialize();
 
@@ -171,7 +181,8 @@ fn protocol_flow_with_fixed_rng_has_expected_outputs() {
 
     assert_eq!(
         ctext,
-        IBECiphertext::deserialize(&ctext_bytes).expect("Deserializing IBECiphertext failed")
+        IdentityBasedEncryptionCiphertext::deserialize(&ctext_bytes)
+            .expect("Deserializing IdentityBasedEncryptionCiphertext failed")
     );
 
     let vetkey = ek.decrypt_and_verify(&tsk, &dpk, &identity).unwrap();
