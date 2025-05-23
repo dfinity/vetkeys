@@ -19,9 +19,9 @@ fn public_vetkey_should_be_equal_to_decrypted_vetkey() {
     let transport_secret_key = random_transport_key(rng);
     let transport_public_key = transport_secret_key.public_key();
 
-    let public_vetkey: Vec<u8> = env.update(
+    let bls_signature: Vec<u8> = env.update(
         Principal::anonymous(),
-        "derive_public_vetkey",
+        "sign_with_bls",
         encode_args((input.clone(), context.clone(), key_id.clone())).unwrap(),
     );
 
@@ -41,7 +41,7 @@ fn public_vetkey_should_be_equal_to_decrypted_vetkey() {
         .decrypt_and_verify(&transport_secret_key, &derived_public_key, &input)
         .unwrap();
 
-    assert_eq!(public_vetkey, decrypted_vetkey.signature_bytes().to_vec());
+    assert_eq!(bls_signature, decrypted_vetkey.signature_bytes().to_vec());
 }
 struct TestEnvironment {
     pic: PocketIc,

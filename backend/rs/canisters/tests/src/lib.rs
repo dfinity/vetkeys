@@ -5,13 +5,10 @@ use ic_vetkeys::vetkd_api_types::{
 };
 
 #[update]
-async fn derive_public_vetkey(input: Vec<u8>, context: Vec<u8>, key_id: VetKDKeyId) -> Vec<u8> {
-    let public_vetkey =
-        ic_vetkeys::management_canister::derive_public_vetkey(input, context, key_id)
-            .await
-            .expect("derive_public_vetkey call failed");
-
-    public_vetkey.signature_bytes().to_vec()
+async fn sign_with_bls(input: Vec<u8>, context: Vec<u8>, key_id: VetKDKeyId) -> Vec<u8> {
+    ic_vetkeys::management_canister::sign_with_bls(input, context, key_id)
+        .await
+        .expect("derive_public_vetkey call failed")
 }
 
 #[update]

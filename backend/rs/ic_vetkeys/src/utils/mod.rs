@@ -633,6 +633,11 @@ fn deserialize_g2(bytes: &[u8]) -> Result<G2Affine, String> {
 
 /// This module contains functions for calling the ICP management canister's `vetkd_derive_key` endpoint from within a canister.
 pub mod management_canister {
+    use crate::{
+        types::CanisterId,
+        vetkd_api_types::{VetKDPublicKeyReply, VetKDPublicKeyRequest},
+    };
+
     use super::*;
 
     /// Derives a vetKey that is public to the canister and ICP nodes.
@@ -651,13 +656,13 @@ pub mod management_canister {
     /// # Returns
     /// * `Ok(VetKey)` - The derived vetKey on success
     /// * `Err(DeriveUnencryptedVetkeyError)` - If derivation fails due to unsupported curve or canister call error
-    pub async fn derive_public_vetkey(
+    async fn derive_public_vetkey(
         input: Vec<u8>,
         context: Vec<u8>,
         key_id: VetKDKeyId,
-    ) -> Result<VetKey, DeriveUnencryptedVetkeyError> {
+    ) -> Result<Vec<u8>, VetKDDeriveKeyCallError> {
         if key_id.curve != VetKDCurve::Bls12_381_G2 {
-            return Err(DeriveUnencryptedVetkeyError::UnsupportedCurve);
+            return Err(VetKDDeriveKeyCallError::UnsupportedCurve);
         }
 
         let request = VetKDDeriveKeyRequest {
@@ -676,34 +681,71 @@ pub mod management_canister {
                 26_153_846_153,
             )
             .await
-            .map_err(DeriveUnencryptedVetkeyError::CallFailed)?;
+            .map_err(VetKDDeriveKeyCallError::CallFailed)?;
 
         if reply.0.encrypted_key.len() < EncryptedVetKey::BYTES {
-            return Err(DeriveUnencryptedVetkeyError::InvalidReply);
+            return Err(VetKDDeriveKeyCallError::InvalidReply);
         }
 
-        let bytes = reply.0.encrypted_key;
-
-        let c3_bytes: [u8; 48] = bytes
+        Ok(reply.0.encrypted_key
             [EncryptedVetKey::C3_OFFSET..EncryptedVetKey::C3_OFFSET + G1AFFINE_BYTES]
-            .try_into()
-            .map_err(|_| DeriveUnencryptedVetkeyError::InvalidReply)?;
-
-        if let Some(c3) = option_from_ctoption(G1Affine::from_compressed(&c3_bytes)) {
-            Ok(VetKey::new(c3))
-        } else {
-            Err(DeriveUnencryptedVetkeyError::InvalidReply)
-        }
+            .to_vec())
     }
 
     #[derive(Debug, Eq, PartialEq)]
     /// Errors that can occur when deriving an unencrypted vetKey
-    pub enum DeriveUnencryptedVetkeyError {
+    pub enum VetKDDeriveKeyCallError {
         /// The curve is not supported in `derive_unencrypted_vetkey`
         UnsupportedCurve,
         /// The canister call failed
         CallFailed((RejectionCode, String)),
         /// Invalid reply from the management canister
         InvalidReply,
+    }
+
+    /// Creates a threshold BLS12-381 signature for the given `message`.
+    ///
+    /// # Arguments
+    /// * `message` - the message to be signed
+    /// * `context` - the identity of the signer
+    /// * `key_id` - the key ID of the threshold key deployed on the Internet Computer
+    ///
+    /// # Returns
+    /// * `Ok([u8; 48])` - The signature on success
+    /// * `Err(VetKDDeriveKeyCallError)` - If derivation fails due to unsupported curve or canister call error
+    pub async fn sign_with_bls(
+        message: Vec<u8>,
+        context: Vec<u8>,
+        key_id: VetKDKeyId,
+    ) -> Result<Vec<u8>, VetKDDeriveKeyCallError> {
+        derive_public_vetkey(message, context, key_id).await
+    }
+
+    /// Returns the public key of a threshold BLS12-381 key. If `context` is empty, the public key of the canister is returned.
+    ///
+    /// # Arguments
+    /// * `canister_id` - the canister ID of the threshold key deployed on the Internet Computer
+    /// * `context` - the identity of the signer
+    /// * `key_id` - the key ID of the threshold key deployed on the Internet Computer
+    ///
+    pub async fn bls_public_key(
+        canister_id: Option<CanisterId>,
+        context: Vec<u8>,
+        key_id: VetKDKeyId,
+    ) -> Result<Vec<u8>, (RejectionCode, String)> {
+        let request = VetKDPublicKeyRequest {
+            canister_id,
+            context,
+            key_id,
+        };
+
+        let reply: (VetKDPublicKeyReply,) = ic_cdk::api::call::call(
+            candid::Principal::management_canister(),
+            "vetkd_public_key",
+            (request,),
+        )
+        .await?;
+
+        Ok(reply.0.public_key)
     }
 }
