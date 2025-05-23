@@ -28,7 +28,7 @@ For more documentation on vetKeys and the management canister API, see the [vetK
 
 ## Key Features
 
-### **1. [vetKeys Backend Library](./frontend/rs/ic_vetkeys)** - Supports canister developers
+### **1. [vetKeys Backend Library](./backend/rs/ic_vetkeys)** - Supports canister developers
 
 Tools to help canister developers integrate vetKeys into their Internet Computer (ICP) applications.
 
