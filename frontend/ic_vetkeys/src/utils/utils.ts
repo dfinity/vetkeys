@@ -784,7 +784,9 @@ export class IbeSeed {
      */
     static fromBytes(bytes: Uint8Array) {
         if (bytes.length < 16) {
-            throw new Error("Insufficient input material for IbeSeed derivation");
+            throw new Error(
+                "Insufficient input material for IbeSeed derivation",
+            );
         } else if (bytes.length == SEED_BYTES) {
             return new IbeSeed(bytes);
         } else {
