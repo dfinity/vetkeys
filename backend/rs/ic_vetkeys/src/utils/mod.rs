@@ -488,7 +488,7 @@ const IBE_HEADER: [u8; IBE_HEADER_BYTES] = [b'I', b'C', b' ', b'I', b'B', b'E', 
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 /// An IBE (identity based encryption) ciphertext
-pub struct IdentityBasedEncryptionCiphertext {
+pub struct IbeCiphertext {
     header: Vec<u8>,
     c1: G2Affine,
     c2: [u8; IBE_SEED_BYTES],
@@ -518,7 +518,7 @@ impl IBEDomainSep {
     }
 }
 
-impl IdentityBasedEncryptionCiphertext {
+impl IbeCiphertext {
     /// Serialize this IBE ciphertext
     pub fn serialize(&self) -> Vec<u8> {
         let mut output =
@@ -537,7 +537,7 @@ impl IdentityBasedEncryptionCiphertext {
     /// Returns Err if the encoding is not valid
     pub fn deserialize(bytes: &[u8]) -> Result<Self, String> {
         if bytes.len() < IBE_HEADER_BYTES + G2AFFINE_BYTES + IBE_SEED_BYTES {
-            return Err("IdentityBasedEncryptionCiphertext too short to be valid".to_string());
+            return Err("IbeCiphertext too short to be valid".to_string());
         }
 
         let header = bytes[0..IBE_HEADER_BYTES].to_vec();
@@ -552,7 +552,7 @@ impl IdentityBasedEncryptionCiphertext {
         let c3 = bytes[IBE_HEADER_BYTES + G2AFFINE_BYTES + IBE_SEED_BYTES..].to_vec();
 
         if header != IBE_HEADER {
-            return Err("IdentityBasedEncryptionCiphertext has unknown header".to_string());
+            return Err("IbeCiphertext has unknown header".to_string());
         }
 
         Ok(Self { header, c1, c2, c3 })

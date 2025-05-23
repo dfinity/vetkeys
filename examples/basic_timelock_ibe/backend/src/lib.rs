@@ -321,7 +321,7 @@ async fn decrypt_bids(
 
     for encrypted_bid in encrypted_bids {
         let decrypted_bid: Result<u128, String> =
-            ic_vetkeys::IdentityBasedEncryptionCiphertext::deserialize(&encrypted_bid.encrypted_amount)
+            ic_vetkeys::IbeCiphertext::deserialize(&encrypted_bid.encrypted_amount)
                 .map_err(|e| format!("failed to deserialize ibe ciphertext: {e}"))
                 .and_then(|c| {
                     c.decrypt(&ibe_decryption_key)
