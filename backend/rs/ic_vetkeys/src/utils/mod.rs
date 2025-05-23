@@ -483,8 +483,9 @@ impl Seed {
  * indicate for example a version in the future should we need to support multiple
  * variants of the IBE scheme.
 */
-const IBE_HEADER_BYTES: usize = 8;
-const IBE_HEADER: [u8; IBE_HEADER_BYTES] = [b'I', b'C', b' ', b'I', b'B', b'E', 0x00, 0x01];
+const IBE_HEADER: [u8; 8] = [b'I', b'C', b' ', b'I', b'B', b'E', 0x00, 0x01];
+
+const IBE_HEADER_BYTES: usize = IBE_HEADER.len();
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 /// An IBE (identity based encryption) ciphertext
@@ -495,13 +496,13 @@ pub struct IbeCiphertext {
     c3: Vec<u8>,
 }
 
-enum IBEDomainSep {
+enum IbeDomainSep {
     HashToMask,
     MaskSeed,
     MaskMsg(usize),
 }
 
-impl IBEDomainSep {
+impl IbeDomainSep {
     #[allow(clippy::inherent_to_string)]
     fn to_string(&self) -> String {
         match self {
@@ -559,7 +560,7 @@ impl IbeCiphertext {
     }
 
     fn hash_to_mask(header: &[u8], seed: &[u8; IBE_SEED_BYTES], msg: &[u8]) -> Scalar {
-        let domain_sep = IBEDomainSep::HashToMask;
+        let domain_sep = IbeDomainSep::HashToMask;
         let mut ro_input = Vec::with_capacity(seed.len() + msg.len());
         ro_input.extend_from_slice(header);
         ro_input.extend_from_slice(seed);
@@ -569,7 +570,7 @@ impl IbeCiphertext {
     }
 
     fn mask_seed(seed: &[u8; IBE_SEED_BYTES], t: &Gt) -> [u8; IBE_SEED_BYTES] {
-        let domain_sep = IBEDomainSep::MaskSeed;
+        let domain_sep = IbeDomainSep::MaskSeed;
         let mask = derive_symmetric_key(&t.to_bytes(), &domain_sep.to_string(), IBE_SEED_BYTES);
 
         let mut masked_seed = [0u8; IBE_SEED_BYTES];
@@ -595,7 +596,7 @@ impl IbeCiphertext {
             mask
         }
 
-        let domain_sep = IBEDomainSep::MaskMsg(msg.len());
+        let domain_sep = IbeDomainSep::MaskMsg(msg.len());
 
         let shake_seed = derive_symmetric_key(seed, &domain_sep.to_string(), 32);
 
@@ -612,9 +613,9 @@ impl IbeCiphertext {
     ///
     /// The message can be of arbitrary length
     ///
-    /// The seed must be exactly 256 bits (32 bytes) long and should be
-    /// generated with a cryptographically secure random number generator. Do
-    /// not reuse the seed for encrypting another message or any other purpose.
+    /// The seed should be generated with a cryptographically secure random
+    /// number generator. Do not reuse the seed for encrypting another message
+    /// or any other purpose.
     ///
     /// To decrypt this message requires using the VetKey associated with the
     /// provided derived public key (ie the same master key and context string),
