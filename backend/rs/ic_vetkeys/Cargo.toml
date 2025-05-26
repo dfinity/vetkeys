@@ -1,11 +1,24 @@
 [package]
 name = "ic-vetkeys"
+version = "0.1.0"
 authors.workspace = true
-description.workspace = true
-documentation.workspace = true
 edition.workspace = true
-version.workspace = true
 license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+documentation = "https://docs.rs/ic-vetkeys"
+homepage = "https://github.com/dfinity/vetkeys/tree/main/backend/rs/ic_vetkeys"
+categories = [
+    "api-bindings",
+    "authentication",
+    "cryptography",
+    "cryptography::cryptocurrencies",
+    "data-structures"
+]
+keywords = ["internet-computer", "ibe", "bls-signatures", "distributed-keys", "encrypted-storage"]
+include = ["src", "Cargo.toml", "LICENSE", "README.md"]
+description = "A set of tools designed to help canister developers integrate vetKeys into their Internet Computer (ICP) applications"
+readme = "README.md"
 
 [lib]
 crate-type = ["lib"]
