@@ -828,7 +828,7 @@ pub mod management_canister {
     /// Creates a threshold BLS12-381 signature for the given `message`.
     /// 
     /// The `context` parameter defines signer's identity.
-    /// The returned signature can be verified by calling `bls_public_key` with the same `context` and `key_id`.
+    /// The returned signature can be verified with the public key retrieved via [`bls_public_key`] with the same `context` and `key_id`.
     /// Having the public key, message, and signature, we now can verify that the signature is valid.
     /// For that, we can call [`verify_bls_signature`] from this crate in Rust or `verifyBlsSignature` from the `@dfinity/vetkeys` package in TypeScript/JavaScript.
     /// 
