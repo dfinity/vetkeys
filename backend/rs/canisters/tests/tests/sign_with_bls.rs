@@ -1,13 +1,13 @@
 use candid::{decode_one, encode_args, CandidType, Principal};
 use ic_vetkeys::vetkd_api_types::{VetKDCurve, VetKDKeyId};
-use ic_vetkeys::{DerivedPublicKey, EncryptedVetKey, TransportSecretKey};
+use ic_vetkeys::{verify_bls_signature, DerivedPublicKey, EncryptedVetKey, TransportSecretKey};
 use ic_vetkeys_test_utils::{git_root_dir, reproducible_rng};
 use pocket_ic::{PocketIc, PocketIcBuilder};
 use rand::{CryptoRng, Rng};
 use std::path::Path;
 
 #[test]
-fn bls_signature_should_be_equal_to_decrypted_vetkey() {
+fn bls_signature_should_be_valid_and_equal_to_decrypted_vetkey() {
     let rng = &mut reproducible_rng();
     let env = TestEnvironment::new();
     let input = random_bytes(rng, 10);
@@ -27,7 +27,7 @@ fn bls_signature_should_be_equal_to_decrypted_vetkey() {
 
     let verification_key: Vec<u8> = env.update(
         Principal::anonymous(),
-        "get_verification_key",
+        "vetkd_public_key",
         encode_args((context.clone(), key_id.clone())).unwrap(),
     );
     let encrypted_vetkey_bytes: Vec<u8> = env.update(
@@ -42,6 +42,11 @@ fn bls_signature_should_be_equal_to_decrypted_vetkey() {
         .unwrap();
 
     assert_eq!(bls_signature, decrypted_vetkey.signature_bytes().to_vec());
+    assert!(verify_bls_signature(
+        &derived_public_key,
+        &input,
+        &bls_signature
+    ));
 }
 
 #[test]
@@ -60,7 +65,7 @@ fn bls_public_key_should_be_equal_to_verification_key() {
     );
     let verification_key: Vec<u8> = env.update(
         Principal::anonymous(),
-        "get_verification_key",
+        "vetkd_public_key",
         encode_args((context.clone(), key_id.clone())).unwrap(),
     );
     assert_eq!(bls_public_key, verification_key);

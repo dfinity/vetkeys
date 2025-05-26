@@ -8,7 +8,14 @@ use ic_vetkeys::vetkd_api_types::{
 async fn sign_with_bls(input: Vec<u8>, context: Vec<u8>, key_id: VetKDKeyId) -> Vec<u8> {
     ic_vetkeys::management_canister::sign_with_bls(input, context, key_id)
         .await
-        .expect("derive_public_vetkey call failed")
+        .expect("sign_with_bls call failed")
+}
+
+#[update]
+async fn bls_public_key(context: Vec<u8>, key_id: VetKDKeyId) -> Vec<u8> {
+    ic_vetkeys::management_canister::bls_public_key(None, context, key_id)
+        .await
+        .expect("bls_public_key call failed")
 }
 
 #[update]
@@ -22,7 +29,6 @@ async fn vetkd_derive_key(
         input,
         context,
         key_id,
-        // Encryption with the G1 generator produces unencrypted vetKeys
         transport_public_key,
     };
 
@@ -39,14 +45,7 @@ async fn vetkd_derive_key(
 }
 
 #[update]
-async fn bls_public_key(context: Vec<u8>, key_id: VetKDKeyId) -> Vec<u8> {
-    ic_vetkeys::management_canister::bls_public_key(None, context, key_id)
-        .await
-        .expect("bls_public_key call failed")
-}
-
-#[update]
-async fn get_verification_key(context: Vec<u8>, key_id: VetKDKeyId) -> Vec<u8> {
+async fn vetkd_public_key(context: Vec<u8>, key_id: VetKDKeyId) -> Vec<u8> {
     let request = VetKDPublicKeyRequest {
         canister_id: None,
         context,

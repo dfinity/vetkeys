@@ -817,7 +817,7 @@ pub mod management_canister {
     #[derive(Debug, Eq, PartialEq)]
     /// Errors that can occur when deriving an unencrypted vetKey
     pub enum VetKDDeriveKeyCallError {
-        /// The curve is not supported in `derive_unencrypted_vetkey`
+        /// The curve is currently not supported
         UnsupportedCurve,
         /// The canister call failed
         CallFailed((RejectionCode, String)),
@@ -826,6 +826,17 @@ pub mod management_canister {
     }
 
     /// Creates a threshold BLS12-381 signature for the given `message`.
+    /// 
+    /// The `context` parameter defines signer's identity.
+    /// The returned signature can be verified by calling `bls_public_key` with the same `context` and `key_id`.
+    /// Having the public key, message, and signature, we now can verify that the signature is valid.
+    /// For that, we can call [`verify_bls_signature`] from this crate in Rust or `verifyBlsSignature` from the `@dfinity/vetkeys` package in TypeScript/JavaScript.
+    /// 
+    /// This function internally calls the `vetkd_derive_key` method of the Internet Computer, which requires additional cycles to be attached in order to be successful.
+    /// The amount of the required cycles depends on the size of the subnet that holds the vetKD master key (defined by `key_id`).
+    /// Currently, this function attaches to the call `26_153_846_153` cycles, which is the expected maximum of what is needed.
+    /// The unused cycles are refunded after the call.
+    /// In the future, this function will call `ic0_cost_vetkd_derive_key` for a more precise cost calculation.
     ///
     /// # Arguments
     /// * `message` - the message to be signed
@@ -843,10 +854,11 @@ pub mod management_canister {
         derive_public_vetkey(message, context, key_id).await
     }
 
-    /// Returns the public key of a threshold BLS12-381 key. If `context` is empty, the public key of the canister is returned.
+    /// Returns the public key of a threshold BLS12-381 key.
+    /// Signatures produced with [`sign_with_bls`] are verifiable under a public key returned by this method iff the public key is for the correct `canister_id` and the same `context` and `key_id` was used.
     ///
     /// # Arguments
-    /// * `canister_id` - the canister ID of the threshold key deployed on the Internet Computer
+    /// * `canister_id` - the canister ID that the public key is computed for. If `canister_id` is `None`, it will default to the canister id of the caller.
     /// * `context` - the identity of the signer
     /// * `key_id` - the key ID of the threshold key deployed on the Internet Computer
     ///
