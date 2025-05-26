@@ -1,24 +1,4 @@
-//! # VetKD Backend - EncryptedMaps
-//!
-//! ## Overview
-//!
-//! **EncryptedMaps** is a support library built on top of **KeyManager**, designed to facilitate
-//! secure, encrypted data sharing between users on the Internet Computer (ICP) using the **vetKeys** feature.
-//! It allows developers to store encrypted key-value pairs (**maps**) securely and to manage fine-grained user access.
-//!
-//! ## Core Features
-//!
-//! - **Encrypted Key-Value Storage:** Securely store and manage encrypted key-value pairs within named maps.
-//! - **User-Specific Map Access:** Control precisely which users can read or modify entries in an encrypted map.
-//! - **Integrated Access Control:** Leverages the **KeyManager** library to manage and enforce user permissions.
-//! - **Stable Storage:** Utilizes **StableBTreeMap** for reliable, persistent storage across canister upgrades.
-//!
-//! ## EncryptedMaps Architecture
-//!
-//! The **EncryptedMaps** library contains:
-//!
-//! - **Encrypted Values Storage:** Maps `(KeyId, MapKey)` to `EncryptedMapValue`, securely storing encrypted data.
-//! - **KeyManager Integration:** Uses **KeyManager** to handle user permissions, ensuring authorized access to maps.
+//! See [`EncryptedMaps`] for the main documentation.
 
 use candid::Principal;
 use ic_stable_structures::memory_manager::VirtualMemory;
@@ -31,23 +11,89 @@ use crate::types::{
     AccessControl, ByteBuf, EncryptedMapValue, MapId, MapKey, MapName, TransportKey,
 };
 
-// On a high level,
-// `ENCRYPTED_MAPS[MapName][MapKey] = EncryptedMapValue`, e.g.
-// `ENCRYPTED_MAPS[b"alex's map".into()][b"github API token".into()] = b"secret-api-token-to-be-encrypted".into()`.
-
 pub type VetKeyVerificationKey = ByteBuf;
 pub type VetKey = ByteBuf;
 
 type Memory = VirtualMemory<DefaultMemoryImpl>;
 
+/// The **EncryptedMaps** backend is a support library built on top of [`crate::key_manager::KeyManager`].
+/// 
+/// **EncryptedMaps** is designed to facilitate secure, encrypted data sharing between users on the Internet Computer (ICP) using the **vetKeys** feature. It allows developers to store encrypted key-value pairs (**maps**) securely and to manage fine-grained user access.
+///
+/// For an introduction to **vetKeys**, refer to the [vetKeys Overview](https://internetcomputer.org/docs/building-apps/network-features/encryption/vetKeys).
+///
+/// IMPORTANT:
+/// These support libraries are under active development and are subject to change. Access to the repositories has been opened to allow for early feedback. Check back regularly for updates.
+/// Please share your feedback on the [developer forum](https://forum.dfinity.org/t/threshold-key-derivation-privacy-on-the-ic/16560/179).
+///
+/// ## Core Features
+///
+/// The **EncryptedMaps** library provides the following key functionalities:
+///
+/// - **Encrypted Key-Value Storage:** Securely store and manage encrypted key-value pairs within named maps.
+/// - **User-Specific Map Access:** Control precisely which users can read or modify entries in an encrypted map.
+/// - **Integrated Access Control:** Leverages the **KeyManager** library to manage and enforce user permissions.
+/// - **Stable Storage:** Utilizes **[StableBTreeMap](https://crates.io/crates/ic-stable-structures)** for reliable, persistent storage across canister upgrades.
+///
+/// ## EncryptedMaps Architecture
+///
+/// The **EncryptedMaps** library contains:
+///
+/// - **Encrypted Values Storage:** Maps `(KeyId, MapKey)` to `EncryptedMapValue`, securely storing encrypted data.
+/// - **KeyManager Integration:** Uses **KeyManager** to handle user permissions, ensuring authorized access to maps.
+///
+/// ## Example Use Case
+///
+/// 1. **User A** initializes an encrypted map and adds values.
+/// 2. **User A** shares access to this map with **User B**.
+/// 3. **User B** retrieves encrypted values securely.
+/// 4. **User A** revokes **User B**'s access as necessary.
+///
+/// ## Security Considerations
+///
+/// - Encrypted values are stored securely with fine-grained access control.
+/// - Access rights and permissions are strictly enforced.
+/// - Data persists securely across canister upgrades through stable storage.
+///
+/// ## Summary
+/// **EncryptedMaps** simplifies secure storage, retrieval, and controlled sharing of encrypted data on the Internet Computer, complementing the robust security and permissions management provided by **KeyManager**.
 pub struct EncryptedMaps<T: AccessControl> {
     pub key_manager: crate::key_manager::KeyManager<T>,
     pub mapkey_vals: StableBTreeMap<(KeyId, MapKey), EncryptedMapValue, Memory>,
 }
 
 impl<T: AccessControl> EncryptedMaps<T> {
-    /// Initializes the EncryptedMaps and the underlying KeyManager.
-    /// Must be called before any other EncryptedMaps operations.
+    /// Initializes the [`EncryptedMaps`] and the underlying [`crate::key_manager::KeyManager`].
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use ic_stable_structures::{
+    ///     memory_manager::{MemoryId, MemoryManager, VirtualMemory},
+    ///     DefaultMemoryImpl,
+    /// };
+    /// use std::cell::RefCell;
+    /// use ic_vetkeys::types::AccessRights;
+    /// use ic_vetkeys::encrypted_maps::EncryptedMaps;
+    ///
+    /// type Memory = VirtualMemory<DefaultMemoryImpl>;
+    ///
+    /// thread_local! {
+    ///     static MEMORY_MANAGER: RefCell<MemoryManager<DefaultMemoryImpl>> =
+    ///         RefCell::new(MemoryManager::init(DefaultMemoryImpl::default()));
+    ///     static ENCRYPTED_MAPS: RefCell<EncryptedMaps<AccessRights>> = RefCell::new(EncryptedMaps::init(
+    ///         "my encrypted maps dapp",
+    ///         id_to_memory(0),
+    ///         id_to_memory(1),
+    ///         id_to_memory(2),
+    ///         id_to_memory(3)
+    ///     ));
+    /// }
+    ///
+    /// fn id_to_memory(id: u8) -> Memory {
+    ///     MEMORY_MANAGER.with(|m| m.borrow().get(MemoryId::new(id)))
+    /// }
+    /// ```
     pub fn init(
         domain_separator: &str,
         memory_domain_separator: Memory,
@@ -71,11 +117,13 @@ impl<T: AccessControl> EncryptedMaps<T> {
     }
 
     /// Lists all map names shared with the caller.
+    /// Returns a vector of map IDs that the caller has access to.
     pub fn get_accessible_shared_map_names(&self, caller: Principal) -> Vec<KeyId> {
         self.key_manager.get_accessible_shared_key_ids(caller)
     }
 
     /// Retrieves all users and their access rights for a specific map.
+    /// The caller must have appropriate permissions to view this information.
     pub fn get_shared_user_access_for_map(
         &self,
         caller: Principal,
@@ -87,6 +135,7 @@ impl<T: AccessControl> EncryptedMaps<T> {
 
     /// Removes all values from a map if the caller has sufficient rights.
     /// Returns the removed keys.
+    /// The caller must have write permissions to perform this operation.
     pub fn remove_map_values(
         &mut self,
         caller: Principal,
@@ -109,6 +158,7 @@ impl<T: AccessControl> EncryptedMaps<T> {
     }
 
     /// Retrieves all encrypted key-value pairs from a map.
+    /// The caller must have read permissions to access the map values.
     pub fn get_encrypted_values_for_map(
         &self,
         caller: Principal,
@@ -125,6 +175,7 @@ impl<T: AccessControl> EncryptedMaps<T> {
     }
 
     /// Retrieves a specific encrypted value from a map.
+    /// The caller must have read permissions to access the value.
     pub fn get_encrypted_value(
         &self,
         caller: Principal,
@@ -148,6 +199,7 @@ impl<T: AccessControl> EncryptedMaps<T> {
         result
     }
 
+    /// Retrieves all accessible encrypted maps and their data for the caller.
     pub fn get_all_accessible_encrypted_maps(&self, caller: Principal) -> Vec<EncryptedMapData<T>> {
         let mut result = Vec::new();
         for map_id in self.get_accessible_map_ids_iter(caller) {
@@ -180,6 +232,8 @@ impl<T: AccessControl> EncryptedMaps<T> {
         accessible_map_ids.chain(owned_map_ids)
     }
 
+    /// Retrieves the non-empty map names owned by the caller.
+    /// Returns a list of map names that contain at least one key-value pair.
     pub fn get_owned_non_empty_map_names(&self, caller: Principal) -> Vec<MapName> {
         let map_names: std::collections::HashSet<Vec<u8>> = self
             .mapkey_vals
@@ -194,6 +248,7 @@ impl<T: AccessControl> EncryptedMaps<T> {
     }
 
     /// Inserts or updates an encrypted value in a map.
+    /// The caller must have write permissions to modify the map.
     pub fn insert_encrypted_value(
         &mut self,
         caller: Principal,
@@ -206,6 +261,7 @@ impl<T: AccessControl> EncryptedMaps<T> {
     }
 
     /// Removes an encrypted value from a map.
+    /// The caller must have write permissions to modify the map.
     pub fn remove_encrypted_value(
         &mut self,
         caller: Principal,
@@ -217,6 +273,7 @@ impl<T: AccessControl> EncryptedMaps<T> {
     }
 
     /// Retrieves the public verification key from KeyManager.
+    /// This key is used to verify the authenticity of derived keys.
     pub fn get_vetkey_verification_key(
         &self,
     ) -> impl Future<Output = VetKeyVerificationKey> + Send + Sync {
@@ -224,6 +281,7 @@ impl<T: AccessControl> EncryptedMaps<T> {
     }
 
     /// Retrieves an encrypted vetkey for caller and key id.
+    /// The key is secured using the provided transport key and can only be accessed by authorized users.
     pub fn get_encrypted_vetkey(
         &self,
         caller: Principal,
@@ -235,6 +293,7 @@ impl<T: AccessControl> EncryptedMaps<T> {
     }
 
     /// Retrieves access rights for a user to a map.
+    /// The caller must have appropriate permissions to view this information.
     pub fn get_user_rights(
         &self,
         caller: Principal,
@@ -245,6 +304,7 @@ impl<T: AccessControl> EncryptedMaps<T> {
     }
 
     /// Sets or updates access rights for a user to a map.
+    /// Only the map owner or a user with management rights can perform this action.
     pub fn set_user_rights(
         &mut self,
         caller: Principal,
@@ -257,6 +317,7 @@ impl<T: AccessControl> EncryptedMaps<T> {
     }
 
     /// Removes access rights for a user from a map.
+    /// Only the map owner or a user with management rights can perform this action.
     pub fn remove_user(
         &mut self,
         caller: Principal,
@@ -267,6 +328,7 @@ impl<T: AccessControl> EncryptedMaps<T> {
     }
 }
 
+/// Represents the complete data for an encrypted map, including ownership, contents, and access control.
 #[derive(candid::CandidType)]
 pub struct EncryptedMapData<T: AccessControl> {
     pub map_owner: Principal,

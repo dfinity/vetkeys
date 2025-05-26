@@ -109,11 +109,9 @@ export class PasswordManager {
                 passwords.push([passwordNameString, password]);
             }
 
-            const usersResult =
-                await this.encryptedMaps.getSharedUserAccessForMap(
-                    otherOwner,
-                    vaultName,
-                );
+            const usersResult = await this.encryptedMaps
+                .getSharedUserAccessForMap(otherOwner, vaultName)
+                .catch(() => []);
 
             vaults.push(
                 vaultFromContent(

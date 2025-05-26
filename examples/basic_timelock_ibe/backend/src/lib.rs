@@ -297,10 +297,11 @@ async fn decrypt_bids(
         transport_public_key: transport_secret_key.public_key().to_vec(),
     };
 
-    let (result,) = ic_cdk::api::call::call::<_, (VetKDDeriveKeyReply,)>(
+    let (result,) = ic_cdk::api::call::call_with_payment128::<_, (VetKDDeriveKeyReply,)>(
         vetkd_system_api_canister_id(),
         "vetkd_derive_key",
         (request,),
+        26_153_846_153,
     )
     .await
     .expect("call to vetkd_derive_key failed");
@@ -320,7 +321,7 @@ async fn decrypt_bids(
 
     for encrypted_bid in encrypted_bids {
         let decrypted_bid: Result<u128, String> =
-            ic_vetkeys::IBECiphertext::deserialize(&encrypted_bid.encrypted_amount)
+            ic_vetkeys::IbeCiphertext::deserialize(&encrypted_bid.encrypted_amount)
                 .map_err(|e| format!("failed to deserialize ibe ciphertext: {e}"))
                 .and_then(|c| {
                     c.decrypt(&ibe_decryption_key)

@@ -44,6 +44,19 @@ fn test_public_key_derivation() {
 }
 
 #[test]
+fn test_bls_signature_verification() {
+    let dpk = DerivedPublicKey::deserialize(&hex::decode("972c4c6cc184b56121a1d27ef1ca3a2334d1a51be93573bd18e168f78f8fe15ce44fb029ffe8e9c3ee6bea2660f4f35e0774a35a80d6236c050fd8f831475b5e145116d3e83d26c533545f64b08464e4bcc755f990a381efa89804212d4eef5f").unwrap()).unwrap();
+
+    let msg = b"message";
+    let wrong_msg = b"wrong message";
+
+    let signature = hex::decode("987db5406ce297e729c8564a106dc896943b00216a095fe9c5d32a16a330c02eb80e6f468ede83cde5462b5145b58f65").unwrap();
+
+    assert!(verify_bls_signature(&dpk, msg, &signature));
+    assert!(!verify_bls_signature(&dpk, wrong_msg, &signature));
+}
+
+#[test]
 fn test_second_level_public_key_derivation() {
     let canister_key = DerivedPublicKey::deserialize(&hex::decode("8bf165ea580742abf5fd5123eb848aa116dcf75c3ddb3cd3540c852cf99f0c5394e72dfc2f25dbcb5f9220f251cd04040a508a0bcb8b2543908d6626b46f09d614c924c5deb63a9949338ae4f4ac436bd77f8d0a392fd29de0f392a009fa61f3").unwrap()).unwrap();
 
@@ -98,8 +111,8 @@ fn protocol_flow_with_emulated_server_side() {
     let vetkey = ek.decrypt_and_verify(&tsk, &dpk, &identity).unwrap();
 
     let msg = rng.gen::<[u8; 32]>().to_vec();
-    let seed = rng.gen::<[u8; 32]>().to_vec();
-    let ctext = IBECiphertext::encrypt(&dpk, &identity, &msg, &seed).unwrap();
+    let seed = IbeSeed::random(&mut rng);
+    let ctext = IbeCiphertext::encrypt(&dpk, &IbeIdentity::from_bytes(&identity), &msg, &seed);
 
     let ptext = ctext.decrypt(&vetkey).expect("IBE decryption failed");
     assert_eq!(ptext, msg);
@@ -148,8 +161,8 @@ fn protocol_flow_with_fixed_rng_has_expected_outputs() {
     let identity = hex::decode("6d657373616765").unwrap();
 
     let msg = hex::decode("f00f11").unwrap();
-    let seed: [u8; 32] = [0u8; 32];
-    let ctext = IBECiphertext::encrypt(&dpk, &identity, &msg, &seed).unwrap();
+    let seed = IbeSeed::from_bytes(&[0u8; 32]).unwrap();
+    let ctext = IbeCiphertext::encrypt(&dpk, &IbeIdentity::from_bytes(&identity), &msg, &seed);
 
     let ctext_bytes = ctext.serialize();
 
@@ -158,7 +171,7 @@ fn protocol_flow_with_fixed_rng_has_expected_outputs() {
 
     assert_eq!(
         ctext,
-        IBECiphertext::deserialize(&ctext_bytes).expect("Deserializing IBECiphertext failed")
+        IbeCiphertext::deserialize(&ctext_bytes).expect("Deserializing IbeCiphertext failed")
     );
 
     let vetkey = ek.decrypt_and_verify(&tsk, &dpk, &identity).unwrap();

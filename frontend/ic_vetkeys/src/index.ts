@@ -18,7 +18,9 @@
  *   DerivedPublicKey,
  *   EncryptedKey,
  *   VetKey,
- *   IdentityBasedEncryptionCiphertext
+ *   IbeCiphertext,
+ *   IbeIdentity,
+ *   IbeSeed,
  * } from "ic_vetkd_sdk_utils";
  *
  * // 1. Generate a Transport Secret Key for decrypting VetKD-derived keys
@@ -41,19 +43,18 @@
  *
  * // 5. Use Identity-Based Encryption to encrypt and decrypt a message
  * const message = new TextEncoder().encode("Secret message");
- * const seed = crypto.getRandomValues(new Uint8Array(32));
  *
  * // 6. Encrypt the message
- * const ciphertext = IdentityBasedEncryptionCiphertext.encrypt(
+ * const ciphertext = IbeCiphertext.encrypt(
  *   dpk,
- *   input,
+ *   IbeIdentity.fromBytes(input),
  *   message,
- *   seed
+ *   IbeSeed.random()
  * );
  * const serializedCiphertext = ciphertext.serialize();
  *
  * // 7. Decrypt the message
- * const deserializedCiphertext = IdentityBasedEncryptionCiphertext.deserialize(serializedCiphertext);
+ * const deserializedCiphertext = IbeCiphertext.deserialize(serializedCiphertext);
  * const decryptedMessage = deserializedCiphertext.decrypt(vetKey);
  * console.log("Decrypted Message:", new TextDecoder().decode(decryptedMessage));
  * ```
