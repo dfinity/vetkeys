@@ -80,6 +80,7 @@
     },
     "scripts": {
         "build": "tsc && vite build",
+        "prepare": "npm run build",
         "coverage": "npm run test:deploy_all && export $(cat .test1.env .test2.env | xargs) && vitest run --coverage",
         "lint": "eslint",
         "make:docs": "mkdir -p $(git rev-parse --show-toplevel)/docs/key_manager && mkdir -p $(git rev-parse --show-toplevel)/docs/encrypted_maps && typedoc --out $(git rev-parse --show-toplevel)/docs",
