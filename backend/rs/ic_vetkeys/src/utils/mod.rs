@@ -463,7 +463,7 @@ impl IbeSeed {
     /// is hashed with HKDF to produce a 256 bit seed.
     pub fn from_bytes(bytes: &[u8]) -> Result<Self, String> {
         if bytes.len() < 16 {
-            return Err("Insufficient input material for IbeSeed derivation".to_string())
+            return Err("Insufficient input material for IbeSeed derivation".to_string());
         }
 
         let mut val = [0u8; IBE_SEED_BYTES];
@@ -826,12 +826,12 @@ pub mod management_canister {
     }
 
     /// Creates a threshold BLS12-381 signature for the given `message`.
-    /// 
+    ///
     /// The `context` parameter defines signer's identity.
     /// The returned signature can be verified with the public key retrieved via [`bls_public_key`] with the same `context` and `key_id`.
     /// Having the public key, message, and signature, we now can verify that the signature is valid.
     /// For that, we can call [`verify_bls_signature`] from this crate in Rust or `verifyBlsSignature` from the `@dfinity/vetkeys` package in TypeScript/JavaScript.
-    /// 
+    ///
     /// This function internally calls the `vetkd_derive_key` method of the Internet Computer, which requires additional cycles to be attached in order to be successful.
     /// The amount of the required cycles depends on the size of the subnet that holds the vetKD master key (defined by `key_id`).
     /// Currently, this function attaches to the call `26_153_846_153` cycles, which is the expected maximum of what is needed.
