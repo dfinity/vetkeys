@@ -43,15 +43,15 @@
     "exports": {
         ".": {
             "import": "./dist/lib/index.es.js",
-            "types": "./dist/types/src/index.d.ts"
+            "types": "./dist/types/index.d.ts"
         },
         "./key_manager": {
             "import": "./dist/lib/key_manager.es.js",
-            "types": "./dist/types/src/key_manager/index.d.ts"
+            "types": "./dist/types/key_manager/index.d.ts"
         },
         "./encrypted_maps": {
             "import": "./dist/lib/encrypted_maps.es.js",
-            "types": "./dist/types/src/encrypted_maps/index.d.ts"
+            "types": "./dist/types/encrypted_maps/index.d.ts"
         }
     },
     "module": "dist/lib/index.es.js",
