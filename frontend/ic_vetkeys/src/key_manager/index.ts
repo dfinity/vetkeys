@@ -3,11 +3,6 @@
  *
  * @description See { @link KeyManager }.
  *
- * > [!IMPORTANT]
- * > These support libraries are under active development and are subject to change. Access to the repositories has been opened to allow for early feedback. Check back regularly for updates.
- * >
- * > Please share your feedback on the [developer forum](https://forum.dfinity.org/t/threshold-key-derivation-privacy-on-the-ic/16560/179).
- *
  */
 
 import { Principal } from "@dfinity/principal";
@@ -28,11 +23,6 @@ export type {
 } from "../declarations/ic_vetkeys_manager_canister/ic_vetkeys_manager_canister.did";
 
 /**
- * > [!IMPORTANT]
- * > These support libraries are under active development and are subject to change. Access to the repositories has been opened to allow for early feedback. Check back regularly for updates.
- * >
- * > Please share your feedback on the [developer forum](https://forum.dfinity.org/t/threshold-key-derivation-privacy-on-the-ic/16560/179).
- *
  * The **`KeyManager`** frontend library facilitates interaction with a [**`KeyManager`-enabled canister**](https://docs.rs/ic_vetkeys/latest/TODO) on the **Internet Computer (ICP)**.
  * It allows web applications to securely request, decrypt, and manage VetKeys while handling access control and key sharing.
  *

@@ -30,10 +30,6 @@ type Memory = VirtualMemory<DefaultMemoryImpl>;
 ///
 /// For an introduction to **vetKeys**, refer to the [vetKeys Overview](https://internetcomputer.org/docs/building-apps/network-features/encryption/vetkeys).
 ///
-/// IMPORTANT:
-/// These support libraries are under active development and are subject to change. Access to the repositories has been opened to allow for early feedback. Check back regularly for updates.
-/// Please share your feedback on the [developer forum](https://forum.dfinity.org/t/threshold-key-derivation-privacy-on-the-ic/16560/179).
-///
 /// ## Core Features
 ///
 /// The **KeyManager** support library provides the following core functionalities:
