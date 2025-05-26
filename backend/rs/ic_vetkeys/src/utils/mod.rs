@@ -805,7 +805,7 @@ pub mod management_canister {
             .await
             .map_err(VetKDDeriveKeyCallError::CallFailed)?;
 
-        if reply.0.encrypted_key.len() < EncryptedVetKey::BYTES {
+        if reply.0.encrypted_key.len() != EncryptedVetKey::BYTES {
             return Err(VetKDDeriveKeyCallError::InvalidReply);
         }
 
