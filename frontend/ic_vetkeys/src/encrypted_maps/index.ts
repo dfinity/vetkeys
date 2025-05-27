@@ -24,7 +24,7 @@ export type {
 } from "../declarations/ic_vetkeys_manager_canister/ic_vetkeys_manager_canister.did";
 
 /**
- * The **EncryptedMaps** frontend library facilitates interaction with an **EncryptedMaps-enabled canister** on the **Internet Computer (ICP)**.
+ * The **EncryptedMaps** frontend library facilitates interaction with an [**EncryptedMaps-enabled canister**](https://docs.rs/ic-vetkeys/latest/ic_vetkeys/encrypted_maps/struct.EncryptedMaps.html) on the **Internet Computer (ICP)**.
  * It allows web applications to securely store, retrieve, and manage encrypted key-value pairs within named maps while handling user access control and key sharing.
  *
  * ## Core Features

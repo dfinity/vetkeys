@@ -20,7 +20,7 @@ Provides frontend utilities for the low-level use of VetKeys such as decryption 
 
 ---
 
-A frontend library facilitating communication with a [key manager enabled canister](https://docs.rs/ic_vetkeys/latest/TODO).
+A frontend library facilitating communication with a [key manager enabled canister](https://docs.rs/ic-vetkeys/latest/ic_vetkeys/key_manager/struct.KeyManager.html).
 
 <br>
 
@@ -28,4 +28,4 @@ A frontend library facilitating communication with a [key manager enabled canist
 
 ---
 
-A frontend library facilitating communication with an [encrypted maps enabled canister](https://docs.rs/ic_vetkeys/latest/TODO).
+A frontend library facilitating communication with an [encrypted maps enabled canister](https://docs.rs/ic-vetkeys/latest/ic_vetkeys/encrypted_maps/struct.EncryptedMaps.html).

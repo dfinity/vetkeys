@@ -23,7 +23,7 @@ export type {
 } from "../declarations/ic_vetkeys_manager_canister/ic_vetkeys_manager_canister.did";
 
 /**
- * The **`KeyManager`** frontend library facilitates interaction with a [**`KeyManager`-enabled canister**](https://docs.rs/ic_vetkeys/latest/TODO) on the **Internet Computer (ICP)**.
+ * The **`KeyManager`** frontend library facilitates interaction with a [**`KeyManager`-enabled canister**](https://docs.rs/ic-vetkeys/latest/ic_vetkeys/key_manager/struct.KeyManager.html) on the **Internet Computer (ICP)**.
  * It allows web applications to securely request, decrypt, and manage VetKeys while handling access control and key sharing.
  *
  * ## Core Features

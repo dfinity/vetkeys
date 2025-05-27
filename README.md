@@ -29,8 +29,8 @@ Please share your feedback on the [developer forum](https://forum.dfinity.org/t/
 
 Tools to help canister developers integrate vetKeys into their Internet Computer (ICP) applications.
 
-- **[KeyManager](https://docs.rs/ic-vetkeys/latest/key_manager/struct.KeyManager.html)** – a library for deriving and managing encrypted cryptographic keys.
-- **[EncryptedMaps](https://docs.rs/ic-vetkeys/latest/encrypted_maps/struct.EncryptedMaps.html)** – a library for encrypting using vetkeys, and securely storing and sharing encrypted key-value pairs.
+- **[KeyManager](https://docs.rs/ic-vetkeys/latest/ic_vetkeys/key_manager/struct.KeyManager.html)** – a library for deriving and managing encrypted cryptographic keys.
+- **[EncryptedMaps](https://docs.rs/ic-vetkeys/latest/ic_vetkeys/encrypted_maps/struct.EncryptedMaps.html)** – a library for encrypting using vetkeys, and securely storing and sharing encrypted key-value pairs.
 - **[Utils](https://docs.rs/ic-vetkeys/latest/)** – Utility functions for working with vetKeys.
 
 ### **2. [vetKeys Frontend Library](./frontend/ic_vetkeys)** - Supports frontend developers
