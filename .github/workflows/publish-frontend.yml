@@ -39,6 +39,7 @@ jobs:
             exit 1
           fi
       - run: |
+          npm install
           cd frontend/ic_vetkeys
           npm list
           npm run build
