@@ -18,10 +18,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout ${{ github.event.inputs.tag }}
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
           ref: ${{ github.event.inputs.tag }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
 
       - name: Build docs
         run: |
