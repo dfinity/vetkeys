@@ -173,7 +173,7 @@ impl TestEnvironment {
         let example_canister_id = pic.create_canister();
         pic.add_cycles(example_canister_id, 2_000_000_000_000);
 
-        let example_wasm_bytes = load_key_manager_example_canister_wasm();
+        let example_wasm_bytes = load_encrypted_maps_example_canister_wasm();
         pic.install_canister(
             example_canister_id,
             example_wasm_bytes,
@@ -223,11 +223,14 @@ impl TestEnvironment {
     }
 }
 
-fn load_key_manager_example_canister_wasm() -> Vec<u8> {
-    let wasm_path_string = format!(
-        "{}/target/wasm32-unknown-unknown/release/ic_vetkeys_encrypted_maps_canister.wasm",
-        git_root_dir()
-    );
+fn load_encrypted_maps_example_canister_wasm() -> Vec<u8> {
+    let wasm_path_string = match std::env::var("CUSTOM_WASM_PATH") {
+        Ok(path) if !path.is_empty() => path,
+        _ => format!(
+            "{}/target/wasm32-unknown-unknown/release/ic_vetkeys_encrypted_maps_canister.wasm",
+            git_root_dir()
+        ),
+    };
     let wasm_path = Path::new(&wasm_path_string);
     std::fs::read(wasm_path)
         .expect("wasm does not exist - run `cargo build --release --target wasm32-unknown-unknown`")
