@@ -33,7 +33,7 @@ jobs:
           mops test
           cd ../canisters/ic_vetkeys_manager_canister
           make test
-          cd ../canisters/ic_vetkeys_encrypted_maps_canister
+          cd ../ic_vetkeys_encrypted_maps_canister
           make test
   backend-motoko-tests-darwin:
     runs-on: macos-15
@@ -52,5 +52,5 @@ jobs:
           mops test
           cd ../canisters/ic_vetkeys_manager_canister
           make test
-          cd ../canisters/ic_vetkeys_encrypted_maps_canister
+          cd ../ic_vetkeys_encrypted_maps_canister
           make test
