@@ -54,6 +54,7 @@
             "types": "./dist/types/encrypted_maps/index.d.ts"
         }
     },
+    "main": "dist/lib/index.es.js",
     "module": "dist/lib/index.es.js",
     "typings": "dist/types/index.d.ts",
     "dependencies": {
