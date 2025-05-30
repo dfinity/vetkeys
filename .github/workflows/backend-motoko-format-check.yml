@@ -26,4 +26,5 @@ jobs:
           for d in $(find . -type d -name '.mops' -prune -o -type f -name 'mops.toml' -printf '%h\n'); do
             cd $d
             echo "Checking directory: $(pwd)" && mops format --check
+            cd -
           done
