@@ -23,7 +23,7 @@ jobs:
         run: bash .github/workflows/provision-linux.sh
       - name: Run MOPS Format Check Linux
         run: |
-          cd backend/mo/ic_vetkeys
-          echo "Checking directory: $(pwd)" && mops format --check
-          cd ../canisters
-          for d in $(ls); do cd $d && echo "Checking directory: $(pwd)" && mops format --check; cd ..; done
+          for d in $(find . -type d -name '.mops' -prune -o -type f -name 'mops.toml' -printf '%h\n'); do
+            cd $d
+            echo "Checking directory: $(pwd)" && mops format --check
+          done
