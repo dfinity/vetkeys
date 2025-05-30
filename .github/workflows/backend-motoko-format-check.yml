@@ -24,6 +24,6 @@ jobs:
       - name: Run MOPS Format Check Linux
         run: |
           cd backend/mo/ic_vetkeys
-          mops format --check
+          echo "Checking directory: $(pwd)" && mops format --check
           cd ../canisters
-          for d in $(ls); do cd $d && mops format --check; cd ..; done
+          for d in $(ls); do cd $d && echo "Checking directory: $(pwd)" && mops format --check; cd ..; done
