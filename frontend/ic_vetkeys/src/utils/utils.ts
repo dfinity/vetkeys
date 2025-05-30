@@ -440,7 +440,7 @@ export class DerivedKeyMaterial {
      */
     static async setup(bytes: Uint8Array) {
         const exportable = false;
-        const hkdf = await window.crypto.subtle.importKey(
+        const hkdf = await globalThis.crypto.subtle.importKey(
             "raw",
             bytes,
             "HKDF",
@@ -482,7 +482,7 @@ export class DerivedKeyMaterial {
             length: 32 * 8,
         };
 
-        return window.crypto.subtle.deriveKey(
+        return globalThis.crypto.subtle.deriveKey(
             algorithm,
             this.#hkdf,
             gcmParams,
@@ -503,10 +503,10 @@ export class DerivedKeyMaterial {
         const gcmKey = await this.deriveAesGcmCryptoKey(domainSep);
 
         // The nonce must never be reused with a given key
-        const nonce = window.crypto.getRandomValues(new Uint8Array(12));
+        const nonce = globalThis.crypto.getRandomValues(new Uint8Array(12));
 
         const ciphertext = new Uint8Array(
-            await window.crypto.subtle.encrypt(
+            await globalThis.crypto.subtle.encrypt(
                 { name: "AES-GCM", iv: nonce },
                 gcmKey,
                 asBytes(message),
@@ -541,7 +541,7 @@ export class DerivedKeyMaterial {
         const gcmKey = await this.deriveAesGcmCryptoKey(domainSep);
 
         try {
-            const ptext = await window.crypto.subtle.decrypt(
+            const ptext = await globalThis.crypto.subtle.decrypt(
                 { name: "AES-GCM", iv: nonce },
                 gcmKey,
                 ciphertext,
@@ -805,7 +805,7 @@ export class IbeSeed {
      */
     static random() {
         return new IbeSeed(
-            window.crypto.getRandomValues(new Uint8Array(SEED_BYTES)),
+            globalThis.crypto.getRandomValues(new Uint8Array(SEED_BYTES)),
         );
     }
 

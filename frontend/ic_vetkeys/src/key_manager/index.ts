@@ -123,7 +123,7 @@ export class KeyManager {
         vetkeyName: Uint8Array,
     ): Promise<Uint8Array> {
         // create a random transport key
-        const seed = window.crypto.getRandomValues(new Uint8Array(32));
+        const seed = globalThis.crypto.getRandomValues(new Uint8Array(32));
         const tsk = new TransportSecretKey(seed);
         const encryptedVetkey = await this.canisterClient.get_encrypted_vetkey(
             keyOwner,
