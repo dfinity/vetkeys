@@ -21,6 +21,7 @@ actor class (keyName : Text) {
     public query (msg) func get_accessible_shared_map_names() : async [(Principal, ByteBuf)] {
         Array.map<(Principal, Blob), (Principal, ByteBuf)>(
             encryptedMaps.getAccessibleSharedMapNames(msg.caller),
+
             func((principal, blob) : (Principal, Blob)) {
                 (principal, { inner = blob });
             },
