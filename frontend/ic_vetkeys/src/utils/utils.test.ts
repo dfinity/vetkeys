@@ -233,7 +233,7 @@ test("hkdf using webcrypto", async () => {
         hash: "SHA-256",
         length: 32 * 8,
     };
-    const derived = await window.crypto.subtle.deriveKey(
+    const derived = await globalThis.crypto.subtle.deriveKey(
         algorithm,
         wckey,
         derivedAlgo,
@@ -242,7 +242,7 @@ test("hkdf using webcrypto", async () => {
     );
 
     const derivedBytes = new Uint8Array(
-        await window.crypto.subtle.exportKey("raw", derived),
+        await globalThis.crypto.subtle.exportKey("raw", derived),
     );
     assertEqual(
         bytesToHex(derivedBytes),
@@ -318,7 +318,9 @@ test("AES-GCM encryption", async () => {
 
     // Test appending random bytes
     for (let trial = 1; trial < 32; trial++) {
-        const extraBytes = window.crypto.getRandomValues(new Uint8Array(trial));
+        const extraBytes = globalThis.crypto.getRandomValues(
+            new Uint8Array(trial),
+        );
         const modMsg = new Uint8Array([...msg3, ...extraBytes]);
 
         await expect(async () => {

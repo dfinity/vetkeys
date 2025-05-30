@@ -3,7 +3,7 @@ import indexeddb from "fake-indexeddb";
 import crypto from "node:crypto";
 
 beforeAll(() => {
-    Object.defineProperty(window, "crypto", {
+    Object.defineProperty(globalThis, "crypto", {
         value: crypto.webcrypto,
         writable: true,
     });
