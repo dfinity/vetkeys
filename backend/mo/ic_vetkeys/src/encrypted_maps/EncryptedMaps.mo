@@ -18,7 +18,7 @@ module {
     public type MapKey = Blob;
     public type EncryptedMapValue = Blob;
 
-    type EncryptedMapData<T> = {
+    public type EncryptedMapData<T> = {
         map_owner : Principal;
         map_name : MapName;
         keyvals : [(MapKey, EncryptedMapValue)];
