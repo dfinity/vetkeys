@@ -12,6 +12,7 @@ export default defineConfig({
     environment("all", { prefix: "CANISTER_" }),
     environment("all", { prefix: "DFX_" }),
   ],
+  envDir: '../',
   build: {
     sourcemap: true,
     rollupOptions: {

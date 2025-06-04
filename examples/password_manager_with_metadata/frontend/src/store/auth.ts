@@ -53,7 +53,7 @@ export async function login() {
             identityProvider:
                 process.env.DFX_NETWORK === "ic"
                     ? "https://identity.ic0.app/#authorize"
-                    : `http://${process.env.CANISTER_ID_INTERNET_IDENTITY}.localhost:8000/#authorize`,
+                    : `http://rdmx6-jaaaa-aaaaa-aaadq-cai.localhost:8000/#authorize`,
             onSuccess: async () => {
                 await authenticate(currentAuth.client);
             },
