@@ -16,13 +16,14 @@
       "id": "rdmx6-jaaaa-aaaaa-aaadq-cai"
     },
     "www": {
+      "dependencies": ["password_manager_with_metadata"],
+      "build": ["npm i && cd frontend && npm run build"],
       "frontend": {
         "entrypoint": "frontend/dist/index.html"
       },
-      "source": [
-        "frontend/dist/"
-      ],
-      "type": "assets"
+      "source": ["frontend/dist/"],
+      "type": "assets",
+      "output_env_file": "frontend/.env"
     }
   },
   "networks": {
