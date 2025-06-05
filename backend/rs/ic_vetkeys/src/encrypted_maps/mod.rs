@@ -66,11 +66,11 @@ impl<T: AccessControl> EncryptedMaps<T> {
     ///
     /// ```rust
     /// use ic_cdk::init;
+    /// use ic_cdk::management_canister::{VetKDCurve, VetKDKeyId};
     /// use ic_stable_structures::{
     ///     memory_manager::{MemoryId, MemoryManager, VirtualMemory},
     ///     DefaultMemoryImpl,
     /// };
-    /// use ic_vetkeys::vetkd_api_types::{VetKDCurve, VetKDKeyId};
     /// use std::cell::RefCell;
     /// use ic_vetkeys::types::AccessRights;
     /// use ic_vetkeys::encrypted_maps::EncryptedMaps;
