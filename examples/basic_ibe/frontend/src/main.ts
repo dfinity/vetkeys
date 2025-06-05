@@ -56,6 +56,20 @@ async function getRootIbePublicKey(): Promise<DerivedPublicKey> {
     return ibePublicKey;
 }
 
+async function encrypt(
+    cleartext: Uint8Array,
+    receiver: Principal,
+): Promise<Uint8Array> {
+    const publicKey = await getRootIbePublicKey();
+    const ciphertext = IbeCiphertext.encrypt(
+        publicKey,
+        IbeIdentity.fromPrincipal(receiver),
+        cleartext,
+        IbeSeed.random(),
+    );
+    return ciphertext.serialize();
+}
+
 // Get the user's encrypted IBE key
 async function getMyIbePrivateKey(): Promise<VetKey> {
     if (ibePrivateKey) return ibePrivateKey;
@@ -78,6 +92,13 @@ async function getMyIbePrivateKey(): Promise<VetKey> {
     }
 }
 
+async function decryptMessage(encryptedMessage: Uint8Array): Promise<string> {
+    const ibeKey = await getMyIbePrivateKey();
+    const ciphertext = IbeCiphertext.deserialize(encryptedMessage);
+    const plaintext = ciphertext.decrypt(ibeKey);
+    return new TextDecoder().decode(plaintext);
+}
+
 // Send a message
 async function sendMessage() {
     const message = prompt("Enter your message:");
@@ -89,17 +110,13 @@ async function sendMessage() {
     const receiverPrincipal = Principal.fromText(receiver);
 
     try {
-        const publicKey = await getRootIbePublicKey();
-
-        const encryptedMessage = IbeCiphertext.encrypt(
-            publicKey,
-            IbeIdentity.fromPrincipal(receiverPrincipal),
+        const encryptedMessage = await encrypt(
             new TextEncoder().encode(message),
-            IbeSeed.random(),
+            receiverPrincipal,
         );
 
         const result = await getBasicIbeCanister().send_message({
-            encrypted_message: encryptedMessage.serialize(),
+            encrypted_message: encryptedMessage,
             receiver: receiverPrincipal,
         });
 
@@ -116,13 +133,6 @@ async function sendMessage() {
 async function showMessages() {
     const inbox = await getBasicIbeCanister().get_my_messages();
     await displayMessages(inbox);
-}
-
-async function decryptMessage(encryptedMessage: Uint8Array): Promise<string> {
-    const ibeKey = await getMyIbePrivateKey();
-    const ciphertext = IbeCiphertext.deserialize(encryptedMessage);
-    const plaintext = ciphertext.decrypt(ibeKey);
-    return new TextDecoder().decode(plaintext);
 }
 
 function createMessageElement(

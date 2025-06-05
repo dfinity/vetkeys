@@ -50,17 +50,6 @@ function getBasicTimelockIbeCanister(): ActorSubclass<_SERVICE> {
     return basicTimelockIbeCanister;
 }
 
-// Get the root IBE public key
-async function getRootIbePublicKey(): Promise<DerivedPublicKey> {
-    if (ibePublicKey) return ibePublicKey;
-    ibePublicKey = DerivedPublicKey.deserialize(
-        new Uint8Array(
-            await getBasicTimelockIbeCanister().get_root_ibe_public_key(),
-        ),
-    );
-    return ibePublicKey;
-}
-
 export function login(client: AuthClient) {
     void client.login({
         maxTimeToLive: BigInt(1800) * BigInt(1_000_000_000),
@@ -192,6 +181,30 @@ document.getElementById("createLotForm")!.addEventListener("submit", (e) => {
     );
     void createLot(name, description, duration);
 });
+
+async function getRootIbePublicKey(): Promise<DerivedPublicKey> {
+    if (ibePublicKey) return ibePublicKey;
+    ibePublicKey = DerivedPublicKey.deserialize(
+        new Uint8Array(
+            await getBasicTimelockIbeCanister().get_root_ibe_public_key(),
+        ),
+    );
+    return ibePublicKey;
+}
+
+async function encrypt(
+    cleartext: Uint8Array,
+    identity: Uint8Array,
+): Promise<Uint8Array> {
+    const publicKey = await getRootIbePublicKey();
+    const ciphertext = IbeCiphertext.encrypt(
+        publicKey,
+        IbeIdentity.fromBytes(identity),
+        cleartext,
+        IbeSeed.random(),
+    );
+    return ciphertext.serialize();
+}
 
 async function createLot(
     name: string,
@@ -424,23 +437,16 @@ async function listLots() {
 
 async function placeBid(lotId: bigint, amount: number) {
     try {
-        // Get the root IBE public key
-        const rootIbePublicKey = await getRootIbePublicKey();
         const lotIdBytes = u128ToLeBytes(lotId);
         const amountBytes = u128ToLeBytes(BigInt(amount));
 
         // Encrypt the bid amount using IBE
-        const encryptedAmount = IbeCiphertext.encrypt(
-            rootIbePublicKey,
-            IbeIdentity.fromBytes(lotIdBytes),
-            amountBytes,
-            IbeSeed.random(),
-        );
+        const encryptedAmount = await encrypt(amountBytes, lotIdBytes);
 
         // Place the bid
         const result = await getBasicTimelockIbeCanister().place_bid(
             lotId,
-            encryptedAmount.serialize(),
+            encryptedAmount,
         );
         if ("Err" in result) {
             alert(`Failed to place bid: ${result.Err}`);
