@@ -107,7 +107,7 @@ async fn get_root_ibe_public_key() -> VetKeyPublicKey {
     let request = VetKDPublicKeyRequest {
         canister_id: None,
         context: DOMAIN_SEPARATOR.as_bytes().to_vec(),
-        key_id: bls12_381_dfx_test_key(),
+        key_id: key_id(),
     };
 
     let (result,) = ic_cdk::api::call::call::<_, (VetKDPublicKeyReply,)>(
@@ -306,7 +306,7 @@ async fn decrypt_bids(
     let request = VetKDDeriveKeyRequest {
         context: DOMAIN_SEPARATOR.as_bytes().to_vec(),
         input: lot_id.to_le_bytes().to_vec(),
-        key_id: bls12_381_dfx_test_key(),
+        key_id: key_id(),
         transport_public_key: transport_secret_key.public_key().to_vec(),
     };
 
@@ -374,10 +374,10 @@ fn is_authenticated() -> Result<(), String> {
     }
 }
 
-fn bls12_381_dfx_test_key() -> VetKDKeyId {
+fn key_id() -> VetKDKeyId {
     VetKDKeyId {
         curve: VetKDCurve::Bls12_381_G2,
-        name: "dfx_test_key".to_string(),
+        name: KEY_NAME.with_borrow(|key_name| key_name.get().clone()),
     }
 }
 

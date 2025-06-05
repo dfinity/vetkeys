@@ -37,17 +37,12 @@ function getBasicIbeCanister(): ActorSubclass<_SERVICE> {
             ? `https://${process.env.CANISTER_ID_BASIC_IBE}.ic0.app`
             : "http://localhost:8000";
 
-    basicIbeCanister = createActor(
-        process.env.CANISTER_ID_BASIC_IBE,
-        process.env.DFX_NETWORK === "ic"
-            ? undefined
-            : {
-                  agentOptions: {
-                      identity: authClient.getIdentity(),
-                      host,
-                  },
-              },
-    );
+    basicIbeCanister = createActor(process.env.CANISTER_ID_BASIC_IBE, {
+        agentOptions: {
+            identity: authClient.getIdentity(),
+            host,
+        },
+    });
 
     return basicIbeCanister;
 }
