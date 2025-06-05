@@ -1,13 +1,13 @@
 use std::cell::RefCell;
 
 use candid::Principal;
+use ic_cdk::management_canister::{VetKDCurve, VetKDKeyId};
 use ic_cdk::{init, query, update};
 use ic_stable_structures::memory_manager::{MemoryId, MemoryManager, VirtualMemory};
 use ic_stable_structures::storable::Blob;
 use ic_stable_structures::DefaultMemoryImpl;
 use ic_vetkeys::key_manager::{KeyManager, VetKey, VetKeyVerificationKey};
 use ic_vetkeys::types::{AccessRights, ByteBuf, TransportKey};
-use ic_vetkeys::vetkd_api_types::{VetKDCurve, VetKDKeyId};
 
 type Memory = VirtualMemory<DefaultMemoryImpl>;
 
@@ -40,7 +40,7 @@ fn get_accessible_shared_key_ids() -> Vec<(Principal, ByteBuf)> {
     KEY_MANAGER.with_borrow(|km| {
         km.as_ref()
             .unwrap()
-            .get_accessible_shared_key_ids(ic_cdk::caller())
+            .get_accessible_shared_key_ids(ic_cdk::api::msg_caller())
             .into_iter()
             .map(|key_id| (key_id.0, ByteBuf::from(key_id.1.as_ref().to_vec())))
             .collect()
@@ -57,7 +57,7 @@ fn get_shared_user_access_for_key(
     KEY_MANAGER.with_borrow(|km| {
         km.as_ref()
             .unwrap()
-            .get_shared_user_access_for_key(ic_cdk::caller(), key_id)
+            .get_shared_user_access_for_key(ic_cdk::api::msg_caller(), key_id)
     })
 }
 
@@ -78,9 +78,11 @@ async fn get_encrypted_vetkey(
     let key_id = (key_owner, key_name);
     Ok(KEY_MANAGER
         .with_borrow(|km| {
-            km.as_ref()
-                .unwrap()
-                .get_encrypted_vetkey(ic_cdk::caller(), key_id, transport_key)
+            km.as_ref().unwrap().get_encrypted_vetkey(
+                ic_cdk::api::msg_caller(),
+                key_id,
+                transport_key,
+            )
         })?
         .await)
 }
@@ -96,7 +98,7 @@ fn get_user_rights(
     KEY_MANAGER.with_borrow(|km| {
         km.as_ref()
             .unwrap()
-            .get_user_rights(ic_cdk::caller(), key_id, user)
+            .get_user_rights(ic_cdk::api::msg_caller(), key_id, user)
     })
 }
 
@@ -112,7 +114,7 @@ fn set_user_rights(
     KEY_MANAGER.with_borrow_mut(|km| {
         km.as_mut()
             .unwrap()
-            .set_user_rights(ic_cdk::caller(), key_id, user, access_rights)
+            .set_user_rights(ic_cdk::api::msg_caller(), key_id, user, access_rights)
     })
 }
 
@@ -127,7 +129,7 @@ fn remove_user(
     KEY_MANAGER.with_borrow_mut(|km| {
         km.as_mut()
             .unwrap()
-            .remove_user(ic_cdk::caller(), key_id, user)
+            .remove_user(ic_cdk::api::msg_caller(), key_id, user)
     })
 }
 

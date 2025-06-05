@@ -10,7 +10,7 @@ use crate::key_manager::KeyId;
 use crate::types::{
     AccessControl, ByteBuf, EncryptedMapValue, MapId, MapKey, MapName, TransportKey,
 };
-use crate::vetkd_api_types::VetKDKeyId;
+use ic_cdk::management_canister::VetKDKeyId;
 
 pub type VetKeyVerificationKey = ByteBuf;
 pub type VetKey = ByteBuf;

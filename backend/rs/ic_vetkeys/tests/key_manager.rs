@@ -1,15 +1,13 @@
 use std::collections::BTreeSet;
 
 use assert_matches::assert_matches;
+use ic_cdk::management_canister::{VetKDCurve, VetKDKeyId};
 use ic_stable_structures::{
     memory_manager::{MemoryId, MemoryManager},
     DefaultMemoryImpl,
 };
+use ic_vetkeys::key_manager::KeyManager;
 use ic_vetkeys::types::AccessRights;
-use ic_vetkeys::{
-    key_manager::KeyManager,
-    vetkd_api_types::{VetKDCurve, VetKDKeyId},
-};
 use ic_vetkeys_test_utils::{
     random_access_rights, random_name, random_self_authenticating_principal,
     random_unique_memory_ids, random_utf8_string, reproducible_rng,
