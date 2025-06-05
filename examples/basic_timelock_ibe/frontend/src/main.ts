@@ -39,14 +39,12 @@ function getBasicTimelockIbeCanister(): ActorSubclass<_SERVICE> {
 
     basicTimelockIbeCanister = createActor(
         process.env.CANISTER_ID_BASIC_TIMELOCK_IBE,
-        process.env.DFX_NETWORK === "ic"
-            ? undefined
-            : {
-                  agentOptions: {
-                      identity: authClient.getIdentity(),
-                      host,
-                  },
-              },
+        {
+            agentOptions: {
+                identity: authClient.getIdentity(),
+                host,
+            },
+        },
     );
 
     return basicTimelockIbeCanister;
