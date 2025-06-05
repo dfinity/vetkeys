@@ -1,3 +1,41 @@
+/// The **EncryptedMaps** backend is a support library built on top of `KeyManager`.
+///
+/// **EncryptedMaps** is designed to facilitate secure, encrypted data sharing between users on the Internet Computer (ICP) using the **vetKeys** feature. It allows developers to store encrypted key-value pairs (**maps**) securely and to manage fine-grained user access.
+///
+/// For an introduction to **vetKeys**, refer to the [vetKeys Overview](https://internetcomputer.org/docs/building-apps/network-features/encryption/vetkeys).
+///
+/// ## Core Features
+///
+/// The **EncryptedMaps** library provides the following key functionalities:
+///
+/// - **Encrypted Key-Value Storage:** Securely store and manage encrypted key-value pairs within named maps.
+/// - **User-Specific Map Access:** Control precisely which users can read or modify entries in an encrypted map.
+/// - **Integrated Access Control:** Leverages the **KeyManager** library to manage and enforce user permissions.
+/// - **Stable Storage:** Utilizes **OrderedMap** for reliable, persistent storage across canister upgrades.
+///
+/// ## EncryptedMaps Architecture
+///
+/// The **EncryptedMaps** library contains:
+///
+/// - **Encrypted Values Storage:** Maps `(KeyId, MapKey)` to `EncryptedMapValue`, securely storing encrypted data.
+/// - **KeyManager Integration:** Uses **KeyManager** to handle user permissions, ensuring authorized access to maps.
+///
+/// ## Example Use Case
+///
+/// 1. **User A** initializes an encrypted map and adds values.
+/// 2. **User A** shares access to this map with **User B**.
+/// 3. **User B** retrieves encrypted values securely.
+/// 4. **User A** revokes **User B**'s access as necessary.
+///
+/// ## Security Considerations
+///
+/// - Encrypted values are stored securely with fine-grained access control.
+/// - Access rights and permissions are strictly enforced.
+/// - Data persists securely across canister upgrades through stable storage.
+///
+/// ## Summary
+/// **EncryptedMaps** simplifies secure storage, retrieval, and controlled sharing of encrypted data on the Internet Computer, complementing the robust security and permissions management provided by **KeyManager**.
+
 import Principal "mo:base/Principal";
 import Blob "mo:base/Blob";
 import Buffer "mo:base/Buffer";
@@ -12,12 +50,22 @@ import Text "mo:base/Text";
 import KeyManager "../key_manager/KeyManager";
 
 module {
+    /// The caller requesting access to encrypted maps, represented as a Principal.
     public type Caller = Principal;
+
+    /// The name of an encrypted map, used as part of the map identifier.
     public type MapName = KeyManager.KeyName;
+
+    /// A unique identifier for an encrypted map, consisting of the owner and map name.
     public type MapId = KeyManager.KeyId;
+
+    /// A key within an encrypted map, used to identify specific values.
     public type MapKey = Blob;
+
+    /// An encrypted value stored within an encrypted map.
     public type EncryptedMapValue = Blob;
 
+    /// Represents the complete data for an encrypted map, including ownership, contents, and access control.
     public type EncryptedMapData<T> = {
         map_owner : Principal;
         map_name : MapName;
@@ -54,22 +102,27 @@ module {
         return OrderedMap.Make<MapId>(compareMapIds);
     };
 
+    /// See the module documentation for more information.
     public class EncryptedMaps<T>(key_id : { curve : { #bls12_381_g2 }; name : Text }, domainSeparator : Text, accessRightsOperations : Types.AccessControlOperations<T>) {
         public var keyManager = KeyManager.KeyManager<T>(key_id, domainSeparator, accessRightsOperations);
         public var mapKeyVals : OrderedMap.Map<(MapId, MapKey), EncryptedMapValue> = mapKeyValsMapOps().empty();
         public var mapKeys : OrderedMap.Map<MapId, [MapKey]> = mapKeysMapOps().empty();
 
-        // Get accessible shared map names for a caller
+        /// Lists all map names shared with the caller.
+        /// Returns a vector of map IDs that the caller has access to.
         public func getAccessibleSharedMapNames(caller : Caller) : [MapId] {
             keyManager.getAccessibleSharedKeyIds(caller);
         };
 
-        // Get shared user access for a map
+        /// Retrieves all users and their access rights for a specific map.
+        /// The caller must have appropriate permissions to view this information.
         public func getSharedUserAccessForMap(caller : Caller, mapId : MapId) : Result.Result<[(Caller, T)], Text> {
             keyManager.getSharedUserAccessForKey(caller, mapId);
         };
 
-        // Remove all values from a map
+        /// Removes all values from a map if the caller has sufficient rights.
+        /// Returns the removed keys.
+        /// The caller must have write permissions to perform this operation.
         public func removeMapValues(caller : Caller, mapId : MapId) : Result.Result<[MapKey], Text> {
             switch (keyManager.getUserRights(caller, mapId, caller)) {
                 case (#err(msg)) { #err(msg) };
@@ -96,7 +149,8 @@ module {
             };
         };
 
-        // Get encrypted values for a map
+        /// Retrieves all encrypted key-value pairs from a map.
+        /// The caller must have read permissions to access the map values.
         public func getEncryptedValuesForMap(caller : Caller, mapId : MapId) : Result.Result<[(MapKey, EncryptedMapValue)], Text> {
             switch (keyManager.getUserRights(caller, mapId, caller)) {
                 case (#err(msg)) { #err(msg) };
@@ -119,7 +173,8 @@ module {
             };
         };
 
-        // Get encrypted value
+        /// Retrieves a specific encrypted value from a map.
+        /// The caller must have read permissions to access the value.
         public func getEncryptedValue(caller : Caller, mapId : MapId, key : MapKey) : Result.Result<?EncryptedMapValue, Text> {
             switch (keyManager.ensureUserCanRead(caller, mapId)) {
                 case (#err(msg)) { #err(msg) };
@@ -129,7 +184,7 @@ module {
             };
         };
 
-        // Get all accessible encrypted values
+        /// Retrieves the non-empty map names owned by the caller.
         public func getAllAccessibleEncryptedValues(caller : Caller) : [(MapId, [(MapKey, EncryptedMapValue)])] {
             let result = Buffer.Buffer<(MapId, [(MapKey, EncryptedMapValue)])>(0);
             for (mapId in getAccessibleMapIdsIter(caller)) {
@@ -145,7 +200,7 @@ module {
             Buffer.toArray(result);
         };
 
-        // Get all accessible encrypted maps
+        /// Retrieves all accessible encrypted maps and their data for the caller.
         public func getAllAccessibleEncryptedMaps(caller : Caller) : [EncryptedMapData<T>] {
             let result = Buffer.Buffer<EncryptedMapData<T>>(0);
             for (mapId in getAccessibleMapIdsIter(caller)) {
@@ -174,7 +229,8 @@ module {
             Buffer.toArray(result);
         };
 
-        // Get owned non-empty map names
+        /// Retrieves the non-empty map names owned by the caller.
+        /// Returns a list of map names that contain at least one key-value pair.
         public func getOwnedNonEmptyMapNames(caller : Caller) : [MapName] {
             let mapNames = Buffer.Buffer<MapName>(0);
             for ((mapId, _) in mapKeysMapOps().entries(mapKeys)) {
@@ -185,7 +241,8 @@ module {
             Buffer.toArray(mapNames);
         };
 
-        // Insert encrypted value
+        /// Inserts or updates an encrypted value in a map.
+        /// The caller must have write permissions to modify the map.
         public func insertEncryptedValue(
             caller : Caller,
             mapId : MapId,
@@ -212,7 +269,8 @@ module {
             };
         };
 
-        // Remove encrypted value
+        /// Removes an encrypted value from a map.
+        /// The caller must have write permissions to modify the map.
         public func removeEncryptedValue(
             caller : Caller,
             mapId : MapId,
@@ -241,12 +299,14 @@ module {
             };
         };
 
-        // Get vetkey verification key
+        /// Retrieves the public verification key from KeyManager.
+        /// This key is used to verify the authenticity of derived keys.
         public func getVetkeyVerificationKey() : async KeyManager.VetKeyVerificationKey {
             await keyManager.getVetkeyVerificationKey();
         };
 
-        // Get encrypted vetkey
+        /// Retrieves an encrypted vetkey for caller and key id.
+        /// The key is secured using the provided transport key and can only be accessed by authorized users.
         public func getEncryptedVetkey(
             caller : Caller,
             mapId : MapId,
@@ -255,12 +315,14 @@ module {
             await keyManager.getEncryptedVetkey(caller, mapId, transportKey);
         };
 
-        // Get user rights
+        /// Retrieves access rights for a user to a map.
+        /// The caller must have appropriate permissions to view this information.
         public func getUserRights(caller : Caller, mapId : MapId, user : Principal) : Result.Result<?T, Text> {
             keyManager.getUserRights(caller, mapId, user);
         };
 
-        // Set user rights
+        /// Sets or updates access rights for a user to a map.
+        /// Only the map owner or a user with management rights can perform this action.
         public func setUserRights(
             caller : Caller,
             mapId : MapId,
@@ -270,7 +332,8 @@ module {
             keyManager.setUserRights(caller, mapId, user, accessRights);
         };
 
-        // Remove user
+        /// Removes access rights for a user from a map.
+        /// Only the map owner or a user with management rights can perform this action.
         public func removeUser(caller : Caller, mapId : MapId, user : Principal) : Result.Result<?T, Text> {
             keyManager.removeUserRights(caller, mapId, user);
         };
