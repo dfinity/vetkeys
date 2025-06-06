@@ -11,13 +11,13 @@ export const idlFactory = ({ IDL }) => {
     'receiver' : IDL.Principal,
   });
   return IDL.Service({
+    'get_ibe_public_key' : IDL.Func([], [IDL.Vec(IDL.Nat8)], []),
     'get_my_encrypted_ibe_key' : IDL.Func(
         [IDL.Vec(IDL.Nat8)],
         [IDL.Vec(IDL.Nat8)],
         [],
       ),
     'get_my_messages' : IDL.Func([], [Inbox], ['query']),
-    'get_root_ibe_public_key' : IDL.Func([], [IDL.Vec(IDL.Nat8)], []),
     'remove_my_message_by_index' : IDL.Func([IDL.Nat64], [Result], []),
     'send_message' : IDL.Func([SendMessageRequest], [Result], []),
   });

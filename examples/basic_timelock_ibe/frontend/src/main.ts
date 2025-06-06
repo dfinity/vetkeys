@@ -182,11 +182,11 @@ document.getElementById("createLotForm")!.addEventListener("submit", (e) => {
     void createLot(name, description, duration);
 });
 
-async function getRootIbePublicKey(): Promise<DerivedPublicKey> {
+async function getIbePublicKey(): Promise<DerivedPublicKey> {
     if (ibePublicKey) return ibePublicKey;
     ibePublicKey = DerivedPublicKey.deserialize(
         new Uint8Array(
-            await getBasicTimelockIbeCanister().get_root_ibe_public_key(),
+            await getBasicTimelockIbeCanister().get_ibe_public_key(),
         ),
     );
     return ibePublicKey;
@@ -196,7 +196,7 @@ async function encrypt(
     cleartext: Uint8Array,
     identity: Uint8Array,
 ): Promise<Uint8Array> {
-    const publicKey = await getRootIbePublicKey();
+    const publicKey = await getIbePublicKey();
     const ciphertext = IbeCiphertext.encrypt(
         publicKey,
         IbeIdentity.fromBytes(identity),

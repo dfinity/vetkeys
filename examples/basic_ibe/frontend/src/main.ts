@@ -17,7 +17,6 @@ import {
 import { AuthClient } from "@dfinity/auth-client";
 import type { ActorSubclass } from "@dfinity/agent";
 
-// Store the IBE key in memory
 let ibePrivateKey: VetKey | undefined = undefined;
 let ibePublicKey: DerivedPublicKey | undefined = undefined;
 let myPrincipal: Principal | undefined = undefined;
@@ -47,11 +46,10 @@ function getBasicIbeCanister(): ActorSubclass<_SERVICE> {
     return basicIbeCanister;
 }
 
-// Get the root IBE public key
-async function getRootIbePublicKey(): Promise<DerivedPublicKey> {
+async function getIbePublicKey(): Promise<DerivedPublicKey> {
     if (ibePublicKey) return ibePublicKey;
     ibePublicKey = DerivedPublicKey.deserialize(
-        new Uint8Array(await getBasicIbeCanister().get_root_ibe_public_key()),
+        new Uint8Array(await getBasicIbeCanister().get_ibe_public_key()),
     );
     return ibePublicKey;
 }
@@ -60,7 +58,7 @@ async function encrypt(
     cleartext: Uint8Array,
     receiver: Principal,
 ): Promise<Uint8Array> {
-    const publicKey = await getRootIbePublicKey();
+    const publicKey = await getIbePublicKey();
     const ciphertext = IbeCiphertext.encrypt(
         publicKey,
         IbeIdentity.fromPrincipal(receiver),
@@ -70,7 +68,6 @@ async function encrypt(
     return ciphertext.serialize();
 }
 
-// Get the user's encrypted IBE key
 async function getMyIbePrivateKey(): Promise<VetKey> {
     if (ibePrivateKey) return ibePrivateKey;
 
@@ -85,7 +82,7 @@ async function getMyIbePrivateKey(): Promise<VetKey> {
         );
         ibePrivateKey = new EncryptedVetKey(encryptedKey).decryptAndVerify(
             transportSecretKey,
-            await getRootIbePublicKey(),
+            await getIbePublicKey(),
             new Uint8Array(myPrincipal.toUint8Array()),
         );
         return ibePrivateKey;
@@ -99,7 +96,6 @@ async function decryptMessage(encryptedMessage: Uint8Array): Promise<string> {
     return new TextDecoder().decode(plaintext);
 }
 
-// Send a message
 async function sendMessage() {
     const message = prompt("Enter your message:");
     if (!message) throw Error("Message is required");

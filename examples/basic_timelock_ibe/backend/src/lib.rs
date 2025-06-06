@@ -30,7 +30,7 @@ thread_local! {
         MEMORY_MANAGER.with(|m| m.borrow().get(MemoryId::new(2))),
     ));
 
-    static VETKD_ROOT_IBE_PUBLIC_KEY: RefCell<Option<VetKeyPublicKey>> =  const { RefCell::new(None) };
+    static IBE_PUBLIC_KEY: RefCell<Option<VetKeyPublicKey>> =  const { RefCell::new(None) };
 
     static BID_COUNTER: RefCell<BidCounter> = const { RefCell::new(0) };
 
@@ -97,8 +97,8 @@ fn create_lot(name: String, description: String, duration_seconds: u16) -> Resul
 }
 
 #[update(guard = "is_authenticated")]
-async fn get_root_ibe_public_key() -> VetKeyPublicKey {
-    if let Some(key) = VETKD_ROOT_IBE_PUBLIC_KEY.with_borrow(|key| key.clone()) {
+async fn get_ibe_public_key() -> VetKeyPublicKey {
+    if let Some(key) = IBE_PUBLIC_KEY.with_borrow(|key| key.clone()) {
         return key;
     }
 
@@ -214,13 +214,12 @@ fn start_with_interval_secs(secs: u64) {
 }
 
 async fn close_one_lot_if_any_is_open() {
-    let root_ibe_public_key =
-        if let Some(key) = VETKD_ROOT_IBE_PUBLIC_KEY.with_borrow(|key| key.clone()) {
-            key
-        } else {
-            get_root_ibe_public_key().await
-        }
-        .into_vec();
+    let ibe_public_key = if let Some(key) = IBE_PUBLIC_KEY.with_borrow(|key| key.clone()) {
+        key
+    } else {
+        get_ibe_public_key().await
+    }
+    .into_vec();
 
     let now = ic_cdk::api::time();
     let lot_to_close: Option<LotId> = OPEN_LOTS_DEADLINES.with_borrow_mut(|open_lots_deadlines| {
@@ -250,7 +249,7 @@ async fn close_one_lot_if_any_is_open() {
                     .collect()
             });
 
-        let decrypted_bids = decrypt_bids(lot_id, encrypted_bids, root_ibe_public_key).await;
+        let decrypted_bids = decrypt_bids(lot_id, encrypted_bids, ibe_public_key).await;
 
         let status = match decrypted_bids
             .iter()
@@ -293,7 +292,7 @@ async fn close_one_lot_if_any_is_open() {
 async fn decrypt_bids(
     lot_id: LotId,
     encrypted_bids: Vec<EncryptedBid>,
-    root_ibe_public_key_bytes: Vec<u8>,
+    ibe_public_key_bytes: Vec<u8>,
 ) -> Vec<DecryptedBid> {
     let decrypted_values = decrypt_ciphertexts(
         lot_id.to_le_bytes().to_vec(),
@@ -301,7 +300,7 @@ async fn decrypt_bids(
             .iter()
             .map(|bid| bid.encrypted_amount.as_slice())
             .collect::<Vec<_>>(),
-        root_ibe_public_key_bytes,
+        ibe_public_key_bytes,
     )
     .await;
 
@@ -342,7 +341,7 @@ async fn decrypt_bids(
 async fn decrypt_ciphertexts(
     identity: Vec<u8>,
     encrypted_values: Vec<&[u8]>,
-    root_ibe_public_key_bytes: Vec<u8>,
+    ibe_public_key_bytes: Vec<u8>,
 ) -> Vec<Result<Vec<u8>, String>> {
     let dummy_seed = vec![0; 32];
     let transport_secret_key = ic_vetkeys::TransportSecretKey::from_seed(dummy_seed.clone())
@@ -359,15 +358,11 @@ async fn decrypt_ciphertexts(
         .await
         .expect("call to vetkd_derive_key failed");
 
-    let root_ibe_public_key = DerivedPublicKey::deserialize(&root_ibe_public_key_bytes).unwrap();
+    let ibe_public_key = DerivedPublicKey::deserialize(&ibe_public_key_bytes).unwrap();
     let encrypted_vetkey = EncryptedVetKey::deserialize(&result.encrypted_key).unwrap();
 
     let ibe_decryption_key = encrypted_vetkey
-        .decrypt_and_verify(
-            &transport_secret_key,
-            &root_ibe_public_key,
-            identity.as_ref(),
-        )
+        .decrypt_and_verify(&transport_secret_key, &ibe_public_key, identity.as_ref())
         .expect("failed to decrypt ibe key");
 
     let mut decrypted_values = Vec::new();

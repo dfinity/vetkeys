@@ -68,7 +68,7 @@ fn send_message(request: SendMessageRequest) -> Result<(), String> {
 }
 
 #[update]
-async fn get_root_ibe_public_key() -> VetKeyPublicKey {
+async fn get_ibe_public_key() -> VetKeyPublicKey {
     let request = VetKDPublicKeyArgs {
         canister_id: None,
         context: DOMAIN_SEPARATOR.as_bytes().to_vec(),
