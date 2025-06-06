@@ -51,6 +51,6 @@
         "typewriter-editor": "^0.9.4"
     },
     "peerDependencies": {
-        "@dfinity/vetkeys": "^0.1.0"
+        "@dfinity/vetkeys": "^0.2.0"
     }
 }
