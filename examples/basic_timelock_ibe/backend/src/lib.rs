@@ -299,13 +299,62 @@ async fn decrypt_bids(
     encrypted_bids: Vec<EncryptedBid>,
     root_ibe_public_key_bytes: Vec<u8>,
 ) -> Vec<DecryptedBid> {
+    let decrypted_values = decrypt_ciphertexts(
+        lot_id.to_le_bytes().to_vec(),
+        encrypted_bids
+            .iter()
+            .map(|bid| bid.encrypted_amount.as_slice())
+            .collect::<Vec<_>>(),
+        root_ibe_public_key_bytes,
+    )
+    .await;
+
+    let mut decrypted_bids = Vec::with_capacity(encrypted_bids.len());
+    for decrypted_value in decrypted_values {
+        let decrypted_bid: Result<u128, String> = decrypted_value
+            .and_then(|v| {
+                v.as_slice()
+                    .try_into()
+                    .map_err(|_| "failed to convert amount to u128".to_string())
+            })
+            .map(u128::from_le_bytes);
+        decrypted_bids.push(decrypted_bid);
+    }
+
+    encrypted_bids
+        .into_iter()
+        .zip(decrypted_bids.into_iter())
+        .inspect(|(encrypted_bid, decrypted_bid)| {
+            if let Err(e) = decrypted_bid {
+                ic_cdk::println!(
+                    "Failed to decrypt bid for lot id {lot_id} by {}: {e}",
+                    encrypted_bid.bidder
+                );
+            }
+        })
+        .filter_map(|(encrypted_bid, decrypted_bid)| {
+            decrypted_bid.ok().map(|amount| DecryptedBid {
+                amount,
+                bidder: encrypted_bid.bidder,
+            })
+        })
+        .collect()
+}
+
+/// In the canister, using the IBE key derived from the identity decrypt a vector of ciphertexts, which makes them public.
+/// Returns a vector, where each value is either a decrypted plaintext or an error message.
+async fn decrypt_ciphertexts(
+    identity: Vec<u8>,
+    encrypted_values: Vec<&[u8]>,
+    root_ibe_public_key_bytes: Vec<u8>,
+) -> Vec<Result<Vec<u8>, String>> {
     let dummy_seed = vec![0; 32];
     let transport_secret_key = ic_vetkeys::TransportSecretKey::from_seed(dummy_seed.clone())
         .expect("failed to create transport secret key");
 
     let request = VetKDDeriveKeyRequest {
         context: DOMAIN_SEPARATOR.as_bytes().to_vec(),
-        input: lot_id.to_le_bytes().to_vec(),
+        input: identity.clone(),
         key_id: key_id(),
         transport_public_key: transport_secret_key.public_key().to_vec(),
     };
@@ -326,43 +375,22 @@ async fn decrypt_bids(
         .decrypt_and_verify(
             &transport_secret_key,
             &root_ibe_public_key,
-            lot_id.to_le_bytes().as_ref(),
+            identity.as_ref(),
         )
         .expect("failed to decrypt ibe key");
 
-    let mut decrypted_bids = Vec::new();
+    let mut decrypted_values = Vec::new();
 
-    for encrypted_bid in encrypted_bids {
-        let decrypted_bid: Result<u128, String> =
-            ic_vetkeys::IbeCiphertext::deserialize(&encrypted_bid.encrypted_amount)
-                .map_err(|e| format!("failed to deserialize ibe ciphertext: {e}"))
-                .and_then(|c| {
-                    c.decrypt(&ibe_decryption_key)
-                        .map_err(|_| "failed to decrypt ibe ciphertext".to_string())
-                })
-                .and_then(|bytes| {
-                    bytes
-                        .as_slice()
-                        .try_into()
-                        .map_err(|_| "failed to convert amount to u128".to_string())
-                })
-                .map(u128::from_le_bytes);
-        match decrypted_bid {
-            Ok(amount) => {
-                decrypted_bids.push(DecryptedBid {
-                    amount,
-                    bidder: encrypted_bid.bidder,
-                });
-            }
-            Err(e) => {
-                ic_cdk::println!(
-                    "Failed to decrypt bid for lot id {lot_id} by {}: {e}",
-                    encrypted_bid.bidder
-                );
-            }
-        }
+    for encrypted_value in encrypted_values.into_iter() {
+        let decrypted_value = ic_vetkeys::IbeCiphertext::deserialize(encrypted_value)
+            .map_err(|e| format!("failed to deserialize ibe ciphertext: {e}"))
+            .and_then(|c| {
+                c.decrypt(&ibe_decryption_key)
+                    .map_err(|_| "failed to decrypt ibe ciphertext".to_string())
+            });
+        decrypted_values.push(decrypted_value);
     }
-    decrypted_bids
+    decrypted_values
 }
 
 fn is_authenticated() -> Result<(), String> {
