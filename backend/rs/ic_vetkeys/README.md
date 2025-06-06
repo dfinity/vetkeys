@@ -11,5 +11,5 @@ An efficient canister library facilitating access control and encrypted storage 
 ## [Utils](https://docs.rs/ic-vetkeys/latest/)
 For obtaining and decrypting verifiably-encrypted threshold keys via the Internet Computer vetKD system API. The API is located in the crate root.
 
-## Cross-language Rust equivalent of this library
+## Cross-language library
 If Motoko better suits your needs, take a look at the [Motoko equivalent of this library](https://mops.one/ic-vetkeys).
