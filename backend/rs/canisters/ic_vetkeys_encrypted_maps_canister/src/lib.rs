@@ -1,13 +1,13 @@
 use std::cell::RefCell;
 
 use candid::Principal;
+use ic_cdk::management_canister::{VetKDCurve, VetKDKeyId};
 use ic_cdk::{init, query, update};
 use ic_stable_structures::memory_manager::{MemoryId, MemoryManager, VirtualMemory};
 use ic_stable_structures::storable::Blob;
 use ic_stable_structures::DefaultMemoryImpl;
 use ic_vetkeys::encrypted_maps::{EncryptedMapData, EncryptedMaps, VetKey, VetKeyVerificationKey};
 use ic_vetkeys::types::{AccessRights, ByteBuf, EncryptedMapValue, TransportKey};
-use ic_vetkeys::vetkd_api_types::{VetKDCurve, VetKDKeyId};
 
 type Memory = VirtualMemory<DefaultMemoryImpl>;
 type MapId = (Principal, ByteBuf);
@@ -43,7 +43,7 @@ fn get_accessible_shared_map_names() -> Vec<(Principal, ByteBuf)> {
         encrypted_maps
             .as_ref()
             .unwrap()
-            .get_accessible_shared_map_names(ic_cdk::caller())
+            .get_accessible_shared_map_names(ic_cdk::api::msg_caller())
             .into_iter()
             .map(|map_id| (map_id.0, ByteBuf::from(map_id.1.as_ref().to_vec())))
             .collect()
@@ -61,7 +61,7 @@ fn get_shared_user_access_for_map(
         encrypted_maps
             .as_ref()
             .unwrap()
-            .get_shared_user_access_for_map(ic_cdk::caller(), key_id)
+            .get_shared_user_access_for_map(ic_cdk::api::msg_caller(), key_id)
     })
 }
 
@@ -76,7 +76,7 @@ fn get_encrypted_values_for_map(
         encrypted_maps
             .as_ref()
             .unwrap()
-            .get_encrypted_values_for_map(ic_cdk::caller(), map_id)
+            .get_encrypted_values_for_map(ic_cdk::api::msg_caller(), map_id)
     });
     result.map(|map_values| {
         map_values
@@ -93,7 +93,7 @@ fn get_all_accessible_encrypted_values() -> Vec<(MapId, Vec<(ByteBuf, EncryptedM
             encrypted_maps
                 .as_ref()
                 .unwrap()
-                .get_all_accessible_encrypted_values(ic_cdk::caller())
+                .get_all_accessible_encrypted_values(ic_cdk::api::msg_caller())
         })
         .into_iter()
         .map(|((owner, map_name), encrypted_values)| {
@@ -114,7 +114,7 @@ fn get_all_accessible_encrypted_maps() -> Vec<EncryptedMapData<AccessRights>> {
         encrypted_maps
             .as_ref()
             .unwrap()
-            .get_all_accessible_encrypted_maps(ic_cdk::caller())
+            .get_all_accessible_encrypted_maps(ic_cdk::api::msg_caller())
     })
 }
 
@@ -128,7 +128,7 @@ fn get_encrypted_value(
     let map_id = (map_owner, map_name);
     ENCRYPTED_MAPS.with_borrow(|encrypted_maps| {
         encrypted_maps.as_ref().unwrap().get_encrypted_value(
-            ic_cdk::caller(),
+            ic_cdk::api::msg_caller(),
             map_id,
             bytebuf_to_blob(map_key)?,
         )
@@ -146,7 +146,7 @@ fn remove_map_values(
         encrypted_maps
             .as_mut()
             .unwrap()
-            .remove_map_values(ic_cdk::caller(), map_id)
+            .remove_map_values(ic_cdk::api::msg_caller(), map_id)
     });
     result.map(|removed| {
         removed
@@ -162,7 +162,7 @@ fn get_owned_non_empty_map_names() -> Vec<ByteBuf> {
         encrypted_maps
             .as_ref()
             .unwrap()
-            .get_owned_non_empty_map_names(ic_cdk::caller())
+            .get_owned_non_empty_map_names(ic_cdk::api::msg_caller())
             .into_iter()
             .map(|map_name| ByteBuf::from(map_name.as_slice().to_vec()))
             .collect()
@@ -180,7 +180,7 @@ fn insert_encrypted_value(
     let map_id = (map_owner, map_name);
     ENCRYPTED_MAPS.with_borrow_mut(|encrypted_maps| {
         encrypted_maps.as_mut().unwrap().insert_encrypted_value(
-            ic_cdk::caller(),
+            ic_cdk::api::msg_caller(),
             map_id,
             bytebuf_to_blob(map_key)?,
             value,
@@ -198,7 +198,7 @@ fn remove_encrypted_value(
     let map_id = (map_owner, map_name);
     ENCRYPTED_MAPS.with_borrow_mut(|encrypted_maps| {
         encrypted_maps.as_mut().unwrap().remove_encrypted_value(
-            ic_cdk::caller(),
+            ic_cdk::api::msg_caller(),
             map_id,
             bytebuf_to_blob(map_key)?,
         )
@@ -228,7 +228,7 @@ async fn get_encrypted_vetkey(
     Ok(ENCRYPTED_MAPS
         .with_borrow(|encrypted_maps| {
             encrypted_maps.as_ref().unwrap().get_encrypted_vetkey(
-                ic_cdk::caller(),
+                ic_cdk::api::msg_caller(),
                 map_id,
                 transport_key,
             )
@@ -248,7 +248,7 @@ fn get_user_rights(
         encrypted_maps
             .as_ref()
             .unwrap()
-            .get_user_rights(ic_cdk::caller(), map_id, user)
+            .get_user_rights(ic_cdk::api::msg_caller(), map_id, user)
     })
 }
 
@@ -263,7 +263,7 @@ fn set_user_rights(
     let map_id = (map_owner, map_name);
     ENCRYPTED_MAPS.with_borrow_mut(|encrypted_maps| {
         encrypted_maps.as_mut().unwrap().set_user_rights(
-            ic_cdk::caller(),
+            ic_cdk::api::msg_caller(),
             map_id,
             user,
             access_rights,
@@ -283,7 +283,7 @@ fn remove_user(
         encrypted_maps
             .as_mut()
             .unwrap()
-            .remove_user(ic_cdk::caller(), map_id, user)
+            .remove_user(ic_cdk::api::msg_caller(), map_id, user)
     })
 }
 

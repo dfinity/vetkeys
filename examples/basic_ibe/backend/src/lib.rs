@@ -1,5 +1,5 @@
 use candid::Principal;
-use ic_cdk::api::management_canister::provisional::CanisterId;
+use ic_cdk::management_canister::{VetKDCurve, VetKDDeriveKeyArgs, VetKDKeyId, VetKDPublicKeyArgs};
 use ic_cdk::{init, query, update};
 use ic_stable_structures::memory_manager::{MemoryId, MemoryManager, VirtualMemory};
 use ic_stable_structures::{BTreeMap as StableBTreeMap, Cell as StableCell, DefaultMemoryImpl};
@@ -41,7 +41,7 @@ fn init(key_name_string: String) {
 
 #[update]
 fn send_message(request: SendMessageRequest) -> Result<(), String> {
-    let sender = ic_cdk::caller();
+    let sender = ic_cdk::api::msg_caller();
     let SendMessageRequest {
         receiver,
         encrypted_message,
@@ -69,19 +69,15 @@ fn send_message(request: SendMessageRequest) -> Result<(), String> {
 
 #[update]
 async fn get_root_ibe_public_key() -> VetKeyPublicKey {
-    let request = VetKDPublicKeyRequest {
+    let request = VetKDPublicKeyArgs {
         canister_id: None,
         context: DOMAIN_SEPARATOR.as_bytes().to_vec(),
         key_id: key_id(),
     };
 
-    let (result,) = ic_cdk::api::call::call::<_, (VetKDPublicKeyReply,)>(
-        CanisterId::management_canister(),
-        "vetkd_public_key",
-        (request,),
-    )
-    .await
-    .expect("call to vetkd_public_key failed");
+    let result = ic_cdk::management_canister::vetkd_public_key(&request)
+        .await
+        .expect("call to vetkd_public_key failed");
 
     VetKeyPublicKey::from(result.public_key)
 }
@@ -89,35 +85,30 @@ async fn get_root_ibe_public_key() -> VetKeyPublicKey {
 #[update]
 /// Retrieves the caller's encrypted private IBE key for message decryption.
 async fn get_my_encrypted_ibe_key(transport_key: TransportPublicKey) -> EncryptedVetKey {
-    let caller = ic_cdk::caller();
-    let request = VetKDDeriveKeyRequest {
+    let caller = ic_cdk::api::msg_caller();
+    let request = VetKDDeriveKeyArgs {
         input: caller.as_ref().to_vec(),
         context: DOMAIN_SEPARATOR.as_bytes().to_vec(),
         key_id: key_id(),
         transport_public_key: transport_key.into_vec(),
     };
 
-    let (result,) = ic_cdk::api::call::call_with_payment128::<_, (VetKDDeriveKeyReply,)>(
-        CanisterId::management_canister(),
-        "vetkd_derive_key",
-        (request,),
-        26_153_846_153,
-    )
-    .await
-    .expect("call to vetkd_derive_key failed");
+    let result = ic_cdk::management_canister::vetkd_derive_key(&request)
+        .await
+        .expect("call to vetkd_derive_key failed");
 
     EncryptedVetKey::from(result.encrypted_key)
 }
 
 #[query]
 fn get_my_messages() -> Inbox {
-    let caller = ic_cdk::caller();
+    let caller = ic_cdk::api::msg_caller();
     INBOXES.with_borrow(|inboxes| inboxes.get(&caller).unwrap_or_default())
 }
 
 #[update]
 fn remove_my_message_by_index(message_index: usize) -> Result<(), String> {
-    let caller = ic_cdk::caller();
+    let caller = ic_cdk::api::msg_caller();
     INBOXES.with_borrow_mut(|inboxes| {
         let mut inbox = inboxes.get(&caller).unwrap_or_default();
         if message_index >= inbox.messages.len() {

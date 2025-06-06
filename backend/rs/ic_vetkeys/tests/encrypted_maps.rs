@@ -2,6 +2,7 @@ use std::{collections::BTreeMap, iter::FromIterator};
 
 use assert_matches::assert_matches;
 use candid::Principal;
+use ic_cdk::management_canister::{VetKDCurve, VetKDKeyId};
 use ic_stable_structures::{
     memory_manager::{MemoryId, MemoryManager},
     storable::Blob,
@@ -15,11 +16,8 @@ use ic_vetkeys_test_utils::{
 use rand::{CryptoRng, Rng};
 use strum::IntoEnumIterator;
 
+use ic_vetkeys::encrypted_maps::EncryptedMaps;
 use ic_vetkeys::types::{AccessControl, AccessRights};
-use ic_vetkeys::{
-    encrypted_maps::EncryptedMaps,
-    vetkd_api_types::{VetKDCurve, VetKDKeyId},
-};
 
 #[test]
 fn can_init_memory() {

@@ -2,19 +2,12 @@
 
 use crate::types::{AccessControl, ByteBuf, KeyManagerConfig, KeyName, TransportKey};
 use candid::Principal;
-use ic_cdk::api::management_canister::main::CanisterId;
 use ic_stable_structures::memory_manager::VirtualMemory;
 use ic_stable_structures::storable::Blob;
 use ic_stable_structures::{DefaultMemoryImpl, StableBTreeMap, StableCell, Storable};
 use std::future::Future;
-use std::str::FromStr;
 
-use crate::vetkd_api_types::{
-    VetKDDeriveKeyReply, VetKDDeriveKeyRequest, VetKDKeyId, VetKDPublicKeyReply,
-    VetKDPublicKeyRequest,
-};
-
-const VETKD_SYSTEM_API_CANISTER_ID: &str = "aaaaa-aa";
+use ic_cdk::management_canister::{VetKDDeriveKeyArgs, VetKDKeyId, VetKDPublicKeyArgs};
 
 pub type VetKeyVerificationKey = ByteBuf;
 pub type VetKey = ByteBuf;
@@ -75,13 +68,13 @@ impl<T: AccessControl> KeyManager<T> {
     ///
     /// ```rust
     /// use ic_cdk::init;
+    /// use ic_cdk::management_canister::{VetKDCurve, VetKDKeyId};
     /// use ic_stable_structures::{
     ///     memory_manager::{MemoryId, MemoryManager, VirtualMemory},
     ///     DefaultMemoryImpl,
     /// };
     /// use ic_vetkeys::types::AccessRights;
     /// use ic_vetkeys::key_manager::KeyManager;
-    /// use ic_vetkeys::vetkd_api_types::{VetKDCurve, VetKDKeyId};
     /// use std::cell::RefCell;
     ///
     /// type Memory = VirtualMemory<DefaultMemoryImpl>;
@@ -179,20 +172,21 @@ impl<T: AccessControl> KeyManager<T> {
     ) -> impl Future<Output = VetKeyVerificationKey> + Send + Sync {
         use futures::future::FutureExt;
 
-        let request = VetKDPublicKeyRequest {
-            canister_id: None,
-            context: self.config.get().domain_separator.to_bytes().to_vec(),
-            key_id: self.config.get().key_id.clone(),
+        let domain_separator = self.config.get().domain_separator.clone();
+        let key_id = self.config.get().key_id.clone();
+
+        let future = async move {
+            let request = VetKDPublicKeyArgs {
+                canister_id: None,
+                context: domain_separator.to_bytes().to_vec(),
+                key_id,
+            };
+
+            ic_cdk::management_canister::vetkd_public_key(&request).await
         };
 
-        let future = ic_cdk::api::call::call::<_, (VetKDPublicKeyReply,)>(
-            vetkd_system_api_canister_id(),
-            "vetkd_public_key",
-            (request,),
-        );
-
         future.map(|call_result| {
-            let (reply,) = call_result.expect("call to vetkd_public_key failed");
+            let reply = call_result.expect("call to vetkd_public_key failed");
             VetKeyVerificationKey::from(reply.public_key)
         })
     }
@@ -203,29 +197,28 @@ impl<T: AccessControl> KeyManager<T> {
     pub fn get_encrypted_vetkey(
         &self,
         caller: Principal,
-        key_id: KeyId,
+        subkey_key_id: KeyId,
         transport_key: TransportKey,
     ) -> Result<impl Future<Output = VetKey> + Send + Sync, String> {
         use futures::future::FutureExt;
 
-        self.ensure_user_can_read(caller, key_id)?;
+        self.ensure_user_can_read(caller, subkey_key_id)?;
 
-        let request = VetKDDeriveKeyRequest {
-            input: key_id_to_vetkd_input(key_id.0, key_id.1.as_ref()),
-            context: self.config.get().domain_separator.to_bytes().to_vec(),
-            key_id: self.config.get().key_id.clone(),
-            transport_public_key: transport_key.into(),
+        let domain_separator = self.config.get().domain_separator.clone();
+        let vetkd_key_id = self.config.get().key_id.clone();
+        let future = async move {
+            let request = VetKDDeriveKeyArgs {
+                input: key_id_to_vetkd_input(subkey_key_id.0, subkey_key_id.1.as_ref()),
+                context: domain_separator.to_bytes().to_vec(),
+                key_id: vetkd_key_id,
+                transport_public_key: transport_key.into(),
+            };
+
+            ic_cdk::management_canister::vetkd_derive_key(&request).await
         };
 
-        let future = ic_cdk::api::call::call_with_payment128::<_, (VetKDDeriveKeyReply,)>(
-            vetkd_system_api_canister_id(),
-            "vetkd_derive_key",
-            (request,),
-            26_153_846_153,
-        );
-
         Ok(future.map(|call_result| {
-            let (reply,) = call_result.expect("call to vetkd_derive_key failed");
+            let reply = call_result.expect("call to vetkd_derive_key failed");
             VetKey::from(reply.encrypted_key)
         }))
     }
@@ -349,27 +342,10 @@ impl<T: AccessControl> KeyManager<T> {
     }
 }
 
-fn vetkd_system_api_canister_id() -> CanisterId {
-    CanisterId::from_str(VETKD_SYSTEM_API_CANISTER_ID).expect("failed to create canister ID")
-}
-
 pub fn key_id_to_vetkd_input(principal: Principal, key_name: &[u8]) -> Vec<u8> {
     let mut vetkd_input = Vec::with_capacity(principal.as_slice().len() + 1 + key_name.len());
     vetkd_input.push(principal.as_slice().len() as u8);
     vetkd_input.extend(principal.as_slice());
     vetkd_input.extend(key_name);
     vetkd_input
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn default_vetkd_canister_id_should_be_management_canister_id() {
-        assert_eq!(
-            vetkd_system_api_canister_id(),
-            CanisterId::from_str("aaaaa-aa").unwrap()
-        );
-    }
 }

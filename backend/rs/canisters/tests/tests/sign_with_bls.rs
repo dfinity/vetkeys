@@ -1,5 +1,5 @@
 use candid::{decode_one, encode_args, CandidType, Principal};
-use ic_vetkeys::vetkd_api_types::{VetKDCurve, VetKDKeyId};
+use ic_cdk::management_canister::{VetKDCurve, VetKDKeyId};
 use ic_vetkeys::{verify_bls_signature, DerivedPublicKey, EncryptedVetKey, TransportSecretKey};
 use ic_vetkeys_test_utils::{git_root_dir, reproducible_rng};
 use pocket_ic::{PocketIc, PocketIcBuilder};

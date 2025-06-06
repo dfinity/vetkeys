@@ -10,14 +10,12 @@ use ic_bls12_381::{
     hash_to_curve::{ExpandMsgXmd, HashToCurve},
     G1Affine, G1Projective, G2Affine, G2Prepared, Gt, Scalar,
 };
-use ic_cdk::api::call::RejectionCode;
+use ic_cdk::management_canister::{VetKDCurve, VetKDDeriveKeyArgs, VetKDKeyId};
 use rand::SeedableRng;
 use rand_chacha::ChaCha20Rng;
 use std::array::TryFromSliceError;
 use std::ops::Neg;
 use zeroize::{Zeroize, ZeroizeOnDrop};
-
-use crate::vetkd_api_types::{VetKDCurve, VetKDDeriveKeyReply, VetKDDeriveKeyRequest, VetKDKeyId};
 
 lazy_static::lazy_static! {
     static ref G2PREPARED_NEG_G : G2Prepared = G2Affine::generator().neg().into();
@@ -755,10 +753,9 @@ fn deserialize_g2(bytes: &[u8]) -> Result<G2Affine, String> {
 
 /// This module contains functions for calling the ICP management canister's `vetkd_derive_key` endpoint from within a canister.
 pub mod management_canister {
-    use crate::{
-        types::CanisterId,
-        vetkd_api_types::{VetKDPublicKeyReply, VetKDPublicKeyRequest},
-    };
+    use ic_cdk::{call::CallResult, management_canister::VetKDPublicKeyArgs};
+
+    use crate::types::CanisterId;
 
     use super::*;
 
@@ -787,7 +784,7 @@ pub mod management_canister {
             return Err(VetKDDeriveKeyCallError::UnsupportedCurve);
         }
 
-        let request = VetKDDeriveKeyRequest {
+        let request = VetKDDeriveKeyArgs {
             input,
             context,
             key_id,
@@ -795,32 +792,26 @@ pub mod management_canister {
             transport_public_key: G1Affine::identity().to_compressed().to_vec(),
         };
 
-        let reply: (VetKDDeriveKeyReply,) =
-            ic_cdk::api::call::call_with_payment128::<_, (VetKDDeriveKeyReply,)>(
-                candid::Principal::management_canister(),
-                "vetkd_derive_key",
-                (request,),
-                26_153_846_153,
-            )
+        let reply = ic_cdk::management_canister::vetkd_derive_key(&request)
             .await
             .map_err(VetKDDeriveKeyCallError::CallFailed)?;
 
-        if reply.0.encrypted_key.len() != EncryptedVetKey::BYTES {
+        if reply.encrypted_key.len() != EncryptedVetKey::BYTES {
             return Err(VetKDDeriveKeyCallError::InvalidReply);
         }
 
-        Ok(reply.0.encrypted_key
+        Ok(reply.encrypted_key
             [EncryptedVetKey::C3_OFFSET..EncryptedVetKey::C3_OFFSET + G1AFFINE_BYTES]
             .to_vec())
     }
 
-    #[derive(Debug, Eq, PartialEq)]
+    #[derive(Debug)]
     /// Errors that can occur when deriving an unencrypted vetKey
     pub enum VetKDDeriveKeyCallError {
         /// The curve is currently not supported
         UnsupportedCurve,
         /// The canister call failed
-        CallFailed((RejectionCode, String)),
+        CallFailed(ic_cdk::management_canister::SignCallError),
         /// Invalid reply from the management canister
         InvalidReply,
     }
@@ -864,25 +855,18 @@ pub mod management_canister {
     ///
     /// # Returns
     /// * `Ok(Vec<u8>)` - The public key on success
-    /// * `Err((RejectionCode, String))` - If the canister call fails
+    /// * `Err(ic_cdk::call::Error)` - If the canister call fails
     pub async fn bls_public_key(
         canister_id: Option<CanisterId>,
         context: Vec<u8>,
         key_id: VetKDKeyId,
-    ) -> Result<Vec<u8>, (RejectionCode, String)> {
-        let request = VetKDPublicKeyRequest {
+    ) -> CallResult<Vec<u8>> {
+        ic_cdk::management_canister::vetkd_public_key(&VetKDPublicKeyArgs {
             canister_id,
             context,
             key_id,
-        };
-
-        let reply: (VetKDPublicKeyReply,) = ic_cdk::api::call::call(
-            candid::Principal::management_canister(),
-            "vetkd_public_key",
-            (request,),
-        )
-        .await?;
-
-        Ok(reply.0.public_key)
+        })
+        .await
+        .map(|r| r.public_key)
     }
 }

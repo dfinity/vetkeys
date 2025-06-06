@@ -20,7 +20,7 @@ pub type EncryptedMapValue = ByteBuf;
 #[derive(Serialize, Deserialize)]
 pub struct KeyManagerConfig {
     pub domain_separator: String,
-    pub key_id: crate::vetkd_api_types::VetKDKeyId,
+    pub key_id: ic_cdk::management_canister::VetKDKeyId,
 }
 
 impl Storable for KeyManagerConfig {

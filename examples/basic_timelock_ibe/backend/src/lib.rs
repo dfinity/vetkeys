@@ -2,13 +2,12 @@ use crate::types::{
     BidCounter, DecryptedBid, EncryptedBid, LotId, LotInformation, VetKeyPublicKey,
 };
 use candid::Principal;
-use ic_cdk::api::management_canister::provisional::CanisterId;
+use ic_cdk::management_canister::{VetKDCurve, VetKDDeriveKeyArgs, VetKDKeyId, VetKDPublicKeyArgs};
 use ic_cdk::{init, post_upgrade, query, update};
 use ic_stable_structures::memory_manager::{MemoryId, MemoryManager, VirtualMemory};
 use ic_stable_structures::{BTreeMap as StableBTreeMap, Cell as StableCell, DefaultMemoryImpl};
 use ic_vetkeys::{DerivedPublicKey, EncryptedVetKey};
 use std::cell::RefCell;
-use std::str::FromStr;
 
 mod types;
 use types::*;
@@ -44,7 +43,6 @@ thread_local! {
 }
 
 const DOMAIN_SEPARATOR: &str = "basic_timelock_ibe_example_dapp";
-const CANISTER_ID_VETKD_SYSTEM_API: &str = "aaaaa-aa";
 
 #[init]
 fn init(key_name_string: String) {
@@ -62,9 +60,9 @@ fn post_upgrade() {
     start_with_interval_secs(5);
 }
 
-#[update(guard = is_authenticated)]
+#[update(guard = "is_authenticated")]
 fn create_lot(name: String, description: String, duration_seconds: u16) -> Result<LotId, String> {
-    let caller = ic_cdk::caller();
+    let caller = ic_cdk::api::msg_caller();
 
     if duration_seconds == 0 {
         return Err("Duration must be greater than 0".to_string());
@@ -98,30 +96,26 @@ fn create_lot(name: String, description: String, duration_seconds: u16) -> Resul
     Ok(lot_id)
 }
 
-#[update(guard = is_authenticated)]
+#[update(guard = "is_authenticated")]
 async fn get_root_ibe_public_key() -> VetKeyPublicKey {
     if let Some(key) = VETKD_ROOT_IBE_PUBLIC_KEY.with_borrow(|key| key.clone()) {
         return key;
     }
 
-    let request = VetKDPublicKeyRequest {
+    let request = VetKDPublicKeyArgs {
         canister_id: None,
         context: DOMAIN_SEPARATOR.as_bytes().to_vec(),
         key_id: key_id(),
     };
 
-    let (result,) = ic_cdk::api::call::call::<_, (VetKDPublicKeyReply,)>(
-        vetkd_system_api_canister_id(),
-        "vetkd_public_key",
-        (request,),
-    )
-    .await
-    .expect("call to vetkd_public_key failed");
+    let result = ic_cdk::management_canister::vetkd_public_key(&request)
+        .await
+        .expect("call to vetkd_public_key failed");
 
     VetKeyPublicKey::from(result.public_key)
 }
 
-#[query(guard = is_authenticated)]
+#[query(guard = "is_authenticated")]
 fn get_lots() -> (OpenLotsResponse, ClosedLotsResponse) {
     let mut open_lots = OpenLotsResponse::default();
     let mut closed_lots = ClosedLotsResponse::default();
@@ -161,9 +155,9 @@ fn get_lots() -> (OpenLotsResponse, ClosedLotsResponse) {
     (open_lots, closed_lots)
 }
 
-#[update(guard = is_authenticated)]
+#[update(guard = "is_authenticated")]
 fn place_bid(lot_id: u128, encrypted_amount: Vec<u8>) -> Result<(), String> {
-    let bidder = ic_cdk::caller();
+    let bidder = ic_cdk::api::msg_caller();
     let now = ic_cdk::api::time();
 
     LOTS.with_borrow(|lots| match lots.get(&lot_id) {
@@ -214,7 +208,9 @@ fn place_bid(lot_id: u128, encrypted_amount: Vec<u8>) -> Result<(), String> {
 #[update]
 fn start_with_interval_secs(secs: u64) {
     let secs = std::time::Duration::from_secs(secs);
-    ic_cdk_timers::set_timer_interval(secs, || ic_cdk::spawn(close_one_lot_if_any_is_open()));
+    ic_cdk_timers::set_timer_interval(secs, || {
+        ic_cdk::futures::spawn(close_one_lot_if_any_is_open())
+    });
 }
 
 async fn close_one_lot_if_any_is_open() {
@@ -352,21 +348,16 @@ async fn decrypt_ciphertexts(
     let transport_secret_key = ic_vetkeys::TransportSecretKey::from_seed(dummy_seed.clone())
         .expect("failed to create transport secret key");
 
-    let request = VetKDDeriveKeyRequest {
+    let request = VetKDDeriveKeyArgs {
         context: DOMAIN_SEPARATOR.as_bytes().to_vec(),
         input: identity.clone(),
         key_id: key_id(),
         transport_public_key: transport_secret_key.public_key().to_vec(),
     };
 
-    let (result,) = ic_cdk::api::call::call_with_payment128::<_, (VetKDDeriveKeyReply,)>(
-        vetkd_system_api_canister_id(),
-        "vetkd_derive_key",
-        (request,),
-        26_153_846_153,
-    )
-    .await
-    .expect("call to vetkd_derive_key failed");
+    let result = ic_cdk::management_canister::vetkd_derive_key(&request)
+        .await
+        .expect("call to vetkd_derive_key failed");
 
     let root_ibe_public_key = DerivedPublicKey::deserialize(&root_ibe_public_key_bytes).unwrap();
     let encrypted_vetkey = EncryptedVetKey::deserialize(&result.encrypted_key).unwrap();
@@ -394,7 +385,7 @@ async fn decrypt_ciphertexts(
 }
 
 fn is_authenticated() -> Result<(), String> {
-    let caller = ic_cdk::caller();
+    let caller = ic_cdk::api::msg_caller();
     if caller != Principal::anonymous() {
         Ok(())
     } else {
@@ -407,10 +398,6 @@ fn key_id() -> VetKDKeyId {
         curve: VetKDCurve::Bls12_381_G2,
         name: KEY_NAME.with_borrow(|key_name| key_name.get().clone()),
     }
-}
-
-fn vetkd_system_api_canister_id() -> CanisterId {
-    CanisterId::from_str(CANISTER_ID_VETKD_SYSTEM_API).expect("failed to create canister ID")
 }
 
 // In the following, we register a custom getrandom implementation because
