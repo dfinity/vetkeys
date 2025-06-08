@@ -1,6 +1,6 @@
 # Change Log
 
-## [0.2.0] - 06.06.2025
+## [0.2.0] - 08.06.2025
 
 ### Breaking Changes
 - Changed error types of `crate::management_canister::{bls_public_key, sign_with_bls}`.
