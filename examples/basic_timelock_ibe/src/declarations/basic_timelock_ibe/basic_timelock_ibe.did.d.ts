@@ -31,7 +31,10 @@ export interface _SERVICE {
   'get_ibe_public_key' : ActorMethod<[], Uint8Array | number[]>,
   'get_lots' : ActorMethod<[], [OpenLotsResponse, ClosedLotsResponse]>,
   'place_bid' : ActorMethod<[bigint, Uint8Array | number[]], Result_1>,
-  'start_with_interval_secs' : ActorMethod<[bigint], undefined>,
+  'start_lot_closing_timer_job_with_interval_secs' : ActorMethod<
+    [bigint],
+    undefined
+  >,
 }
 export declare const idlFactory: IDL.InterfaceFactory;
 export declare const init: (args: { IDL: typeof IDL }) => IDL.Type[];

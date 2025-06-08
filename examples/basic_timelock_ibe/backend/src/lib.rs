@@ -317,7 +317,7 @@ fn convert_decrypted_values_to_decrypted_bids(
 
     encrypted_bids
         .into_iter()
-        .zip(decrypted_bids.into_iter())
+        .zip(decrypted_bids)
         .inspect(|(encrypted_bid, decrypted_bid)| {
             if let Err(e) = decrypted_bid {
                 ic_cdk::println!(

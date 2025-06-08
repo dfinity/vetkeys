@@ -23,5 +23,5 @@ service : (text) -> {
   get_ibe_public_key : () -> (blob);
   get_lots : () -> (OpenLotsResponse, ClosedLotsResponse) query;
   place_bid : (nat, blob) -> (Result_1);
-  start_with_interval_secs : (nat64) -> ();
+  start_lot_closing_timer_job_with_interval_secs : (nat64) -> ();
 }

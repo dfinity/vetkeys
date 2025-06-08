@@ -32,7 +32,11 @@ export const idlFactory = ({ IDL }) => {
         ['query'],
       ),
     'place_bid' : IDL.Func([IDL.Nat, IDL.Vec(IDL.Nat8)], [Result_1], []),
-    'start_with_interval_secs' : IDL.Func([IDL.Nat64], [], []),
+    'start_lot_closing_timer_job_with_interval_secs' : IDL.Func(
+        [IDL.Nat64],
+        [],
+        [],
+      ),
   });
 };
 export const init = ({ IDL }) => { return [IDL.Text]; };
