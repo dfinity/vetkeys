@@ -703,8 +703,14 @@ pub fn verify_bls_signature(dpk: &DerivedPublicKey, input: &[u8], signature: &[u
 /// Returns true if and only if the provided signature is valid with respect to
 /// the provided public key and input
 fn verify_bls_signature_pt(dpk: &DerivedPublicKey, input: &[u8], signature: &G1Affine) -> bool {
+    if dpk.point.is_identity().into() {
+        return false;
+    }
+
     let msg = augmented_hash_to_g1(&dpk.point, input);
     let dpk_prep = G2Prepared::from(dpk.point);
+
+    // Check that `e(sig, G2) == e(msg, dpk)` using a multipairing
 
     use pairing::group::Group;
     let is_valid =

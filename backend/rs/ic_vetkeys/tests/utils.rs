@@ -57,6 +57,19 @@ fn test_bls_signature_verification() {
 }
 
 #[test]
+fn test_bls_signature_verification_using_identity() {
+    // Check that the identity element is rejected as a public key
+
+    let dpk = DerivedPublicKey::deserialize(&ic_bls12_381::G2Affine::identity().to_compressed()).unwrap();
+
+    let msg = b"wrong message";
+
+    let signature = ic_bls12_381::G1Affine::identity().to_compressed();
+
+    assert!(!verify_bls_signature(&dpk, msg, &signature));
+}
+
+#[test]
 fn test_second_level_public_key_derivation() {
     let canister_key = DerivedPublicKey::deserialize(&hex::decode("8bf165ea580742abf5fd5123eb848aa116dcf75c3ddb3cd3540c852cf99f0c5394e72dfc2f25dbcb5f9220f251cd04040a508a0bcb8b2543908d6626b46f09d614c924c5deb63a9949338ae4f4ac436bd77f8d0a392fd29de0f392a009fa61f3").unwrap()).unwrap();
 
