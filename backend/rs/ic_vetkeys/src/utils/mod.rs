@@ -90,7 +90,7 @@ impl TransportSecretKey {
         self.secret_key.to_bytes().to_vec()
     }
 
-    /// Serialize this transport secret key to a bytestring
+    /// Deserialize this transport secret key from a bytestring
     pub fn deserialize(bytes: &[u8]) -> Result<Self, String> {
         if bytes.len() != 32 {
             return Err(format!(
@@ -279,6 +279,9 @@ impl VetKey {
 
     /**
      * Derive a symmetric key of the requested length from the VetKey
+     *
+     * The `input` parameter should be a sufficiently long random input generated
+     * in a secure way. 256 bits (32 bytes) or longer is preferable.
      *
      * The `domain_sep` parameter should be a string unique to your application and
      * also your usage of the resulting key. For example say your application

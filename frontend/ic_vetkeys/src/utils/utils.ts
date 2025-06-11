@@ -290,7 +290,8 @@ function asBytes(input: Uint8Array | string): Uint8Array {
 /**
  * @internal derive a symmetric key from the provided input
  *
- * The `input` parameter should be a sufficiently long random input.
+ * The `input` parameter should be a sufficiently long random input generated
+ * in a secure way. 256 bits (32 bytes) or longer is preferable.
  *
  * The `domainSep` parameter should be a string unique to your application and
  * also your usage of the resulting key. For example say your application
