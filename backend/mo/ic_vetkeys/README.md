@@ -1,6 +1,8 @@
 # Internet Computer (IC) vetKeys
 
-This crate contains a set of tools designed to help canister developers integrate **vetKeys** into their Internet Computer (ICP) applications.
+This package contains a set of tools designed to help canister developers integrate **vetKeys** into their Internet Computer (ICP) applications.
+
+Github repository: [dfinity/vetkeys/backend/mo/ic_vetkeys](https://github.com/dfinity/vetkeys/tree/main/backend/mo/ic_vetkeys)
 
 ## [Key Manager](https://mops.one/ic_vetkeys/docs/key_manager/KeyManager.html)
 A canister library for derivation of encrypted vetkeys from arbitrary strings. It can be used in combination with the [frontend key manager library](https://dfinity.github.io/vetkeys/classes/_dfinity_vetkeys_key_manager.KeyManager.html).
