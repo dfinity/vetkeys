@@ -445,6 +445,9 @@ export class VetKey {
     }
 }
 
+// The size of the nonce used for encryption by DerivedKeyMaterial
+const DerivedKeyMaterialNonceLength = 12;
+
 export class DerivedKeyMaterial {
     readonly #hkdf: CryptoKey;
 
@@ -523,7 +526,7 @@ export class DerivedKeyMaterial {
         const gcmKey = await this.deriveAesGcmCryptoKey(domainSep);
 
         // The nonce must never be reused with a given key
-        const nonce = globalThis.crypto.getRandomValues(new Uint8Array(12));
+        const nonce = globalThis.crypto.getRandomValues(new Uint8Array(DerivedKeyMaterialNonceLength));
 
         const ciphertext = new Uint8Array(
             await globalThis.crypto.subtle.encrypt(
@@ -546,17 +549,16 @@ export class DerivedKeyMaterial {
         message: Uint8Array,
         domainSep: Uint8Array | string,
     ): Promise<Uint8Array> {
-        const NonceLength = 12;
         const TagLength = 16;
 
-        if (message.length < NonceLength + TagLength) {
+        if (message.length < DerivedKeyMaterialNonceLength + TagLength) {
             throw new Error(
                 "Invalid ciphertext, too short to possibly be valid",
             );
         }
 
-        const nonce = message.slice(0, NonceLength); // first 12 bytes are the nonce
-        const ciphertext = message.slice(NonceLength); // remainder GCM ciphertext
+        const nonce = message.slice(0, DerivedKeyMaterialNonceLength); // first 12 bytes are the nonce
+        const ciphertext = message.slice(DerivedKeyMaterialNonceLength); // remainder GCM ciphertext
 
         const gcmKey = await this.deriveAesGcmCryptoKey(domainSep);
 
