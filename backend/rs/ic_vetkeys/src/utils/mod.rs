@@ -251,7 +251,7 @@ impl DerivedPublicKey {
 /// A VetKey is a valid BLS signature created for an input specified
 /// by the user
 ///
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, Zeroize, ZeroizeOnDrop)]
 pub struct VetKey {
     pt: G1Affine,
     pt_bytes: [u8; 48],
@@ -437,6 +437,7 @@ impl IbeIdentity {
 const IBE_SEED_BYTES: usize = 32;
 
 /// A random seed, used for identity based encryption
+#[derive(Zeroize, ZeroizeOnDrop)]
 pub struct IbeSeed {
     val: [u8; IBE_SEED_BYTES],
 }
