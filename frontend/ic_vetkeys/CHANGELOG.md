@@ -1,5 +1,10 @@
 # Change Log
 
+## [Unreleased]
+
+### Changes
+ - Added isValidTransportPublicKey function
+
 ## [0.2.0] - 08-06-2025
 
 ### Fixes
