@@ -526,7 +526,9 @@ export class DerivedKeyMaterial {
         const gcmKey = await this.deriveAesGcmCryptoKey(domainSep);
 
         // The nonce must never be reused with a given key
-        const nonce = globalThis.crypto.getRandomValues(new Uint8Array(DerivedKeyMaterialNonceLength));
+        const nonce = globalThis.crypto.getRandomValues(
+            new Uint8Array(DerivedKeyMaterialNonceLength),
+        );
 
         const ciphertext = new Uint8Array(
             await globalThis.crypto.subtle.encrypt(
