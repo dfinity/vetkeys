@@ -26,6 +26,13 @@ fn test_hkdf_test_vector() {
 }
 
 #[test]
+fn test_is_valid_transport_public_key() {
+    assert_eq!(is_valid_transport_public_key_encoding(&hex::decode("F00F00F00F00").unwrap()), false);
+    assert_eq!(is_valid_transport_public_key_encoding(&hex::decode("97f1d3a73197d7942695638c4fa9ac0fc3688c4f9774b905a14e3a3f171bac586c55e83ff97a1aeffb3af00adb22c6bb").unwrap()), true);
+    assert_eq!(is_valid_transport_public_key_encoding(&hex::decode("c00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000").unwrap()), true);
+}
+
+#[test]
 fn test_public_key_derivation() {
     let mpk = MasterPublicKey::deserialize(&hex::decode("9183b871aa141d15ba2efc5bc58a49cb6a167741364804617f48dfe11e0285696b7018f172dad1a87ed81abf27ea4c320995041e2ee4a47b2226a2439d92a38557a7e2a\
   cc72fd157283b20f1f37ba872be235214c6a9cbba1eb2ef39deec72a5").unwrap()).unwrap();

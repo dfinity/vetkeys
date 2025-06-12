@@ -69,6 +69,26 @@ export class TransportSecretKey {
 }
 
 /**
+ * Check if a transport public key is valid
+ *
+ * This tests if the passed byte array is of the expected size and encodes
+ * a valid group element.
+ */
+export function isValidTransportPublicKey(tpk: Uint8Array): boolean {
+    // We only accept compressed format for transport public keys
+    if (tpk.length != 48) {
+        return false;
+    }
+
+    try {
+        bls12_381.G1.ProjectivePoint.fromHex(tpk);
+        return true;
+    } catch {
+        return false;
+    }
+}
+
+/**
  * Prefix a bytestring with its length
  */
 function prefixWithLen(input: Uint8Array): Uint8Array {
