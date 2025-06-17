@@ -48,7 +48,7 @@ fn init(key_name_string: String) {
 async fn sign_message(message: RawMessage) -> RawSignature {
     let signature = ic_vetkeys::management_canister::sign_with_bls(
         message.as_bytes().to_vec(),
-        get_context(ic_cdk::api::msg_caller()),
+        context(ic_cdk::api::msg_caller()),
         key_id(),
     )
     .await
@@ -95,7 +95,7 @@ async fn get_canister_public_key() -> VetKeyPublicKey {
     canister_public_key
 }
 
-fn get_context(signer: Principal) -> Vec<u8> {
+fn context(signer: Principal) -> Vec<u8> {
     // A domain separator is not strictly necessary in this dapp, but having one is considered a good practice.
     const DOMAIN_SEPARATOR: [u8; 22] = *b"basic_bls_signing_dapp";
     const DOMAIN_SEPARATOR_LENGTH: u8 = DOMAIN_SEPARATOR.len() as u8;
