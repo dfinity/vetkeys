@@ -9,8 +9,8 @@ export interface Signature {
   'signer' : Principal,
 }
 export interface _SERVICE {
-  'get_published_signatures' : ActorMethod<[], Array<Signature>>,
   'get_canister_public_key' : ActorMethod<[], Uint8Array | number[]>,
+  'get_published_signatures' : ActorMethod<[], Array<Signature>>,
   'publish_my_signature_no_verification' : ActorMethod<
     [string, Uint8Array | number[]],
     undefined
