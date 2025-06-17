@@ -9,8 +9,7 @@ import { Principal } from "@dfinity/principal";
 import { AuthClient } from "@dfinity/auth-client";
 import type { ActorSubclass } from "@dfinity/agent";
 import { _SERVICE } from "../../src/declarations/basic_bls_signing/basic_bls_signing.did";
-import { DerivedPublicKey, augmentedHashToG1 } from "@dfinity/vetkeys";
-import { bls12_381 } from "@noble/curves/bls12-381";
+import { DerivedPublicKey, verifyBlsSignature } from "@dfinity/vetkeys";
 
 let myPrincipal: Principal | undefined = undefined;
 let authClient: AuthClient | undefined;
@@ -273,23 +272,10 @@ function verifySignature(
     ...signer.toUint8Array(),
   ]);
 
-  try {
-    const signatureG1 = bls12_381.G1.ProjectivePoint.fromHex(signature);
-    const negG2 = bls12_381.G2.ProjectivePoint.BASE.negate();
-    const dpk = canisterPublicKey.deriveKey(context);
-    const messageBytes = new TextEncoder().encode(message);
-    const msg = augmentedHashToG1(dpk, messageBytes);
-    const check = bls12_381.pairingBatch([
-      { g1: signatureG1, g2: negG2 },
-      { g1: msg, g2: dpk.getPoint() },
-    ]);
+  const dpk = canisterPublicKey.deriveKey(context);
+  const messageBytes = new TextEncoder().encode(message);
 
-    const gtOne = bls12_381.fields.Fp12.ONE;
-
-    return bls12_381.fields.Fp12.eql(check, gtOne);
-  } catch {
-    return false;
-  }
+  return verifyBlsSignature(dpk, messageBytes, signature);
 }
 
 // Initialize auth

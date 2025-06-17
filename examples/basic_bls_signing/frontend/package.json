@@ -25,8 +25,7 @@
     },
     "dependencies": {
       "@dfinity/auth-client": "^2.4.1",
-      "@dfinity/principal": "^2.4.1",
-      "@noble/curves": "^1.9.0"
+      "@dfinity/principal": "^2.4.1"
     }
   }
   
