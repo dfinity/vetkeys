@@ -154,18 +154,12 @@ document
     const message = prompt("Enter message to sign:");
     if (message) {
       try {
-        const signature =
-          await getBasicBlsSigningCanister().sign_message(message);
-        const publish = confirm(
-          "Signature generated successfully. Would you like to publish it?",
+        const signature = await getBasicBlsSigningCanister().sign_message(message);
+        await getBasicBlsSigningCanister().publish_my_signature_no_verification(
+          message,
+          signature,
         );
-        if (publish) {
-          await getBasicBlsSigningCanister().publish_my_signature_no_verification(
-            message,
-            signature,
-          );
-          alert("Signature published successfully!");
-        }
+        alert("Signature published successfully!");
       } catch (error) {
         alert(`Error: ${error}`);
       }
@@ -274,9 +268,9 @@ function verifySignature(
     throw new Error("Root public key not found");
   }
   const domainSepBytes = new TextEncoder().encode("basic_bls_signing_dapp");
-  const domainSetLength = domainSepBytes.length;
+  const domainSepLength = domainSepBytes.length;
   const context = new Uint8Array([
-    domainSetLength,
+    domainSepLength,
     ...domainSepBytes,
     ...signer.toUint8Array(),
   ]);
