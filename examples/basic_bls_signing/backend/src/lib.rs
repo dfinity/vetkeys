@@ -61,22 +61,22 @@ fn get_published_signatures() -> Vec<Signature> {
 
 #[update]
 async fn get_canister_public_key() -> VetKeyPublicKey {
-    match CANISTER_PUBLIC_KEY.with(|v| v.borrow().to_owned()) {
-        Some(root_ibe_public_key) => root_ibe_public_key,
-        None => {
-            let request = VetKDPublicKeyArgs {
-                canister_id: None,
-                context: vec![],
-                key_id: bls12_381_dfx_test_key(),
-            };
-
-            let result = ic_cdk::management_canister::vetkd_public_key(&request)
-                .await
-                .expect("call to vetkd_public_key failed");
-
-            result.public_key.into()
-        }
+    if let Some(canister_public_key) = CANISTER_PUBLIC_KEY.with_borrow(|pubkey| pubkey.clone()) {
+        return canister_public_key;
     }
+
+    let request = VetKDPublicKeyArgs {
+        canister_id: None,
+        context: vec![],
+        key_id: bls12_381_dfx_test_key(),
+    };
+    let result = ic_cdk::management_canister::vetkd_public_key(&request)
+        .await
+        .expect("call to vetkd_public_key failed");
+    let canister_public_key = VetKeyPublicKey::from(result.public_key);
+
+    CANISTER_PUBLIC_KEY.with_borrow_mut(|key| key.replace(canister_public_key.clone()));
+    canister_public_key
 }
 
 fn get_context(signer: Principal) -> Vec<u8> {
