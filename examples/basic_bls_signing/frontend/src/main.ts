@@ -15,7 +15,7 @@ import { bls12_381 } from "@noble/curves/bls12-381";
 let myPrincipal: Principal | undefined = undefined;
 let authClient: AuthClient | undefined;
 let basicBlsSigningCanister: ActorSubclass<_SERVICE> | undefined;
-let rootPublicKey: DerivedPublicKey | undefined;
+let canisterPublicKey: DerivedPublicKey | undefined;
 
 function getBasicBlsSigningCanister(): ActorSubclass<_SERVICE> {
   if (basicBlsSigningCanister) return basicBlsSigningCanister;
@@ -203,11 +203,11 @@ document
   });
 
 async function listSignatures() {
-  if (!rootPublicKey) {
-    const rootPublicKeyRaw =
-      await getBasicBlsSigningCanister().get_root_public_key();
-    rootPublicKey = DerivedPublicKey.deserialize(
-      Uint8Array.from(rootPublicKeyRaw),
+  if (!canisterPublicKey) {
+    const canisterPublicKeyRaw =
+      await getBasicBlsSigningCanister().get_canister_public_key();
+    canisterPublicKey = DerivedPublicKey.deserialize(
+      Uint8Array.from(canisterPublicKeyRaw),
     );
   }
 
@@ -264,8 +264,8 @@ function verifySignature(
   signature: Uint8Array,
   signer: Principal,
 ): boolean {
-  if (!rootPublicKey) {
-    throw new Error("Root public key not found");
+  if (!canisterPublicKey) {
+    throw new Error("Canister public key not found");
   }
   const domainSepBytes = new TextEncoder().encode("basic_bls_signing_dapp");
   const domainSepLength = domainSepBytes.length;
@@ -278,7 +278,7 @@ function verifySignature(
   try {
     const signatureG1 = bls12_381.G1.ProjectivePoint.fromHex(signature);
     const negG2 = bls12_381.G2.ProjectivePoint.BASE.negate();
-    const dpk = rootPublicKey.deriveKey(context);
+    const dpk = canisterPublicKey.deriveKey(context);
     const messageBytes = new TextEncoder().encode(message);
     const msg = augmentedHashToG1(dpk, messageBytes);
     const check = bls12_381.pairingBatch([

@@ -25,7 +25,7 @@ thread_local! {
         MEMORY_MANAGER.with(|m| m.borrow().get(MemoryId::new(1))), // data memory
     ));
 
-    static VETKD_ROOT_IBE_PUBLIC_KEY: RefCell<Option<VetKeyPublicKey>> =  const { RefCell::new(None) };
+    static CANISTER_PUBLIC_KEY: RefCell<Option<VetKeyPublicKey>> =  const { RefCell::new(None) };
 }
 
 #[update]
@@ -60,8 +60,8 @@ fn get_published_signatures() -> Vec<Signature> {
 }
 
 #[update]
-async fn get_root_public_key() -> VetKeyPublicKey {
-    match VETKD_ROOT_IBE_PUBLIC_KEY.with(|v| v.borrow().to_owned()) {
+async fn get_canister_public_key() -> VetKeyPublicKey {
+    match CANISTER_PUBLIC_KEY.with(|v| v.borrow().to_owned()) {
         Some(root_ibe_public_key) => root_ibe_public_key,
         None => {
             let request = VetKDPublicKeyArgs {

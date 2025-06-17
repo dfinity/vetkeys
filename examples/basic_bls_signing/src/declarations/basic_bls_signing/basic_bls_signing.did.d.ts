@@ -10,7 +10,7 @@ export interface Signature {
 }
 export interface _SERVICE {
   'get_published_signatures' : ActorMethod<[], Array<Signature>>,
-  'get_root_public_key' : ActorMethod<[], Uint8Array | number[]>,
+  'get_canister_public_key' : ActorMethod<[], Uint8Array | number[]>,
   'publish_my_signature_no_verification' : ActorMethod<
     [string, Uint8Array | number[]],
     undefined
