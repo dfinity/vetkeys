@@ -65,7 +65,19 @@ fn hash_to_scalar_two_inputs(
 #[derive(Clone, Zeroize, ZeroizeOnDrop)]
 /// Secret key of the transport key pair
 pub struct TransportSecretKey {
-    secret_key: Scalar,
+    // Note that we Box the value here
+    //
+    // This is done because in Rust, even if the type does not derive Copy, any
+    // object can be moved, and Rust assumes that memcpy is sufficient to move
+    // any object. This move effectively creates a copy on the stack that we do
+    // not know about and which will not be zeroized.
+    //
+    // By putting the value into a Box, the object can still be moved, but the move
+    // will happen by copying the pointer value of the Box rather than the secret itself.
+    //
+    // See the zeroize docs (<https://docs.rs/zeroize/1.8.1/zeroize/#stackheap-zeroing-notes>)
+    // for further information about this issue.
+    secret_key: Box<Scalar>,
 }
 
 impl TransportSecretKey {
@@ -74,13 +86,13 @@ impl TransportSecretKey {
         let seed_32_bytes: [u8; 32] = seed.try_into().map_err(|_e| "seed not 32 bytes")?;
         let rng = &mut ChaCha20Rng::from_seed(seed_32_bytes);
         use pairing::group::ff::Field;
-        let secret_key = Scalar::random(rng);
+        let secret_key = Box::new(Scalar::random(rng));
         Ok(Self { secret_key })
     }
 
     /// Returns the serialized public key associated with this secret key
     pub fn public_key(&self) -> Vec<u8> {
-        let public_key = G1Affine::generator() * self.secret_key;
+        let public_key = G1Affine::generator() * (*self.secret_key);
         use pairing::group::Curve;
         public_key.to_affine().to_compressed().to_vec()
     }
@@ -102,7 +114,9 @@ impl TransportSecretKey {
         let bytes: [u8; 32] = bytes.try_into().expect("Length already checked");
 
         if let Some(s) = Scalar::from_bytes(&bytes).into_option() {
-            Ok(Self { secret_key: s })
+            Ok(Self {
+                secret_key: Box::new(s),
+            })
         } else {
             Err("Invalid TransportSecretKey bytes".to_string())
         }
@@ -253,16 +267,14 @@ impl DerivedPublicKey {
 ///
 #[derive(Clone, Debug, Eq, PartialEq, Zeroize, ZeroizeOnDrop)]
 pub struct VetKey {
-    pt: G1Affine,
-    pt_bytes: [u8; 48],
+    // See the comment regarding Boxing in the definition of TransportSecretKey
+    vetkey: Box<(G1Affine, [u8; 48])>,
 }
 
 impl VetKey {
     fn new(pt: G1Affine) -> Self {
-        Self {
-            pt,
-            pt_bytes: pt.to_compressed(),
-        }
+        let vetkey = Box::new((pt, pt.to_compressed()));
+        Self { vetkey }
     }
 
     /**
@@ -274,7 +286,21 @@ impl VetKey {
      * derive_symmetric_key
      */
     pub fn signature_bytes(&self) -> &[u8; 48] {
-        &self.pt_bytes
+        &self.vetkey.1
+    }
+
+    /**
+     * Serialize the VetKey to a byte string
+     *
+     * The return value here is the VetKey itself which in most uses is a
+     * secret value.
+     */
+    pub fn serialize(&self) -> &[u8; 48] {
+        &self.vetkey.1
+    }
+
+    pub(crate) fn point(&self) -> &G1Affine {
+        &self.vetkey.0
     }
 
     /**
@@ -286,7 +312,7 @@ impl VetKey {
      * "bar". You might use as domain separators "my-app-foo" and "my-app-bar".
      */
     pub fn derive_symmetric_key(&self, domain_sep: &str, output_len: usize) -> Vec<u8> {
-        derive_symmetric_key(&self.pt_bytes, domain_sep, output_len)
+        derive_symmetric_key(self.serialize(), domain_sep, output_len)
     }
 
     /**
@@ -300,10 +326,7 @@ impl VetKey {
         })?;
 
         if let Some(pt) = option_from_ctoption(G1Affine::from_compressed(&bytes48)) {
-            Ok(Self {
-                pt,
-                pt_bytes: bytes48,
-            })
+            Ok(Self::new(pt))
         } else {
             Err("Invalid VetKey".to_string())
         }
@@ -355,7 +378,7 @@ impl EncryptedVetKey {
         }
 
         // Recover the purported VetKey
-        let k = G1Affine::from(G1Projective::from(&self.c3) - self.c1 * tsk.secret_key);
+        let k = G1Affine::from(G1Projective::from(&self.c3) - self.c1 * (*tsk.secret_key));
 
         // Check that the VetKey is a valid BLS signature
         if verify_bls_signature_pt(derived_public_key, input, &k) {
@@ -439,7 +462,8 @@ const IBE_SEED_BYTES: usize = 32;
 /// A random seed, used for identity based encryption
 #[derive(Zeroize, ZeroizeOnDrop)]
 pub struct IbeSeed {
-    val: [u8; IBE_SEED_BYTES],
+    // See the comment regarding Boxing in the definition of TransportSecretKey
+    val: Box<[u8; IBE_SEED_BYTES]>,
 }
 
 impl IbeSeed {
@@ -447,7 +471,7 @@ impl IbeSeed {
     pub fn random<R: rand::CryptoRng + rand::RngCore>(rng: &mut R) -> Self {
         use rand::Rng;
         Self {
-            val: rng.gen::<[u8; IBE_SEED_BYTES]>(),
+            val: Box::new(rng.gen::<[u8; IBE_SEED_BYTES]>()),
         }
     }
 
@@ -465,7 +489,7 @@ impl IbeSeed {
             return Err("Insufficient input material for IbeSeed derivation".to_string());
         }
 
-        let mut val = [0u8; IBE_SEED_BYTES];
+        let mut val = Box::new([0u8; IBE_SEED_BYTES]);
         if bytes.len() == IBE_SEED_BYTES {
             val.copy_from_slice(bytes)
         } else {
@@ -657,7 +681,7 @@ impl IbeCiphertext {
     ///
     /// Returns the plaintext, or Err if decryption failed
     pub fn decrypt(&self, vetkey: &VetKey) -> Result<Vec<u8>, String> {
-        let t = ic_bls12_381::pairing(&vetkey.pt, &self.c1);
+        let t = ic_bls12_381::pairing(vetkey.point(), &self.c1);
 
         let seed = Self::mask_seed(&self.c2, &t);
 
