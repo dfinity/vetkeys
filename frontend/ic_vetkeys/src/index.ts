@@ -1,12 +1,7 @@
 /**
- * @module ic_vetkeys
+ * @module @dfinity/vetkeys
  *
  * @description Provides frontend utilities for the low-level use of Verifiably Encrypted Threshold Keys (VetKeys) on the Internet Computer (IC) such as decryption of encrypted VetKeys, identity based encryption (IBE), and symmetric key derivation from a VetKey.
- *
- * > [!IMPORTANT]
- * > These support libraries are under active development and are subject to change. Access to the repositories has been opened to allow for early feedback. Check back regularly for updates.
- * >
- * > Please share your feedback on the [developer forum](https://forum.dfinity.org/t/threshold-key-derivation-privacy-on-the-ic/16560/179).
  *
  * ## Usage Example: IBE
  *
@@ -18,7 +13,9 @@
  *   DerivedPublicKey,
  *   EncryptedKey,
  *   VetKey,
- *   IdentityBasedEncryptionCiphertext
+ *   IbeCiphertext,
+ *   IbeIdentity,
+ *   IbeSeed,
  * } from "ic_vetkd_sdk_utils";
  *
  * // 1. Generate a Transport Secret Key for decrypting VetKD-derived keys
@@ -41,19 +38,18 @@
  *
  * // 5. Use Identity-Based Encryption to encrypt and decrypt a message
  * const message = new TextEncoder().encode("Secret message");
- * const seed = crypto.getRandomValues(new Uint8Array(32));
  *
  * // 6. Encrypt the message
- * const ciphertext = IdentityBasedEncryptionCiphertext.encrypt(
+ * const ciphertext = IbeCiphertext.encrypt(
  *   dpk,
- *   input,
+ *   IbeIdentity.fromBytes(input),
  *   message,
- *   seed
+ *   IbeSeed.random()
  * );
  * const serializedCiphertext = ciphertext.serialize();
  *
  * // 7. Decrypt the message
- * const deserializedCiphertext = IdentityBasedEncryptionCiphertext.deserialize(serializedCiphertext);
+ * const deserializedCiphertext = IbeCiphertext.deserialize(serializedCiphertext);
  * const decryptedMessage = deserializedCiphertext.decrypt(vetKey);
  * console.log("Decrypted Message:", new TextDecoder().decode(decryptedMessage));
  * ```

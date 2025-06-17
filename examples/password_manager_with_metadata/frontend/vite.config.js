@@ -53,9 +53,9 @@ export default defineConfig({
                 __dirname,
                 "../../../frontend/ic_vetkeys/src",
             ),
-            "ic_vetkeys/tools": path.resolve(
+            "ic_vetkeys/encrypted_maps": path.resolve(
                 __dirname,
-                "../../../frontend/ic_vetkeys/src/tools",
+                "../../../frontend/ic_vetkeys/src/encrypted_maps",
             ),
         },
     },

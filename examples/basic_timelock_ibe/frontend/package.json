@@ -1,5 +1,5 @@
 {
-  "name": "basic_timelock_ibe_frontend",
+  "name": "basic-timelock-ibe-frontend",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -24,6 +24,6 @@
     "@dfinity/principal": "^2.4.1"
   },
   "peerDependencies": {
-    "@dfinity/vetkeys": "^0.1.0"
+    "@dfinity/vetkeys": "^0.2.0"
   }
 }

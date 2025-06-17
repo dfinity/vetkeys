@@ -25,14 +25,18 @@ export const idlFactory = ({ IDL }) => {
   const Result_1 = IDL.Variant({ 'Ok' : IDL.Null, 'Err' : IDL.Text });
   return IDL.Service({
     'create_lot' : IDL.Func([IDL.Text, IDL.Text, IDL.Nat16], [Result], []),
+    'get_ibe_public_key' : IDL.Func([], [IDL.Vec(IDL.Nat8)], []),
     'get_lots' : IDL.Func(
         [],
         [OpenLotsResponse, ClosedLotsResponse],
         ['query'],
       ),
-    'get_root_ibe_public_key' : IDL.Func([], [IDL.Vec(IDL.Nat8)], []),
     'place_bid' : IDL.Func([IDL.Nat, IDL.Vec(IDL.Nat8)], [Result_1], []),
-    'start_with_interval_secs' : IDL.Func([IDL.Nat64], [], []),
+    'start_lot_closing_timer_job_with_interval_secs' : IDL.Func(
+        [IDL.Nat64],
+        [],
+        [],
+      ),
   });
 };
-export const init = ({ IDL }) => { return []; };
+export const init = ({ IDL }) => { return [IDL.Text]; };

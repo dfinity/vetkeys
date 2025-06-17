@@ -1,15 +1,20 @@
 import {
     DerivedPublicKey,
     EncryptedVetKey,
-    IdentityBasedEncryptionCiphertext,
+    IbeIdentity,
+    IbeCiphertext,
     MasterPublicKey,
+    IbeSeed,
     TransportSecretKey,
     VetKey,
     augmentedHashToG1,
     deriveSymmetricKey,
     hashToScalar,
+    isValidTransportPublicKey,
+    verifyBlsSignature,
 } from "./utils";
 import { expect, test } from "vitest";
+import { bls12_381 } from "@noble/curves/bls12-381";
 
 function hexToBytes(hex: string): Uint8Array {
     const bytes = new Uint8Array(hex.length / 2);
@@ -34,6 +39,26 @@ test("creating random TransportSecretKey", () => {
 
     const pk = key.publicKeyBytes();
     assertEqual(pk.length, 48);
+});
+
+test("isValidTransportPublicKey", () => {
+    assertEqual(isValidTransportPublicKey(hexToBytes("50505050")), false);
+    assertEqual(
+        isValidTransportPublicKey(
+            hexToBytes(
+                "97f1d3a73197d7942695638c4fa9ac0fc3688c4f9774b905a14e3a3f171bac586c55e83ff97a1aeffb3af00adb22c6bb",
+            ),
+        ),
+        true,
+    );
+    assertEqual(
+        isValidTransportPublicKey(
+            hexToBytes(
+                "c00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+            ),
+        ),
+        true,
+    );
 });
 
 test("parsing DerivedPublicKey", () => {
@@ -99,6 +124,30 @@ test("augmented hash to G1", () => {
     assertEqual(bytesToHex(calculated.toRawBytes(true)), expected);
 });
 
+test("BLS signature verification", () => {
+    const pk = DerivedPublicKey.deserialize(
+        hexToBytes(
+            "972c4c6cc184b56121a1d27ef1ca3a2334d1a51be93573bd18e168f78f8fe15ce44fb029ffe8e9c3ee6bea2660f4f35e0774a35a80d6236c050fd8f831475b5e145116d3e83d26c533545f64b08464e4bcc755f990a381efa89804212d4eef5f",
+        ),
+    );
+
+    const msg = new TextEncoder().encode("message");
+    const wrongMsg = new TextEncoder().encode("this is some other message");
+
+    const signatureHex =
+        "987db5406ce297e729c8564a106dc896943b00216a095fe9c5d32a16a330c02eb80e6f468ede83cde5462b5145b58f65";
+
+    // Test verification works passing a binary string
+    const signatureBytes = hexToBytes(signatureHex);
+    assertEqual(verifyBlsSignature(pk, msg, signatureBytes), true);
+    assertEqual(verifyBlsSignature(pk, wrongMsg, signatureBytes), false);
+
+    // Test verification works passing a point objecet
+    const signaturePoint = bls12_381.G1.ProjectivePoint.fromHex(signatureHex);
+    assertEqual(verifyBlsSignature(pk, msg, signaturePoint), true);
+    assertEqual(verifyBlsSignature(pk, wrongMsg, signaturePoint), false);
+});
+
 test("protocol flow with precomputed data", () => {
     const tsk = new TransportSecretKey(
         hexToBytes(
@@ -128,10 +177,10 @@ test("protocol flow with precomputed data", () => {
     );
 
     const message = hexToBytes("f00f11");
-    const seed = new Uint8Array(32);
-    const ibe = IdentityBasedEncryptionCiphertext.encrypt(
+    const seed = IbeSeed.fromBytes(new Uint8Array(32));
+    const ibe = IbeCiphertext.encrypt(
         dpk,
-        identity,
+        IbeIdentity.fromBytes(identity),
         message,
         seed,
     );
@@ -141,9 +190,7 @@ test("protocol flow with precomputed data", () => {
         "4943204942450001a9937528bda5826cf5c7da77a5f5e46719a9748f4ea0aa491c8fba92081e5d55457ab36ec4f6335954c6d87987d0b28301bd8da166493bb537c842d20396da5a68cc9e9672fadedf1e311e0057fc906dfd37d1077ca027954c45336405e66e5e4b346b0f24bfd358a09de701654c1e0791741e4826396588440eee021df9b2399f7f98",
     );
 
-    const ibeRec = IdentityBasedEncryptionCiphertext.deserialize(
-        ibe.serialize(),
-    );
+    const ibeRec = IbeCiphertext.deserialize(ibe.serialize());
 
     const vetkd = ek.decryptAndVerify(tsk, dpk, identity);
 
@@ -207,7 +254,7 @@ test("hkdf using webcrypto", async () => {
         hash: "SHA-256",
         length: 32 * 8,
     };
-    const derived = await window.crypto.subtle.deriveKey(
+    const derived = await globalThis.crypto.subtle.deriveKey(
         algorithm,
         wckey,
         derivedAlgo,
@@ -216,7 +263,7 @@ test("hkdf using webcrypto", async () => {
     );
 
     const derivedBytes = new Uint8Array(
-        await window.crypto.subtle.exportKey("raw", derived),
+        await globalThis.crypto.subtle.exportKey("raw", derived),
     );
     assertEqual(
         bytesToHex(derivedBytes),
@@ -292,7 +339,9 @@ test("AES-GCM encryption", async () => {
 
     // Test appending random bytes
     for (let trial = 1; trial < 32; trial++) {
-        const extraBytes = window.crypto.getRandomValues(new Uint8Array(trial));
+        const extraBytes = globalThis.crypto.getRandomValues(
+            new Uint8Array(trial),
+        );
         const modMsg = new Uint8Array([...msg3, ...extraBytes]);
 
         await expect(async () => {

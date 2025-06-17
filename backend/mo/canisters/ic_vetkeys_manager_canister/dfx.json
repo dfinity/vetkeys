@@ -5,5 +5,10 @@
       "type": "motoko",
       "args": "--enhanced-orthogonal-persistence"
     }
+  },
+  "defaults": {
+    "build": {
+      "packtool": "npx ic-mops sources"
+    }
   }
 }

@@ -1,3 +1,10 @@
+/**
+ * @module @dfinity/vetkeys/key_manager
+ *
+ * @description See { @link KeyManager }.
+ *
+ */
+
 import { Principal } from "@dfinity/principal";
 import {
     TransportSecretKey,
@@ -9,13 +16,14 @@ import {
     ByteBuf,
 } from "../declarations/ic_vetkeys_manager_canister/ic_vetkeys_manager_canister.did";
 
+export { DefaultKeyManagerClient } from "./key_manager_canister";
+export type {
+    AccessRights,
+    ByteBuf,
+} from "../declarations/ic_vetkeys_manager_canister/ic_vetkeys_manager_canister.did";
+
 /**
- * > [!IMPORTANT]
- * > These support libraries are under active development and are subject to change. Access to the repositories has been opened to allow for early feedback. Check back regularly for updates.
- * >
- * > Please share your feedback on the [developer forum](https://forum.dfinity.org/t/threshold-key-derivation-privacy-on-the-ic/16560/179).
- *
- * The **`KeyManager`** frontend library facilitates interaction with a [**`KeyManager`-enabled canister**](https://docs.rs/ic_vetkeys/latest/TODO) on the **Internet Computer (ICP)**.
+ * The **`KeyManager`** frontend library facilitates interaction with a [**`KeyManager`-enabled canister**](https://docs.rs/ic-vetkeys/latest/ic_vetkeys/key_manager/struct.KeyManager.html) on the **Internet Computer (ICP)**.
  * It allows web applications to securely request, decrypt, and manage VetKeys while handling access control and key sharing.
  *
  * ## Core Features
@@ -32,7 +40,7 @@ import {
  *
  * @example
  * ```ts
- * import { KeyManager } from "@dfinity/vetkeys/tools";
+ * import { KeyManager } from "@dfinity/vetkeys/key_manager";
  *
  * // Initialize the KeyManager
  * const keyManager = new KeyManager(keyManagerClientInstance);
@@ -62,7 +70,7 @@ export class KeyManager {
      *
      * @example
      * ```ts
-     * import { KeyManager } from "@dfinity/vetkeys/tools";
+     * import { KeyManager } from "@dfinity/vetkeys/key_manager";
      *
      * const keyManager = new KeyManager(keyManagerClientInstance);
      * ```
@@ -115,7 +123,7 @@ export class KeyManager {
         vetkeyName: Uint8Array,
     ): Promise<Uint8Array> {
         // create a random transport key
-        const seed = window.crypto.getRandomValues(new Uint8Array(32));
+        const seed = globalThis.crypto.getRandomValues(new Uint8Array(32));
         const tsk = new TransportSecretKey(seed);
         const encryptedVetkey = await this.canisterClient.get_encrypted_vetkey(
             keyOwner,

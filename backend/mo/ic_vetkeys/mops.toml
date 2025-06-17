@@ -1,11 +1,16 @@
 [package]
 name = "ic-vetkeys"
 version = "0.1.0"
-description = "IC VetKeys Library"
-repository = "https://github.com/dfinity/vetkd-devkit"
+description = "A set of tools designed to help canister developers integrate vetKeys into their Internet Computer (ICP) applications"
 keywords = [
-  "vetkeys,vetkd,encryption,privacy,signature,BLS,key ",
-  "derivation,IBE"
+  "vetkeys",
+  "vetkd",
+  "encryption",
+  "privacy",
+  "signature",
+  "bls",
+  "key-derivation",
+  "ibe",
 ]
 license = "Apache-2.0"
 

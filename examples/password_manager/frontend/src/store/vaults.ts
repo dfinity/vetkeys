@@ -3,7 +3,10 @@ import { passwordFromContent, type PasswordModel } from "../lib/password";
 import { vaultFromContent, type VaultModel } from "../lib/vault";
 import { auth } from "./auth";
 import { showError } from "./notifications";
-import { type AccessRights, EncryptedMaps } from "@dfinity/vetkeys/tools";
+import {
+    type AccessRights,
+    EncryptedMaps,
+} from "@dfinity/vetkeys/encrypted_maps";
 import type { Principal } from "@dfinity/principal";
 
 export const vaultsStore = writable<
@@ -123,9 +126,9 @@ export async function removeUser(
     );
 }
 
-auth.subscribe(() => {
-    void (async ($auth) => {
-        if ($auth && $auth.state === "initialized") {
+auth.subscribe((auth) => {
+    void (async () => {
+        if (auth && auth.state === "initialized") {
             if (vaultPollerHandle !== null) {
                 clearInterval(vaultPollerHandle);
                 vaultPollerHandle = null;
@@ -135,13 +138,13 @@ auth.subscribe(() => {
                 state: "loading",
             });
             try {
-                await refreshVaults($auth.encryptedMaps).catch((e: Error) =>
+                await refreshVaults(auth.encryptedMaps).catch((e: Error) =>
                     showError(e, "Could not poll vaults."),
                 );
 
                 vaultPollerHandle = setInterval(() => {
                     void (async () => {
-                        await refreshVaults($auth.encryptedMaps).catch(
+                        await refreshVaults(auth.encryptedMaps).catch(
                             (e: Error) =>
                                 showError(e, "Could not poll vaults."),
                         );
@@ -152,7 +155,7 @@ auth.subscribe(() => {
                     state: "error",
                 });
             }
-        } else if ($auth.state === "anonymous" && vaultPollerHandle !== null) {
+        } else if (auth.state === "anonymous" && vaultPollerHandle !== null) {
             clearInterval(vaultPollerHandle);
             vaultPollerHandle = null;
             vaultsStore.set({

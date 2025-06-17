@@ -28,10 +28,13 @@ export type Result_1 = { 'Ok' : null } |
   { 'Err' : string };
 export interface _SERVICE {
   'create_lot' : ActorMethod<[string, string, number], Result>,
+  'get_ibe_public_key' : ActorMethod<[], Uint8Array | number[]>,
   'get_lots' : ActorMethod<[], [OpenLotsResponse, ClosedLotsResponse]>,
-  'get_root_ibe_public_key' : ActorMethod<[], Uint8Array | number[]>,
   'place_bid' : ActorMethod<[bigint, Uint8Array | number[]], Result_1>,
-  'start_with_interval_secs' : ActorMethod<[bigint], undefined>,
+  'start_lot_closing_timer_job_with_interval_secs' : ActorMethod<
+    [bigint],
+    undefined
+  >,
 }
 export declare const idlFactory: IDL.InterfaceFactory;
 export declare const init: (args: { IDL: typeof IDL }) => IDL.Type[];

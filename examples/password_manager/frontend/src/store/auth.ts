@@ -4,7 +4,7 @@ import { AuthClient } from "@dfinity/auth-client";
 import type { JsonnableDelegationChain } from "@dfinity/identity/lib/cjs/identity/delegation";
 import { replace } from "svelte-spa-router";
 import { createEncryptedMaps } from "../lib/encrypted_maps.js";
-import { EncryptedMaps } from "@dfinity/vetkeys/tools";
+import { EncryptedMaps } from "@dfinity/vetkeys/encrypted_maps";
 
 export type AuthState =
     | {
@@ -51,7 +51,7 @@ export function login() {
             identityProvider:
                 process.env.DFX_NETWORK === "ic"
                     ? "https://identity.ic0.app/#authorize"
-                    : `http://${process.env.CANISTER_ID_INTERNET_IDENTITY}.localhost:8000/#authorize`,
+                    : `http://rdmx6-jaaaa-aaaaa-aaadq-cai.localhost:4943/#authorize`,
             onSuccess: () => authenticate(currentAuth.client),
         });
     }

@@ -1,19 +1,12 @@
 use candid::{decode_one, encode_args, encode_one, CandidType, Principal};
-use ic_vetkd_utils::{DerivedPublicKey, EncryptedVetKey, TransportSecretKey};
 use ic_vetkeys::encrypted_maps::{VetKey, VetKeyVerificationKey};
 use ic_vetkeys::key_manager::key_id_to_vetkd_input;
 use ic_vetkeys::types::{AccessRights, ByteBuf, TransportKey};
-use ic_vetkeys_test_utils::{git_root_dir, random_self_authenticating_principal};
+use ic_vetkeys::{DerivedPublicKey, EncryptedVetKey, TransportSecretKey};
+use ic_vetkeys_test_utils::{git_root_dir, random_self_authenticating_principal, reproducible_rng};
 use pocket_ic::{PocketIc, PocketIcBuilder};
-use rand::{CryptoRng, Rng, SeedableRng};
-use rand_chacha::ChaCha20Rng;
+use rand::{CryptoRng, Rng};
 use std::path::Path;
-
-pub fn reproducible_rng() -> ChaCha20Rng {
-    let seed = rand::rng().random();
-    println!("RNG seed: {seed:?}");
-    ChaCha20Rng::from_seed(seed)
-}
 
 #[test]
 fn should_obtain_verification_key() {
@@ -180,20 +173,23 @@ impl TestEnvironment {
         let example_canister_id = pic.create_canister();
         pic.add_cycles(example_canister_id, 2_000_000_000_000);
 
-        let example_wasm_bytes = load_key_manager_example_canister_wasm();
-        pic.install_canister(example_canister_id, example_wasm_bytes, vec![], None);
+        let example_wasm_bytes = load_encrypted_maps_example_canister_wasm();
+        pic.install_canister(
+            example_canister_id,
+            example_wasm_bytes,
+            encode_one("dfx_test_key").unwrap(),
+            None,
+        );
 
         // Make sure the canister is properly initialized
         fast_forward(&pic, 5);
 
-        let env = Self {
+        Self {
             pic,
             example_canister_id,
             principal_0: random_self_authenticating_principal(rng),
             principal_1: random_self_authenticating_principal(rng),
-        };
-
-        env
+        }
     }
 
     fn update<T: CandidType + for<'de> candid::Deserialize<'de>>(
@@ -227,16 +223,17 @@ impl TestEnvironment {
     }
 }
 
-fn load_key_manager_example_canister_wasm() -> Vec<u8> {
-    let wasm_path_string = format!(
-        "{}/target/wasm32-unknown-unknown/release/ic_vetkeys_encrypted_maps_canister.wasm",
-        git_root_dir()
-    );
+fn load_encrypted_maps_example_canister_wasm() -> Vec<u8> {
+    let wasm_path_string = match std::env::var("CUSTOM_WASM_PATH") {
+        Ok(path) if !path.is_empty() => path,
+        _ => format!(
+            "{}/target/wasm32-unknown-unknown/release/ic_vetkeys_encrypted_maps_canister.wasm",
+            git_root_dir()
+        ),
+    };
     let wasm_path = Path::new(&wasm_path_string);
-    let wasm_bytes = std::fs::read(wasm_path).expect(
-        "wasm does not exist - run `cargo build --release --target wasm32-unknown-unknown`",
-    );
-    wasm_bytes
+    std::fs::read(wasm_path)
+        .expect("wasm does not exist - run `cargo build --release --target wasm32-unknown-unknown`")
 }
 
 fn random_transport_key<R: Rng + CryptoRng>(rng: &mut R) -> TransportSecretKey {
@@ -252,7 +249,7 @@ fn fast_forward(ic: &PocketIc, ticks: u64) {
 }
 
 fn random_map_name<R: Rng + CryptoRng>(rng: &mut R) -> ByteBuf {
-    let length = rng.random_range(0..32);
+    let length = rng.gen_range(0..32);
     let mut map_name = vec![0u8; length];
     rng.fill_bytes(&mut map_name);
     ByteBuf::from(map_name)

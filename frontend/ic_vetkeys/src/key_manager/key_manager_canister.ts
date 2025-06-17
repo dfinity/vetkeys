@@ -6,7 +6,7 @@ import {
     AccessRights,
     ByteBuf,
 } from "../declarations/ic_vetkeys_manager_canister/ic_vetkeys_manager_canister.did.js";
-import { KeyManagerClient } from "./key_manager.js";
+import { KeyManagerClient } from "./index";
 
 export class DefaultKeyManagerClient implements KeyManagerClient {
     canisterId: string;

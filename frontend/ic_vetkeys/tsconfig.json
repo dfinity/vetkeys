@@ -20,8 +20,6 @@
     "noUncheckedSideEffectImports": true,
   },
   "include": [
-    "src",
-    "test",
-    "**/*.test.ts",
+    "src"
   ],
 }

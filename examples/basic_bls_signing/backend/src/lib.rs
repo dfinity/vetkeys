@@ -1,14 +1,17 @@
 pub mod types;
 use candid::Principal;
+use ic_cdk::management_canister::{
+    VetKDCurve, VetKDDeriveKeyArgs, VetKDDeriveKeyResult, VetKDKeyId, VetKDPublicKeyArgs,
+};
 use ic_cdk::{query, update};
 use ic_stable_structures::{
     memory_manager::{MemoryId, MemoryManager, VirtualMemory},
     DefaultMemoryImpl, StableLog,
 };
-use ic_vetkd_utils::*;
+use ic_vetkeys::*;
 use serde_bytes::ByteBuf;
-use std::{cell::RefCell, str::FromStr};
-use types::*;
+use std::cell::RefCell;
+use types::Signature;
 
 type Memory = VirtualMemory<DefaultMemoryImpl>;
 
@@ -30,7 +33,7 @@ thread_local! {
 
 #[update]
 async fn sign_message(message: RawMessage) -> RawSignature {
-    let signer = ic_cdk::caller();
+    let signer = ic_cdk::api::msg_caller();
     // create a transport secret key with a constant seed containing just zeros
     let transport_secret_key =
         TransportSecretKey::from_seed(vec![0; 32]).expect("Failed to create transport secret key");
@@ -38,22 +41,17 @@ async fn sign_message(message: RawMessage) -> RawSignature {
 
     let context = get_context(signer);
 
-    let request = VetKDDeriveKeyRequest {
+    let request = VetKDDeriveKeyArgs {
         input: message.as_bytes().to_vec(),
         context: context.clone(),
         key_id: bls12_381_dfx_test_key(),
         transport_public_key,
     };
 
-    let (VetKDDeriveKeyReply { encrypted_key },) =
-        ic_cdk::api::call::call_with_payment128::<_, (VetKDDeriveKeyReply,)>(
-            CanisterId::from_str("aaaaa-aa").unwrap(),
-            "vetkd_derive_key",
-            (request,),
-            26_153_846_153,
-        )
-        .await
-        .expect("call to vetkd_derive_key failed");
+    let VetKDDeriveKeyResult { encrypted_key } =
+        ic_cdk::management_canister::vetkd_derive_key(&request)
+            .await
+            .expect("call to vetkd_derive_key failed");
 
     let root_public_key_raw = match VETKD_ROOT_IBE_PUBLIC_KEY.with(|v| v.borrow().to_owned()) {
         Some(root_ibe_public_key) => root_ibe_public_key.into_vec(),
@@ -81,7 +79,7 @@ fn publish_my_signature_no_verification(message: RawMessage, signature: RawSigna
         message,
         signature: signature.into_vec(),
         timestamp: ic_cdk::api::time(),
-        signer: ic_cdk::caller(),
+        signer: ic_cdk::api::msg_caller(),
     };
     PUBLISHED_SIGNATURES
         .with_borrow_mut(|log| log.append(&signature))
@@ -98,19 +96,15 @@ async fn get_root_public_key() -> VetKeyPublicKey {
     match VETKD_ROOT_IBE_PUBLIC_KEY.with(|v| v.borrow().to_owned()) {
         Some(root_ibe_public_key) => root_ibe_public_key,
         None => {
-            let request = VetKDPublicKeyRequest {
+            let request = VetKDPublicKeyArgs {
                 canister_id: None,
                 context: vec![],
                 key_id: bls12_381_dfx_test_key(),
             };
 
-            let (result,) = ic_cdk::api::call::call::<_, (VetKDPublicKeyReply,)>(
-                CanisterId::from_str("aaaaa-aa").unwrap(),
-                "vetkd_public_key",
-                (request,),
-            )
-            .await
-            .expect("call to vetkd_public_key failed");
+            let result = ic_cdk::management_canister::vetkd_public_key(&request)
+                .await
+                .expect("call to vetkd_public_key failed");
 
             result.public_key.into()
         }

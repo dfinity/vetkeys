@@ -1,22 +1,23 @@
 {
-    "canisters": {
-      "ic_vetkeys_encrypted_maps_canister": {
-        "candid": "ic_vetkeys_encrypted_maps_canister.did",
-        "package": "ic-vetkeys-encrypted-maps-canister",
-        "type": "rust"
+  "canisters": {
+    "ic_vetkeys_encrypted_maps_canister": {
+      "candid": "../../backend/rs/canisters/ic_vetkeys_encrypted_maps_canister/ic_vetkeys_encrypted_maps_canister.did",
+      "package": "ic-vetkeys-encrypted-maps-canister",
+      "type": "rust"
+    },
+    "internet-identity": {
+      "type": "pull",
+      "id": "rdmx6-jaaaa-aaaaa-aaadq-cai"
+    },
+    "www": {
+      "dependencies": ["ic_vetkeys_encrypted_maps_canister"],
+      "build": ["npm i && cd frontend && npm run build"],
+      "frontend": {
+        "entrypoint": "frontend/dist/index.html"
       },
-      "internet-identity": {
-        "type": "pull",
-        "id": "rdmx6-jaaaa-aaaaa-aaadq-cai"
-      },
-      "www": {
-        "frontend": {
-          "entrypoint": "frontend/dist/index.html"
-        },
-        "source": [
-          "frontend/dist/"
-        ],
-        "type": "assets"
-      }
+      "source": ["frontend/dist/"],
+      "type": "assets",
+      "output_env_file": "frontend/.env"
     }
   }
+}

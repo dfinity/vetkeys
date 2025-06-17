@@ -1,3 +1,9 @@
+/**
+ * @module @dfinity/vetkeys/encrypted_maps
+ *
+ * @description See { @link EncryptedMaps }.
+ */
+
 import { Principal } from "@dfinity/principal";
 import { get, set } from "idb-keyval";
 import {
@@ -11,13 +17,14 @@ import {
     ByteBuf,
 } from "../declarations/ic_vetkeys_manager_canister/ic_vetkeys_manager_canister.did";
 
+export { DefaultEncryptedMapsClient } from "./encrypted_maps_canister";
+export type {
+    AccessRights,
+    ByteBuf,
+} from "../declarations/ic_vetkeys_manager_canister/ic_vetkeys_manager_canister.did";
+
 /**
- * > [!IMPORTANT]
- * > These support libraries are under active development and are subject to change. Access to the repositories has been opened to allow for early feedback. Check back regularly for updates.
- * >
- * > Please share your feedback on the [developer forum](https://forum.dfinity.org/t/threshold-key-derivation-privacy-on-the-ic/16560/179).
- *
- * The **EncryptedMaps** frontend library facilitates interaction with an **EncryptedMaps-enabled canister** on the **Internet Computer (ICP)**.
+ * The **EncryptedMaps** frontend library facilitates interaction with an [**EncryptedMaps-enabled canister**](https://docs.rs/ic-vetkeys/latest/ic_vetkeys/encrypted_maps/struct.EncryptedMaps.html) on the **Internet Computer (ICP)**.
  * It allows web applications to securely store, retrieve, and manage encrypted key-value pairs within named maps while handling user access control and key sharing.
  *
  * ## Core Features
@@ -35,7 +42,7 @@ import {
  *
  * @example
  * ```ts
- * import { EncryptedMaps } from "@dfinity/vetkeys/tools";
+ * import { EncryptedMaps } from "@dfinity/vetkeys/encrypted_maps";
  *
  * // Initialize the EncryptedMaps Client
  * const encryptedMaps = new EncryptedMaps(encryptedMapsClientInstance);
@@ -76,7 +83,7 @@ export class EncryptedMaps {
      *
      * @example
      * ```ts
-     * import { EncryptedMaps } from "@dfinity/vetkeys/tools";
+     * import { EncryptedMaps } from "@dfinity/vetkeys/encrypted_maps";
      *
      * const encryptedMaps = new EncryptedMaps(encryptedMapsClientInstance);
      * ```
