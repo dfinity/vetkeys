@@ -1,14 +1,11 @@
 pub mod types;
 use candid::Principal;
-use ic_cdk::management_canister::{
-    VetKDCurve, VetKDDeriveKeyArgs, VetKDDeriveKeyResult, VetKDKeyId, VetKDPublicKeyArgs,
-};
+use ic_cdk::management_canister::{VetKDCurve, VetKDKeyId, VetKDPublicKeyArgs};
 use ic_cdk::{query, update};
 use ic_stable_structures::{
     memory_manager::{MemoryId, MemoryManager, VirtualMemory},
     DefaultMemoryImpl, StableLog,
 };
-use ic_vetkeys::*;
 use serde_bytes::ByteBuf;
 use std::cell::RefCell;
 use types::Signature;
@@ -33,44 +30,15 @@ thread_local! {
 
 #[update]
 async fn sign_message(message: RawMessage) -> RawSignature {
-    let signer = ic_cdk::api::msg_caller();
-    // create a transport secret key with a constant seed containing just zeros
-    let transport_secret_key =
-        TransportSecretKey::from_seed(vec![0; 32]).expect("Failed to create transport secret key");
-    let transport_public_key = transport_secret_key.public_key();
+    let signature = ic_vetkeys::management_canister::sign_with_bls(
+        message.as_bytes().to_vec(),
+        get_context(ic_cdk::api::msg_caller()),
+        bls12_381_dfx_test_key(),
+    )
+    .await
+    .expect("ic_vetkeys' sign_with_bls failed");
 
-    let context = get_context(signer);
-
-    let request = VetKDDeriveKeyArgs {
-        input: message.as_bytes().to_vec(),
-        context: context.clone(),
-        key_id: bls12_381_dfx_test_key(),
-        transport_public_key,
-    };
-
-    let VetKDDeriveKeyResult { encrypted_key } =
-        ic_cdk::management_canister::vetkd_derive_key(&request)
-            .await
-            .expect("call to vetkd_derive_key failed");
-
-    let root_public_key_raw = match VETKD_ROOT_IBE_PUBLIC_KEY.with(|v| v.borrow().to_owned()) {
-        Some(root_ibe_public_key) => root_ibe_public_key.into_vec(),
-        None => get_root_public_key().await.into_vec(),
-    };
-    let root_public_key = DerivedPublicKey::deserialize(&root_public_key_raw)
-        .expect("Failed to deserialize root ibe public key");
-    let derived_public_key = root_public_key.derive_sub_key(&get_context(signer));
-
-    let encrypted_key_typed = EncryptedVetKey::deserialize(&encrypted_key)
-        .expect("Failed to deserialize encrypted vetkey");
-
-    // decrypt the encrypted vetkey
-    let vetkey = encrypted_key_typed
-        .decrypt_and_verify(&transport_secret_key, &derived_public_key, message.as_ref())
-        .expect("Failed to decrypt and verify vetkey");
-
-    // return the vetkey, which serves as the signature
-    vetkey.signature_bytes().to_vec().into()
+    signature.into()
 }
 
 #[update]
