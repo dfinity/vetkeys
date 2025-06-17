@@ -1,10 +1,10 @@
 pub mod types;
 use candid::Principal;
 use ic_cdk::management_canister::{VetKDCurve, VetKDKeyId, VetKDPublicKeyArgs};
-use ic_cdk::{query, update};
+use ic_cdk::{init, query, update};
 use ic_stable_structures::{
     memory_manager::{MemoryId, MemoryManager, VirtualMemory},
-    DefaultMemoryImpl, StableLog,
+    Cell as StableCell, DefaultMemoryImpl, StableLog,
 };
 use serde_bytes::ByteBuf;
 use std::cell::RefCell;
@@ -25,7 +25,23 @@ thread_local! {
         MEMORY_MANAGER.with(|m| m.borrow().get(MemoryId::new(1))), // data memory
     ));
 
+    static KEY_NAME: RefCell<StableCell<String, Memory>> =
+        RefCell::new(StableCell::init(
+            MEMORY_MANAGER.with(|m| m.borrow().get(MemoryId::new(2))),
+            String::new(),
+        )
+        .expect("failed to initialize key name"));
+
     static CANISTER_PUBLIC_KEY: RefCell<Option<VetKeyPublicKey>> =  const { RefCell::new(None) };
+}
+
+#[init]
+fn init(key_name_string: String) {
+    KEY_NAME.with_borrow_mut(|key_name| {
+        key_name
+            .set(key_name_string)
+            .expect("failed to set key name");
+    });
 }
 
 #[update]
@@ -33,7 +49,7 @@ async fn sign_message(message: RawMessage) -> RawSignature {
     let signature = ic_vetkeys::management_canister::sign_with_bls(
         message.as_bytes().to_vec(),
         get_context(ic_cdk::api::msg_caller()),
-        bls12_381_dfx_test_key(),
+        key_id(),
     )
     .await
     .expect("ic_vetkeys' sign_with_bls failed");
@@ -68,7 +84,7 @@ async fn get_canister_public_key() -> VetKeyPublicKey {
     let request = VetKDPublicKeyArgs {
         canister_id: None,
         context: vec![],
-        key_id: bls12_381_dfx_test_key(),
+        key_id: key_id(),
     };
     let result = ic_cdk::management_canister::vetkd_public_key(&request)
         .await
@@ -90,10 +106,10 @@ fn get_context(signer: Principal) -> Vec<u8> {
         .collect()
 }
 
-fn bls12_381_dfx_test_key() -> VetKDKeyId {
+fn key_id() -> VetKDKeyId {
     VetKDKeyId {
         curve: VetKDCurve::Bls12_381_G2,
-        name: "dfx_test_key".to_string(),
+        name: KEY_NAME.with_borrow(|key_name| key_name.get().clone()),
     }
 }
 

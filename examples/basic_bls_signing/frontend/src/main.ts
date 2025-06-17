@@ -32,14 +32,12 @@ function getBasicBlsSigningCanister(): ActorSubclass<_SERVICE> {
 
   basicBlsSigningCanister = createActor(
     process.env.CANISTER_ID_BASIC_BLS_SIGNING,
-    process.env.DFX_NETWORK === "ic"
-      ? undefined
-      : {
-          agentOptions: {
-            identity: authClient.getIdentity(),
-            host,
-          },
-        },
+    {
+      agentOptions: {
+        identity: authClient.getIdentity(),
+        host,
+      },
+    },
   );
 
   return basicBlsSigningCanister;
