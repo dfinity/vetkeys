@@ -27,7 +27,10 @@ fn test_hkdf_test_vector() {
 
 #[test]
 fn test_is_valid_transport_public_key() {
-    assert_eq!(is_valid_transport_public_key_encoding(&hex::decode("F00F00F00F00").unwrap()), false);
+    assert_eq!(
+        is_valid_transport_public_key_encoding(&hex::decode("F00F00F00F00").unwrap()),
+        false
+    );
     assert_eq!(is_valid_transport_public_key_encoding(&hex::decode("97f1d3a73197d7942695638c4fa9ac0fc3688c4f9774b905a14e3a3f171bac586c55e83ff97a1aeffb3af00adb22c6bb").unwrap()), true);
     assert_eq!(is_valid_transport_public_key_encoding(&hex::decode("c00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000").unwrap()), true);
 }
@@ -67,7 +70,8 @@ fn test_bls_signature_verification() {
 fn test_bls_signature_verification_using_identity() {
     // Check that the identity element is rejected as a public key
 
-    let dpk = DerivedPublicKey::deserialize(&ic_bls12_381::G2Affine::identity().to_compressed()).unwrap();
+    let dpk =
+        DerivedPublicKey::deserialize(&ic_bls12_381::G2Affine::identity().to_compressed()).unwrap();
 
     let msg = b"wrong message";
 
@@ -187,7 +191,7 @@ fn protocol_flow_with_fixed_rng_has_expected_outputs() {
     let ctext_bytes = ctext.serialize();
 
     assert_eq!(hex::encode(&ctext_bytes),
-               "4943204942450001a9937528bda5826cf5c7da77a5f5e46719a9748f4ea0aa491c8fba92081e5d55457ab36ec4f6335954c6d87987d0b28301bd8da166493bb537c842d20396da5a68cc9e9672fadedf1e311e0057fc906dfd37d1077ca027954c45336405e66e5e4b346b0f24bfd358a09de701654c1e0791741e4826396588440eee021df9b2399f7f98");
+               "49432049424500029f7f987a4b4edfbdb83e8a7c6aa7ef517faafa1f9218a98d2688c762938a077975e7b6aeb99d508594b27965e9ab86a7259e25c0bdb2288d8b55ffbe04cc04b78345f4b25f58beb79fbac0a6c7e782fea1b4bc08a99530ea77d433869ea93c5ba6c3cc206d1c7037bef91610f353b03d27ba0139d6b0c03289e8568746d361aec4104d");
 
     assert_eq!(
         ctext,

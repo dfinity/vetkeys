@@ -518,12 +518,17 @@ impl IbeSeed {
  * IBE ciphertexts are prefixed with a header to identity the protocol and provide
  * an extension point if needed in the future eg for changing to a different cipher.
  *
- * The header consists of "IC IBE" (ASCII) plus two bytes 0x00 and 0x01 which
+ * The header consists of "IC IBE" (ASCII) plus two bytes 0x00 and 0x02 which
  * here are just fixed and effectively arbitrary values, but could be used to
  * indicate for example a version in the future should we need to support multiple
  * variants of the IBE scheme.
+ *
+ * Note that an early version of this crate used 0x0001. This was changed when
+ * the ordering of the fields was changed to accomodate a streaming interface.
+ * This change occured prior to the creation of the production VetKey keys,
+ * so we did not try to keep compatible decoding.
 */
-const IBE_HEADER: [u8; 8] = [b'I', b'C', b' ', b'I', b'B', b'E', 0x00, 0x01];
+const IBE_HEADER: [u8; 8] = [b'I', b'C', b' ', b'I', b'B', b'E', 0x00, 0x02];
 
 const IBE_HEADER_BYTES: usize = IBE_HEADER.len();
 
@@ -531,9 +536,9 @@ const IBE_HEADER_BYTES: usize = IBE_HEADER.len();
 /// An IBE (identity based encryption) ciphertext
 pub struct IbeCiphertext {
     header: Vec<u8>,
-    auth: G2Affine,
-    masked_seed: [u8; IBE_SEED_BYTES],
     masked_msg: Vec<u8>,
+    masked_seed: [u8; IBE_SEED_BYTES],
+    auth: G2Affine,
 }
 
 enum IbeDomainSep {
@@ -563,13 +568,13 @@ impl IbeCiphertext {
     /// Serialize this IBE ciphertext
     pub fn serialize(&self) -> Vec<u8> {
         let mut output = Vec::with_capacity(
-            self.header.len() + G2AFFINE_BYTES + IBE_SEED_BYTES + self.masked_msg.len(),
+            self.header.len() + self.masked_msg.len() + IBE_SEED_BYTES + G2AFFINE_BYTES,
         );
 
         output.extend_from_slice(&self.header);
-        output.extend_from_slice(&self.auth.to_compressed());
-        output.extend_from_slice(&self.masked_seed);
         output.extend_from_slice(&self.masked_msg);
+        output.extend_from_slice(&self.masked_seed);
+        output.extend_from_slice(&self.auth.to_compressed());
 
         output
     }
@@ -578,39 +583,51 @@ impl IbeCiphertext {
     ///
     /// Returns Err if the encoding is not valid
     pub fn deserialize(bytes: &[u8]) -> Result<Self, String> {
-        if bytes.len() < IBE_HEADER_BYTES + G2AFFINE_BYTES + IBE_SEED_BYTES {
+        const FIXED_OVERHEAD: usize = IBE_HEADER_BYTES + G2AFFINE_BYTES + IBE_SEED_BYTES;
+        if bytes.len() < FIXED_OVERHEAD {
             return Err("IbeCiphertext too short to be valid".to_string());
         }
 
         let header = bytes[0..IBE_HEADER_BYTES].to_vec();
-        let auth = deserialize_g2(&bytes[IBE_HEADER_BYTES..(IBE_HEADER_BYTES + G2AFFINE_BYTES)])?;
-
-        let mut masked_seed = [0u8; IBE_SEED_BYTES];
-        masked_seed.copy_from_slice(
-            &bytes[IBE_HEADER_BYTES + G2AFFINE_BYTES
-                ..(IBE_HEADER_BYTES + G2AFFINE_BYTES + IBE_SEED_BYTES)],
-        );
-
-        let masked_msg = bytes[IBE_HEADER_BYTES + G2AFFINE_BYTES + IBE_SEED_BYTES..].to_vec();
-
         if header != IBE_HEADER {
             return Err("IbeCiphertext has unknown header".to_string());
         }
 
+        let msg_len = bytes.len() - FIXED_OVERHEAD;
+
+        let masked_msg = bytes[IBE_HEADER_BYTES..IBE_HEADER_BYTES + msg_len].to_vec();
+
+        let mut masked_seed = [0u8; IBE_SEED_BYTES];
+        masked_seed.copy_from_slice(
+            &bytes[IBE_HEADER_BYTES + msg_len
+                ..(IBE_HEADER_BYTES + msg_len + IBE_SEED_BYTES)],
+        );
+
+        let auth = deserialize_g2(&bytes[IBE_HEADER_BYTES + msg_len + IBE_SEED_BYTES..])?;
+
         Ok(Self {
             header,
-            auth,
-            masked_seed,
             masked_msg,
+            masked_seed,
+            auth,
         })
     }
 
     fn hash_to_mask(header: &[u8], seed: &[u8; IBE_SEED_BYTES], msg: &[u8]) -> Scalar {
         let domain_sep = IbeDomainSep::HashToMask;
+
+        let sha256_msg : [u8; 32] = {
+            use sha2::Digest;
+
+            let mut sha256 = sha2::Sha256::new();
+            sha256.update(msg);
+            sha256.finalize().into()
+        };
+
         let mut ro_input = Vec::with_capacity(seed.len() + msg.len());
         ro_input.extend_from_slice(header);
         ro_input.extend_from_slice(seed);
-        ro_input.extend_from_slice(msg);
+        ro_input.extend_from_slice(&sha256_msg);
 
         hash_to_scalar(&ro_input, &domain_sep.to_string())
     }
@@ -673,22 +690,20 @@ impl IbeCiphertext {
         seed: &IbeSeed,
     ) -> Self {
         let header = IBE_HEADER.to_vec();
-
-        let t = Self::hash_to_mask(&header, seed.value(), msg);
-
         let pt = augmented_hash_to_g1(&dpk.point, identity.value());
 
-        let tsig = ic_bls12_381::pairing(&pt, &dpk.point) * t;
+        let masked_msg = Self::mask_msg(msg, seed.value());
 
+        let t = Self::hash_to_mask(&header, seed.value(), msg);
+        let tsig = ic_bls12_381::pairing(&pt, &dpk.point) * t;
         let auth = G2Affine::from(G2Affine::generator() * t);
         let masked_seed = Self::mask_seed(seed.value(), &tsig);
-        let masked_msg = Self::mask_msg(msg, seed.value());
 
         Self {
             header,
-            auth,
-            masked_seed,
             masked_msg,
+            masked_seed,
+            auth,
         }
     }
 
