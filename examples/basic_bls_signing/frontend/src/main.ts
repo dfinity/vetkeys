@@ -43,13 +43,13 @@ function getBasicBlsSigningCanister(): ActorSubclass<_SERVICE> {
 }
 
 export function login(client: AuthClient) {
-  client.login({
+  void client.login({
     maxTimeToLive: BigInt(1800) * BigInt(1_000_000_000),
     identityProvider:
       process.env.DFX_NETWORK === "ic"
         ? "https://identity.ic0.app/#authorize"
-        : `http://${process.env.CANISTER_ID_INTERNET_IDENTITY}.localhost:8000/#authorize`,
-    onSuccess: async () => {
+        : `http://rdmx6-jaaaa-aaaaa-aaadq-cai.localhost:8000/#authorize`,
+    onSuccess: () => {
       myPrincipal = client.getIdentity().getPrincipal();
       updateUI(true);
     },
@@ -60,7 +60,7 @@ export function login(client: AuthClient) {
 }
 
 export function logout() {
-  authClient?.logout();
+  void authClient?.logout();
   myPrincipal = undefined;
   updateUI(false);
   document.getElementById("signaturesList")!.style.display = "none";
@@ -98,7 +98,7 @@ function updateUI(isAuthenticated: boolean) {
   }
 }
 
-async function handleLogin() {
+function handleLogin() {
   if (!authClient) {
     alert("Auth client not initialized");
     return;
@@ -145,9 +145,8 @@ document.querySelector<HTMLDivElement>("#app")!.innerHTML = `
 // Add event listeners
 document.getElementById("loginButton")!.addEventListener("click", handleLogin);
 document.getElementById("logoutButton")!.addEventListener("click", logout);
-document
-  .getElementById("signMessageButton")!
-  .addEventListener("click", async () => {
+document.getElementById("signMessageButton")!.addEventListener("click", () => {
+  void (async () => {
     const message = prompt("Enter message to sign:");
     if (message) {
       try {
@@ -159,10 +158,11 @@ document
         );
         alert("Signature published successfully!");
       } catch (error) {
-        alert(`Error: ${error}`);
+        alert(`Error: ${error as Error}`);
       }
     }
-  });
+  })();
+});
 
 document
   .getElementById("customSignatureButton")!
@@ -173,31 +173,20 @@ document
 
 document
   .getElementById("listSignaturesButton")!
-  .addEventListener("click", listSignatures);
+  .addEventListener("click", () => {
+    void listSignatures();
+  });
 
 document
   .getElementById("submitSignatureForm")!
-  .addEventListener("submit", async (e) => {
+  .addEventListener("submit", (e) => {
     e.preventDefault();
     const message = (document.getElementById("message") as HTMLInputElement)
       .value;
     const signatureHex = (
       document.getElementById("signature") as HTMLInputElement
     ).value;
-
-    try {
-      const signature = new Uint8Array(
-        signatureHex.match(/.{1,2}/g)!.map((byte) => parseInt(byte, 16)),
-      );
-      await getBasicBlsSigningCanister().publish_my_signature_no_verification(
-        message,
-        signature,
-      );
-      alert("Signature published successfully!");
-      document.getElementById("customSignatureForm")!.style.display = "none";
-    } catch (error) {
-      alert(`Error: ${error}`);
-    }
+    void publishSignature(message, signatureHex);
   });
 
 async function listSignatures() {
@@ -279,5 +268,21 @@ function verifySignature(
   return verifyBlsSignature(dpk, messageBytes, signature);
 }
 
+async function publishSignature(message: string, signatureHex: string) {
+  const signature = new Uint8Array(
+    signatureHex.match(/.{1,2}/g)!.map((byte) => parseInt(byte, 16)),
+  );
+  try {
+    await getBasicBlsSigningCanister().publish_my_signature_no_verification(
+      message,
+      signature,
+    );
+    alert("Signature published successfully!");
+  } catch (error) {
+    alert(`Error: ${error as Error}`);
+  }
+  document.getElementById("customSignatureForm")!.style.display = "none";
+}
+
 // Initialize auth
-initAuth();
+void initAuth();
