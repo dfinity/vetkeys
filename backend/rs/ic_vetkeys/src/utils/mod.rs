@@ -531,9 +531,9 @@ const IBE_HEADER_BYTES: usize = IBE_HEADER.len();
 /// An IBE (identity based encryption) ciphertext
 pub struct IbeCiphertext {
     header: Vec<u8>,
-    c1: G2Affine,
-    c2: [u8; IBE_SEED_BYTES],
-    c3: Vec<u8>,
+    auth: G2Affine,
+    masked_seed: [u8; IBE_SEED_BYTES],
+    masked_msg: Vec<u8>,
 }
 
 enum IbeDomainSep {
@@ -562,13 +562,14 @@ impl IbeDomainSep {
 impl IbeCiphertext {
     /// Serialize this IBE ciphertext
     pub fn serialize(&self) -> Vec<u8> {
-        let mut output =
-            Vec::with_capacity(self.header.len() + G2AFFINE_BYTES + IBE_SEED_BYTES + self.c3.len());
+        let mut output = Vec::with_capacity(
+            self.header.len() + G2AFFINE_BYTES + IBE_SEED_BYTES + self.masked_msg.len(),
+        );
 
         output.extend_from_slice(&self.header);
-        output.extend_from_slice(&self.c1.to_compressed());
-        output.extend_from_slice(&self.c2);
-        output.extend_from_slice(&self.c3);
+        output.extend_from_slice(&self.auth.to_compressed());
+        output.extend_from_slice(&self.masked_seed);
+        output.extend_from_slice(&self.masked_msg);
 
         output
     }
@@ -582,21 +583,26 @@ impl IbeCiphertext {
         }
 
         let header = bytes[0..IBE_HEADER_BYTES].to_vec();
-        let c1 = deserialize_g2(&bytes[IBE_HEADER_BYTES..(IBE_HEADER_BYTES + G2AFFINE_BYTES)])?;
+        let auth = deserialize_g2(&bytes[IBE_HEADER_BYTES..(IBE_HEADER_BYTES + G2AFFINE_BYTES)])?;
 
-        let mut c2 = [0u8; IBE_SEED_BYTES];
-        c2.copy_from_slice(
+        let mut masked_seed = [0u8; IBE_SEED_BYTES];
+        masked_seed.copy_from_slice(
             &bytes[IBE_HEADER_BYTES + G2AFFINE_BYTES
                 ..(IBE_HEADER_BYTES + G2AFFINE_BYTES + IBE_SEED_BYTES)],
         );
 
-        let c3 = bytes[IBE_HEADER_BYTES + G2AFFINE_BYTES + IBE_SEED_BYTES..].to_vec();
+        let masked_msg = bytes[IBE_HEADER_BYTES + G2AFFINE_BYTES + IBE_SEED_BYTES..].to_vec();
 
         if header != IBE_HEADER {
             return Err("IbeCiphertext has unknown header".to_string());
         }
 
-        Ok(Self { header, c1, c2, c3 })
+        Ok(Self {
+            header,
+            auth,
+            masked_seed,
+            masked_msg,
+        })
     }
 
     fn hash_to_mask(header: &[u8], seed: &[u8; IBE_SEED_BYTES], msg: &[u8]) -> Scalar {
@@ -674,11 +680,16 @@ impl IbeCiphertext {
 
         let tsig = ic_bls12_381::pairing(&pt, &dpk.point) * t;
 
-        let c1 = G2Affine::from(G2Affine::generator() * t);
-        let c2 = Self::mask_seed(seed.value(), &tsig);
-        let c3 = Self::mask_msg(msg, seed.value());
+        let auth = G2Affine::from(G2Affine::generator() * t);
+        let masked_seed = Self::mask_seed(seed.value(), &tsig);
+        let masked_msg = Self::mask_msg(msg, seed.value());
 
-        Self { header, c1, c2, c3 }
+        Self {
+            header,
+            auth,
+            masked_seed,
+            masked_msg,
+        }
     }
 
     /// Decrypt an IBE ciphertext
@@ -689,17 +700,17 @@ impl IbeCiphertext {
     ///
     /// Returns the plaintext, or Err if decryption failed
     pub fn decrypt(&self, vetkey: &VetKey) -> Result<Vec<u8>, String> {
-        let t = ic_bls12_381::pairing(vetkey.point(), &self.c1);
+        let t = ic_bls12_381::pairing(vetkey.point(), &self.auth);
 
-        let seed = Self::mask_seed(&self.c2, &t);
+        let seed = Self::mask_seed(&self.masked_seed, &t);
 
-        let msg = Self::mask_msg(&self.c3, &seed);
+        let msg = Self::mask_msg(&self.masked_msg, &seed);
 
         let t = Self::hash_to_mask(&self.header, &seed, &msg);
 
         let g_t = G2Affine::from(G2Affine::generator() * t);
 
-        if self.c1 == g_t {
+        if self.auth == g_t {
             Ok(msg)
         } else {
             Err("decryption failed".to_string())
