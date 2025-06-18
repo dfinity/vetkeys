@@ -209,7 +209,6 @@ async function listSignatures() {
           <p>No signatures have been published yet.</p>
         </div>
       `;
-
   } else {
     for (const signatureData of signatures.slice().reverse()) {
       const isMe =
@@ -235,7 +234,7 @@ async function listSignatures() {
           `;
 
       // Asynchronously verify the signature and update the status
-      (async () => {
+      void (async () => {
         let isValid: boolean | undefined;
         try {
           isValid = await verifySignatureAsync(
@@ -243,8 +242,10 @@ async function listSignatures() {
             Uint8Array.from(signatureData.signature),
             signatureData.signer,
           );
-        } catch (error) {
-          const statusElem = signatureElement.querySelector(".verification-status");
+        } catch {
+          const statusElem = signatureElement.querySelector(
+            ".verification-status",
+          );
           if (statusElem) {
             statusElem.textContent = "Verification: Error";
             statusElem.classList.remove("pending");
@@ -252,7 +253,9 @@ async function listSignatures() {
           }
           return;
         }
-        const statusElem = signatureElement.querySelector(".verification-status");
+        const statusElem = signatureElement.querySelector(
+          ".verification-status",
+        );
         if (statusElem) {
           statusElem.textContent = `Verification: ${isValid ? "Valid" : "Invalid"}`;
           statusElem.classList.remove("pending");
@@ -280,7 +283,8 @@ async function verifySignatureAsync(
     ...signer.toUint8Array(),
   ]);
 
-  const verificationKeyRaw = await getBasicBlsSigningCanister().get_verification_key(context);
+  const verificationKeyRaw =
+    await getBasicBlsSigningCanister().get_verification_key(context);
   const verificationKey = DerivedPublicKey.deserialize(
     Uint8Array.from(verificationKeyRaw),
   );
