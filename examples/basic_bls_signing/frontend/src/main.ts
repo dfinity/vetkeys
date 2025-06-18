@@ -236,11 +236,22 @@ async function listSignatures() {
 
       // Asynchronously verify the signature and update the status
       (async () => {
-        const isValid = await verifySignatureAsync(
-          signatureData.message,
-          Uint8Array.from(signatureData.signature),
-          signatureData.signer,
-        );
+        let isValid: boolean | undefined;
+        try {
+          isValid = await verifySignatureAsync(
+            signatureData.message,
+            Uint8Array.from(signatureData.signature),
+            signatureData.signer,
+          );
+        } catch (error) {
+          const statusElem = signatureElement.querySelector(".verification-status");
+          if (statusElem) {
+            statusElem.textContent = "Verification: Error";
+            statusElem.classList.remove("pending");
+            statusElem.classList.add("invalid");
+          }
+          return;
+        }
         const statusElem = signatureElement.querySelector(".verification-status");
         if (statusElem) {
           statusElem.textContent = `Verification: ${isValid ? "Valid" : "Invalid"}`;
