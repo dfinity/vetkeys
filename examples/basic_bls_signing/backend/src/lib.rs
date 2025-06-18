@@ -31,8 +31,6 @@ thread_local! {
             String::new(),
         )
         .expect("failed to initialize key name"));
-
-    static CANISTER_PUBLIC_KEY: RefCell<Option<VetKeyPublicKey>> =  const { RefCell::new(None) };
 }
 
 #[init]
@@ -76,23 +74,17 @@ fn get_published_signatures() -> Vec<Signature> {
 }
 
 #[update]
-async fn get_canister_public_key() -> VetKeyPublicKey {
-    if let Some(canister_public_key) = CANISTER_PUBLIC_KEY.with_borrow(|pubkey| pubkey.clone()) {
-        return canister_public_key;
-    }
-
+async fn get_verification_key(context: Vec<u8>) -> VetKeyPublicKey {
     let request = VetKDPublicKeyArgs {
         canister_id: None,
-        context: vec![],
+        context,
         key_id: key_id(),
     };
     let result = ic_cdk::management_canister::vetkd_public_key(&request)
         .await
         .expect("call to vetkd_public_key failed");
-    let canister_public_key = VetKeyPublicKey::from(result.public_key);
 
-    CANISTER_PUBLIC_KEY.with_borrow_mut(|key| key.replace(canister_public_key.clone()));
-    canister_public_key
+    VetKeyPublicKey::from(result.public_key)
 }
 
 fn context(signer: Principal) -> Vec<u8> {

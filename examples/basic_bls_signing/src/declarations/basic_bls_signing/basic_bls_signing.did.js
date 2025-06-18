@@ -6,8 +6,12 @@ export const idlFactory = ({ IDL }) => {
     'signer' : IDL.Principal,
   });
   return IDL.Service({
-    'get_canister_public_key' : IDL.Func([], [IDL.Vec(IDL.Nat8)], []),
     'get_published_signatures' : IDL.Func([], [IDL.Vec(Signature)], ['query']),
+    'get_verification_key' : IDL.Func(
+        [IDL.Vec(IDL.Nat8)],
+        [IDL.Vec(IDL.Nat8)],
+        [],
+      ),
     'publish_my_signature_no_verification' : IDL.Func(
         [IDL.Text, IDL.Vec(IDL.Nat8)],
         [],

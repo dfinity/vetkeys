@@ -14,7 +14,7 @@ import { DerivedPublicKey, verifyBlsSignature } from "@dfinity/vetkeys";
 let myPrincipal: Principal | undefined = undefined;
 let authClient: AuthClient | undefined;
 let basicBlsSigningCanister: ActorSubclass<_SERVICE> | undefined;
-let canisterPublicKey: DerivedPublicKey | undefined;
+// let canisterPublicKey: DerivedPublicKey | undefined;
 
 function getBasicBlsSigningCanister(): ActorSubclass<_SERVICE> {
   if (basicBlsSigningCanister) return basicBlsSigningCanister;
@@ -190,13 +190,13 @@ document
   });
 
 async function listSignatures() {
-  if (!canisterPublicKey) {
-    const canisterPublicKeyRaw =
-      await getBasicBlsSigningCanister().get_canister_public_key();
-    canisterPublicKey = DerivedPublicKey.deserialize(
-      Uint8Array.from(canisterPublicKeyRaw),
-    );
-  }
+  // if (!canisterPublicKey) {
+  //   const canisterPublicKeyRaw =
+  //     await getBasicBlsSigningCanister().get_canister_public_key();
+  //   canisterPublicKey = DerivedPublicKey.deserialize(
+  //     Uint8Array.from(canisterPublicKeyRaw),
+  //   );
+  // }
 
   const signatures =
     await getBasicBlsSigningCanister().get_published_signatures();
@@ -209,51 +209,58 @@ async function listSignatures() {
           <p>No signatures have been published yet.</p>
         </div>
       `;
+
   } else {
-    signatures
-      .slice()
-      .reverse()
-      .forEach((signatureData) => {
-        const isMe =
-          myPrincipal && signatureData.signer.compareTo(myPrincipal) === "eq";
-        const signatureHex = Array.from(signatureData.signature)
-          .map((b) => b.toString(16).padStart(2, "0"))
-          .join("");
+    for (const signatureData of signatures.slice().reverse()) {
+      const isMe =
+        myPrincipal && signatureData.signer.compareTo(myPrincipal) === "eq";
+      const signatureHex = Array.from(signatureData.signature)
+        .map((b) => b.toString(16).padStart(2, "0"))
+        .join("");
 
-        // Convert nanoseconds to milliseconds and create a Date object
-        const timestamp = new Date(Number(signatureData.timestamp) / 1_000_000);
-        const formattedDate = timestamp.toLocaleString();
+      // Convert nanoseconds to milliseconds and create a Date object
+      const timestamp = new Date(Number(signatureData.timestamp) / 1_000_000);
+      const formattedDate = timestamp.toLocaleString();
 
-        const signatureElement = document.createElement("div");
-        signatureElement.className = "signature";
-        const isValid = verifySignature(
+      const signatureElement = document.createElement("div");
+      signatureElement.className = "signature";
+
+      // Set initial status to "Pending"
+      signatureElement.innerHTML = `
+        <h5>Signed message: ${signatureData.message}</h5>
+        <p class="principal ${isMe ? "principal-me" : ""}">${signatureData.signer.toString()}</p>
+        <p class="signature-hex">${signatureHex}</p>
+        <p class="verification-status pending">Verification: Pending...</p>
+        <p class="timestamp">Added: ${formattedDate}</p>
+          `;
+
+      // Asynchronously verify the signature and update the status
+      (async () => {
+        const isValid = await verifySignatureAsync(
           signatureData.message,
           Uint8Array.from(signatureData.signature),
           signatureData.signer,
         );
-        signatureElement.innerHTML = `
-          <h5>Signed message: ${signatureData.message}</h5>
-          <p class="principal ${isMe ? "principal-me" : ""}">${signatureData.signer.toString()}</p>
-          <p class="signature-hex">${signatureHex}</p>
-          <p class="verification-status ${isValid ? "valid" : "invalid"}">Verification: ${isValid ? "Valid" : "Invalid"}</p>
-          <p class="timestamp">Added: ${formattedDate}</p>
-        `;
-        signaturesDiv.appendChild(signatureElement);
-      });
+        const statusElem = signatureElement.querySelector(".verification-status");
+        if (statusElem) {
+          statusElem.textContent = `Verification: ${isValid ? "Valid" : "Invalid"}`;
+          statusElem.classList.remove("pending");
+          statusElem.classList.add(isValid ? "valid" : "invalid");
+        }
+      })();
+      signaturesDiv.appendChild(signatureElement);
+    }
   }
 
   document.getElementById("signaturesList")!.style.display = "block";
   document.getElementById("customSignatureForm")!.style.display = "none";
 }
 
-function verifySignature(
+async function verifySignatureAsync(
   message: string,
   signature: Uint8Array,
   signer: Principal,
-): boolean {
-  if (!canisterPublicKey) {
-    throw new Error("Canister public key not found");
-  }
+): Promise<boolean> {
   const domainSepBytes = new TextEncoder().encode("basic_bls_signing_dapp");
   const domainSepLength = domainSepBytes.length;
   const context = new Uint8Array([
@@ -262,10 +269,14 @@ function verifySignature(
     ...signer.toUint8Array(),
   ]);
 
-  const dpk = canisterPublicKey.deriveKey(context);
+  const verificationKeyRaw = await getBasicBlsSigningCanister().get_verification_key(context);
+  const verificationKey = DerivedPublicKey.deserialize(
+    Uint8Array.from(verificationKeyRaw),
+  );
+
   const messageBytes = new TextEncoder().encode(message);
 
-  return verifyBlsSignature(dpk, messageBytes, signature);
+  return verifyBlsSignature(verificationKey, messageBytes, signature);
 }
 
 async function publishSignature(message: string, signatureHex: string) {

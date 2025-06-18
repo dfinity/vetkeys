@@ -5,8 +5,8 @@ type Signature = record {
   signer : principal;
 };
 service : (text) -> {
-  get_canister_public_key : () -> (blob);
   get_published_signatures : () -> (vec Signature) query;
+  get_verification_key : (blob) -> (blob);
   publish_my_signature_no_verification : (text, blob) -> ();
   sign_message : (text) -> (blob);
 }

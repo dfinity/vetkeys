@@ -221,12 +221,9 @@ button:focus-visible {
   font-weight: 500;
 }
 
-.verification-status:contains("Valid") {
-  color: #28a745;
-}
-
-.verification-status:contains("Invalid") {
-  color: #dc3545;
+.verification-status.pending {
+  color: #e38232;
+  font-weight: bold;
 }
 
 .verification-status.valid {
@@ -235,7 +232,7 @@ button:focus-visible {
 }
 
 .verification-status.invalid {
-  color: #e74c3c;
+  color: #e03926;
   font-weight: bold;
 }
 
