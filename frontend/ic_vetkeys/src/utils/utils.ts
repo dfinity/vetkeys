@@ -654,9 +654,9 @@ enum IbeDomainSeparators {
     MaskMsg = "ic-vetkd-bls12-381-ibe-mask-msg-",
 }
 
-// "IC IBE" (ASCII) plus 0x00 0x01 for future extensions/ciphersuites
+// "IC IBE" (ASCII) plus 0x00 0x02 for future extensions/ciphersuites
 const IBE_HEADER = new Uint8Array([
-    0x49, 0x43, 0x20, 0x49, 0x42, 0x45, 0x00, 0x01,
+    0x49, 0x43, 0x20, 0x49, 0x42, 0x45, 0x00, 0x02,
 ]);
 const IBE_HEADER_BYTES = 8;
 
@@ -665,7 +665,8 @@ function hashToMask(
     seed: Uint8Array,
     msg: Uint8Array,
 ): bigint {
-    const ro_input = new Uint8Array([...header, ...seed, ...msg]);
+    const sha256msg = sha256(msg);
+    const ro_input = new Uint8Array([...header, ...seed, ...sha256msg]);
     return hashToScalar(ro_input, IbeDomainSeparators.HashToMask);
 }
 
@@ -851,20 +852,20 @@ export class IbeSeed {
  */
 export class IbeCiphertext {
     readonly #header: Uint8Array;
-    readonly #c1: G2Point;
-    readonly #c2: Uint8Array;
-    readonly #c3: Uint8Array;
+    readonly #masked_msg: Uint8Array;
+    readonly #masked_seed: Uint8Array;
+    readonly #auth: G2Point;
 
     /**
      * Serialize the IBE ciphertext to a bytestring
      */
     serialize(): Uint8Array {
-        const c1bytes = this.#c1.toRawBytes(true);
+        const authbytes = this.#auth.toRawBytes(true);
         return new Uint8Array([
             ...this.#header,
-            ...c1bytes,
-            ...this.#c2,
-            ...this.#c3,
+            ...this.#masked_msg,
+            ...this.#masked_seed,
+            ...authbytes,
         ]);
     }
 
@@ -872,25 +873,35 @@ export class IbeCiphertext {
      * Deserialize an IBE ciphertext
      */
     static deserialize(bytes: Uint8Array): IbeCiphertext {
-        if (bytes.length < IBE_HEADER_BYTES + G2_BYTES + SEED_BYTES) {
+        if (bytes.length < IBE_HEADER_BYTES + SEED_BYTES + G2_BYTES) {
             throw new Error("Invalid IBE ciphertext");
         }
 
         const header = bytes.subarray(0, IBE_HEADER_BYTES);
-        const c1 = bls12_381.G2.ProjectivePoint.fromHex(
-            bytes.subarray(IBE_HEADER_BYTES, IBE_HEADER_BYTES + G2_BYTES),
-        );
-        const c2 = bytes.subarray(
-            IBE_HEADER_BYTES + G2_BYTES,
-            IBE_HEADER_BYTES + G2_BYTES + SEED_BYTES,
-        );
-        const c3 = bytes.subarray(IBE_HEADER_BYTES + G2_BYTES + SEED_BYTES);
-
         if (!isEqual(header, IBE_HEADER)) {
             throw new Error("Unexpected header for IBE ciphertext");
         }
 
-        return new IbeCiphertext(header, c1, c2, c3);
+        const msg_len =
+            bytes.length - (IBE_HEADER_BYTES + G2_BYTES + SEED_BYTES);
+        const masked_msg = bytes.subarray(
+            IBE_HEADER_BYTES,
+            IBE_HEADER_BYTES + msg_len,
+        );
+
+        const masked_seed = bytes.subarray(
+            IBE_HEADER_BYTES + msg_len,
+            IBE_HEADER_BYTES + msg_len + SEED_BYTES,
+        );
+
+        const auth = bls12_381.G2.ProjectivePoint.fromHex(
+            bytes.subarray(
+                IBE_HEADER_BYTES + msg_len + SEED_BYTES,
+                IBE_HEADER_BYTES + msg_len + SEED_BYTES + G2_BYTES,
+            ),
+        );
+
+        return new IbeCiphertext(header, masked_msg, masked_seed, auth);
     }
 
     /**
@@ -918,28 +929,31 @@ export class IbeCiphertext {
             t,
         );
 
-        const c1 = bls12_381.G2.ProjectivePoint.BASE.multiply(t);
-        const c2 = maskSeed(seed.getBytes(), serializeGtElem(tsig));
-        const c3 = maskMsg(msg, seed.getBytes());
+        const auth = bls12_381.G2.ProjectivePoint.BASE.multiply(t);
+        const masked_seed = maskSeed(seed.getBytes(), serializeGtElem(tsig));
+        const masked_msg = maskMsg(msg, seed.getBytes());
 
-        return new IbeCiphertext(header, c1, c2, c3);
+        return new IbeCiphertext(header, masked_msg, masked_seed, auth);
     }
 
     /**
      * Decrypt an IBE ciphertext, returning the message
      */
     decrypt(vetkd: VetKey): Uint8Array {
-        const k_c1 = bls12_381.pairing(vetkd.getPoint(), this.#c1);
+        const k_auth = bls12_381.pairing(vetkd.getPoint(), this.#auth);
 
-        const seed = maskSeed(this.#c2, serializeGtElem(k_c1));
+        const seed = maskSeed(this.#masked_seed, serializeGtElem(k_auth));
 
-        const msg = maskMsg(this.#c3, seed);
+        const msg = maskMsg(this.#masked_msg, seed);
 
         const t = hashToMask(this.#header, seed, msg);
 
         const g2_t = bls12_381.G2.ProjectivePoint.BASE.multiply(t);
 
-        const valid = isEqual(g2_t.toRawBytes(true), this.#c1.toRawBytes(true));
+        const valid = isEqual(
+            g2_t.toRawBytes(true),
+            this.#auth.toRawBytes(true),
+        );
 
         if (valid) {
             return msg;
@@ -953,13 +967,13 @@ export class IbeCiphertext {
      */
     private constructor(
         header: Uint8Array,
-        c1: G2Point,
-        c2: Uint8Array,
-        c3: Uint8Array,
+        masked_msg: Uint8Array,
+        masked_seed: Uint8Array,
+        auth: G2Point,
     ) {
         this.#header = header;
-        this.#c1 = c1;
-        this.#c2 = c2;
-        this.#c3 = c3;
+        this.#masked_msg = masked_msg;
+        this.#masked_seed = masked_seed;
+        this.#auth = auth;
     }
 }
