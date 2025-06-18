@@ -151,7 +151,8 @@ document
     const message = prompt("Enter message to sign:");
     if (message) {
       try {
-        const signature = await getBasicBlsSigningCanister().sign_message(message);
+        const signature =
+          await getBasicBlsSigningCanister().sign_message(message);
         await getBasicBlsSigningCanister().publish_my_signature_no_verification(
           message,
           signature,
