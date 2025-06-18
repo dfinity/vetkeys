@@ -62,6 +62,7 @@ export function login(client: AuthClient) {
 export function logout() {
   void authClient?.logout();
   myPrincipal = undefined;
+  basicBlsSigningCanister = undefined;
   updateUI(false);
   document.getElementById("signaturesList")!.style.display = "none";
 }
