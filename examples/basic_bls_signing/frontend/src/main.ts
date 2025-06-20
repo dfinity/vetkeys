@@ -10,11 +10,13 @@ import { AuthClient } from "@dfinity/auth-client";
 import type { ActorSubclass } from "@dfinity/agent";
 import { _SERVICE } from "../../src/declarations/basic_bls_signing/basic_bls_signing.did";
 import { DerivedPublicKey, verifyBlsSignature } from "@dfinity/vetkeys";
+import type { Signature } from "../../src/declarations/basic_bls_signing/basic_bls_signing.did";
 
 let myPrincipal: Principal | undefined = undefined;
 let authClient: AuthClient | undefined;
 let basicBlsSigningCanister: ActorSubclass<_SERVICE> | undefined;
 // let canisterPublicKey: DerivedPublicKey | undefined;
+let myVerificationKey: DerivedPublicKey | undefined;
 
 function getBasicBlsSigningCanister(): ActorSubclass<_SERVICE> {
   if (basicBlsSigningCanister) return basicBlsSigningCanister;
@@ -62,6 +64,7 @@ export function login(client: AuthClient) {
 export function logout() {
   void authClient?.logout();
   myPrincipal = undefined;
+  myVerificationKey = undefined;
   basicBlsSigningCanister = undefined;
   updateUI(false);
   document.getElementById("signaturesList")!.style.display = "none";
@@ -119,11 +122,11 @@ document.querySelector<HTMLDivElement>("#app")!.innerHTML = `
     </div>
     <div id="signingActions" class="buttons" style="display: none;">
       <button id="signMessageButton">Sign Message</button>
-      <button id="customSignatureButton">Add Custom Signature</button>
       <button id="listSignaturesButton">List Signatures</button>
+      <button id="customSignatureButton">Verify Custom Signature</button>
     </div>
     <div id="customSignatureForm" style="display: none;">
-      <h3>Add Custom Signature</h3>
+      <h3>Verify Custom Signature</h3>
       <form id="submitSignatureForm">
         <div>
           <label for="message">Message</label>
@@ -133,11 +136,15 @@ document.querySelector<HTMLDivElement>("#app")!.innerHTML = `
           <label for="signature">Signature (hex)</label>
           <input type="text" id="signature" required>
         </div>
+        <div>
+          <label for="pubkey">Public key (hex)</label>
+          <input type="text" id="pubkey" required>
+        </div>
         <button type="submit">Submit</button>
       </form>
     </div>
     <div id="signaturesList" style="display: none;">
-      <h3>Published Signatures</h3>
+      <h3>My Signatures</h3>
       <div id="signatures"></div>
     </div>
   </div>
@@ -151,13 +158,8 @@ document.getElementById("signMessageButton")!.addEventListener("click", () => {
     const message = prompt("Enter message to sign:");
     if (message) {
       try {
-        const signature =
-          await getBasicBlsSigningCanister().sign_message(message);
-        await getBasicBlsSigningCanister().publish_my_signature_no_verification(
-          message,
-          signature,
-        );
-        alert("Signature published successfully!");
+        await getBasicBlsSigningCanister().sign_message(message);
+        alert("Created and stored signature successfully.");
       } catch (error) {
         alert(`Error: ${error as Error}`);
       }
@@ -187,20 +189,34 @@ document
     const signatureHex = (
       document.getElementById("signature") as HTMLInputElement
     ).value;
-    void publishSignature(message, signatureHex);
+    const pubkeyHex = (document.getElementById("pubkey") as HTMLInputElement)
+      .value;
+    const messageBytes = new TextEncoder().encode(message);
+
+    try {
+      const signatureBytes = new Uint8Array(
+        signatureHex.match(/.{1,2}/g)!.map((byte) => parseInt(byte, 16)),
+      );
+      const pubkeyBytes = new Uint8Array(
+        pubkeyHex.match(/.{1,2}/g)!.map((byte) => parseInt(byte, 16)),
+      );
+
+      const verificationKey = DerivedPublicKey.deserialize(pubkeyBytes);
+
+      const result = verifyBlsSignature(
+        verificationKey,
+        messageBytes,
+        signatureBytes,
+      );
+      alert(`Verification result: ${result ? "Valid" : "INVALID"}`);
+    } catch {
+      alert("Verification failed.");
+    }
   });
 
 async function listSignatures() {
-  // if (!canisterPublicKey) {
-  //   const canisterPublicKeyRaw =
-  //     await getBasicBlsSigningCanister().get_canister_public_key();
-  //   canisterPublicKey = DerivedPublicKey.deserialize(
-  //     Uint8Array.from(canisterPublicKeyRaw),
-  //   );
-  // }
-
-  const signatures =
-    await getBasicBlsSigningCanister().get_published_signatures();
+  const signatures: Array<Signature> =
+    await getBasicBlsSigningCanister().get_my_signatures();
   const signaturesDiv = document.getElementById("signatures")!;
   signaturesDiv.innerHTML = "";
 
@@ -211,9 +227,18 @@ async function listSignatures() {
         </div>
       `;
   } else {
+    if (!myVerificationKey) {
+      const myVerificationKeyRaw =
+        await getBasicBlsSigningCanister().get_my_verification_key();
+      myVerificationKey = DerivedPublicKey.deserialize(
+        Uint8Array.from(myVerificationKeyRaw),
+      );
+    }
+    const myVerificationKeyHex = Array.from(myVerificationKey.publicKeyBytes())
+      .map((b) => b.toString(16).padStart(2, "0"))
+      .join("");
+
     for (const signatureData of signatures.slice().reverse()) {
-      const isMe =
-        myPrincipal && signatureData.signer.compareTo(myPrincipal) === "eq";
       const signatureHex = Array.from(signatureData.signature)
         .map((b) => b.toString(16).padStart(2, "0"))
         .join("");
@@ -225,89 +250,25 @@ async function listSignatures() {
       const signatureElement = document.createElement("div");
       signatureElement.className = "signature";
 
-      // Set initial status to "Pending"
+      const isValid = verifyBlsSignature(
+        myVerificationKey,
+        new TextEncoder().encode(signatureData.message),
+        Uint8Array.from(signatureData.signature),
+      );
+
       signatureElement.innerHTML = `
         <h5>Signed message: ${signatureData.message}</h5>
-        <p class="principal ${isMe ? "principal-me" : ""}">${signatureData.signer.toString()}</p>
-        <p class="signature-hex">${signatureHex}</p>
-        <p class="verification-status pending">Verification: Pending...</p>
+        <p class="signature-hex">Signature: ${signatureHex}</p>
+        <p class="verification-key-hex">Public key: ${myVerificationKeyHex}</p>
+        <p class="verification-status ${isValid ? "valid" : "invalid"}">Verification: ${isValid ? "Valid" : "Invalid"}</p>
         <p class="timestamp">Added: ${formattedDate}</p>
           `;
 
-      // Asynchronously verify the signature and update the status
-      void (async () => {
-        let isValid: boolean | undefined;
-        try {
-          isValid = await verifySignatureAsync(
-            signatureData.message,
-            Uint8Array.from(signatureData.signature),
-            signatureData.signer,
-          );
-        } catch {
-          const statusElem = signatureElement.querySelector(
-            ".verification-status",
-          );
-          if (statusElem) {
-            statusElem.textContent = "Verification: Error";
-            statusElem.classList.remove("pending");
-            statusElem.classList.add("invalid");
-          }
-          return;
-        }
-        const statusElem = signatureElement.querySelector(
-          ".verification-status",
-        );
-        if (statusElem) {
-          statusElem.textContent = `Verification: ${isValid ? "Valid" : "Invalid"}`;
-          statusElem.classList.remove("pending");
-          statusElem.classList.add(isValid ? "valid" : "invalid");
-        }
-      })();
       signaturesDiv.appendChild(signatureElement);
     }
   }
 
   document.getElementById("signaturesList")!.style.display = "block";
-  document.getElementById("customSignatureForm")!.style.display = "none";
-}
-
-async function verifySignatureAsync(
-  message: string,
-  signature: Uint8Array,
-  signer: Principal,
-): Promise<boolean> {
-  const domainSepBytes = new TextEncoder().encode("basic_bls_signing_dapp");
-  const domainSepLength = domainSepBytes.length;
-  const context = new Uint8Array([
-    domainSepLength,
-    ...domainSepBytes,
-    ...signer.toUint8Array(),
-  ]);
-
-  const verificationKeyRaw =
-    await getBasicBlsSigningCanister().get_verification_key(context);
-  const verificationKey = DerivedPublicKey.deserialize(
-    Uint8Array.from(verificationKeyRaw),
-  );
-
-  const messageBytes = new TextEncoder().encode(message);
-
-  return verifyBlsSignature(verificationKey, messageBytes, signature);
-}
-
-async function publishSignature(message: string, signatureHex: string) {
-  const signature = new Uint8Array(
-    signatureHex.match(/.{1,2}/g)!.map((byte) => parseInt(byte, 16)),
-  );
-  try {
-    await getBasicBlsSigningCanister().publish_my_signature_no_verification(
-      message,
-      signature,
-    );
-    alert("Signature published successfully!");
-  } catch (error) {
-    alert(`Error: ${error as Error}`);
-  }
   document.getElementById("customSignatureForm")!.style.display = "none";
 }
 

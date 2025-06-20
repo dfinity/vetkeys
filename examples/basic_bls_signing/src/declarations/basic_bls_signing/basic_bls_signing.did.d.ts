@@ -6,18 +6,10 @@ export interface Signature {
   'signature' : Uint8Array | number[],
   'message' : string,
   'timestamp' : bigint,
-  'signer' : Principal,
 }
 export interface _SERVICE {
-  'get_published_signatures' : ActorMethod<[], Array<Signature>>,
-  'get_verification_key' : ActorMethod<
-    [Uint8Array | number[]],
-    Uint8Array | number[]
-  >,
-  'publish_my_signature_no_verification' : ActorMethod<
-    [string, Uint8Array | number[]],
-    undefined
-  >,
+  'get_my_signatures' : ActorMethod<[], Array<Signature>>,
+  'get_my_verification_key' : ActorMethod<[], Uint8Array | number[]>,
   'sign_message' : ActorMethod<[string], Uint8Array | number[]>,
 }
 export declare const idlFactory: IDL.InterfaceFactory;

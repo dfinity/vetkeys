@@ -161,7 +161,6 @@ button:focus-visible {
   background-color: #242424;
   border: 1px solid #333;
   border-radius: 8px;
-  color: rgba(255, 255, 255, 0.87);
   font-size: 1rem;
 }
 
@@ -217,13 +216,16 @@ button:focus-visible {
   border-radius: 4px;
 }
 
-.verification-status {
-  font-weight: 500;
+.verification-key-hex {
+  font-family: monospace;
+  word-break: break-all;
+  background-color: rgba(0, 0, 0, 0.2);
+  padding: 0.5rem;
+  border-radius: 4px;
 }
 
-.verification-status.pending {
-  color: #e38232;
-  font-weight: bold;
+.verification-status {
+  font-weight: 500;
 }
 
 .verification-status.valid {
@@ -239,21 +241,6 @@ button:focus-visible {
 .principal {
   font-family: monospace;
   color: #a8a6a6;
-}
-
-.principal-me {
-  color: #28a745;
-  font-weight: 500;
-}
-
-.principal-me::before {
-  content: "ME";
-  background-color: #646cff;
-  color: white;
-  padding: 0.1rem 0.3rem;
-  border-radius: 4px;
-  font-size: 0.8rem;
-  margin-right: 0.5rem;
 }
 
 .login-container {
@@ -323,6 +310,10 @@ button:focus-visible {
   }
 
   .signature-hex {
+    background-color: rgba(0, 0, 0, 0.05);
+  }
+
+  .verification-key-hex {
     background-color: rgba(0, 0, 0, 0.05);
   }
 

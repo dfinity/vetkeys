@@ -13,7 +13,6 @@ pub struct Signature {
     #[serde(with = "serde_bytes")]
     pub signature: Vec<u8>,
     pub timestamp: u64,
-    pub signer: Principal,
 }
 
 impl Storable for Signature {
@@ -25,5 +24,20 @@ impl Storable for Signature {
         serde_cbor::from_slice(&bytes).expect("failed to deserialize")
     }
 
+    const BOUND: Bound = Bound::Unbounded;
+}
+
+#[derive(CandidType, Deserialize, Serialize, Default, Clone)]
+pub struct SignatureVec {
+    pub sigs: Vec<Signature>,
+}
+
+impl Storable for SignatureVec {
+    fn to_bytes(&self) -> Cow<[u8]> {
+        Cow::Owned(serde_cbor::to_vec(self).expect("failed to serialize"))
+    }
+    fn from_bytes(bytes: Cow<[u8]>) -> Self {
+        serde_cbor::from_slice(&bytes).expect("failed to deserialize")
+    }
     const BOUND: Bound = Bound::Unbounded;
 }

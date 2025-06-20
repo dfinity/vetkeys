@@ -4,11 +4,11 @@ use ic_cdk::management_canister::{VetKDCurve, VetKDKeyId, VetKDPublicKeyArgs};
 use ic_cdk::{init, query, update};
 use ic_stable_structures::{
     memory_manager::{MemoryId, MemoryManager, VirtualMemory},
-    Cell as StableCell, DefaultMemoryImpl, StableLog,
+    Cell as StableCell, DefaultMemoryImpl, StableBTreeMap,
 };
 use serde_bytes::ByteBuf;
 use std::cell::RefCell;
-use types::Signature;
+use types::{Signature, SignatureVec};
 
 type Memory = VirtualMemory<DefaultMemoryImpl>;
 
@@ -20,10 +20,9 @@ thread_local! {
     static MEMORY_MANAGER: RefCell<MemoryManager<DefaultMemoryImpl>> =
         RefCell::new(MemoryManager::init(DefaultMemoryImpl::default()));
 
-    static PUBLISHED_SIGNATURES: RefCell<StableLog<Signature, Memory, Memory>> = RefCell::new(StableLog::new(
-        MEMORY_MANAGER.with(|m| m.borrow().get(MemoryId::new(0))), // index memory
-        MEMORY_MANAGER.with(|m| m.borrow().get(MemoryId::new(1))), // data memory
-    ));
+    static SIGNATURES: RefCell<StableBTreeMap<Principal, SignatureVec, Memory>> = RefCell::new(StableBTreeMap::init(
+            MEMORY_MANAGER.with_borrow(|m| m.get(MemoryId::new(3))),
+        ));
 
     static KEY_NAME: RefCell<StableCell<String, Memory>> =
         RefCell::new(StableCell::init(
@@ -44,40 +43,56 @@ fn init(key_name_string: String) {
 
 #[update]
 async fn sign_message(message: RawMessage) -> RawSignature {
-    let signature = ic_vetkeys::management_canister::sign_with_bls(
+    let signer = ic_cdk::api::msg_caller();
+    let signature_bytes = ic_vetkeys::management_canister::sign_with_bls(
         message.as_bytes().to_vec(),
-        context(ic_cdk::api::msg_caller()),
+        context(&signer),
         key_id(),
     )
     .await
     .expect("ic_vetkeys' sign_with_bls failed");
 
-    signature.into()
-}
+    SIGNATURES.with_borrow_mut(|signer_to_sigs| {
+        let new_sig = Signature {
+            message,
+            signature: signature_bytes.clone(),
+            timestamp: ic_cdk::api::time(),
+        };
+        match signer_to_sigs.get(&signer) {
+            Some(mut sigs) => {
+                sigs.sigs.push(new_sig);
+                signer_to_sigs.insert(signer, sigs);
+            }
+            None => {
+                signer_to_sigs.insert(
+                    signer,
+                    SignatureVec {
+                        sigs: vec![new_sig],
+                    },
+                );
+            }
+        }
+    });
 
-#[update]
-fn publish_my_signature_no_verification(message: RawMessage, signature: RawSignature) {
-    let signature = Signature {
-        message,
-        signature: signature.into_vec(),
-        timestamp: ic_cdk::api::time(),
-        signer: ic_cdk::api::msg_caller(),
-    };
-    PUBLISHED_SIGNATURES
-        .with_borrow_mut(|log| log.append(&signature))
-        .expect("Failed to append signature to log");
+    ByteBuf::from(signature_bytes)
 }
 
 #[query]
-fn get_published_signatures() -> Vec<Signature> {
-    PUBLISHED_SIGNATURES.with_borrow(|log| log.iter().collect())
+fn get_my_signatures() -> Vec<Signature> {
+    SIGNATURES.with_borrow(|signer_to_sigs| {
+        signer_to_sigs
+            .get(&ic_cdk::api::msg_caller())
+            .unwrap_or_default()
+            .sigs
+            .clone()
+    })
 }
 
 #[update]
-async fn get_verification_key(context: Vec<u8>) -> VetKeyPublicKey {
+async fn get_my_verification_key() -> VetKeyPublicKey {
     let request = VetKDPublicKeyArgs {
         canister_id: None,
-        context,
+        context: context(&ic_cdk::api::msg_caller()),
         key_id: key_id(),
     };
     let result = ic_cdk::management_canister::vetkd_public_key(&request)
@@ -87,7 +102,7 @@ async fn get_verification_key(context: Vec<u8>) -> VetKeyPublicKey {
     VetKeyPublicKey::from(result.public_key)
 }
 
-fn context(signer: Principal) -> Vec<u8> {
+fn context(signer: &Principal) -> Vec<u8> {
     // A domain separator is not strictly necessary in this dapp, but having one is considered a good practice.
     const DOMAIN_SEPARATOR: [u8; 22] = *b"basic_bls_signing_dapp";
     const DOMAIN_SEPARATOR_LENGTH: u8 = DOMAIN_SEPARATOR.len() as u8;
