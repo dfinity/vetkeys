@@ -15,7 +15,7 @@ The **VetKey Password Manager** is an example application demonstrating how to u
 
 ### Prerequisites
 
-- [Local Internet Computer dev environment](https://internetcomputer.org/docs/current/developer-docs/backend/rust/dev-env)
+- [Local Internet Computer dev environment](https://internetcomputer.org/docs/building-apps/getting-started/install)
 - [npm](https://www.npmjs.com/package/npm)
 
 ### Install Dependencies
@@ -28,6 +28,20 @@ npm install
 
 ```bash
 bash deploy_locally.sh
+```
+
+### (Optional) Change the Backend Canister Language
+
+Instead of the default Motoko backend implementation, you can use the Rust implementation by replacing `dfx.json` , which is a symlink to `dfx_configs/dfx_motoko.dfx`, with the Rust version of `dfx.json`:
+
+```bash
+ln -sf dfx_configs/dfx_rust.json dfx.json
+```
+
+Alternatively, overwrite the symlink with the file itself if that doesn't work:
+
+```bash
+cp dfx_configs/dfx_rust.json dfx.json
 ```
 
 ## Running the Project

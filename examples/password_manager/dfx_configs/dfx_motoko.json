@@ -1,0 +1,23 @@
+{
+  "canisters": {
+    "ic_vetkeys_encrypted_maps_canister": {
+      "main": "../../backend/mo/canisters/ic_vetkeys_encrypted_maps_canister/src/Main.mo",
+      "type": "motoko",
+      "args": "--enhanced-orthogonal-persistence"
+    },
+    "internet-identity": {
+      "type": "pull",
+      "id": "rdmx6-jaaaa-aaaaa-aaadq-cai"
+    },
+    "www": {
+      "dependencies": ["ic_vetkeys_encrypted_maps_canister"],
+      "build": ["npm i && cd frontend && npm run build"],
+      "frontend": {
+        "entrypoint": "frontend/dist/index.html"
+      },
+      "source": ["frontend/dist/"],
+      "type": "assets",
+      "output_env_file": "frontend/.env"
+    }
+  }
+}
