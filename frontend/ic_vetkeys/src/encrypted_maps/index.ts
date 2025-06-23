@@ -570,7 +570,8 @@ export class EncryptedMaps {
                 ...mapName,
             ]);
 
-            const encryptedVetKey = new EncryptedVetKey(encryptedKeyBytes);
+            const encryptedVetKey =
+                EncryptedVetKey.deserialize(encryptedKeyBytes);
             const derivedPublicKey =
                 DerivedPublicKey.deserialize(verificationKey);
             const vetKey = encryptedVetKey.decryptAndVerify(
@@ -638,7 +639,9 @@ export class EncryptedMaps {
             mapName,
         ]);
         if (cachedRawDerivedKeyMaterial) {
-            return new DerivedKeyMaterial(cachedRawDerivedKeyMaterial);
+            return DerivedKeyMaterial.fromCryptoKey(
+                cachedRawDerivedKeyMaterial,
+            );
         }
 
         const derivedKeyMaterial = await this.getDerivedKeyMaterial(
