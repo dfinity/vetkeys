@@ -319,7 +319,10 @@ async function listLots() {
             heading.textContent = "Open Lots";
             fragment.appendChild(heading);
 
-            openLots.lots.reverse().forEach((lot, index) => {
+            openLots.lots.reverse();
+            openLots.bidders.reverse();
+
+            openLots.lots.forEach((lot, index) => {
                 const lotDiv = document.createElement("div");
                 lotDiv.className = "lot";
                 const isCreator =
@@ -384,7 +387,10 @@ async function listLots() {
             heading.textContent = "Closed Lots";
             fragment.appendChild(heading);
 
-            closedLots.lots.reverse().forEach((lot, index) => {
+            closedLots.lots.reverse();
+            closedLots.bids.reverse();
+
+            closedLots.lots.forEach((lot, index) => {
                 const lotDiv = document.createElement("div");
                 lotDiv.className = "lot";
                 const isWinner =
