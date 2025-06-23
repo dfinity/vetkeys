@@ -18,16 +18,10 @@ The **VetKey Password Manager** is an example application demonstrating how to u
 - [Local Internet Computer dev environment](https://internetcomputer.org/docs/building-apps/getting-started/install)
 - [npm](https://www.npmjs.com/package/npm)
 
-### Install Dependencies
+### Install Frontend Dependencies
 
 ```bash
 npm install
-```
-
-### Deploy the Canisters
-
-```bash
-bash deploy_locally.sh
 ```
 
 ### (Optional) Change the Backend Canister Language
@@ -42,6 +36,12 @@ Alternatively, overwrite the symlink with the file itself if that doesn't work:
 
 ```bash
 cp dfx_configs/dfx_rust.json dfx.json
+```
+
+### Deploy the Canisters
+
+```bash
+bash deploy_locally.sh
 ```
 
 ## Running the Project
