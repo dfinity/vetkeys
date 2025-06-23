@@ -1,5 +1,8 @@
 # Change Log
 
+## [Unreleased]
+- BREAKING CHANGE: Fixed a few inconsistencies with the Rust backend of encrypted maps. 
+
 ## [0.2.0] - 2025-06-18
 
 ### Fixes
