@@ -320,13 +320,14 @@ async function listLots() {
             fragment.appendChild(heading);
 
             openLots.lots.reverse().forEach((lot, index) => {
+                const revIndex = openLots.lots.length - 1 - index;
                 const lotDiv = document.createElement("div");
                 lotDiv.className = "lot";
                 const isCreator =
                     lot.creator.compareTo(myPrincipal as Principal) === "eq";
                 const status = getStatusForOpenLot(
-                    openLots.lots[index],
-                    openLots.bidders[index],
+                    openLots.lots[revIndex],
+                    openLots.bidders[revIndex],
                 );
 
                 lotDiv.innerHTML = `
@@ -335,7 +336,7 @@ async function listLots() {
           <p>Creator: ${lot.creator.toText()}</p>
           <p>Closing in: ${formatCountdown(lot.end_time)}</p>
           ${status}
-          <p>Bidders:${openLots.bidders[index].length === 0 ? " no bidders yet" : openLots.bidders[index].map((bidder) => "<br>" + formatPrincipal(bidder)).join("")}</p>
+          <p>Bidders:${openLots.bidders[revIndex].length === 0 ? " no bidders yet" : openLots.bidders[revIndex].map((bidder) => "<br>" + formatPrincipal(bidder)).join("")}</p>
           ${
               !isCreator
                   ? `
@@ -385,6 +386,7 @@ async function listLots() {
             fragment.appendChild(heading);
 
             closedLots.lots.reverse().forEach((lot, index) => {
+                const revIndex = closedLots.lots.length - 1 - index;
                 const lotDiv = document.createElement("div");
                 lotDiv.className = "lot";
                 const isWinner =
@@ -394,7 +396,7 @@ async function listLots() {
                     ) === "eq";
                 const status = getStatusForClosedLot(
                     lot,
-                    closedLots.bids[index],
+                    closedLots.bids[revIndex],
                 );
 
                 lotDiv.innerHTML = `
@@ -405,9 +407,9 @@ async function listLots() {
           <p>Ended at: ${new Date(Number(lot.end_time) / 1000000).toLocaleString()}</p>
           ${status}
           <p>Bids: ${
-              closedLots.bids[index].length === 0
+              closedLots.bids[revIndex].length === 0
                   ? " no bids"
-                  : closedLots.bids[index]
+                  : closedLots.bids[revIndex]
                         .map(
                             (bid) =>
                                 `<br>${formatPrincipal(
