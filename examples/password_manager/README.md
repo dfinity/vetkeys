@@ -26,7 +26,7 @@ npm install
 
 ### (Optional) Change the Backend Canister Language
 
-Instead of the default Motoko backend implementation, you can use the Rust implementation by replacing `dfx.json` , which is a symlink to `dfx_configs/dfx_motoko.dfx`, with the Rust version of `dfx.json`:
+Instead of the default Motoko backend implementation, you can also use the Rust implementation by replacing `dfx.json` , which is a symlink to `dfx_configs/dfx_motoko.dfx`, with the Rust version of `dfx.json`:
 
 ```bash
 ln -sf dfx_configs/dfx_rust.json dfx.json
