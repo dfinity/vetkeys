@@ -1,12 +1,3 @@
-// Polyfill for process.env in Vite preview
-
-if (typeof process === "undefined") {
-    (globalThis as any).process = {
-        env: {}
-    };
-}
-
-
 import "./app.css";
 import App from "./App.svelte";
 
