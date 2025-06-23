@@ -638,9 +638,10 @@ impl IbeCiphertext {
 
         let domain_sep = IbeDomainSep::MaskMsg(msg.len());
 
-        let shake_seed = derive_symmetric_key(seed, &domain_sep.to_string(), IBE_SEED_BYTES);
+        let mut shake_seed = derive_symmetric_key(seed, &domain_sep.to_string(), IBE_SEED_BYTES);
 
         let mut mask = derive_ibe_ctext_mask(&shake_seed, msg.len());
+        shake_seed.zeroize();
 
         for i in 0..msg.len() {
             mask[i] ^= msg[i];
