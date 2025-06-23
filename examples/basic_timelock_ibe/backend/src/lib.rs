@@ -225,7 +225,7 @@ async fn close_one_lot_if_any_is_open_and_expired() {
 
     let lot_id = match maybe_deadline_and_lot_id {
         // if there was a lot and its deadline has passed, remove it from the open lots deadlines to prevent double processing
-        Some(((deadline, lot_id), _)) if deadline <= ic_cdk::api::time() => {
+        Some(((deadline, lot_id), ())) if deadline <= ic_cdk::api::time() => {
             OPEN_LOTS_DEADLINES.with_borrow_mut(|open_lots_deadlines| {
                 open_lots_deadlines
                     .remove(&(deadline, lot_id))
