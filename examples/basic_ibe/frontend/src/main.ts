@@ -80,7 +80,7 @@ async function getMyIbePrivateKey(): Promise<VetKey> {
                 transportSecretKey.publicKeyBytes(),
             ),
         );
-        ibePrivateKey = new EncryptedVetKey(encryptedKey).decryptAndVerify(
+        ibePrivateKey = EncryptedVetKey.deserialize(encryptedKey).decryptAndVerify(
             transportSecretKey,
             await getIbePublicKey(),
             new Uint8Array(myPrincipal.toUint8Array()),
