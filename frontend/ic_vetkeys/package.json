@@ -3,7 +3,7 @@
     "version": "0.2.0",
     "author": "DFINITY Stiftung",
     "description": "JavaScript and TypeScript library to use Internet Computer vetKeys",
-    "homepage": "https://internetcomputer.org/docs/building-apps/network-features/encryption/vetkeys",
+    "homepage": "https://internetcomputer.org/docs/building-apps/network-features/vetkeys/introduction",
     "license": "Apache-2.0",
     "repository": {
         "type": "git",

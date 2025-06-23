@@ -21,7 +21,7 @@ type Memory = VirtualMemory<DefaultMemoryImpl>;
 ///
 /// **vetKeys** is a feature of the Internet Computer (ICP) that enables the derivation of **encrypted cryptographic keys**. This library simplifies the process of key retrieval, encryption, and controlled sharing, ensuring secure and efficient key management for canisters and users.
 ///
-/// For an introduction to **vetKeys**, refer to the [vetKeys Overview](https://internetcomputer.org/docs/building-apps/network-features/encryption/vetkeys).
+/// For an introduction to **vetKeys**, refer to the [vetKeys Overview](https://internetcomputer.org/docs/building-apps/network-features/vetkeys/introduction).
 ///
 /// ## Core Features
 ///

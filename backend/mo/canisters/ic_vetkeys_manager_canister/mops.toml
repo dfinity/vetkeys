@@ -1,7 +1,7 @@
 [package]
 name = "ic-vetkeys-manager-canister"
 version = "0.1.0"
-repository = "https://github.com/dfinity/vetkd-devkit"
+repository = "https://github.com/dfinity/vetkeys/backend/mo/canisters/ic_vetkeys_manager_canister"
 keywords = [
   "vetkeys,vetkd,encryption,privacy,signature,BLS,key ",
   "derivation,IBE"
