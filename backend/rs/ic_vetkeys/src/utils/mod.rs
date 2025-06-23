@@ -396,6 +396,17 @@ impl EncryptedVetKey {
         }
     }
 
+    /// Serialize the encrypted VetKey
+    pub fn serialize(&self) -> Vec<u8> {
+        let mut result = vec![];
+
+        result.extend_from_slice(&self.c1.to_compressed());
+        result.extend_from_slice(&self.c2.to_compressed());
+        result.extend_from_slice(&self.c3.to_compressed());
+
+        result
+    }
+
     /// Deserializes an encrypted key from a byte vector
     pub fn deserialize(bytes: &[u8]) -> Result<EncryptedVetKey, String> {
         let ek_bytes: &[u8; Self::BYTES] = bytes.try_into().map_err(|_e: TryFromSliceError| {
