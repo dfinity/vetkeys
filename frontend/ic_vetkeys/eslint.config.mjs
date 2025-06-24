@@ -19,6 +19,19 @@ export default tseslint.config(
           tsconfigRootDir: __dirname,
         },
       },
+      rules: {
+        '@typescript-eslint/naming-convention': [
+          'error',
+          {
+            selector: 'variableLike',
+            format: ['camelCase'],
+          },
+          {
+            selector: 'typeLike',
+            format: ['PascalCase'],
+          },
+        ],
+      },
     },
     {
         ignores: [
