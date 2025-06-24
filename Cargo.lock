@@ -1265,7 +1265,7 @@ dependencies = [
  "ic-cdk-macros",
  "ic-dummy-getrandom-for-wasm",
  "ic-stable-structures",
- "ic-vetkeys",
+ "ic-vetkeys 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde",
  "serde_bytes",
  "serde_cbor",
@@ -1283,7 +1283,7 @@ dependencies = [
  "ic-cdk-timers",
  "ic-dummy-getrandom-for-wasm",
  "ic-stable-structures",
- "ic-vetkeys",
+ "ic-vetkeys 0.2.0",
  "serde",
  "serde_bytes",
  "serde_cbor",
@@ -1299,7 +1299,7 @@ dependencies = [
  "ic-cdk-macros",
  "ic-dummy-getrandom-for-wasm",
  "ic-stable-structures",
- "ic-vetkeys",
+ "ic-vetkeys 0.2.0",
  "serde",
  "serde_cbor",
 ]
@@ -1338,6 +1338,37 @@ dependencies = [
 ]
 
 [[package]]
+name = "ic-vetkeys"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e74c7e7811983cde1bbe44b78a6c68fc9aa009e4bb88890e7e854e2e7f8d0b2c"
+dependencies = [
+ "anyhow",
+ "candid",
+ "futures",
+ "hex",
+ "hkdf",
+ "ic-cdk",
+ "ic-cdk-macros",
+ "ic-stable-structures",
+ "ic_bls12_381",
+ "lazy_static",
+ "pairing",
+ "rand 0.8.5",
+ "rand_chacha 0.3.1",
+ "serde",
+ "serde_bytes",
+ "serde_cbor",
+ "serde_with",
+ "sha2 0.10.9",
+ "sha3",
+ "strum",
+ "strum_macros",
+ "subtle",
+ "zeroize",
+]
+
+[[package]]
 name = "ic-vetkeys-canisters-tests"
 version = "0.1.0"
 dependencies = [
@@ -1345,7 +1376,7 @@ dependencies = [
  "ic-cdk",
  "ic-cdk-macros",
  "ic-dummy-getrandom-for-wasm",
- "ic-vetkeys",
+ "ic-vetkeys 0.2.0",
  "ic-vetkeys-test-utils",
  "pocket-ic",
  "rand 0.8.5",
@@ -1361,7 +1392,7 @@ dependencies = [
  "ic-cdk-macros",
  "ic-dummy-getrandom-for-wasm",
  "ic-stable-structures",
- "ic-vetkeys",
+ "ic-vetkeys 0.2.0",
  "ic-vetkeys-test-utils",
  "pocket-ic",
  "rand 0.8.5",
@@ -1379,7 +1410,7 @@ dependencies = [
  "ic-cdk-macros",
  "ic-dummy-getrandom-for-wasm",
  "ic-stable-structures",
- "ic-vetkeys",
+ "ic-vetkeys 0.2.0",
  "ic-vetkeys-test-utils",
  "pocket-ic",
  "rand 0.8.5",
@@ -1396,7 +1427,7 @@ dependencies = [
  "candid",
  "hex",
  "ic-stable-structures",
- "ic-vetkeys",
+ "ic-vetkeys 0.2.0",
  "ic_bls12_381",
  "lazy_static",
  "rand 0.8.5",

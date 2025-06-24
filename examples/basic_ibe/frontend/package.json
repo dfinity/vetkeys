@@ -22,9 +22,7 @@
   },
   "dependencies": {
     "@dfinity/auth-client": "^2.4.1",
-    "@dfinity/principal": "^2.4.1"
-  },
-  "peerDependencies": {
+    "@dfinity/principal": "^2.4.1",
     "@dfinity/vetkeys": "^0.2.0"
   }
 }

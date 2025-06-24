@@ -17,7 +17,7 @@ ic-cdk = { workspace = true }
 ic-cdk-macros = { workspace = true }
 ic-dummy-getrandom-for-wasm = { workspace = true }
 ic-stable-structures = { workspace = true }
-ic-vetkeys = { path = "../../../backend/rs/ic_vetkeys" }
+ic-vetkeys = "0.2.0"
 serde = { workspace = true }
 serde_bytes = { workspace = true }
 serde_cbor = { workspace = true }
