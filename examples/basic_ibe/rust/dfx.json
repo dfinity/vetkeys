@@ -17,7 +17,7 @@
       },
       "www": {
         "dependencies": ["basic_ibe"],
-        "build": ["npm i && cd frontend && npm run build && cd - && rm -r dist > /dev/null 2>&1; mv frontend/dist ./"],
+        "build": ["cd frontend && npm i && npm run build && cd - && rm -r dist > /dev/null 2>&1; mv frontend/dist ./"],
         "frontend": {
           "entrypoint": "dist/index.html"
         },
