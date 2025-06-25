@@ -1,9 +1,8 @@
 {
     "canisters": {
       "basic_ibe": {
-        "candid": "backend/backend.did",
-        "package": "ic-vetkd-example-basic-ibe-backend",
-        "type": "rust",
+        "main": "backend/src/Main.mo",
+        "type": "motoko",
         "metadata": [
           {
             "name": "candid:service",
@@ -17,13 +16,19 @@
       },
       "www": {
         "dependencies": ["basic_ibe"],
-        "build": ["npm i && cd frontend && npm run build"],
+        "build": ["npm i && cd frontend && npm run build && cd - && rm -r dist > /dev/null 2>&1; mv frontend/dist ./"],
         "frontend": {
-          "entrypoint": "frontend/dist/index.html"
+          "entrypoint": "dist/index.html"
         },
-        "source": ["frontend/dist/"],
+        "source": ["dist/"],
         "type": "assets",
         "output_env_file": "frontend/.env"
+      }
+    },
+    "defaults": {
+      "build": {
+        "packtool": "npx ic-mops sources",
+        "args": ""
       }
     },
     "networks": {
