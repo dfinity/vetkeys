@@ -10,7 +10,7 @@ import Result "mo:base/Result";
 import Int "mo:base/Int";
 import Iter "mo:base/Iter";
 
-actor class (key_name_string : Text) {
+actor class (keyNameString : Text) {
   // Types
   type Message = {
     sender : Principal;
@@ -62,7 +62,6 @@ actor class (key_name_string : Text) {
   let DOMAIN_SEPARATOR : Text = "basic_ibe_example_dapp";
 
   // State
-  var key_name : Text = key_name_string;
   var inboxes = HashMap.HashMap<Principal, Inbox>(0, Principal.equal, Principal.hash);
 
   // Management canister actor
@@ -97,7 +96,7 @@ actor class (key_name_string : Text) {
   public shared func get_ibe_public_key() : async Blob {
     let key_id : VetKdKeyId = {
       curve = #bls12_381_g2;
-      name = key_name;
+      name = keyNameString;
     };
 
     let context = Text.encodeUtf8(DOMAIN_SEPARATOR);
@@ -115,7 +114,7 @@ actor class (key_name_string : Text) {
   public shared ({ caller }) func get_my_encrypted_ibe_key(transport_key : Blob) : async Blob {
     let key_id : VetKdKeyId = {
       curve = #bls12_381_g2;
-      name = key_name;
+      name = keyNameString;
     };
 
     let context = Text.encodeUtf8(DOMAIN_SEPARATOR);
