@@ -77,6 +77,30 @@ fn test_bls_signature_verification_using_identity() {
 }
 
 #[test]
+fn test_derivation_using_production_key() {
+    let key1 = MasterPublicKey::production_key(MasterPublicKeyId::Key1);
+
+    // TODO: once the production key is enabled, replace this with test data generated
+    // using a mainnet canister
+
+    let canister_id = b"rdmx6-jaaaa-aaaaa-aaadq-cai";
+
+    let canister_key = key1.derive_canister_key(canister_id);
+
+    assert_eq!(
+        hex::encode(canister_key.serialize()),
+        "aee3c5776e519cc09ec9320ac59888cd6bbcd860d99cd31a41b79675db821da636da47cc1f80573aa0c70530fb2aed4311a7c1f0f6d9f58e2ce4ae82ff5e3d3f7fb1295f8ca173756976bcc24232ae9cf4e2e1979994e39a8cfaa251be0b11af",
+    );
+
+    let derived_key = canister_key.derive_sub_key(b"test-context");
+
+    assert_eq!(
+        hex::encode(derived_key.serialize()),
+        "93748a7fef5ca15e98f815b1e340d936fa685c364916ae0583a6527c06f83b8a1247176d5c7d2227841d6819b11931810ed12325d0d22b1cfe504f151ed82eabffe267c50a6d478228fb5b054da2438310c64b09164cca52a6d164ccefada8e4",
+    );
+}
+
+#[test]
 fn test_second_level_public_key_derivation() {
     let canister_key = DerivedPublicKey::deserialize(&hex::decode("8bf165ea580742abf5fd5123eb848aa116dcf75c3ddb3cd3540c852cf99f0c5394e72dfc2f25dbcb5f9220f251cd04040a508a0bcb8b2543908d6626b46f09d614c924c5deb63a9949338ae4f4ac436bd77f8d0a392fd29de0f392a009fa61f3").unwrap()).unwrap();
 

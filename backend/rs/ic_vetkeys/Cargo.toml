@@ -35,7 +35,7 @@ ic_bls12_381 = { version = "0.10.1", default-features = false, features = [
 ] }
 hkdf = { version = "0.12" }
 futures = "0.3.31"
-hex = { workspace = true }
+hex-literal = { version = "1" }
 ic-cdk = { workspace = true }
 ic-cdk-macros = { workspace = true }
 ic-stable-structures = { workspace = true }

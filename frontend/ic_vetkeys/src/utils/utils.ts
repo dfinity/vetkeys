@@ -111,6 +111,24 @@ function prefixWithLen(input: Uint8Array): Uint8Array {
 }
 
 /**
+ * Enumeration identifying possible master public keys
+ */
+enum MasterPublicKeyId {
+    KEY_1 = "key_1",
+}
+
+/**
+ * @internal helper to perform hex decoding
+ */
+function hexToBytes(hex: string): Uint8Array {
+    const bytes = new Uint8Array(hex.length / 2);
+    for (let i = 0; i < hex.length; i += 2) {
+        bytes[i / 2] = parseInt(hex.substring(i, i + 2), 16);
+    }
+    return bytes;
+}
+
+/**
  * VetKD master key
  *
  * The VetKD subnet contains a small number of master keys, from which canister
@@ -161,9 +179,17 @@ export class MasterPublicKey {
     }
 
     /**
-     * TODO CRP-2797 add getter for the production subnet key once this has been
-     * generated.
+     * Return the hardcoded master public key used on IC
+     *
+     * This allows performing public key derivation offline
      */
+    static productionKey(keyId: MasterPublicKeyId = MasterPublicKeyId.KEY_1): MasterPublicKey {
+        if (keyId == MasterPublicKeyId.KEY_1) {
+            return MasterPublicKey.deserialize(hexToBytes("a9caf9ae8af0c7c7272f8a122133e2e0c7c0899b75e502bda9e109ca8193ded3ef042ed96db1125e1bdaad77d8cc60d917e122fe2501c45b96274f43705edf0cfd455bc66c3c060faa2fcd15486e76351edf91fecb993797273bbc8beaa47404"));
+        } else {
+            throw new Error("Unknown MasterPublicKeyId value for productionKey");
+        }
+    }
 
     /**
      * @internal constructor
