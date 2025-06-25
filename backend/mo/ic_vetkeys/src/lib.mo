@@ -1,5 +1,6 @@
 import KeyManagerModule "key_manager/KeyManager";
 import EncryptedMapsModule "encrypted_maps/EncryptedMaps";
+import ManagementCanisterModule "ManagementCanister";
 import Types "Types";
 
 module {
@@ -9,4 +10,6 @@ module {
 
     public let KeyManager = KeyManagerModule;
     public let EncryptedMaps = EncryptedMapsModule;
+
+    public let ManagementCanister = ManagementCanisterModule;
 };
