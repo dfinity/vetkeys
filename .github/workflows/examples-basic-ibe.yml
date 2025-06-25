@@ -32,7 +32,7 @@ jobs:
           cargo install candid-extractor
           npm i
           pushd examples/basic_ibe/rust
-          ./deploy_locally.sh
+          dfx start --background && dfx deploy
           cd frontend
           npm run lint
   examples-basic-ibe-rust-linux:
@@ -47,7 +47,7 @@ jobs:
           cargo install candid-extractor
           npm i
           pushd examples/basic_ibe/rust
-          ./deploy_locally.sh
+          dfx start --background && dfx deploy
           cd frontend
           npm run lint
   examples-basic-ibe-motoko-darwin:
@@ -63,7 +63,7 @@ jobs:
           cargo install candid-extractor
           npm i
           pushd examples/basic_ibe/motoko
-          ./deploy_locally.sh
+          dfx start --background && dfx deploy
           cd frontend
           npm run lint
   examples-basic-ibe-motoko-linux:
@@ -78,6 +78,6 @@ jobs:
           cargo install candid-extractor
           npm i
           pushd examples/basic_ibe/motoko
-          ./deploy_locally.sh
+          dfx start --background && dfx deploy
           cd frontend
           npm run lint 
