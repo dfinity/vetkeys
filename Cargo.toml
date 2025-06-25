@@ -6,7 +6,6 @@ members = [
     "backend/rs/canisters/ic_vetkeys_manager_canister",
     "backend/rs/canisters/tests",
     "examples/basic_ibe/backend",
-    "examples/basic_timelock_ibe/backend",
     "examples/password_manager_with_metadata/backend"
 ]
 resolver = "2"

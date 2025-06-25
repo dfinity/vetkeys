@@ -1098,7 +1098,7 @@ dependencies = [
  "ic-cdk-macros",
  "ic-error-types",
  "ic-management-canister-types",
- "ic0 0.25.1",
+ "ic0",
  "serde",
  "serde_bytes",
  "slotmap",
@@ -1125,21 +1125,6 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 2.0.100",
-]
-
-[[package]]
-name = "ic-cdk-timers"
-version = "0.12.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "647de2a321d15442c2a73597fd81f031af80624022f069844bf789a317889299"
-dependencies = [
- "candid",
- "futures",
- "ic-cdk",
- "ic0 0.24.0",
- "serde",
- "serde_bytes",
- "slotmap",
 ]
 
 [[package]]
@@ -1273,24 +1258,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "ic-vetkd-example-basic-timelock-ibe-backend"
-version = "0.1.0"
-dependencies = [
- "candid",
- "getrandom 0.2.15",
- "ic-cdk",
- "ic-cdk-macros",
- "ic-cdk-timers",
- "ic-dummy-getrandom-for-wasm",
- "ic-stable-structures",
- "ic-vetkeys",
- "serde",
- "serde_bytes",
- "serde_cbor",
- "serde_with",
-]
-
-[[package]]
 name = "ic-vetkd-example-password-manager-with-metadata-backend"
 version = "0.1.0"
 dependencies = [
@@ -1405,12 +1372,6 @@ dependencies = [
  "serde_bytes",
  "sha2 0.10.9",
 ]
-
-[[package]]
-name = "ic0"
-version = "0.24.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "673a6b846467547f3fc61f95d246aadff03e368b53c931655300b9d1bd05a55a"
 
 [[package]]
 name = "ic0"
