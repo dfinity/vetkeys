@@ -3,6 +3,7 @@
       "basic_ibe": {
         "main": "backend/src/Main.mo",
         "type": "motoko",
+        "args": "--enhanced-orthogonal-persistence",
         "metadata": [
           {
             "name": "candid:service",
