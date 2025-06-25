@@ -25,7 +25,7 @@
     },
     "www": {
       "dependencies": ["basic_timelock_ibe", "internet-identity"],
-      "build": ["npm i && cd frontend && npm run build"],
+      "build": ["cd frontend && npm i --include=dev && npm run build"],
       "frontend": {
         "entrypoint": "frontend/dist/index.html"
       },
