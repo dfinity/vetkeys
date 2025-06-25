@@ -65,7 +65,7 @@ actor class (keyNameString : Text) {
   var inboxes = HashMap.HashMap<Principal, Inbox>(0, Principal.equal, Principal.hash);
 
   // Management canister actor
-  let vetKdSystem : VetKdSystemApi = actor ("aaaaa-aa");
+  let vetKdSystemApi : VetKdSystemApi = actor ("aaaaa-aa");
 
   // Send a message to a receiver
   public shared ({ caller }) func send_message(request : SendMessageRequest) : async Result<(), Text> {
@@ -106,7 +106,7 @@ actor class (keyNameString : Text) {
       key_id = key_id;
     };
 
-    let result = await vetKdSystem.vetkd_public_key(request);
+    let result = await vetKdSystemApi.vetkd_public_key(request);
     result.public_key;
   };
 
@@ -126,7 +126,7 @@ actor class (keyNameString : Text) {
       transport_public_key = transport_key;
     };
 
-    let result = await vetKdSystem.vetkd_derive_key(request);
+    let result = await (with cycles = 26_153_846_153) vetKdSystemApi.vetkd_derive_key(request);
     result.encrypted_key;
   };
 
