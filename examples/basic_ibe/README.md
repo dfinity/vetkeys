@@ -33,8 +33,15 @@ npm install
 ### Deploy the Canisters
 
 Run the local deployment script, which starts the local development environment (`dfx`) if necessary, builds both backend and frontend (asset) canisters, and installs them locally.
+
+If you want to deploy this project with a Motoko backend, then run:
 ```bash
-bash deploy_locally.sh
+bash motoko/deploy_locally.sh
+```
+
+If you want to deploy this project with a Rust backend, then run:
+```bash
+bash rust/deploy_locally.sh
 ```
 
 ## Example Components
