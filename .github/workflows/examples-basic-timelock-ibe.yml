@@ -31,7 +31,7 @@ jobs:
           set -eExuo pipefail
           cargo install candid-extractor
           npm i
-          pushd examples/basic_timelock_ibe/rust
+          pushd examples/basic_timelock_ibe
           dfx start --background && dfx deploy
           cd frontend
           npm run lint
@@ -46,7 +46,7 @@ jobs:
           set -eExuo pipefail
           cargo install candid-extractor
           npm i
-          pushd examples/basic_timelock_ibe/rust
+          pushd examples/basic_timelock_ibe
           dfx start --background && dfx deploy
           cd frontend
           npm run lint 
