@@ -668,6 +668,13 @@ function hashToMask(
     seed: Uint8Array,
     msg: Uint8Array,
 ): bigint {
+    /*
+      It would have been better to instead use the SHA-256 of the message instead of the
+      message directly, since that would avoid having to allocate an extra buffer of
+      length proportional to the message. If in the future any change is made to the
+      IBE scheme, consider also changing this.
+    */
+
     const randomOracleInput = new Uint8Array([...header, ...seed, ...msg]);
     return hashToScalar(randomOracleInput, IbeDomainSeparators.HashToMask);
 }
@@ -898,13 +905,21 @@ export class IbeCiphertext {
     /**
      * Encrypt a message using IBE, returning the ciphertext
      *
-     * The seed parameter must be a randomly generated value of exactly 32 bytes,
-     * that was generated just for this one message. Using it for a second message,
-     * or for any other purposes, compromises the security of the IBE scheme.
+     * Any user who is able to retrieve the VetKey for the specified derived public key and
+     * identity will be able to decrypt this message.
      *
-     * Any user who is able to retrieve the VetKey for the specified
-     * derived public key and identity will be able to decrypt this
-     * message.
+     * There is no fixed upper bound on the size of the message that can be encrypted using
+     * this scheme. However, internally during the encryption process several heap allocations
+     * are performed which are approximately the same length as the message itself, so
+     * encrypting or decrypting very large messages may result in memory allocation errors.
+     *
+     * If you anticipate using IBE to encrypt very large messages, consider using IBE just to
+     * encrypt a symmetric key, and then using a standard cipher such as AES-GCM to encrypt the
+     * data.
+     *
+     * The seed parameter must be a randomly generated value that was generated just for this
+     * one message. Using it for a second message, or for any other purpose, compromises the
+     * security of the IBE scheme.
      */
     static encrypt(
         dpk: DerivedPublicKey,
@@ -929,6 +944,11 @@ export class IbeCiphertext {
 
     /**
      * Decrypt an IBE ciphertext, returning the message
+     *
+     * There is no fixed upper bound on the size of the message that can be encrypted using
+     * this scheme. However, internally during the encryption process several heap allocations
+     * are performed which are approximately the same length as the message itself, so
+     * encrypting or decrypting very large messages may result in memory allocation errors.
      */
     decrypt(vetkd: VetKey): Uint8Array {
         const seed = maskSeed(

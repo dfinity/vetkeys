@@ -439,14 +439,14 @@ pub struct IbeIdentity {
 }
 
 impl IbeIdentity {
-    /// Create an identity from an arbitrary byte string
+    /// Create an identity from a byte string
     pub fn from_bytes(bytes: &[u8]) -> Self {
         Self {
             val: bytes.to_vec(),
         }
     }
 
-    /// Create an identity from an arbitrary UTF8 string
+    /// Create an identity from a UTF8 string
     pub fn from_string(str: &str) -> Self {
         Self::from_bytes(str.as_bytes())
     }
@@ -600,6 +600,14 @@ impl IbeCiphertext {
     }
 
     fn hash_to_mask(header: &[u8], seed: &[u8; IBE_SEED_BYTES], msg: &[u8]) -> Scalar {
+
+        /*
+        It would have been better to instead use the SHA-256 of the message instead of the
+        message directly, since that would avoid having to allocate an extra buffer of
+        length proportional to the message. If in the future any change is made to the
+        IBE scheme, consider also changing this.
+        */
+
         let domain_sep = IbeDomainSep::HashToMask;
         let mut ro_input = Vec::with_capacity(seed.len() + msg.len());
         ro_input.extend_from_slice(header);
@@ -652,7 +660,14 @@ impl IbeCiphertext {
 
     /// Encrypt a message using IBE
     ///
-    /// The message can be of arbitrary length
+    /// There is no fixed upper bound on the size of the message that can be encrypted using
+    /// this scheme. However, internally during the encryption process several heap allocations
+    /// are performed which are approximately the same length as the message itself, so
+    /// encrypting or decrypting very large messages may result in memory allocation errors.
+    ///
+    /// If you anticipate using IBE to encrypt very large messages, consider using IBE just to
+    /// encrypt a symmetric key, and then using a standard cipher such as AES-GCM to encrypt the
+    /// data.
     ///
     /// The seed should be generated with a cryptographically secure random
     /// number generator. Do not reuse the seed for encrypting another message
@@ -683,6 +698,11 @@ impl IbeCiphertext {
     }
 
     /// Decrypt an IBE ciphertext
+    ///
+    /// There is no fixed upper bound on the size of the message that can be encrypted using
+    /// this scheme. However, internally during the encryption process several heap allocations
+    /// are performed which are approximately the same length as the message itself, so
+    /// encrypting or decrypting very large messages may result in memory allocation errors.
     ///
     /// The VetKey provided must be the VetKey produced by a request to the IC
     /// for a given `identity` (aka `input`) and `context` both matching the
