@@ -20,10 +20,10 @@ module {
         }) -> async ({ encrypted_key : Blob });
     };
 
-    public func vetKdDeriveKey(message : Blob, context : Blob, keyId : VetKdKeyid, transportPublicKey : Blob) : async Blob {
+    public func vetKdDeriveKey(input : Blob, context : Blob, keyId : VetKdKeyid, transportPublicKey : Blob) : async Blob {
         let request = {
             context;
-            input = message;
+            input;
             key_id = keyId;
             transport_public_key = transportPublicKey;
         };
@@ -42,6 +42,7 @@ module {
     };
 
     public func signWithBls(message : Blob, context : Blob, VetKdKeyid : VetKdKeyid) : async Blob {
+        // Encryption with the G1 identity element produces unencrypted vetKeys
         let pointAtInfinity : Blob = Blob.fromArray([192, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
         await vetKdDeriveKey(message, context, VetKdKeyid, pointAtInfinity);
     };
