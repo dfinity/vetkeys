@@ -1,5 +1,5 @@
-import IcVetkeys "../../../ic_vetkeys/src";
-import Types "../../../ic_vetkeys/src/Types";
+import IcVetkeys "mo:ic-vetkeys";
+import Types "mo:ic-vetkeys/Types";
 import Principal "mo:base/Principal";
 import Text "mo:base/Text";
 import Blob "mo:base/Blob";

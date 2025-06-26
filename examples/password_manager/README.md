@@ -24,31 +24,20 @@ The **VetKey Password Manager** is an example application demonstrating how to u
 npm install
 ```
 
-### (Optional) Change the Backend Canister Language
-
-Instead of the default Motoko backend implementation, you can also use the Rust implementation by replacing `dfx.json` , which is a symlink to `dfx_configs/dfx_motoko.dfx`, with the Rust version of `dfx.json`:
-
+### Deploy the Canisters Locally
+If you want to deploy this project locally with a Motoko backend, then run:
 ```bash
-ln -sf dfx_configs/dfx_rust.json dfx.json
+dfx start --background && dfx deploy
 ```
+from the `motoko` folder.
 
-Alternatively, overwrite the symlink with the file itself if that doesn't work:
-
-```bash
-cp dfx_configs/dfx_rust.json dfx.json
-```
-
-### Deploy the Canisters
-
-```bash
-bash deploy_locally.sh
-```
+To use the Rust backend instead of Motoko, run the same command in the `rust` folder.
 
 ## Running the Project
 
 ### Backend
 
-The backend consists of an **Encrypted Maps**-enabled canister that securely stores passwords. It is automatically deployed with `deploy_locally.sh`.
+The backend consists of an **Encrypted Maps**-enabled canister that securely stores passwords. It is automatically deployed with `dfx deploy`.
 
 ### Frontend
 

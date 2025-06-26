@@ -1,28 +1,28 @@
 [package]
 name = "ic-vetkeys-encrypted-maps-canister"
-authors.workspace = true
-description.workspace = true
-documentation.workspace = true
-edition.workspace = true
-version.workspace = true
-license.workspace = true
+authors = ["DFINITY Stiftung"]
+version = "0.1.0"
+edition = "2021"
+license = "Apache-2.0"
+description = "# Basic Identity Based Encryption"
+repository = "https://github.com/dfinity/vetkeys"
+rust-version = "1.75.0"
 
 [lib]
 path = "src/lib.rs"
 crate-type = ["cdylib"]
 
 [dependencies]
-candid = { workspace = true }
-ic-cdk = { workspace = true }
-ic-cdk-macros = { workspace = true }
-ic-dummy-getrandom-for-wasm = { workspace = true }
-ic-stable-structures = { workspace = true }
-ic-vetkeys = { path = "../../ic_vetkeys" }
-serde = { workspace = true }
+candid = "0.10.2"
+ic-cdk = "0.18.3"
+ic-cdk-macros = "0.18.3"
+ic-dummy-getrandom-for-wasm = "0.1.0"
+ic-stable-structures = "0.6.8"
+ic-vetkeys = "0.2.0"
+serde = "1.0.217"
 
 [dev-dependencies]
-ic-vetkeys-test-utils = { path = "../../ic_vetkeys_test_utils" }
-pocket-ic = { workspace = true }
-rand = { workspace = true }
-rand_chacha = { workspace = true }
+pocket-ic = "9.0.0"
+rand = "0.8.5"
+rand_chacha = "0.3.1"
 reqwest = "0.12.12"
