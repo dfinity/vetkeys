@@ -3,8 +3,7 @@
     "workspaces": [
         "frontend/ic_vetkeys",
         "examples/basic_ibe/frontend",
-        "examples/password_manager/frontend",
-        "examples/password_manager_with_metadata/frontend"
+        "examples/password_manager/frontend"
     ],
     "scripts": {
         "build": "npm run build --workspaces --if-present; npm run bundle --workspaces --if-present"

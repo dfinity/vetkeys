@@ -1258,20 +1258,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "ic-vetkd-example-password-manager-with-metadata-backend"
-version = "0.1.0"
-dependencies = [
- "candid",
- "ic-cdk",
- "ic-cdk-macros",
- "ic-dummy-getrandom-for-wasm",
- "ic-stable-structures",
- "ic-vetkeys",
- "serde",
- "serde_cbor",
-]
-
-[[package]]
 name = "ic-vetkeys"
 version = "0.2.0"
 dependencies = [
