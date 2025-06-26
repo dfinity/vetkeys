@@ -4,7 +4,7 @@ use ic_vetkeys::key_manager::key_id_to_vetkd_input;
 use ic_vetkeys::types::{AccessRights, ByteBuf, TransportKey};
 use ic_vetkeys::{DerivedPublicKey, EncryptedVetKey, TransportSecretKey};
 use pocket_ic::{PocketIc, PocketIcBuilder};
-use rand::{CryptoRng, Rng};
+use rand::{CryptoRng, Rng, SeedableRng};
 use rand_chacha::ChaCha20Rng;
 use std::path::Path;
 
