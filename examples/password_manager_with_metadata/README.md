@@ -21,23 +21,21 @@ This version of the application extends the basic password manager by supporting
 - [Local Internet Computer dev environment](https://internetcomputer.org/docs/current/developer-docs/backend/rust/dev-env)
 - [npm](https://www.npmjs.com/package/npm)
 
-### Install Dependencies
+### Deploy the Canisters Locally
 
+If you want to deploy this project locally with a Motoko backend, then run:
 ```bash
-npm install
+dfx start --background && dfx deploy
 ```
+from the `motoko` folder.
 
-### Deploy the Canisters
-
-```bash
-bash deploy_locally.sh
-```
+To use the Rust backend instead of Motoko, run the same command in the `rust` folder.
 
 ## Running the Project
 
 ### Backend
 
-The backend consists of an **Encrypted Maps**-enabled canister that securely stores passwords. It is automatically deployed with `deploy_locally.sh`.
+The backend consists of an **Encrypted Maps**-enabled canister that securely stores passwords. It is automatically deployed with `dfx deploy`.
 
 ### Frontend
 
