@@ -47,6 +47,7 @@ import Result "mo:base/Result";
 import Types "../Types";
 import Text "mo:base/Text";
 import Nat8 "mo:base/Nat8";
+import ManagementCanister "../ManagementCanister";
 
 module {
     /// The public verification key used to verify the authenticity of derived vetKeys.
@@ -70,20 +71,6 @@ module {
     /// The public transport key used to encrypt vetKeys for secure transmission.
     public type TransportKey = Blob;
 
-    type VetkdSystemApi = actor {
-        vetkd_public_key : ({
-            canister_id : ?Principal;
-            context : Blob;
-            key_id : { curve : { #bls12_381_g2 }; name : Text };
-        }) -> async ({ public_key : Blob });
-        vetkd_derive_key : ({
-            context : Blob;
-            input : Blob;
-            key_id : { curve : { #bls12_381_g2 }; name : Text };
-            transport_public_key : Blob;
-        }) -> async ({ encrypted_key : Blob });
-    };
-
     func compareKeyIds(a : KeyId, b : KeyId) : { #less; #greater; #equal } {
         let ownersCompare = Principal.compare(a.0, b.0);
         if (ownersCompare == #equal) {
@@ -102,7 +89,7 @@ module {
     };
 
     /// See the module documentation for more information.
-    public class KeyManager<T>(key_id : { curve : { #bls12_381_g2 }; name : Text }, domainSeparator : Text, accessRightsOperations : Types.AccessControlOperations<T>) {
+    public class KeyManager<T>(vetKdKeyId : ManagementCanister.VetKdKeyid, domainSeparator : Text, accessRightsOperations : Types.AccessControlOperations<T>) {
         public var accessControl : OrderedMap.Map<Principal, [(KeyId, T)]> = accessControlMapOps().empty();
         public var sharedKeys : OrderedMap.Map<KeyId, [Principal]> = sharedKeysMapOps().empty();
         let domainSeparatorBytes = Text.encodeUtf8(domainSeparator);
@@ -154,16 +141,7 @@ module {
         /// Retrieves the vetKD verification key for this canister.
         /// This key is used to verify the authenticity of derived vetKeys.
         public func getVetkeyVerificationKey() : async VetKeyVerificationKey {
-            let context = domainSeparatorBytes;
-
-            let request = {
-                canister_id = null;
-                context;
-                key_id;
-            };
-
-            let (reply) = await (actor ("aaaaa-aa") : VetkdSystemApi).vetkd_public_key(request);
-            reply.public_key;
+            await ManagementCanister.vetKdPublicKey(null, domainSeparatorBytes, vetKdKeyId);
         };
 
         /// Retrieves an encrypted vetKey for caller and key id.
@@ -180,17 +158,7 @@ module {
                         Blob.toArray(keyId.1),
                     ]);
 
-                    let context = domainSeparatorBytes;
-
-                    let request = {
-                        input = Blob.fromArray(input);
-                        context;
-                        key_id;
-                        transport_public_key = transportKey;
-                    };
-
-                    let (reply) = await (with cycles = 26_153_846_153) (actor ("aaaaa-aa") : VetkdSystemApi).vetkd_derive_key(request);
-                    #ok(reply.encrypted_key);
+                    #ok(await ManagementCanister.vetKdDeriveKey(Blob.fromArray(input), domainSeparatorBytes, vetKdKeyId, transportKey));
                 };
             };
         };
