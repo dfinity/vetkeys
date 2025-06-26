@@ -35,7 +35,7 @@ export class TransportSecretKey {
      * Deserialize TransportSecretKey from a bytestring
      *
      * The passed value would typically be a string previously returned
-     * by calling getSecretKey on a randomly-created TransportSecretKey.
+     * by calling serialize on a randomly-created TransportSecretKey.
      */
     static deserialize(sk: Uint8Array) {
         if (sk.length !== 32) {
@@ -58,7 +58,7 @@ export class TransportSecretKey {
      *
      * Applications would not normally need to call this
      */
-    getSecretKey(): Uint8Array {
+    serialize(): Uint8Array {
         return this.#sk;
     }
 
@@ -656,7 +656,7 @@ export class EncryptedVetKey {
         // Compute the purported vetKey k
         const k = this.#c3.subtract(
             this.#c1.multiply(
-                bls12_381.G1.normPrivateKeyToScalar(tsk.getSecretKey()),
+                bls12_381.G1.normPrivateKeyToScalar(tsk.serialize()),
             ),
         );
 
