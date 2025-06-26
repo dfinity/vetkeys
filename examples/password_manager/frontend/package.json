@@ -18,6 +18,7 @@
     "eslint-plugin-svelte": "^3.5.1",
     "globals": "^16.0.0",
     "svelte": "^4.2.19",
+    "tslib": "^2.8.1",
     "vite": "^5.4.19",
     "vite-plugin-environment": "^1.1.3"
   },
