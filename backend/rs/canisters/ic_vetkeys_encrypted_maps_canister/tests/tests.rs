@@ -5,6 +5,7 @@ use ic_vetkeys::types::{AccessRights, ByteBuf, TransportKey};
 use ic_vetkeys::{DerivedPublicKey, EncryptedVetKey, TransportSecretKey};
 use pocket_ic::{PocketIc, PocketIcBuilder};
 use rand::{CryptoRng, Rng};
+use rand_chacha::ChaCha20Rng;
 use std::path::Path;
 
 #[test]
