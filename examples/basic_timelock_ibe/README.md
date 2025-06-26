@@ -41,14 +41,11 @@ A canister functionality for decrypting secrets can be detected by inspecting th
 npm install
 ```
 
-### Deploy the Canisters
+### Deploy the Canisters Locally
 
-Run the local deployment script, which starts the local development environment (`dfx`) if necessary, builds both backend and frontend (asset) canisters, and installs them locally, and prints the URL to the frontend to the terminal.
 ```bash
-bash deploy_locally.sh
+dfx start --background && dfx deploy
 ```
-
-Note that currently in a local deployment, the [chainkey *testing* canister](https://github.com/dfinity/chainkey-testing-canister) is used to mock the VetKD protocol.
 
 ## Example Components
 
@@ -67,7 +64,7 @@ The frontend is a vanilla typescript application providing a simple interface fo
 * Viewing open and closed lots including winners and bidders
 * Placing a secret bid for open lots created by other users
 
-To run the frontend in development mode with hot reloading (after running `deploy_locally.sh`):
+To run the frontend in development mode with hot reloading (after running `dfx deploy`):
 
 ```bash
 npm run dev

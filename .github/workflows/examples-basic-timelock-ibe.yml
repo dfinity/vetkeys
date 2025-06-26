@@ -19,7 +19,7 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 jobs:
-  examples-basic-timelock-ibe-darwin:
+  examples-basic-timelock-ibe-rust-darwin:
     runs-on: macos-15
     steps:
       - uses: actions/checkout@v4
@@ -32,10 +32,10 @@ jobs:
           cargo install candid-extractor
           npm i
           pushd examples/basic_timelock_ibe
-          ./deploy_locally.sh
+          dfx start --background && dfx deploy
           cd frontend
           npm run lint
-  examples-basic-timelock-ibe-linux:
+  examples-basic-timelock-ibe-rust-linux:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
@@ -47,6 +47,6 @@ jobs:
           cargo install candid-extractor
           npm i
           pushd examples/basic_timelock_ibe
-          ./deploy_locally.sh
+          dfx start --background && dfx deploy
           cd frontend
           npm run lint 

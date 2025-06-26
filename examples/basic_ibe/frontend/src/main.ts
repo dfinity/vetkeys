@@ -1,5 +1,5 @@
 import "./style.css";
-import { createActor } from "../../src/declarations/basic_ibe";
+import { createActor } from "./declarations/basic_ibe";
 import { Principal } from "@dfinity/principal";
 import {
     TransportSecretKey,
@@ -10,10 +10,7 @@ import {
     IbeIdentity,
     IbeSeed,
 } from "@dfinity/vetkeys";
-import {
-    Inbox,
-    _SERVICE,
-} from "../../src/declarations/basic_ibe/basic_ibe.did";
+import { Inbox, _SERVICE } from "./declarations/basic_ibe/basic_ibe.did";
 import { AuthClient } from "@dfinity/auth-client";
 import type { ActorSubclass } from "@dfinity/agent";
 
