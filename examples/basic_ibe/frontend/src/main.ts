@@ -1,5 +1,5 @@
 import "./style.css";
-import { createActor } from "./declarations/basic_ibe/index";
+import { createActor } from "./declarations/basic_ibe";
 import { Principal } from "@dfinity/principal";
 import {
     TransportSecretKey,
