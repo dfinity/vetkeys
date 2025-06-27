@@ -111,6 +111,27 @@ function prefixWithLen(input: Uint8Array): Uint8Array {
 }
 
 /**
+ * Enumeration identifying possible master public keys
+ */
+export enum MasterPublicKeyId {
+    /** The production key generated in June 2025 */
+    KEY_1 = "key_1",
+    /** The test key generated in May 2025 */
+    TEST_KEY_1 = "test_key_1",
+}
+
+/**
+ * @internal helper to perform hex decoding
+ */
+function hexToBytes(hex: string): Uint8Array {
+    const bytes = new Uint8Array(hex.length / 2);
+    for (let i = 0; i < hex.length; i += 2) {
+        bytes[i / 2] = parseInt(hex.substring(i, i + 2), 16);
+    }
+    return bytes;
+}
+
+/**
  * VetKD master key
  *
  * The VetKD subnet contains a small number of master keys, from which canister
@@ -141,7 +162,7 @@ export class MasterPublicKey {
      * plus the canister identity. This avoids having to interact with the IC for performing this
      * computation.
      */
-    deriveKey(canisterId: Uint8Array): DerivedPublicKey {
+    deriveCanisterKey(canisterId: Uint8Array): DerivedPublicKey {
         const dst = "ic-vetkd-bls12-381-g2-canister-id";
         const pkbytes = this.publicKeyBytes();
         const randomOracleInput = new Uint8Array([
@@ -161,9 +182,31 @@ export class MasterPublicKey {
     }
 
     /**
-     * TODO CRP-2797 add getter for the production subnet key once this has been
-     * generated.
+     * Return the hardcoded master public key used on IC
+     *
+     * This allows performing public key derivation offline
      */
+    static productionKey(
+        keyId: MasterPublicKeyId = MasterPublicKeyId.KEY_1,
+    ): MasterPublicKey {
+        if (keyId == MasterPublicKeyId.KEY_1) {
+            return MasterPublicKey.deserialize(
+                hexToBytes(
+                    "a9caf9ae8af0c7c7272f8a122133e2e0c7c0899b75e502bda9e109ca8193ded3ef042ed96db1125e1bdaad77d8cc60d917e122fe2501c45b96274f43705edf0cfd455bc66c3c060faa2fcd15486e76351edf91fecb993797273bbc8beaa47404",
+                ),
+            );
+        } else if (keyId == MasterPublicKeyId.TEST_KEY_1) {
+            return MasterPublicKey.deserialize(
+                hexToBytes(
+                    "ad86e8ff845912f022a0838a502d763fdea547c9948f8cb20ea7738dd52c1c38dcb4c6ca9ac29f9ac690fc5ad7681cb41922b8dffbd65d94bff141f5fb5b6624eccc03bf850f222052df888cf9b1e47203556d7522271cbb879b2ef4b8c2bfb1",
+                ),
+            );
+        } else {
+            throw new Error(
+                "Unknown MasterPublicKeyId value for productionKey",
+            );
+        }
+    }
 
     /**
      * @internal constructor
@@ -210,7 +253,7 @@ export class DerivedPublicKey {
      * If `context` is empty, then this simply returns the underlying key. This matches the behavior
      * of `vetkd_public_key`
      */
-    deriveKey(context: Uint8Array): DerivedPublicKey {
+    deriveSubKey(context: Uint8Array): DerivedPublicKey {
         if (context.length === 0) {
             return this;
         } else {

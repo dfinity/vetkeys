@@ -6,6 +6,7 @@
 #![warn(rust_2018_idioms)]
 #![forbid(missing_docs)]
 
+use hex_literal::hex;
 use ic_bls12_381::{
     hash_to_curve::{ExpandMsgXmd, HashToCurve},
     G1Affine, G1Projective, G2Affine, G2Prepared, Gt, Scalar,
@@ -17,8 +18,15 @@ use std::array::TryFromSliceError;
 use std::ops::Neg;
 use zeroize::{Zeroize, ZeroizeOnDrop};
 
+const MASTER_PUBLIC_KEY_BYTES_KEY_1 : [u8; 96] = hex!("a9caf9ae8af0c7c7272f8a122133e2e0c7c0899b75e502bda9e109ca8193ded3ef042ed96db1125e1bdaad77d8cc60d917e122fe2501c45b96274f43705edf0cfd455bc66c3c060faa2fcd15486e76351edf91fecb993797273bbc8beaa47404");
+
+const MASTER_PUBLIC_KEY_BYTES_TEST_KEY_1 : [u8; 96] = hex!("ad86e8ff845912f022a0838a502d763fdea547c9948f8cb20ea7738dd52c1c38dcb4c6ca9ac29f9ac690fc5ad7681cb41922b8dffbd65d94bff141f5fb5b6624eccc03bf850f222052df888cf9b1e47203556d7522271cbb879b2ef4b8c2bfb1");
+
 lazy_static::lazy_static! {
     static ref G2PREPARED_NEG_G : G2Prepared = G2Affine::generator().neg().into();
+
+    static ref G2_KEY_1: G2Affine = G2Affine::from_compressed(&MASTER_PUBLIC_KEY_BYTES_KEY_1).expect("Hardcoded master public key not a valid point");
+    static ref G2_TEST_KEY_1: G2Affine = G2Affine::from_compressed(&MASTER_PUBLIC_KEY_BYTES_TEST_KEY_1).expect("Hardcoded master public key not a valid point");
 }
 
 const G1AFFINE_BYTES: usize = 48; // Size of compressed form
@@ -146,6 +154,15 @@ pub enum PublicKeyDeserializationError {
     InvalidPublicKey,
 }
 
+/// Enumeration identifying the production master public key
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+pub enum MasterPublicKeyId {
+    /// The production key created in June 2025
+    Key1,
+    /// The test key created in May 2025
+    TestKey1,
+}
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 /// A master VetKD public key
 pub struct MasterPublicKey {
@@ -154,9 +171,6 @@ pub struct MasterPublicKey {
 
 impl MasterPublicKey {
     const BYTES: usize = G2AFFINE_BYTES;
-
-    // TODO(CRP-2797) add
-    // pub fn production_key(key_id: SomeEnum) -> Self
 
     /// Deserializes a (derived) public key.
     ///
@@ -199,6 +213,18 @@ impl MasterPublicKey {
     /// Return the byte encoding of this master public key
     pub fn serialize(&self) -> Vec<u8> {
         self.point.to_compressed().to_vec()
+    }
+
+    /// Return the hardcoded master public key used on IC
+    ///
+    /// This allows performing public key derivation offline
+    pub fn production_key(key_id: MasterPublicKeyId) -> Self {
+        match key_id {
+            MasterPublicKeyId::Key1 => Self { point: *G2_KEY_1 },
+            MasterPublicKeyId::TestKey1 => Self {
+                point: *G2_TEST_KEY_1,
+            },
+        }
     }
 }
 

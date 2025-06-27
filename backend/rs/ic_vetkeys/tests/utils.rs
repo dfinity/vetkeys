@@ -2,6 +2,7 @@ use ic_bls12_381::*;
 use ic_vetkeys::*;
 use ic_vetkeys_test_utils::*;
 use rand::Rng;
+use hex_literal::hex;
 
 #[test]
 fn test_hkdf_test_vector() {
@@ -74,6 +75,52 @@ fn test_bls_signature_verification_using_identity() {
     let signature = ic_bls12_381::G1Affine::identity().to_compressed();
 
     assert!(!verify_bls_signature(&dpk, msg, &signature));
+}
+
+#[test]
+fn test_derivation_using_test_key_1() {
+    // This test data was generated on mainnet using test_key_1
+
+    let test_key1 = MasterPublicKey::production_key(MasterPublicKeyId::TestKey1);
+
+    let canister_id = hex!("0000000000c0a0d00101");
+
+    let canister_key = test_key1.derive_canister_key(&canister_id);
+
+    assert_eq!(
+        hex::encode(canister_key.serialize()),
+        "8b961f06d392367e84136088971c4808b434e5d6b928b60fa6177f811db9930e4f2a911ef517db40f7e7897588ae0e2316500dbef3abf08ad7f63940af0cf816c2c1c234943c9bb6f4d53da121dceed093d118d0bd5552740da315eac3b59b0f",
+    );
+
+    let derived_key = canister_key.derive_sub_key(b"context-string");
+
+    assert_eq!(
+        hex::encode(derived_key.serialize()),
+        "958a2700438db39cf848f99c80d4d1c0f42b5e6783c35abffe5acda4fdb09548a025fdf85aad8980fcf6e20c1082596310c2612a3f3034c56445ddfc32a0c3cd34a7d0fea8df06a2996c54e21e3f8361a6e633d706ff58e979858fe436c7edf3",
+    );
+}
+
+#[test]
+fn test_derivation_using_production_key() {
+    // This test data was generated on mainnet using key_1
+
+    let key1 = MasterPublicKey::production_key(MasterPublicKeyId::Key1);
+
+    let canister_id = hex!("0000000000c0a0d00101");
+
+    let canister_key = key1.derive_canister_key(&canister_id);
+
+    assert_eq!(
+        hex::encode(canister_key.serialize()),
+        "a4df5fb733dc53ba0b3f8dab3f7538b2f345052072f69a5749d630d9c2b2b1c4b00af09fa1d993e1ce533996961575ad027e058e2a279ab05271c115ef27d750b6b233f12bc9f1973b203e338d43b6a7617be58d5c7195dfb809d756413bc006",
+    );
+
+    let derived_key = canister_key.derive_sub_key(b"context-string");
+
+    assert_eq!(
+        hex::encode(derived_key.serialize()),
+        "aa45fccb82432315e39fedb1b1f150d2e895fb1f7399cc593b826ac151b519f0966b92aef49a89efe60570ef325f0f7e1974ac3519d2e127a52c013e246aedbff2158bdd0bb9f26c763c88c0b8ec796f401d057eab276d0a34384a8a97b1937f",
+    );
 }
 
 #[test]
