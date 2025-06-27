@@ -1,0 +1,67 @@
+name: examples-encrypted-notes-dapp
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    paths:
+      - examples/encrypted_notes_dapp_vetkd/**
+      - backend/**
+      - Cargo.toml
+      - Cargo.lock
+      - frontend/ic_vetkeys/**
+      - package.json
+      - package-lock.json
+      - .github/workflows/provision-darwin.sh
+      - .github/workflows/provision-linux.sh
+      - .github/workflows/examples-encrypted-notes-dapp.yml
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  examples-encrypted-notes-dapp-rust-darwin:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Provision Darwin
+        run: |
+          bash .github/workflows/provision-darwin.sh
+      - name: Deploy Encrypted Notes Dapp VetKD Darwin
+        run: |
+          set -eExuo pipefail
+          cd examples/encrypted_notes_dapp_vetkd/rust
+          dfx start --background && dfx deploy
+  examples-encrypted-notes-dapp-rust-linux:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Provision Linux
+        run: bash .github/workflows/provision-linux.sh
+      - name: Deploy Encrypted Notes Dapp VetKD Linux
+        run: |
+          set -eExuo pipefail
+          cd examples/encrypted_notes_dapp_vetkd/rust
+          dfx start --background && dfx deploy
+  examples-encrypted-notes-dapp-motoko-darwin:
+    runs-on: macos-15   
+    steps:
+      - uses: actions/checkout@v4
+      - name: Provision Darwin
+        run: |
+          bash .github/workflows/provision-darwin.sh
+      - name: Deploy Encrypted Notes Dapp VetKD Darwin
+        run: |
+          set -eExuo pipefail
+          cd examples/encrypted_notes_dapp_vetkd/motoko
+          dfx start --background && dfx deploy
+  examples-encrypted-notes-dapp-motoko-linux:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Provision Linux
+        run: bash .github/workflows/provision-linux.sh
+      - name: Deploy Encrypted Notes Dapp VetKD Linux
+        run: |
+          set -eExuo pipefail
+          cd examples/encrypted_notes_dapp_vetkd/motoko
+          dfx start --background && dfx deploy
