@@ -25,7 +25,7 @@ const MASTER_PUBLIC_KEY_BYTES_TEST_KEY_1 : [u8; 96] = hex!("ad86e8ff845912f022a0
 lazy_static::lazy_static! {
     static ref G2PREPARED_NEG_G : G2Prepared = G2Affine::generator().neg().into();
 
-    static ref G2_KEY_1: G2Affine = G2Affine::from_compressed(&MASTER_PUBLIC_KEY_1_BYTES).expect("Hardcoded master public key not a valid point");
+    static ref G2_KEY_1: G2Affine = G2Affine::from_compressed(&MASTER_PUBLIC_KEY_BYTES_KEY_1).expect("Hardcoded master public key not a valid point");
     static ref G2_TEST_KEY_1: G2Affine = G2Affine::from_compressed(&MASTER_PUBLIC_KEY_BYTES_TEST_KEY_1).expect("Hardcoded master public key not a valid point");
 }
 
@@ -220,9 +220,7 @@ impl MasterPublicKey {
     /// This allows performing public key derivation offline
     pub fn production_key(key_id: MasterPublicKeyId) -> Self {
         match key_id {
-            MasterPublicKeyId::Key1 => Self {
-                point: *G2_KEY_1,
-            },
+            MasterPublicKeyId::Key1 => Self { point: *G2_KEY_1 },
             MasterPublicKeyId::TestKey1 => Self {
                 point: *G2_TEST_KEY_1,
             },
