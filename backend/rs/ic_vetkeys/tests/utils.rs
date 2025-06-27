@@ -81,11 +81,11 @@ fn test_bls_signature_verification_using_identity() {
 fn test_derivation_using_test_key_1() {
     // This test data was generated on mainnet using test_key_1
 
-    let key1 = MasterPublicKey::production_key(MasterPublicKeyId::TestKey1);
+    let test_key1 = MasterPublicKey::production_key(MasterPublicKeyId::TestKey1);
 
     let canister_id = hex!("0000000000c0a0d00101");
 
-    let canister_key = key1.derive_canister_key(&canister_id);
+    let canister_key = test_key1.derive_canister_key(&canister_id);
 
     assert_eq!(
         hex::encode(canister_key.serialize()),
@@ -102,25 +102,24 @@ fn test_derivation_using_test_key_1() {
 
 #[test]
 fn test_derivation_using_production_key() {
+    // This test data was generated on mainnet using key_1
+
     let key1 = MasterPublicKey::production_key(MasterPublicKeyId::Key1);
 
-    // TODO: once the production key is enabled, replace this with test data generated
-    // using a mainnet canister
+    let canister_id = hex!("0000000000c0a0d00101");
 
-    let canister_id = b"rdmx6-jaaaa-aaaaa-aaadq-cai";
-
-    let canister_key = key1.derive_canister_key(canister_id);
+    let canister_key = key1.derive_canister_key(&canister_id);
 
     assert_eq!(
         hex::encode(canister_key.serialize()),
-        "aee3c5776e519cc09ec9320ac59888cd6bbcd860d99cd31a41b79675db821da636da47cc1f80573aa0c70530fb2aed4311a7c1f0f6d9f58e2ce4ae82ff5e3d3f7fb1295f8ca173756976bcc24232ae9cf4e2e1979994e39a8cfaa251be0b11af",
+        "a4df5fb733dc53ba0b3f8dab3f7538b2f345052072f69a5749d630d9c2b2b1c4b00af09fa1d993e1ce533996961575ad027e058e2a279ab05271c115ef27d750b6b233f12bc9f1973b203e338d43b6a7617be58d5c7195dfb809d756413bc006",
     );
 
-    let derived_key = canister_key.derive_sub_key(b"test-context");
+    let derived_key = canister_key.derive_sub_key(b"context-string");
 
     assert_eq!(
         hex::encode(derived_key.serialize()),
-        "93748a7fef5ca15e98f815b1e340d936fa685c364916ae0583a6527c06f83b8a1247176d5c7d2227841d6819b11931810ed12325d0d22b1cfe504f151ed82eabffe267c50a6d478228fb5b054da2438310c64b09164cca52a6d164ccefada8e4",
+        "aa45fccb82432315e39fedb1b1f150d2e895fb1f7399cc593b826ac151b519f0966b92aef49a89efe60570ef325f0f7e1974ac3519d2e127a52c013e246aedbff2158bdd0bb9f26c763c88c0b8ec796f401d057eab276d0a34384a8a97b1937f",
     );
 }
 

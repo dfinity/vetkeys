@@ -119,25 +119,22 @@ test("MasterPublicKey derivation using test key", () => {
 test("MasterPublicKey derivation using prod key", () => {
     const masterKey = MasterPublicKey.productionKey();
 
-    // TODO: once the production key is enabled, replace this with test data generated
-    // using a mainnet canister
-
-    const canisterId = new TextEncoder().encode("rdmx6-jaaaa-aaaaa-aaadq-cai");
+    const canisterId = hexToBytes("0000000000c0a0d00101");
 
     const canisterKey = masterKey.deriveKey(canisterId);
 
     assertEqual(
         bytesToHex(canisterKey.publicKeyBytes()),
-        "aee3c5776e519cc09ec9320ac59888cd6bbcd860d99cd31a41b79675db821da636da47cc1f80573aa0c70530fb2aed4311a7c1f0f6d9f58e2ce4ae82ff5e3d3f7fb1295f8ca173756976bcc24232ae9cf4e2e1979994e39a8cfaa251be0b11af",
+        "a4df5fb733dc53ba0b3f8dab3f7538b2f345052072f69a5749d630d9c2b2b1c4b00af09fa1d993e1ce533996961575ad027e058e2a279ab05271c115ef27d750b6b233f12bc9f1973b203e338d43b6a7617be58d5c7195dfb809d756413bc006",
     );
 
     const derivedKey = canisterKey.deriveKey(
-        new TextEncoder().encode("test-context"),
+        new TextEncoder().encode("context-string"),
     );
 
     assertEqual(
         bytesToHex(derivedKey.publicKeyBytes()),
-        "93748a7fef5ca15e98f815b1e340d936fa685c364916ae0583a6527c06f83b8a1247176d5c7d2227841d6819b11931810ed12325d0d22b1cfe504f151ed82eabffe267c50a6d478228fb5b054da2438310c64b09164cca52a6d164ccefada8e4",
+        "aa45fccb82432315e39fedb1b1f150d2e895fb1f7399cc593b826ac151b519f0966b92aef49a89efe60570ef325f0f7e1974ac3519d2e127a52c013e246aedbff2158bdd0bb9f26c763c88c0b8ec796f401d057eab276d0a34384a8a97b1937f",
     );
 });
 
