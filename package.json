@@ -2,7 +2,8 @@
     "private": true,
     "workspaces": [
         "frontend/ic_vetkeys",
-        "examples/password_manager/frontend"
+        "examples/basic_bls_signing/frontend",
+        "examples/password_manager/frontend",
     ],
     "scripts": {
         "build": "npm run build --workspaces --if-present; npm run bundle --workspaces --if-present"
