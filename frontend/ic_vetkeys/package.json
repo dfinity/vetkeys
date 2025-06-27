@@ -1,6 +1,6 @@
 {
     "name": "@dfinity/vetkeys",
-    "version": "0.2.0",
+    "version": "0.3.0",
     "author": "DFINITY Stiftung",
     "description": "JavaScript and TypeScript library to use Internet Computer vetKeys",
     "homepage": "https://internetcomputer.org/docs/building-apps/network-features/vetkeys/introduction",
@@ -76,7 +76,7 @@
         "typedoc": "^0.28.3",
         "typescript": "^5.7.3",
         "typescript-eslint": "8.27",
-        "vite": "^6.3.4",
+        "vite": "^7.0.0",
         "vite-plugin-dts": "^4.5.3",
         "vitest": "^3.0.5"
     },
