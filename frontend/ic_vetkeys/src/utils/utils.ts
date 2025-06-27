@@ -114,7 +114,10 @@ function prefixWithLen(input: Uint8Array): Uint8Array {
  * Enumeration identifying possible master public keys
  */
 enum MasterPublicKeyId {
+    /** The production key generated in June 2025 */
     KEY_1 = "key_1",
+    /** The test key generated in May 2025 */
+    TEST_KEY_1 = "test_key_1",
 }
 
 /**
@@ -186,6 +189,8 @@ export class MasterPublicKey {
     static productionKey(keyId: MasterPublicKeyId = MasterPublicKeyId.KEY_1): MasterPublicKey {
         if (keyId == MasterPublicKeyId.KEY_1) {
             return MasterPublicKey.deserialize(hexToBytes("a9caf9ae8af0c7c7272f8a122133e2e0c7c0899b75e502bda9e109ca8193ded3ef042ed96db1125e1bdaad77d8cc60d917e122fe2501c45b96274f43705edf0cfd455bc66c3c060faa2fcd15486e76351edf91fecb993797273bbc8beaa47404"));
+        } else if (keyId == MasterPublicKeyId.TEST_KEY_1) {
+            return MasterPublicKey.deserialize(hexToBytes("ad86e8ff845912f022a0838a502d763fdea547c9948f8cb20ea7738dd52c1c38dcb4c6ca9ac29f9ac690fc5ad7681cb41922b8dffbd65d94bff141f5fb5b6624eccc03bf850f222052df888cf9b1e47203556d7522271cbb879b2ef4b8c2bfb1"));
         } else {
             throw new Error("Unknown MasterPublicKeyId value for productionKey");
         }
