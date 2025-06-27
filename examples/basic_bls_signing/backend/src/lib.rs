@@ -53,18 +53,25 @@ async fn sign_message(message: RawMessage) -> RawSignature {
     .await
     .expect("ic_vetkeys' sign_with_bls failed");
 
-    SIGNATURES.with_borrow_mut(|signer_and_timestamp_to_sig| {
+    SIGNATURES.with_borrow_mut(|sigs| {
         let timestamp = ic_cdk::api::time();
         let sig = Signature {
             message,
             signature: signature_bytes.clone(),
             timestamp,
         };
-        let previous_sig = signer_and_timestamp_to_sig.insert((signer, timestamp), sig);
-        assert!(
-            previous_sig.is_none(),
-            "implementation bug: expected the tuple (signer, timestamp) to be unique"
-        );
+
+        // In rare cases a user may call `sign_message` in quick succession
+        // so that multiple signature requests are in a single consensus round,
+        // which leads to ic_cdk::api::time() returning the same value for all
+        // of the requests. In that case, we just keep increasing the timestamp
+        // used in the map key until we hit a slot this is available.
+        let mut timestamp_for_mapkey = timestamp;
+        while sigs.get(&(signer, timestamp_for_mapkey)).is_some() {
+            timestamp_for_mapkey += 1;
+        }
+
+        assert!(sigs.insert((signer, timestamp_for_mapkey), sig).is_none());
     });
 
     ByteBuf::from(signature_bytes)
