@@ -70,6 +70,7 @@
         "eslint": "^9.22",
         "eslint-plugin-prettier": "^5.2.6",
         "fake-indexeddb": "^6.0.0",
+        "happy-dom": "^18.0.1",
         "isomorphic-fetch": "3.0.0",
         "prettier": "^3.5.3",
         "typedoc": "^0.28.3",
