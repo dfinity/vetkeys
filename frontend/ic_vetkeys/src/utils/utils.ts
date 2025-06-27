@@ -162,7 +162,7 @@ export class MasterPublicKey {
      * plus the canister identity. This avoids having to interact with the IC for performing this
      * computation.
      */
-    deriveKey(canisterId: Uint8Array): DerivedPublicKey {
+    deriveCanisterKey(canisterId: Uint8Array): DerivedPublicKey {
         const dst = "ic-vetkd-bls12-381-g2-canister-id";
         const pkbytes = this.publicKeyBytes();
         const randomOracleInput = new Uint8Array([
@@ -253,7 +253,7 @@ export class DerivedPublicKey {
      * If `context` is empty, then this simply returns the underlying key. This matches the behavior
      * of `vetkd_public_key`
      */
-    deriveKey(context: Uint8Array): DerivedPublicKey {
+    deriveSubKey(context: Uint8Array): DerivedPublicKey {
         if (context.length === 0) {
             return this;
         } else {
