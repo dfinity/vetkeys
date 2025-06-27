@@ -361,7 +361,7 @@ async fn symmetric_key_verification_key_for_note() -> String {
     let request = VetKDPublicKeyArgs {
         canister_id: None,
         context: b"note_symmetric_key".to_vec(),
-        key_id: bls12_381_g2_dfx_test_key(),
+        key_id: bls12_381_g2_test_key_1(),
     };
 
     let response: VetKDPublicKeyResult = ic_cdk::management_canister::vetkd_public_key(&request)
@@ -390,7 +390,7 @@ async fn encrypted_symmetric_key_for_note(
                     buf // prefix-free
                 },
                 context: b"note_symmetric_key".to_vec(),
-                key_id: bls12_381_g2_dfx_test_key(),
+                key_id: bls12_381_g2_test_key_1(),
                 transport_public_key,
             }
         } else {
@@ -405,9 +405,9 @@ async fn encrypted_symmetric_key_for_note(
     hex::encode(response.encrypted_key)
 }
 
-fn bls12_381_g2_dfx_test_key() -> VetKDKeyId {
+fn bls12_381_g2_test_key_1() -> VetKDKeyId {
     VetKDKeyId {
         curve: VetKDCurve::Bls12_381_G2,
-        name: "dfx_test_key".to_string(),
+        name: "test_key_1".to_string(),
     }
 }
