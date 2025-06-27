@@ -16,7 +16,6 @@ This example requires an installation of:
 
 - [x] Install the [IC SDK](https://internetcomputer.org/docs/current/developer-docs/setup/install/index.mdx).
 - [x] Install [npm](https://www.npmjs.com/package/npm).
-- [x] Clone the example dapp project: `git clone https://github.com/dfinity/examples`.
 
 ## Deploy the Canisters
 
@@ -25,6 +24,8 @@ If you want to deploy this project locally with a Motoko backend, then run:
 dfx start --background && dfx deploy
 ```
 from the `motoko` folder.
+
+To use the Rust backend instead of Motoko, run the same command in the rust folder.
 
 ## Troubleshooting
 
