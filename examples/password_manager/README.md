@@ -18,12 +18,6 @@ The **VetKey Password Manager** is an example application demonstrating how to u
 - [Local Internet Computer dev environment](https://internetcomputer.org/docs/building-apps/getting-started/install)
 - [npm](https://www.npmjs.com/package/npm)
 
-### Install Frontend Dependencies
-
-```bash
-npm install
-```
-
 ### Deploy the Canisters Locally
 If you want to deploy this project locally with a Motoko backend, then run:
 ```bash
