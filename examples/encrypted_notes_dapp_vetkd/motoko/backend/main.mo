@@ -4,15 +4,12 @@ import Array "mo:base/Array";
 import Buffer "mo:base/Buffer";
 import List "mo:base/List";
 import Iter "mo:base/Iter";
-import Int "mo:base/Int";
 import Nat "mo:base/Nat";
 import Nat8 "mo:base/Nat8";
 import Bool "mo:base/Bool";
 import Principal "mo:base/Principal";
-import Result "mo:base/Result";
 import Option "mo:base/Option";
 import Debug "mo:base/Debug";
-import Order "mo:base/Order";
 import Blob "mo:base/Blob";
 import Hash "mo:base/Hash";
 import Hex "./utils/Hex";
@@ -327,7 +324,7 @@ shared ({ caller = initializer }) actor class () {
 
     let management_canister : VETKD_API = actor ("aaaaa-aa");
 
-    public shared ({ caller }) func symmetric_key_verification_key_for_note() : async Text {
+    public shared func symmetric_key_verification_key_for_note() : async Text {
         let { public_key } = await management_canister.vetkd_public_key({
             canister_id = null;
             context = Text.encodeUtf8("note_symmetric_key");
