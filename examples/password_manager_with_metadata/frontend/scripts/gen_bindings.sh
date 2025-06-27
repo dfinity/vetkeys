@@ -1,3 +1,5 @@
+#!/bin/bash
+
 cd ../../backend && make extract-candid
 
 cd .. && dfx generate password_manager_with_metadata || exit 1
