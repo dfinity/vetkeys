@@ -43,7 +43,7 @@ jobs:
           cd examples/encrypted_notes_dapp_vetkd/rust
           dfx start --background && dfx deploy
   examples-encrypted-notes-dapp-motoko-darwin:
-    runs-on: macos-15   
+    runs-on: macos-15
     steps:
       - uses: actions/checkout@v4
       - name: Provision Darwin
