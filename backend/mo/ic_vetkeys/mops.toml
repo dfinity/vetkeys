@@ -16,7 +16,7 @@ keywords = [
 license = "Apache-2.0"
 
 [dependencies]
-base = "0.14.13"
+base = "0.14.9"
 
 [dev-dependencies]
 test = "2.1.1"
