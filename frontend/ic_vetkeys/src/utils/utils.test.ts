@@ -106,13 +106,14 @@ test("MasterPublicKey derivation using prod key", () => {
         "aee3c5776e519cc09ec9320ac59888cd6bbcd860d99cd31a41b79675db821da636da47cc1f80573aa0c70530fb2aed4311a7c1f0f6d9f58e2ce4ae82ff5e3d3f7fb1295f8ca173756976bcc24232ae9cf4e2e1979994e39a8cfaa251be0b11af",
     );
 
-    const derivedKey = canisterKey.deriveKey(new TextEncoder().encode("test-context"));
+    const derivedKey = canisterKey.deriveKey(
+        new TextEncoder().encode("test-context"),
+    );
 
     assertEqual(
         bytesToHex(derivedKey.publicKeyBytes()),
         "93748a7fef5ca15e98f815b1e340d936fa685c364916ae0583a6527c06f83b8a1247176d5c7d2227841d6819b11931810ed12325d0d22b1cfe504f151ed82eabffe267c50a6d478228fb5b054da2438310c64b09164cca52a6d164ccefada8e4",
     );
-
 });
 
 test("DerivedPublicKey subderivation", () => {
