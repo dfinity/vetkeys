@@ -1,6 +1,3 @@
-
-ROOT_DIR := $(shell git rev-parse --show-toplevel)
-
 .PHONY: compile-wasm
 .SILENT: compile-wasm
 compile-wasm:
@@ -9,10 +6,10 @@ compile-wasm:
 .PHONY: extract-candid
 .SILENT: extract-candid
 extract-candid: compile-wasm
-	candid-extractor $(ROOT_DIR)/target/wasm32-unknown-unknown/release/ic_vetkd_example_password_manager_with_metadata_backend.wasm > backend.did
+	candid-extractor ../target/wasm32-unknown-unknown/release/ic_vetkd_example_password_manager_with_metadata_backend.wasm > backend.did
 
 .PHONY: clean
 .SILENT: clean
 clean:
 	cargo clean
-	rm -rf .dfx
+	rm -rf ../.dfx
