@@ -4,7 +4,7 @@
 
 - BREAKING CHANGE: Fixed a few inconsistencies with the Rust backend of encrypted maps. 
 
-### Changes
+### Changed
 
 - Updates dependencies.
 
