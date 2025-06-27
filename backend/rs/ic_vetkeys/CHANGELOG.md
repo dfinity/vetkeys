@@ -1,5 +1,15 @@
 # Change Log
 
+## [0.3.0] - 2025-06-27
+
+### Changed
+
+- Improved docs.
+
+- Added zeroization of the used memory.
+
+- Updated dependencies.
+
 ## [0.2.0] - 2025-06-08
 
 ### Breaking Changes
