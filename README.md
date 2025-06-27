@@ -25,7 +25,7 @@ Please share your feedback on the [developer forum](https://forum.dfinity.org/t/
 
 ## Key Features
 
-### **1. vetKeys Backend Library** ([Motoko](https://mops.one/ic-vetkeys), [Rust](https://docs.rs/ic-vetkeys)) - Supports canister developers
+### **1. vetKeys Backend Library** ([Motoko](https://mops.one/ic-vetkeys), [Rust](https://crates.io/crates/ic-vetkeys)) - Supports canister developers
 
 Tools to help canister developers integrate vetKeys into their Internet Computer (ICP) applications.
 
