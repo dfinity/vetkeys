@@ -41,7 +41,7 @@ Tools for frontend developers to interact with VetKD enabled canisters.
 - **[EncryptedMaps](https://dfinity.github.io/vetkeys/classes/_dfinity_vetkeys_encrypted_maps.EncryptedMaps.html)** – Facilitates interaction with a EncryptedMaps-enabled canister.
 - **[Utils](https://dfinity.github.io/vetkeys/modules/_dfinity_vetkeys.html)** – Utility functions for working with vetKeys.
 
-### **3. vetKeys Example Applications** - Deployable to the IC with just one click
+### **3. vetKeys Example Applications** - Deployable to the IC with a click of a button
 
 - **[Basic BLS Signing](examples/basic_bls_signing)** - Demonstrates secure threshold BLS signature generation where users can only sign messages for their own identity.
 - **[Basic IBE](examples/basic_ibe)** - Shows how to implement secure messaging using Identity Based Encryption with Internet Identity Principals as encryption keys.
