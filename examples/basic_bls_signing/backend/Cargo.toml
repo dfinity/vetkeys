@@ -1,5 +1,5 @@
 [package]
-name = "ic-vetkd-example-password-manager-with-metadata-backend"
+name = "ic-vetkeys-example-basic-bls-signing-backend"
 authors.workspace = true
 description.workspace = true
 documentation.workspace = true
@@ -13,10 +13,10 @@ crate-type = ["cdylib"]
 
 [dependencies]
 candid = { workspace = true }
+getrandom = { version = "0.2", features = ["custom"] }
 ic-cdk = { workspace = true }
-ic-cdk-macros = { workspace = true }
-ic-dummy-getrandom-for-wasm = { workspace = true }
 ic-stable-structures = { workspace = true }
 ic-vetkeys = { path = "../../../backend/rs/ic_vetkeys" }
 serde = { workspace = true }
+serde_bytes = { workspace = true }
 serde_cbor = { workspace = true }

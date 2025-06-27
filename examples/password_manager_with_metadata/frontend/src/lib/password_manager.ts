@@ -3,8 +3,8 @@ import { type ActorSubclass, type HttpAgentOptions } from "@dfinity/agent";
 import { EncryptedMaps } from "@dfinity/vetkeys/encrypted_maps";
 import { createEncryptedMaps } from "./encrypted_maps";
 import type { Principal } from "@dfinity/principal";
-import { createActor } from "../declarations/index";
-import type { _SERVICE } from "../declarations/password_manager_with_metadata.did";
+import { createActor } from "../declarations/password_manager_with_metadata";
+import type { _SERVICE } from "../declarations/password_manager_with_metadata/password_manager_with_metadata.did";
 import { passwordFromContent, type PasswordModel } from "../lib/password";
 import { vaultFromContent, type VaultModel } from "../lib/vault";
 

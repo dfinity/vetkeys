@@ -37,5 +37,7 @@ rustup target add wasm32-unknown-unknown
 echo "$HOME/bin" >>$GITHUB_PATH
 echo "$HOME/.cargo/bin" >>$GITHUB_PATH
 
+cargo install candid-extractor
+
 # Exit temporary directory.
 popd

@@ -25,13 +25,13 @@ Please share your feedback on the [developer forum](https://forum.dfinity.org/t/
 
 ## Key Features
 
-### **1. [vetKeys Backend Library](./backend/rs/ic_vetkeys)** - Supports canister developers
+### **1. vetKeys Backend Library** ([Motoko](https://mops.one/ic-vetkeys), [Rust](https://crates.io/crates/ic-vetkeys)) - Supports canister developers
 
 Tools to help canister developers integrate vetKeys into their Internet Computer (ICP) applications.
 
-- **[KeyManager](https://docs.rs/ic-vetkeys/latest/ic_vetkeys/key_manager/struct.KeyManager.html)** – a library for deriving and managing encrypted cryptographic keys.
-- **[EncryptedMaps](https://docs.rs/ic-vetkeys/latest/ic_vetkeys/encrypted_maps/struct.EncryptedMaps.html)** – a library for encrypting using vetkeys, and securely storing and sharing encrypted key-value pairs.
-- **[Utils](https://docs.rs/ic-vetkeys/latest/)** – Utility functions for working with vetKeys.
+- **KeyManager** ([Motoko](https://mops.one/ic-vetkeys/docs/key_manager/KeyManager), [Rust](https://docs.rs/ic-vetkeys/latest/ic_vetkeys/key_manager/struct.KeyManager.html)) – a library for deriving and managing encrypted cryptographic keys.
+- **EncryptedMaps** ([Motoko](https://mops.one/ic-vetkeys/docs/encrypted_maps/EncryptedMaps), [Rust](https://docs.rs/ic-vetkeys/latest/ic_vetkeys/encrypted_maps/struct.EncryptedMaps.html)) – a library for encrypting using vetkeys, and securely storing and sharing encrypted key-value pairs.
+- **Utils** ([Rust](https://docs.rs/ic-vetkeys/latest/)) – Utility functions for working with vetKeys.
 
 ### **2. [vetKeys Frontend Library](./frontend/ic_vetkeys)** - Supports frontend developers
 
@@ -41,11 +41,10 @@ Tools for frontend developers to interact with VetKD enabled canisters.
 - **[EncryptedMaps](https://dfinity.github.io/vetkeys/classes/_dfinity_vetkeys_encrypted_maps.EncryptedMaps.html)** – Facilitates interaction with a EncryptedMaps-enabled canister.
 - **[Utils](https://dfinity.github.io/vetkeys/modules/_dfinity_vetkeys.html)** – Utility functions for working with vetKeys.
 
-### **3. vetKeys Password Manager** - Example application
+### **3. vetKeys Example Applications** - Deployable to the IC with the click of a button
 
-The **VetKey Password Manager** is an example application demonstrating how to use vetKeys and Encrypted Maps to build a secure, decentralized password manager on the Internet Computer (IC). This application allows users to create password vaults, store encrypted passwords, and share vaults with other users via their Internet Identity Principal.
-
-The example application is available in two versions:
-
-- **[Basic Password Manager](./examples/password_manager)** - A simpler example without metadata.
-- **[Password Manager with Metadata](./examples/password_manager_with_metadata)** - Supports unencrypted metadata alongside encrypted passwords.
+- **[Basic BLS Signing](examples/basic_bls_signing)** - Demonstrates secure threshold BLS signature generation where users can only sign messages for their own identity.
+- **[Basic IBE](examples/basic_ibe)** - Shows how to implement secure messaging using Identity Based Encryption with Internet Identity Principals as encryption keys.
+- **[Basic Timelock IBE](examples/basic_timelock_ibe)** - Implements a secret-bid auction system where bids remain encrypted until a specified deadline.
+- **[Password Manager](examples/password_manager)** - A secure, decentralized password manager using Encrypted Maps for vault-based password storage and sharing.
+- **[Password Manager with Metadata](examples/password_manager_with_metadata)** - Extends the basic password manager to support unencrypted metadata alongside encrypted passwords.

@@ -11,8 +11,8 @@ dfx ping &> /dev/null || dfx start --background --clean >> /dev/null
 # Deploy the Internet Identity canister.
 dfx deps pull && dfx deps init && dfx deps deploy
 
-# Deploy the backend canister.
-dfx deploy --argument '("dfx_test_key")' ic_vetkeys_encrypted_maps_canister
+# Deploy backend canister.
+dfx deploy --argument '("dfx_test_key")' basic_bls_signing
 
-# Deploy the frontend canister.
+# Deploy frontend canister.
 dfx deploy www

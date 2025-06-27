@@ -1,8 +1,8 @@
 import { Actor, HttpAgent } from "@dfinity/agent";
 
 // Imports and re-exports candid interface
-import { idlFactory } from "./password_manager_with_metadata.did.js";
-export { idlFactory } from "./password_manager_with_metadata.did.js";
+import { idlFactory } from "./basic_bls_signing.did.js";
+export { idlFactory } from "./basic_bls_signing.did.js";
 
 /* CANISTER_ID is replaced by webpack based on node environment
  * Note: canister environment variable will be standardized as
@@ -10,7 +10,7 @@ export { idlFactory } from "./password_manager_with_metadata.did.js";
  * beginning in dfx 0.15.0
  */
 export const canisterId =
-  process.env.CANISTER_ID_PASSWORD_MANAGER_WITH_METADATA;
+  process.env.CANISTER_ID_BASIC_BLS_SIGNING;
 
 export const createActor = (canisterId, options = {}) => {
   const agent = options.agent || new HttpAgent({ ...options.agentOptions });
@@ -39,4 +39,4 @@ export const createActor = (canisterId, options = {}) => {
   });
 };
 
-export const password_manager_with_metadata = canisterId ? createActor(canisterId) : undefined;
+export const basic_bls_signing = canisterId ? createActor(canisterId) : undefined;

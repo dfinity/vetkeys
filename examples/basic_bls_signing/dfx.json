@@ -1,9 +1,10 @@
 {
   "canisters": {
-    "password_manager_with_metadata": {
+    "basic_bls_signing": {
       "candid": "backend/backend.did",
-      "package": "ic-vetkd-example-password-manager-with-metadata-backend",
+      "package": "ic-vetkeys-example-basic-bls-signing-backend",
       "type": "rust",
+      "init_arg": "(\"dfx_test_key\")",
       "metadata": [
         {
           "name": "candid:service",
@@ -16,7 +17,7 @@
       "id": "rdmx6-jaaaa-aaaaa-aaadq-cai"
     },
     "www": {
-      "dependencies": ["password_manager_with_metadata"],
+      "dependencies": ["basic_bls_signing"],
       "build": ["npm i && cd frontend && npm run build"],
       "frontend": {
         "entrypoint": "frontend/dist/index.html"

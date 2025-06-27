@@ -1,5 +1,5 @@
-import IcVetkeys "../../../ic_vetkeys/src";
-import Types "../../../ic_vetkeys/src/Types";
+import IcVetkeys "mo:ic-vetkeys";
+import Types "mo:ic-vetkeys/Types";
 import Principal "mo:base/Principal";
 import Text "mo:base/Text";
 import Blob "mo:base/Blob";
@@ -11,6 +11,13 @@ actor class (keyName : Text) {
     /// In this canister, we use the `ByteBuf` type to represent blobs. The reason is that we want to be consistent with the Rust canister implementation.
     /// Unfortunately, the `Blob` type cannot be serialized/deserialized in the current Rust implementation efficiently without nesting it in another type.
     public type ByteBuf = { inner : Blob };
+
+    public type EncryptedMapData = {
+        map_owner : Principal;
+        map_name : ByteBuf;
+        keyvals : [(ByteBuf, ByteBuf)];
+        access_control : [(Principal, Types.AccessRights)];
+    };
 
     /// The result type compatible with Rust's `Result`.
     public type Result<Ok, Err> = {
@@ -72,8 +79,23 @@ actor class (keyName : Text) {
         );
     };
 
-    public query (msg) func get_all_accessible_encrypted_maps() : async [IcVetkeys.EncryptedMaps.EncryptedMapData<Types.AccessRights>] {
-        encryptedMaps.getAllAccessibleEncryptedMaps(msg.caller);
+    public query (msg) func get_all_accessible_encrypted_maps() : async [EncryptedMapData] {
+        Array.map<IcVetkeys.EncryptedMaps.EncryptedMapData<Types.AccessRights>, EncryptedMapData>(
+            encryptedMaps.getAllAccessibleEncryptedMaps(msg.caller),
+            func(map : IcVetkeys.EncryptedMaps.EncryptedMapData<Types.AccessRights>) : EncryptedMapData {
+                {
+                    map_owner = map.map_owner;
+                    map_name = { inner = map.map_name };
+                    keyvals = Array.map<(Blob, Blob), (ByteBuf, ByteBuf)>(
+                        map.keyvals,
+                        func((blob1, blob2) : (Blob, Blob)) {
+                            ({ inner = blob1 }, { inner = blob2 });
+                        },
+                    );
+                    access_control = map.access_control;
+                };
+            },
+        );
     };
 
     public query (msg) func get_encrypted_value(

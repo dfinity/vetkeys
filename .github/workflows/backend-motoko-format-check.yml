@@ -24,7 +24,11 @@ jobs:
       - name: Run MOPS Format Check Linux
         run: |
           for d in $(find . -type d -name '.mops' -prune -o -type f -name 'mops.toml' -printf '%h\n'); do
-            cd $d
-            echo "Checking directory: $(pwd)" && mops format --check
-            cd -
+            if [ -d "$d/src" ]; then
+              cd $d
+              echo "Checking directory: $(pwd)" && mops format --check
+              cd -
+            else
+              echo "Skipping directory $d (no src directory inside)"
+            fi
           done
