@@ -65,6 +65,7 @@
     "devDependencies": {
         "@dfinity/identity": "^2.2.0",
         "@eslint/js": "^9.22.0",
+        "@types/node": "^24.0.4",
         "@vitest/coverage-v8": "^3.0.5",
         "eslint": "^9.22",
         "eslint-plugin-prettier": "^5.2.6",
