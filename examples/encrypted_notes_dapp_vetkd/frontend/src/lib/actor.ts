@@ -4,9 +4,11 @@ import {
   ActorSubclass,
   HttpAgent,
   HttpAgentOptions,
-} from '@dfinity/agent';
-import { ENCRYPTED_NOTES_CANISTER_ID, _SERVICE } from './backend';
-import { idlFactory } from './backend';
+} from "@dfinity/agent";
+import {
+  idlFactory,
+  _SERVICE,
+} from "../declarations/encrypted_notes/encrypted_notes.did.js";
 
 export type BackendActor = ActorSubclass<_SERVICE>;
 
@@ -16,9 +18,9 @@ export function createActor(options?: {
 }): BackendActor {
   const hostOptions = {
     host:
-      process.env.DFX_NETWORK === 'ic'
-        ? `https://${ENCRYPTED_NOTES_CANISTER_ID}.ic0.app`
-        : 'http://localhost:8000',
+      process.env.DFX_NETWORK === "ic"
+        ? `https://${process.env.CANISTER_ID_ENCRYPTED_NOTES}.ic0.app`
+        : "http://localhost:8000",
   };
   if (!options) {
     options = {
@@ -32,12 +34,12 @@ export function createActor(options?: {
 
   const agent = new HttpAgent({ ...options.agentOptions });
   // Fetch root key for certificate validation during development
-  if (process.env.NODE_ENV !== 'production') {
+  if (process.env.NODE_ENV !== "production") {
     console.log(`Dev environment - fetching root key...`);
 
     agent.fetchRootKey().catch((err) => {
       console.warn(
-        'Unable to fetch root key. Check to ensure that your local replica is running'
+        "Unable to fetch root key. Check to ensure that your local replica is running"
       );
       console.error(err);
     });
@@ -46,7 +48,7 @@ export function createActor(options?: {
   // Creates an actor with using the candid interface and the HttpAgent
   return Actor.createActor(idlFactory, {
     agent,
-    canisterId: ENCRYPTED_NOTES_CANISTER_ID,
+    canisterId: process.env.CANISTER_ID_ENCRYPTED_NOTES,
     ...options?.actorOptions,
   });
 }

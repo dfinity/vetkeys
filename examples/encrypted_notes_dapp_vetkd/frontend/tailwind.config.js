@@ -1,7 +1,7 @@
 module.exports = {
   content: [
-    './src/frontend/public/index.html',
-    './src/frontend/src/**/*.svelte',
+    './public/index.html',
+    './src/**/*.svelte',
   ],
   theme: {
     extend: {},

@@ -1,5 +1,5 @@
 [package]
-name = "encrypted_notes_rust"
+name = "encrypted_notes_backend"
 version = "0.1.0"
 edition = "2018"
 

@@ -1,44 +1,44 @@
-import { get, writable } from 'svelte/store';
-import { BackendActor, createActor } from '../lib/actor';
-import { AuthClient } from '@dfinity/auth-client';
-import { CryptoService } from '../lib/crypto';
-import { addNotification, showError } from './notifications';
-import { sleep } from '../lib/sleep';
-import type { JsonnableDelegationChain } from '@dfinity/identity/lib/cjs/identity/delegation';
-import { navigateTo } from 'svelte-router-spa';
+import { get, writable } from "svelte/store";
+import { BackendActor, createActor } from "../lib/actor";
+import { AuthClient } from "@dfinity/auth-client";
+import { CryptoService } from "../lib/crypto";
+import { addNotification, showError } from "./notifications";
+import { sleep } from "../lib/sleep";
+import type { JsonnableDelegationChain } from "@dfinity/identity/lib/cjs/identity/delegation";
+import { navigateTo } from "svelte-router-spa";
 
 export type AuthState =
   | {
-      state: 'initializing-auth';
+      state: "initializing-auth";
     }
   | {
-      state: 'anonymous';
+      state: "anonymous";
       actor: BackendActor;
       client: AuthClient;
     }
   | {
-      state: 'initializing-crypto';
+      state: "initializing-crypto";
       actor: BackendActor;
       client: AuthClient;
     }
   | {
-      state: 'synchronizing';
+      state: "synchronizing";
       actor: BackendActor;
       client: AuthClient;
     }
   | {
-      state: 'initialized';
+      state: "initialized";
       actor: BackendActor;
       client: AuthClient;
       crypto: CryptoService;
     }
   | {
-      state: 'error';
+      state: "error";
       error: string;
     };
 
 export const auth = writable<AuthState>({
-  state: 'initializing-auth',
+  state: "initializing-auth",
 });
 
 async function initAuth() {
@@ -47,7 +47,7 @@ async function initAuth() {
     authenticate(client);
   } else {
     auth.update(() => ({
-      state: 'anonymous',
+      state: "anonymous",
       actor: createActor(),
       client,
     }));
@@ -59,14 +59,13 @@ initAuth();
 export function login() {
   const currentAuth = get(auth);
 
-  if (currentAuth.state === 'anonymous') {
+  if (currentAuth.state === "anonymous") {
     currentAuth.client.login({
       maxTimeToLive: BigInt(1800) * BigInt(1_000_000_000),
       identityProvider:
-        process.env.DFX_NETWORK === 'ic'
-          ? 'https://identity.ic0.app/#authorize'
-          : `http://${process.env.INTERNET_IDENTITY_CANISTER_ID}.localhost:8000/#authorize`,
-      // `http://localhost:8000?canisterId=${process.env.INTERNET_IDENTITY_CANISTER_ID}#authorize`,
+        process.env.DFX_NETWORK === "ic"
+          ? "https://identity.ic0.app/#authorize"
+          : `http://rdmx6-jaaaa-aaaaa-aaadq-cai.localhost:8000/#authorize`,
       onSuccess: () => authenticate(currentAuth.client),
     });
   }
@@ -75,14 +74,14 @@ export function login() {
 export async function logout() {
   const currentAuth = get(auth);
 
-  if (currentAuth.state === 'initialized') {
+  if (currentAuth.state === "initialized") {
     await currentAuth.client.logout();
     auth.update(() => ({
-      state: 'anonymous',
+      state: "anonymous",
       actor: createActor(),
       client: currentAuth.client,
     }));
-    navigateTo('/');
+    navigateTo("/");
   }
 }
 
@@ -97,7 +96,7 @@ export async function authenticate(client: AuthClient) {
     });
 
     auth.update(() => ({
-      state: 'initializing-crypto',
+      state: "initializing-crypto",
       actor,
       client,
     }));
@@ -105,15 +104,15 @@ export async function authenticate(client: AuthClient) {
     const cryptoService = new CryptoService(actor);
 
     auth.update(() => ({
-      state: 'initialized',
+      state: "initialized",
       actor,
       client,
       crypto: cryptoService,
     }));
   } catch (e) {
     auth.update(() => ({
-      state: 'error',
-      error: e.message || 'An error occurred',
+      state: "error",
+      error: e.message || "An error occurred",
     }));
   }
 }
@@ -124,7 +123,7 @@ function handleSessionTimeout() {
   setTimeout(() => {
     try {
       const delegation = JSON.parse(
-        window.localStorage.getItem('ic-delegation')
+        window.localStorage.getItem("ic-delegation")
       ) as JsonnableDelegationChain;
 
       const expirationTimeMs =
@@ -135,7 +134,7 @@ function handleSessionTimeout() {
         logout();
       }, expirationTimeMs - Date.now());
     } catch {
-      console.error('Could not handle delegation expiry.');
+      console.error("Could not handle delegation expiry.");
     }
   });
 }
