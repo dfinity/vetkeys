@@ -1,5 +1,5 @@
 import type { Principal } from "@dfinity/principal";
-import type { PasswordMetadata } from "../declarations/password_manager_with_metadata.did";
+import type { PasswordMetadata } from "../declarations/password_manager_with_metadata/password_manager_with_metadata.did";
 
 export interface PasswordModel {
     owner: Principal;

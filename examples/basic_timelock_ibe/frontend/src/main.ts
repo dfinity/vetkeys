@@ -4,7 +4,7 @@ if (!window.global) {
 }
 
 import "./style.css";
-import { createActor } from "../../src/declarations/basic_timelock_ibe";
+import { createActor } from "./declarations/basic_timelock_ibe";
 import { Principal } from "@dfinity/principal";
 import {
     DerivedPublicKey,
@@ -15,7 +15,7 @@ import {
 import {
     _SERVICE,
     LotInformation,
-} from "../../src/declarations/basic_timelock_ibe/basic_timelock_ibe.did";
+} from "./declarations/basic_timelock_ibe/basic_timelock_ibe.did";
 import { AuthClient } from "@dfinity/auth-client";
 import type { ActorSubclass } from "@dfinity/agent";
 

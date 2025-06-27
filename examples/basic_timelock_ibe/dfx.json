@@ -4,6 +4,7 @@
       "candid": "backend/backend.did",
       "package": "ic-vetkd-example-basic-timelock-ibe-backend",
       "type": "rust",
+      "init_arg": "(\"test_key_1\")",
       "metadata": [
         {
           "name": "candid:service",
@@ -12,12 +13,19 @@
       ]
     },
     "internet-identity": {
-      "type": "pull",
-      "id": "rdmx6-jaaaa-aaaaa-aaadq-cai"
+      "candid": "https://github.com/dfinity/internet-identity/releases/latest/download/internet_identity.did",
+      "type": "custom",
+      "specified_id": "rdmx6-jaaaa-aaaaa-aaadq-cai",
+      "remote": {
+        "id": {
+          "ic": "rdmx6-jaaaa-aaaaa-aaadq-cai"
+        }
+      },
+      "wasm": "https://github.com/dfinity/internet-identity/releases/latest/download/internet_identity_dev.wasm.gz"
     },
     "www": {
-      "dependencies": ["basic_timelock_ibe"],
-      "build": ["npm i && cd frontend && npm run build"],
+      "dependencies": ["basic_timelock_ibe", "internet-identity"],
+      "build": ["cd frontend && npm i --include=dev && npm run build"],
       "frontend": {
         "entrypoint": "frontend/dist/index.html"
       },

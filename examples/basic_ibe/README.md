@@ -32,10 +32,13 @@ npm install
 
 ### Deploy the Canisters
 
-Run the local deployment script, which starts the local development environment (`dfx`) if necessary, builds both backend and frontend (asset) canisters, and installs them locally.
+If you want to deploy this project locally with a Motoko backend, then run:
 ```bash
-bash deploy_locally.sh
+dfx start --background && dfx deploy
 ```
+from the `motoko` folder.
+
+To use the Rust backend instead of Motoko, run the same command in the `rust` folder.
 
 ## Example Components
 
@@ -50,7 +53,7 @@ The backend consists of a canister that:
 
 The frontend is a vanilla typescript application providing a simple interface for sending, receiving, and deleting encrypted messages.
 
-To run the frontend in development mode with hot reloading (after running `deploy_locally.sh`):
+To run the frontend in development mode with hot reloading (after running `dfx deploy`):
 
 ```bash
 npm run dev

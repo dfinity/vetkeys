@@ -2,11 +2,12 @@
     "private": true,
     "workspaces": [
         "frontend/ic_vetkeys",
-        "examples/basic_ibe/frontend",
-        "examples/basic_timelock_ibe/frontend",
-        "examples/password_manager_with_metadata/frontend"
+        "examples/basic_bls_signing/frontend"
     ],
     "scripts": {
         "build": "npm run build --workspaces --if-present; npm run bundle --workspaces --if-present"
+    },
+    "devDependencies": {
+        "svelte-hmr": "^0.16.0"
     }
 }

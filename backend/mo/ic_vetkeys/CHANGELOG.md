@@ -1,7 +1,11 @@
 # Change Log
 
 ## [Unreleased]
+
 - BREAKING CHANGE: Fixed a few inconsistencies with the Rust backend of encrypted maps. 
+
+### Adds
+- Sign with BLS and VetKD helper functions.
 
 ## [0.2.0] - 2025-06-18
 
