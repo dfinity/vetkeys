@@ -1,7 +1,7 @@
 [package]
 name = "ic-vetkeys-encrypted-maps-canister"
 version = "0.1.0"
-repository = "https://github.com/dfinity/vetkeys/backend/mo/canisters/ic_vetkeys_encrypted_maps_canister"
+repository = "https://github.com/dfinity/vetkeys/examples/password_manager/motoko"
 keywords = [
   "vetkeys,vetkd,encryption,privacy,signature,BLS,key ",
   "derivation,IBE"

@@ -124,27 +124,18 @@ module {
         /// Returns the removed keys.
         /// The caller must have write permissions to perform this operation.
         public func removeMapValues(caller : Caller, mapId : MapId) : Result.Result<[MapKey], Text> {
-            switch (keyManager.getUserRights(caller, mapId, caller)) {
+            switch (keyManager.ensureUserCanWrite(caller, mapId)) {
                 case (#err(msg)) { #err(msg) };
-                case (#ok(optRights)) {
-                    switch (optRights) {
-                        case (null) { #err("unauthorized") };
-                        case (?rights) {
-                            if (accessRightsOperations.canWrite(rights)) {
-                                let keys = switch (mapKeysMapOps().get(mapKeys, mapId)) {
-                                    case (null) { [] };
-                                    case (?ks) { ks };
-                                };
-                                for (key in keys.vals()) {
-                                    mapKeyVals := mapKeyValsMapOps().delete(mapKeyVals, (mapId, key));
-                                };
-                                mapKeys := mapKeysMapOps().delete(mapKeys, mapId);
-                                #ok(keys);
-                            } else {
-                                #err("unauthorized");
-                            };
-                        };
+                case (#ok(_)) {
+                    let keys = switch (mapKeysMapOps().get(mapKeys, mapId)) {
+                        case (null) { [] };
+                        case (?ks) { ks };
                     };
+                    for (key in keys.vals()) {
+                        mapKeyVals := mapKeyValsMapOps().delete(mapKeyVals, (mapId, key));
+                    };
+                    mapKeys := mapKeysMapOps().delete(mapKeys, mapId);
+                    #ok(keys);
                 };
             };
         };
@@ -152,7 +143,7 @@ module {
         /// Retrieves all encrypted key-value pairs from a map.
         /// The caller must have read permissions to access the map values.
         public func getEncryptedValuesForMap(caller : Caller, mapId : MapId) : Result.Result<[(MapKey, EncryptedMapValue)], Text> {
-            switch (keyManager.getUserRights(caller, mapId, caller)) {
+            switch (keyManager.ensureUserCanRead(caller, mapId)) {
                 case (#err(msg)) { #err(msg) };
                 case (#ok(_)) {
                     let values = Buffer.Buffer<(MapKey, EncryptedMapValue)>(0);
@@ -276,7 +267,7 @@ module {
             mapId : MapId,
             key : MapKey,
         ) : Result.Result<?EncryptedMapValue, Text> {
-            switch (keyManager.getUserRights(caller, mapId, caller)) {
+            switch (keyManager.ensureUserCanWrite(caller, mapId)) {
                 case (#err(msg)) { #err(msg) };
                 case (#ok(_)) {
                     let oldValue = mapKeyValsMapOps().get(mapKeyVals, (mapId, key));

@@ -3,9 +3,9 @@ use ic_vetkeys::encrypted_maps::{VetKey, VetKeyVerificationKey};
 use ic_vetkeys::key_manager::key_id_to_vetkd_input;
 use ic_vetkeys::types::{AccessRights, ByteBuf, TransportKey};
 use ic_vetkeys::{DerivedPublicKey, EncryptedVetKey, TransportSecretKey};
-use ic_vetkeys_test_utils::{git_root_dir, random_self_authenticating_principal, reproducible_rng};
 use pocket_ic::{PocketIc, PocketIcBuilder};
-use rand::{CryptoRng, Rng};
+use rand::{CryptoRng, Rng, SeedableRng};
+use rand_chacha::ChaCha20Rng;
 use std::path::Path;
 
 #[test]
@@ -154,6 +154,12 @@ fn map_sharing_should_work() {
     assert_eq!(get_vetkey(env.principal_0), get_vetkey(env.principal_1));
 }
 
+pub fn reproducible_rng() -> ChaCha20Rng {
+    let seed = rand::thread_rng().gen();
+    println!("RNG seed: {seed:?}");
+    ChaCha20Rng::from_seed(seed)
+}
+
 struct TestEnvironment {
     pic: PocketIc,
     example_canister_id: Principal,
@@ -253,4 +259,21 @@ fn random_map_name<R: Rng + CryptoRng>(rng: &mut R) -> ByteBuf {
     let mut map_name = vec![0u8; length];
     rng.fill_bytes(&mut map_name);
     ByteBuf::from(map_name)
+}
+
+pub fn random_self_authenticating_principal<R: Rng + CryptoRng>(rng: &mut R) -> Principal {
+    let mut fake_public_key = vec![0u8; 32];
+    rng.fill_bytes(&mut fake_public_key);
+    Principal::self_authenticating::<&[u8]>(fake_public_key.as_ref())
+}
+
+fn git_root_dir() -> String {
+    let output = std::process::Command::new("git")
+        .args(["rev-parse", "--show-toplevel"])
+        .output()
+        .expect("Failed to execute git command");
+    assert!(output.status.success());
+    let root_dir_with_newline =
+        String::from_utf8(output.stdout).expect("Failed to convert stdout to string");
+    root_dir_with_newline.trim_end_matches('\n').to_string()
 }

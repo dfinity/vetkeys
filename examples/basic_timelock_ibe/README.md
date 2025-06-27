@@ -35,12 +35,6 @@ A canister functionality for decrypting secrets can be detected by inspecting th
 - [Internet Computer software development kit](https://internetcomputer.org/docs/building-apps/getting-started/install)
 - [npm](https://www.npmjs.com/package/npm)
 
-### Install Dependencies
-
-```bash
-npm install
-```
-
 ### Deploy the Canisters Locally
 
 ```bash
