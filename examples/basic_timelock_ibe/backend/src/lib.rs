@@ -26,7 +26,7 @@ thread_local! {
     static BIDS_ON_LOTS: RefCell<StableBTreeMap<(LotId, BidCounter, Principal), Bid, Memory>> = RefCell::new(StableBTreeMap::init(
         MEMORY_MANAGER.with(|m| m.borrow().get(MemoryId::new(1))),
     ));
-    static OPEN_LOTS_DEADLINES: RefCell<StableBTreeMap<u64, LotId, Memory>> = RefCell::new(StableBTreeMap::init(
+    static OPEN_LOTS_DEADLINES: RefCell<StableBTreeMap<(u64, LotId), (), Memory>> = RefCell::new(StableBTreeMap::init(
         MEMORY_MANAGER.with(|m| m.borrow().get(MemoryId::new(2))),
     ));
 
@@ -86,7 +86,7 @@ fn create_lot(name: String, description: String, duration_seconds: u16) -> Resul
         };
 
         OPEN_LOTS_DEADLINES.with_borrow_mut(|open_lots_deadlines| {
-            open_lots_deadlines.insert(lot.end_time, lot_id);
+            open_lots_deadlines.insert((lot.end_time, lot_id), ());
         });
 
         lots.insert(lot_id, lot);
@@ -225,10 +225,10 @@ async fn close_one_lot_if_any_is_open_and_expired() {
 
     let lot_id = match maybe_deadline_and_lot_id {
         // if there was a lot and its deadline has passed, remove it from the open lots deadlines to prevent double processing
-        Some((deadline, lot_id)) if deadline <= ic_cdk::api::time() => {
+        Some(((deadline, lot_id), ())) if deadline <= ic_cdk::api::time() => {
             OPEN_LOTS_DEADLINES.with_borrow_mut(|open_lots_deadlines| {
                 open_lots_deadlines
-                    .remove(&deadline)
+                    .remove(&(deadline, lot_id))
                     .expect("failed to remove deadline from open lots deadlines")
             });
             lot_id

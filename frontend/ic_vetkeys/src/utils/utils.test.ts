@@ -149,7 +149,7 @@ test("BLS signature verification", () => {
 });
 
 test("protocol flow with precomputed data", () => {
-    const tsk = new TransportSecretKey(
+    const tsk = TransportSecretKey.deserialize(
         hexToBytes(
             "167b736e44a1c134bd46ca834220c75c186768612568ac264a01554c46633e76",
         ),
@@ -170,7 +170,7 @@ test("protocol flow with precomputed data", () => {
         ),
     );
 
-    const ek = new EncryptedVetKey(
+    const ek = EncryptedVetKey.deserialize(
         hexToBytes(
             "b1a13757eaae15a3c8884fc1a3453f8a29b88984418e65f1bd21042ce1d6809b2f8a49f7326c1327f2a3921e8ff1d6c3adde2a801f1f88de98ccb40c62e366a279e7aec5875a0ce2f2a9f3e109d9cb193f0197eadb2c5f5568ee4d6a87e115910662e01e604087246be8b081fc6b8a06b4b0100ed1935d8c8d18d9f70d61718c5dba23a641487e72b3b25884eeede8feb3c71599bfbcebe60d29408795c85b4bdf19588c034d898e7fc513be8dbd04cac702a1672f5625f5833d063b05df7503",
         ),

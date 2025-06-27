@@ -3,7 +3,7 @@
 > [!IMPORTANT]  
 > These support libraries are under active development and are subject to change. Access to the repositories have been opened to allow for early feedback. Please check back regularly for updates.
 
-The **Basic IBE** example demonstrates how to use **[VetKeys](https://internetcomputer.org/docs/building-apps/network-features/encryption/vetkeys)** to implement secure messaging between users by means of Identity Based Encryption (IBE) on the **Internet Computer (IC)**. This application allows users to send encrypted messages to other users using their **Internet Identity Principal** as the encryption key identifier. This canister (IC smart contract) ensures that only the authorized user can access their private decryption key, meaning that even if someone else knows your principal, they cannot decrypt messages intended for you because neither other users nor this canister can access your private key.
+The **Basic IBE** example demonstrates how to use **[VetKeys](https://internetcomputer.org/docs/building-apps/network-features/vetkeys/introduction)** to implement secure messaging between users by means of Identity Based Encryption (IBE) on the **Internet Computer (IC)**. This application allows users to send encrypted messages to other users using their **Internet Identity Principal** as the encryption key identifier. This canister (IC smart contract) ensures that only the authorized user can access their private decryption key, meaning that even if someone else knows your principal, they cannot decrypt messages intended for you because neither other users nor this canister can access your private key.
 
 Note that generally it is possible for a canister to request a decryption key to decrypt secrets as part of its code.
 However, doing so requires the canister to provide its own transport key instead of requesting a user's transport key and this inherently makes secrets public.
@@ -32,10 +32,13 @@ npm install
 
 ### Deploy the Canisters
 
-Run the local deployment script, which starts the local development environment (`dfx`) if necessary, builds both backend and frontend (asset) canisters, and installs them locally.
+If you want to deploy this project locally with a Motoko backend, then run:
 ```bash
-bash deploy_locally.sh
+dfx start --background && dfx deploy
 ```
+from the `motoko` folder.
+
+To use the Rust backend instead of Motoko, run the same command in the `rust` folder.
 
 ## Example Components
 
@@ -50,7 +53,7 @@ The backend consists of a canister that:
 
 The frontend is a vanilla typescript application providing a simple interface for sending, receiving, and deleting encrypted messages.
 
-To run the frontend in development mode with hot reloading (after running `deploy_locally.sh`):
+To run the frontend in development mode with hot reloading (after running `dfx deploy`):
 
 ```bash
 npm run dev
@@ -58,4 +61,4 @@ npm run dev
 
 ## Additional Resources
 
-- **[What are VetKeys](https://internetcomputer.org/docs/building-apps/network-features/encryption/vetkeys)** - For more information about VetKeys and VetKD.
+- **[What are VetKeys](https://internetcomputer.org/docs/building-apps/network-features/vetkeys/introduction)** - For more information about VetKeys and VetKD.

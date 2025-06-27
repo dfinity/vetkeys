@@ -19,7 +19,7 @@ vetkd_public_key : (vetkd_public_key_args) -> (vetkd_public_key_result);
 vetkd_derive_key : (vetkd_derive_key_args) -> (vetkd_derive_key_result);
 ```
 
-For more documentation on vetKeys and the management canister API, see the [vetKeys documentation](https://internetcomputer.org/docs/building-apps/network-features/encryption/vetkeys).
+For more documentation on vetKeys and the management canister API, see the [vetKeys documentation](https://internetcomputer.org/docs/building-apps/network-features/vetkeys/introduction).
 
 Please share your feedback on the [developer forum](https://forum.dfinity.org/t/threshold-key-derivation-privacy-on-the-ic/16560/179).
 

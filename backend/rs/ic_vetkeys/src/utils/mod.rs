@@ -25,6 +25,14 @@ const G1AFFINE_BYTES: usize = 48; // Size of compressed form
 const G2AFFINE_BYTES: usize = 96; // Size of compressed form
 
 /// Derive a symmetric key using HKDF-SHA256
+///
+/// The `input` parameter should be a sufficiently long random input generated
+/// in a secure way. 256 bits (32 bytes) or longer is preferable.
+///
+/// The `domain_sep` should be a string that uniquely identifies the
+/// context for which this key is used.
+///
+/// The returned vector will be `len` bytes long.
 pub fn derive_symmetric_key(input: &[u8], domain_sep: &str, len: usize) -> Vec<u8> {
     let hk = hkdf::Hkdf::<sha2::Sha256>::new(None, input);
     let mut okm = vec![0u8; len];
@@ -65,7 +73,19 @@ fn hash_to_scalar_two_inputs(
 #[derive(Clone, Zeroize, ZeroizeOnDrop)]
 /// Secret key of the transport key pair
 pub struct TransportSecretKey {
-    secret_key: Scalar,
+    // Note that we Box the value here
+    //
+    // This is done because in Rust, even if the type does not derive Copy, any
+    // object can be moved, and Rust assumes that memcpy is sufficient to move
+    // any object. This move effectively creates a copy on the stack that we do
+    // not know about and which will not be zeroized.
+    //
+    // By putting the value into a Box, the object can still be moved, but the move
+    // will happen by copying the pointer value of the Box rather than the secret itself.
+    //
+    // See the zeroize docs (<https://docs.rs/zeroize/1.8.1/zeroize/#stackheap-zeroing-notes>)
+    // for further information about this issue.
+    secret_key: Box<Scalar>,
 }
 
 impl TransportSecretKey {
@@ -74,13 +94,13 @@ impl TransportSecretKey {
         let seed_32_bytes: [u8; 32] = seed.try_into().map_err(|_e| "seed not 32 bytes")?;
         let rng = &mut ChaCha20Rng::from_seed(seed_32_bytes);
         use pairing::group::ff::Field;
-        let secret_key = Scalar::random(rng);
+        let secret_key = Box::new(Scalar::random(rng));
         Ok(Self { secret_key })
     }
 
     /// Returns the serialized public key associated with this secret key
     pub fn public_key(&self) -> Vec<u8> {
-        let public_key = G1Affine::generator() * self.secret_key;
+        let public_key = G1Affine::generator() * (*self.secret_key);
         use pairing::group::Curve;
         public_key.to_affine().to_compressed().to_vec()
     }
@@ -90,7 +110,7 @@ impl TransportSecretKey {
         self.secret_key.to_bytes().to_vec()
     }
 
-    /// Serialize this transport secret key to a bytestring
+    /// Deserialize this transport secret key from a bytestring
     pub fn deserialize(bytes: &[u8]) -> Result<Self, String> {
         if bytes.len() != 32 {
             return Err(format!(
@@ -102,7 +122,9 @@ impl TransportSecretKey {
         let bytes: [u8; 32] = bytes.try_into().expect("Length already checked");
 
         if let Some(s) = Scalar::from_bytes(&bytes).into_option() {
-            Ok(Self { secret_key: s })
+            Ok(Self {
+                secret_key: Box::new(s),
+            })
         } else {
             Err("Invalid TransportSecretKey bytes".to_string())
         }
@@ -251,18 +273,16 @@ impl DerivedPublicKey {
 /// A VetKey is a valid BLS signature created for an input specified
 /// by the user
 ///
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, Zeroize, ZeroizeOnDrop)]
 pub struct VetKey {
-    pt: G1Affine,
-    pt_bytes: [u8; 48],
+    // See the comment regarding Boxing in the definition of TransportSecretKey
+    vetkey: Box<(G1Affine, [u8; 48])>,
 }
 
 impl VetKey {
     fn new(pt: G1Affine) -> Self {
-        Self {
-            pt,
-            pt_bytes: pt.to_compressed(),
-        }
+        let vetkey = Box::new((pt, pt.to_compressed()));
+        Self { vetkey }
     }
 
     /**
@@ -274,7 +294,21 @@ impl VetKey {
      * derive_symmetric_key
      */
     pub fn signature_bytes(&self) -> &[u8; 48] {
-        &self.pt_bytes
+        &self.vetkey.1
+    }
+
+    /**
+     * Serialize the VetKey to a byte string
+     *
+     * The return value here is the VetKey itself which in most uses is a
+     * secret value.
+     */
+    pub fn serialize(&self) -> &[u8; 48] {
+        &self.vetkey.1
+    }
+
+    pub(crate) fn point(&self) -> &G1Affine {
+        &self.vetkey.0
     }
 
     /**
@@ -286,7 +320,7 @@ impl VetKey {
      * "bar". You might use as domain separators "my-app-foo" and "my-app-bar".
      */
     pub fn derive_symmetric_key(&self, domain_sep: &str, output_len: usize) -> Vec<u8> {
-        derive_symmetric_key(&self.pt_bytes, domain_sep, output_len)
+        derive_symmetric_key(self.serialize(), domain_sep, output_len)
     }
 
     /**
@@ -300,10 +334,7 @@ impl VetKey {
         })?;
 
         if let Some(pt) = option_from_ctoption(G1Affine::from_compressed(&bytes48)) {
-            Ok(Self {
-                pt,
-                pt_bytes: bytes48,
-            })
+            Ok(Self::new(pt))
         } else {
             Err("Invalid VetKey".to_string())
         }
@@ -355,7 +386,7 @@ impl EncryptedVetKey {
         }
 
         // Recover the purported VetKey
-        let k = G1Affine::from(G1Projective::from(&self.c3) - self.c1 * tsk.secret_key);
+        let k = G1Affine::from(G1Projective::from(&self.c3) - self.c1 * (*tsk.secret_key));
 
         // Check that the VetKey is a valid BLS signature
         if verify_bls_signature_pt(derived_public_key, input, &k) {
@@ -363,6 +394,17 @@ impl EncryptedVetKey {
         } else {
             Err("invalid encrypted key: verification failed".to_string())
         }
+    }
+
+    /// Serialize the encrypted VetKey
+    pub fn serialize(&self) -> Vec<u8> {
+        let mut result = vec![];
+
+        result.extend_from_slice(&self.c1.to_compressed());
+        result.extend_from_slice(&self.c2.to_compressed());
+        result.extend_from_slice(&self.c3.to_compressed());
+
+        result
     }
 
     /// Deserializes an encrypted key from a byte vector
@@ -408,14 +450,14 @@ pub struct IbeIdentity {
 }
 
 impl IbeIdentity {
-    /// Create an identity from an arbitrary byte string
+    /// Create an identity from a byte string
     pub fn from_bytes(bytes: &[u8]) -> Self {
         Self {
             val: bytes.to_vec(),
         }
     }
 
-    /// Create an identity from an arbitrary UTF8 string
+    /// Create an identity from a UTF8 string
     pub fn from_string(str: &str) -> Self {
         Self::from_bytes(str.as_bytes())
     }
@@ -437,8 +479,10 @@ impl IbeIdentity {
 const IBE_SEED_BYTES: usize = 32;
 
 /// A random seed, used for identity based encryption
+#[derive(Zeroize, ZeroizeOnDrop)]
 pub struct IbeSeed {
-    val: [u8; IBE_SEED_BYTES],
+    // See the comment regarding Boxing in the definition of TransportSecretKey
+    val: Box<[u8; IBE_SEED_BYTES]>,
 }
 
 impl IbeSeed {
@@ -446,7 +490,7 @@ impl IbeSeed {
     pub fn random<R: rand::CryptoRng + rand::RngCore>(rng: &mut R) -> Self {
         use rand::Rng;
         Self {
-            val: rng.gen::<[u8; IBE_SEED_BYTES]>(),
+            val: Box::new(rng.gen::<[u8; IBE_SEED_BYTES]>()),
         }
     }
 
@@ -464,7 +508,7 @@ impl IbeSeed {
             return Err("Insufficient input material for IbeSeed derivation".to_string());
         }
 
-        let mut val = [0u8; IBE_SEED_BYTES];
+        let mut val = Box::new([0u8; IBE_SEED_BYTES]);
         if bytes.len() == IBE_SEED_BYTES {
             val.copy_from_slice(bytes)
         } else {
@@ -567,6 +611,14 @@ impl IbeCiphertext {
     }
 
     fn hash_to_mask(header: &[u8], seed: &[u8; IBE_SEED_BYTES], msg: &[u8]) -> Scalar {
+
+        /*
+        It would have been better to instead use the SHA-256 of the message instead of the
+        message directly, since that would avoid having to allocate an extra buffer of
+        length proportional to the message. If in the future any change is made to the
+        IBE scheme, consider also changing this.
+        */
+
         let domain_sep = IbeDomainSep::HashToMask;
         let mut ro_input = Vec::with_capacity(seed.len() + msg.len());
         ro_input.extend_from_slice(header);
@@ -605,9 +657,10 @@ impl IbeCiphertext {
 
         let domain_sep = IbeDomainSep::MaskMsg(msg.len());
 
-        let shake_seed = derive_symmetric_key(seed, &domain_sep.to_string(), IBE_SEED_BYTES);
+        let mut shake_seed = derive_symmetric_key(seed, &domain_sep.to_string(), IBE_SEED_BYTES);
 
         let mut mask = derive_ibe_ctext_mask(&shake_seed, msg.len());
+        shake_seed.zeroize();
 
         for i in 0..msg.len() {
             mask[i] ^= msg[i];
@@ -618,7 +671,14 @@ impl IbeCiphertext {
 
     /// Encrypt a message using IBE
     ///
-    /// The message can be of arbitrary length
+    /// There is no fixed upper bound on the size of the message that can be encrypted using
+    /// this scheme. However, internally during the encryption process several heap allocations
+    /// are performed which are approximately the same length as the message itself, so
+    /// encrypting or decrypting very large messages may result in memory allocation errors.
+    ///
+    /// If you anticipate using IBE to encrypt very large messages, consider using IBE just to
+    /// encrypt a symmetric key, and then using a standard cipher such as AES-GCM to encrypt the
+    /// data.
     ///
     /// The seed should be generated with a cryptographically secure random
     /// number generator. Do not reuse the seed for encrypting another message
@@ -650,13 +710,18 @@ impl IbeCiphertext {
 
     /// Decrypt an IBE ciphertext
     ///
+    /// There is no fixed upper bound on the size of the message that can be encrypted using
+    /// this scheme. However, internally during the encryption process several heap allocations
+    /// are performed which are approximately the same length as the message itself, so
+    /// encrypting or decrypting very large messages may result in memory allocation errors.
+    ///
     /// The VetKey provided must be the VetKey produced by a request to the IC
     /// for a given `identity` (aka `input`) and `context` both matching the
     /// values used during encryption.
     ///
     /// Returns the plaintext, or Err if decryption failed
     pub fn decrypt(&self, vetkey: &VetKey) -> Result<Vec<u8>, String> {
-        let t = ic_bls12_381::pairing(&vetkey.pt, &self.c1);
+        let t = ic_bls12_381::pairing(vetkey.point(), &self.c1);
 
         let seed = Self::mask_seed(&self.c2, &t);
 
