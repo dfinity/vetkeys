@@ -4,6 +4,7 @@ import {
     IbeIdentity,
     IbeCiphertext,
     MasterPublicKey,
+    MasterPublicKeyId,
     IbeSeed,
     TransportSecretKey,
     VetKey,
@@ -88,6 +89,30 @@ test("MasterPublicKey derivation", () => {
     assertEqual(
         bytesToHex(derivedKey.publicKeyBytes()),
         "af78a908589d332fc8b9d042807c483e73872e2aea7620bdb985b9289d5a99ebfd5ac0ec4844a4c542f6d0f12a716d941674953cef4f38dde601ce9792db8832557eaa051733c5541fa5017465d69b62cc4d93f2079fb8c050b4bd735ef75859",
+    );
+});
+
+test("MasterPublicKey derivation using test key", () => {
+    const masterKey = MasterPublicKey.productionKey(
+        MasterPublicKeyId.TEST_KEY_1,
+    );
+
+    const canisterId = hexToBytes("0000000000c0a0d00101");
+
+    const canisterKey = masterKey.deriveKey(canisterId);
+
+    assertEqual(
+        bytesToHex(canisterKey.publicKeyBytes()),
+        "8b961f06d392367e84136088971c4808b434e5d6b928b60fa6177f811db9930e4f2a911ef517db40f7e7897588ae0e2316500dbef3abf08ad7f63940af0cf816c2c1c234943c9bb6f4d53da121dceed093d118d0bd5552740da315eac3b59b0f",
+    );
+
+    const derivedKey = canisterKey.deriveKey(
+        new TextEncoder().encode("context-string"),
+    );
+
+    assertEqual(
+        bytesToHex(derivedKey.publicKeyBytes()),
+        "958a2700438db39cf848f99c80d4d1c0f42b5e6783c35abffe5acda4fdb09548a025fdf85aad8980fcf6e20c1082596310c2612a3f3034c56445ddfc32a0c3cd34a7d0fea8df06a2996c54e21e3f8361a6e633d706ff58e979858fe436c7edf3",
     );
 });
 

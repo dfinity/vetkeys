@@ -113,7 +113,7 @@ function prefixWithLen(input: Uint8Array): Uint8Array {
 /**
  * Enumeration identifying possible master public keys
  */
-enum MasterPublicKeyId {
+export enum MasterPublicKeyId {
     /** The production key generated in June 2025 */
     KEY_1 = "key_1",
     /** The test key generated in May 2025 */
