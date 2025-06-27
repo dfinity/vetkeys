@@ -4,6 +4,7 @@
       "candid": "backend/backend.did",
       "package": "ic-vetkeys-example-basic-bls-signing-backend",
       "type": "rust",
+      "init_arg": "(\"dfx_test_key\")",
       "metadata": [
         {
           "name": "candid:service",
