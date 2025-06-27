@@ -1249,54 +1249,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "ic-vetkd-example-basic-ibe-backend"
-version = "0.1.0"
-dependencies = [
- "candid",
- "ic-cdk",
- "ic-cdk-macros",
- "ic-dummy-getrandom-for-wasm",
- "ic-stable-structures",
- "ic-vetkeys 0.2.0",
- "serde",
- "serde_bytes",
- "serde_cbor",
- "serde_with",
-]
-
-[[package]]
-name = "ic-vetkd-example-basic-timelock-ibe-backend"
-version = "0.1.0"
-dependencies = [
- "candid",
- "getrandom 0.2.15",
- "ic-cdk",
- "ic-cdk-macros",
- "ic-cdk-timers",
- "ic-dummy-getrandom-for-wasm",
- "ic-stable-structures",
- "ic-vetkeys 0.2.0",
- "serde",
- "serde_bytes",
- "serde_cbor",
- "serde_with",
-]
-
-[[package]]
-name = "ic-vetkd-example-password-manager-with-metadata-backend"
-version = "0.1.0"
-dependencies = [
- "candid",
- "ic-cdk",
- "ic-cdk-macros",
- "ic-dummy-getrandom-for-wasm",
- "ic-stable-structures",
- "ic-vetkeys 0.2.0",
- "serde",
- "serde_cbor",
-]
-
-[[package]]
 name = "ic-vetkeys"
 version = "0.2.0"
 dependencies = [
@@ -1400,7 +1352,7 @@ dependencies = [
  "getrandom 0.2.16",
  "ic-cdk",
  "ic-stable-structures",
- "ic-vetkeys",
+ "ic-vetkeys 0.2.0",
  "serde",
  "serde_bytes",
  "serde_cbor",
