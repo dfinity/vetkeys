@@ -66,6 +66,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e16d2d3311acee920a9eb8d33b8cbc1787ce4a264e85f964c2404b969bdcd487"
 
 [[package]]
+name = "arc-swap"
+version = "1.7.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "69f7f8c3906b62b754cd5326047894316021dcfe5a194c8ea52bdd94934a3457"
+
+[[package]]
 name = "arrayvec"
 version = "0.5.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -78,12 +84,23 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9b34d609dfbaf33d6889b2b7106d3ca345eacad44200913df5ba02bfd31d2ba9"
 
 [[package]]
+name = "async-channel"
+version = "1.9.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "81953c529336010edd6d8e358f886d9581267795c61b19475b71314bffa46d35"
+dependencies = [
+ "concurrent-queue",
+ "event-listener 2.5.3",
+ "futures-core",
+]
+
+[[package]]
 name = "async-lock"
 version = "3.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ff6e472cdea888a4bd64f342f09b3f50e1886d32afe8df3d663c01140b811b18"
 dependencies = [
- "event-listener",
+ "event-listener 5.4.0",
  "event-listener-strategy",
  "pin-project-lite",
 ]
@@ -97,6 +114,15 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 2.0.104",
+]
+
+[[package]]
+name = "async-watch"
+version = "0.3.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a078faf4e27c0c6cc0efb20e5da59dcccc04968ebf2801d8e0b2195124cdcdb2"
+dependencies = [
+ "event-listener 2.5.3",
 ]
 
 [[package]]
@@ -608,6 +634,12 @@ dependencies = [
 
 [[package]]
 name = "event-listener"
+version = "2.5.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0206175f82b8d6bf6652ff7d71a1e27fd2e4efde587fd368662814d6ec1d9ce0"
+
+[[package]]
+name = "event-listener"
 version = "5.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3492acde4c3fc54c845eaab3eed8bd00c7a7d881f78bfc801e43a93dec1331ae"
@@ -623,7 +655,7 @@ version = "0.5.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8be9f3dfaaffdae2972880079a491a1a8bb7cbed0b8dd7a347f668b4150a3b93"
 dependencies = [
- "event-listener",
+ "event-listener 5.4.0",
  "pin-project-lite",
 ]
 
@@ -839,7 +871,7 @@ dependencies = [
  "futures-core",
  "futures-sink",
  "http",
- "indexmap 2.9.0",
+ "indexmap 2.10.0",
  "slab",
  "tokio",
  "tokio-util",
@@ -1053,22 +1085,28 @@ dependencies = [
 
 [[package]]
 name = "ic-agent"
-version = "0.38.2"
+version = "0.40.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "17a656d3b25007f59ba0700e65b332efd56d5dbfc6014994000ab3dbb221f54a"
+checksum = "4832787330765f1bdf67123928855390b7f0b5a16dd0a7ea67674b7d3178ffd0"
 dependencies = [
+ "arc-swap",
+ "async-channel",
  "async-lock",
  "async-trait",
+ "async-watch",
  "backoff",
  "cached",
  "candid",
+ "der",
+ "ecdsa",
  "ed25519-consensus",
+ "elliptic-curve",
  "futures-util",
  "hex",
  "http",
  "http-body",
- "ic-certification 2.6.0",
- "ic-transport-types 0.38.2",
+ "ic-certification",
+ "ic-transport-types",
  "ic-verify-bls-signature",
  "k256",
  "leb128",
@@ -1078,8 +1116,6 @@ dependencies = [
  "rand 0.8.5",
  "rangemap",
  "reqwest",
- "ring",
- "rustls-webpki 0.102.8",
  "sec1",
  "serde",
  "serde_bytes",
@@ -1087,7 +1123,8 @@ dependencies = [
  "serde_repr",
  "sha2 0.10.9",
  "simple_asn1",
- "thiserror 1.0.69",
+ "stop-token",
+ "thiserror 2.0.12",
  "time",
  "tokio",
  "tower-service",
@@ -1136,18 +1173,6 @@ dependencies = [
 
 [[package]]
 name = "ic-certification"
-version = "2.6.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e64ee3d8b6e81b51f245716d3e0badb63c283c00f3c9fb5d5219afc30b5bf821"
-dependencies = [
- "hex",
- "serde",
- "serde_bytes",
- "sha2 0.10.9",
-]
-
-[[package]]
-name = "ic-certification"
 version = "3.0.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ffb40d73f9f8273dc6569a68859003bbd467c9dc6d53c6fd7d174742f857209d"
@@ -1174,8 +1199,8 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bbeeb3d91aa179d6496d7293becdacedfc413c825cac79fd54ea1906f003ee55"
 dependencies = [
  "serde",
- "strum",
- "strum_macros",
+ "strum 0.26.3",
+ "strum_macros 0.26.4",
 ]
 
 [[package]]
@@ -1200,31 +1225,13 @@ dependencies = [
 
 [[package]]
 name = "ic-transport-types"
-version = "0.38.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "894b183f280e87b29aac98e7de0972cf632435e1f0a462969d9f5e0ccacc4d25"
-dependencies = [
- "candid",
- "hex",
- "ic-certification 2.6.0",
- "leb128",
- "serde",
- "serde_bytes",
- "serde_cbor",
- "serde_repr",
- "sha2 0.10.9",
- "thiserror 1.0.69",
-]
-
-[[package]]
-name = "ic-transport-types"
 version = "0.40.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a2e7706e55836e8104c98149ec0796d20d5213fef972ac01b544657d410f1883"
 dependencies = [
  "candid",
  "hex",
- "ic-certification 3.0.3",
+ "ic-certification",
  "leb128",
  "serde",
  "serde_bytes",
@@ -1246,39 +1253,6 @@ dependencies = [
  "pairing",
  "rand 0.8.5",
  "sha2 0.10.9",
-]
-
-[[package]]
-name = "ic-vetkeys"
-version = "0.2.0"
-dependencies = [
- "anyhow",
- "assert_matches",
- "candid",
- "futures",
- "hex",
- "hkdf",
- "ic-agent",
- "ic-cdk",
- "ic-cdk-macros",
- "ic-stable-structures",
- "ic-vetkeys-test-utils",
- "ic_bls12_381",
- "lazy_static",
- "pairing",
- "pocket-ic",
- "rand 0.8.5",
- "rand_chacha 0.3.1",
- "serde",
- "serde_bytes",
- "serde_cbor",
- "serde_with",
- "sha2 0.10.9",
- "sha3",
- "strum",
- "strum_macros",
- "subtle",
- "zeroize",
 ]
 
 [[package]]
@@ -1306,8 +1280,41 @@ dependencies = [
  "serde_with",
  "sha2 0.10.9",
  "sha3",
- "strum",
- "strum_macros",
+ "strum 0.26.3",
+ "strum_macros 0.26.4",
+ "subtle",
+ "zeroize",
+]
+
+[[package]]
+name = "ic-vetkeys"
+version = "0.3.0"
+dependencies = [
+ "anyhow",
+ "assert_matches",
+ "candid",
+ "futures",
+ "hex",
+ "hkdf",
+ "ic-agent",
+ "ic-cdk",
+ "ic-cdk-macros",
+ "ic-stable-structures",
+ "ic-vetkeys-test-utils",
+ "ic_bls12_381",
+ "lazy_static",
+ "pairing",
+ "pocket-ic",
+ "rand 0.8.5",
+ "rand_chacha 0.3.1",
+ "serde",
+ "serde_bytes",
+ "serde_cbor",
+ "serde_with",
+ "sha2 0.10.9",
+ "sha3",
+ "strum 0.27.1",
+ "strum_macros 0.27.1",
  "subtle",
  "zeroize",
 ]
@@ -1320,7 +1327,7 @@ dependencies = [
  "ic-cdk",
  "ic-cdk-macros",
  "ic-dummy-getrandom-for-wasm",
- "ic-vetkeys 0.2.0",
+ "ic-vetkeys 0.3.0",
  "ic-vetkeys-test-utils",
  "pocket-ic",
  "rand 0.8.5",
@@ -1336,7 +1343,7 @@ dependencies = [
  "ic-cdk-macros",
  "ic-dummy-getrandom-for-wasm",
  "ic-stable-structures",
- "ic-vetkeys 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "ic-vetkeys 0.2.0",
  "pocket-ic",
  "rand 0.8.5",
  "rand_chacha 0.3.1",
@@ -1352,7 +1359,7 @@ dependencies = [
  "getrandom 0.2.16",
  "ic-cdk",
  "ic-stable-structures",
- "ic-vetkeys 0.2.0",
+ "ic-vetkeys 0.3.0",
  "serde",
  "serde_bytes",
  "serde_cbor",
@@ -1367,7 +1374,7 @@ dependencies = [
  "ic-cdk-macros",
  "ic-dummy-getrandom-for-wasm",
  "ic-stable-structures",
- "ic-vetkeys 0.2.0",
+ "ic-vetkeys 0.3.0",
  "ic-vetkeys-test-utils",
  "pocket-ic",
  "rand 0.8.5",
@@ -1384,7 +1391,7 @@ dependencies = [
  "candid",
  "hex",
  "ic-stable-structures",
- "ic-vetkeys 0.2.0",
+ "ic-vetkeys 0.3.0",
  "ic_bls12_381",
  "lazy_static",
  "rand 0.8.5",
@@ -1554,9 +1561,9 @@ dependencies = [
 
 [[package]]
 name = "indexmap"
-version = "2.9.0"
+version = "2.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cea70ddb795996207ad57735b50c5982d8844f38ba9ee5f1aedcfb708a2aa11e"
+checksum = "fe4cd85333e22411419a0bcae1297d25e58c9443848b11dc6a86fefe8c78a661"
 dependencies = [
  "equivalent",
  "hashbrown 0.15.4",
@@ -1983,9 +1990,9 @@ dependencies = [
  "candid",
  "flate2",
  "hex",
- "ic-certification 3.0.3",
+ "ic-certification",
  "ic-management-canister-types",
- "ic-transport-types 0.40.1",
+ "ic-transport-types",
  "reqwest",
  "schemars 0.8.22",
  "serde",
@@ -1994,8 +2001,8 @@ dependencies = [
  "serde_json",
  "sha2 0.10.9",
  "slog",
- "strum",
- "strum_macros",
+ "strum 0.26.3",
+ "strum_macros 0.26.4",
  "tempfile",
  "thiserror 2.0.12",
  "tokio",
@@ -2383,7 +2390,7 @@ dependencies = [
  "once_cell",
  "ring",
  "rustls-pki-types",
- "rustls-webpki 0.103.3",
+ "rustls-webpki",
  "subtle",
  "zeroize",
 ]
@@ -2408,17 +2415,6 @@ checksum = "229a4a4c221013e7e1f1a043678c5cc39fe5171437c88fb47151a21e6f5b5c79"
 dependencies = [
  "web-time",
  "zeroize",
-]
-
-[[package]]
-name = "rustls-webpki"
-version = "0.102.8"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "64ca1bc8749bd4cf37b5ce386cc146580777b4e8572c7b97baf22c83f444bee9"
-dependencies = [
- "ring",
- "rustls-pki-types",
- "untrusted",
 ]
 
 [[package]]
@@ -2640,7 +2636,7 @@ dependencies = [
  "chrono",
  "hex",
  "indexmap 1.9.3",
- "indexmap 2.9.0",
+ "indexmap 2.10.0",
  "schemars 0.9.0",
  "serde",
  "serde_derive",
@@ -2811,6 +2807,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "stop-token"
+version = "0.7.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "af91f480ee899ab2d9f8435bfdfc14d08a5754bd9d3fef1f1a1c23336aad6c8b"
+dependencies = [
+ "async-channel",
+ "cfg-if",
+ "futures-core",
+ "pin-project-lite",
+]
+
+[[package]]
 name = "strsim"
 version = "0.11.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2822,14 +2830,33 @@ version = "0.26.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8fec0f0aef304996cf250b31b5a10dee7980c85da9d759361292b8bca5a18f06"
 dependencies = [
- "strum_macros",
+ "strum_macros 0.26.4",
 ]
+
+[[package]]
+name = "strum"
+version = "0.27.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f64def088c51c9510a8579e3c5d67c65349dcf755e5479ad3d010aa6454e2c32"
 
 [[package]]
 name = "strum_macros"
 version = "0.26.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4c6bee85a5a24955dc440386795aa378cd9cf82acd5f764469152d2270e581be"
+dependencies = [
+ "heck",
+ "proc-macro2",
+ "quote",
+ "rustversion",
+ "syn 2.0.104",
+]
+
+[[package]]
+name = "strum_macros"
+version = "0.27.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c77a8c5abcaf0f9ce05d62342b7d298c346515365c36b673df4ebe3ced01fde8"
 dependencies = [
  "heck",
  "proc-macro2",
