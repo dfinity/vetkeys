@@ -8,19 +8,20 @@ use ic_stable_structures::{
 };
 use serde_bytes::ByteBuf;
 use std::cell::RefCell;
-use types::{Signature, SignatureVec};
+use types::Signature;
 
 type Memory = VirtualMemory<DefaultMemoryImpl>;
 
 type VetKeyPublicKey = ByteBuf;
 type RawSignature = ByteBuf;
 type RawMessage = String;
+type Timestamp = u64;
 
 thread_local! {
     static MEMORY_MANAGER: RefCell<MemoryManager<DefaultMemoryImpl>> =
         RefCell::new(MemoryManager::init(DefaultMemoryImpl::default()));
 
-    static SIGNATURES: RefCell<StableBTreeMap<Principal, SignatureVec, Memory>> = RefCell::new(StableBTreeMap::init(
+    static SIGNATURES: RefCell<StableBTreeMap<(Principal, Timestamp), Signature, Memory>> = RefCell::new(StableBTreeMap::init(
             MEMORY_MANAGER.with_borrow(|m| m.get(MemoryId::new(3))),
         ));
 
@@ -52,26 +53,18 @@ async fn sign_message(message: RawMessage) -> RawSignature {
     .await
     .expect("ic_vetkeys' sign_with_bls failed");
 
-    SIGNATURES.with_borrow_mut(|signer_to_sigs| {
-        let new_sig = Signature {
+    SIGNATURES.with_borrow_mut(|signer_and_timestamp_to_sig| {
+        let timestamp = ic_cdk::api::time();
+        let sig = Signature {
             message,
             signature: signature_bytes.clone(),
-            timestamp: ic_cdk::api::time(),
+            timestamp,
         };
-        match signer_to_sigs.get(&signer) {
-            Some(mut sigs) => {
-                sigs.sigs.push(new_sig);
-                signer_to_sigs.insert(signer, sigs);
-            }
-            None => {
-                signer_to_sigs.insert(
-                    signer,
-                    SignatureVec {
-                        sigs: vec![new_sig],
-                    },
-                );
-            }
-        }
+        let previous_sig = signer_and_timestamp_to_sig.insert((signer, timestamp), sig);
+        assert!(
+            previous_sig.is_none(),
+            "implementation bug: expected the tuple (signer, timestamp) to be unique"
+        );
     });
 
     ByteBuf::from(signature_bytes)
@@ -79,12 +72,13 @@ async fn sign_message(message: RawMessage) -> RawSignature {
 
 #[query]
 fn get_my_signatures() -> Vec<Signature> {
-    SIGNATURES.with_borrow(|signer_to_sigs| {
-        signer_to_sigs
-            .get(&ic_cdk::api::msg_caller())
-            .unwrap_or_default()
-            .sigs
-            .clone()
+    let me = ic_cdk::api::msg_caller();
+    SIGNATURES.with_borrow(|signer_and_timestamp_to_sig| {
+        signer_and_timestamp_to_sig
+            .range((me, 0)..)
+            .take_while(|((signer, _ts), _sig)| signer == &me)
+            .map(|((_, _), sig)| sig)
+            .collect()
     })
 }
 
