@@ -6,21 +6,15 @@
     "Motoko",
     "Svelte",
     "Canister",
-    "Docker",
     "Rust"
   ],
   "scripts": {
-    "build": "rollup -c --bundleConfigAsCjs",
-    "dev": "rollup -c --bundleConfigAsCjs -w",
-    "dev-docker": "rollup -c -w --configExpose",
-    "start": "sirv src/frontend/public --no-clear -s --port 3000",
-    "start-expose": "sirv src/frontend/public --no-clear -s --host 0.0.0.0 --port 3000",
+    "build": "npm run build:bindings && rollup -c --bundleConfigAsCjs",
+    "build:bindings": "cd scripts && ./gen_bindings.sh",
+    "dev": "npm run build:bindings && rollup -c --bundleConfigAsCjs -w",
     "test": "jest src",
     "test:watch": "npm run test -- --watch",
-    "check": "svelte-check --tsconfig ./tsconfig.json",
-    "print-dfx-ii": "echo local Internet Identity: http://$(dfx canister id internet_identity).localhost:8000",
-    "print-dfx-www": "echo local dfx frontend server: http://$(dfx canister id www).localhost:8000",
-    "print-local-www": "echo local frontend server: http://localhost:3000"
+    "check": "svelte-check --tsconfig ./tsconfig.json"
   },
   "devDependencies": {
     "@babel/preset-env": "^7.16.8",
