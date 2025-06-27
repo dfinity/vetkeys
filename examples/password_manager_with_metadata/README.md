@@ -18,7 +18,7 @@ This version of the application extends the basic password manager by supporting
 
 ### Prerequisites
 
-- [Local Internet Computer dev environment](https://internetcomputer.org/docs/current/developer-docs/backend/rust/dev-env)
+- [Local Internet Computer dev environment](https://internetcomputer.org/docs/building-apps/getting-started/install)
 - [npm](https://www.npmjs.com/package/npm)
 
 ### Deploy the Canisters Locally
