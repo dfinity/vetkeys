@@ -38,7 +38,7 @@ function getBasicBlsSigningCanister(): ActorSubclass<_SERVICE> {
         identity: authClient.getIdentity(),
         host,
       },
-    }
+    },
   );
 
   return basicBlsSigningCanister;
@@ -195,10 +195,10 @@ document
 
     try {
       const signatureBytes = new Uint8Array(
-        signatureHex.match(/.{1,2}/g)!.map((byte) => parseInt(byte, 16))
+        signatureHex.match(/.{1,2}/g)!.map((byte) => parseInt(byte, 16)),
       );
       const pubkeyBytes = new Uint8Array(
-        pubkeyHex.match(/.{1,2}/g)!.map((byte) => parseInt(byte, 16))
+        pubkeyHex.match(/.{1,2}/g)!.map((byte) => parseInt(byte, 16)),
       );
 
       const verificationKey = DerivedPublicKey.deserialize(pubkeyBytes);
@@ -206,7 +206,7 @@ document
       const result = verifyBlsSignature(
         verificationKey,
         messageBytes,
-        signatureBytes
+        signatureBytes,
       );
       alert(`Verification result: ${result ? "Valid" : "INVALID"}`);
     } catch {
@@ -231,7 +231,7 @@ async function listSignatures() {
       const myVerificationKeyRaw =
         await getBasicBlsSigningCanister().get_my_verification_key();
       myVerificationKey = DerivedPublicKey.deserialize(
-        Uint8Array.from(myVerificationKeyRaw)
+        Uint8Array.from(myVerificationKeyRaw),
       );
     }
     const myVerificationKeyHex = Array.from(myVerificationKey.publicKeyBytes())
@@ -253,7 +253,7 @@ async function listSignatures() {
       const isValid = verifyBlsSignature(
         myVerificationKey,
         new TextEncoder().encode(signatureData.message),
-        Uint8Array.from(signatureData.signature)
+        Uint8Array.from(signatureData.signature),
       );
 
       signatureElement.innerHTML = `
