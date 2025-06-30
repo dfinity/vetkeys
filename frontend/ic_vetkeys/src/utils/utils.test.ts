@@ -382,8 +382,8 @@ test("AES-GCM encryption", async () => {
 
 test("IBE ciphertext size utils", () => {
     for (let ptextLen: number = 0; ptextLen != 1024; ++ptextLen) {
-        let ctextLen = IbeCiphertext.ciphertextSize(ptextLen);
-        let recPtextLen = IbeCiphertext.plaintextSize(ctextLen);
+        const ctextLen = IbeCiphertext.ciphertextSize(ptextLen);
+        const recPtextLen = IbeCiphertext.plaintextSize(ctextLen);
         assertEqual(ptextLen, recPtextLen);
     }
 });
