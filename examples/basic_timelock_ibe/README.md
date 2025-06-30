@@ -1,8 +1,5 @@
 # Basic Timelock Identity Based Encryption
 
-> [!IMPORTANT]  
-> These support libraries are under active development and are subject to change. Access to the repositories have been opened to allow for early feedback. Please check back regularly for updates.
-
 The **Basic Timelock IBE** example demonstrates how to use **[VetKeys](https://internetcomputer.org/docs/building-apps/network-features/vetkeys/introduction)** to implement a secret-bid auction using Identity Based Encryption (IBE) on the **Internet Computer (IC)**. This application allows users authenticated with their **Internet Identity Principal** to create auction lots with a description and deadline, and other users to place a secret bid for the lot. The bids in this example are just dummy integer values, contrary to real-world use cases where users would place bids holding some value.
 
 This canister (IC smart contract) ensures that:
