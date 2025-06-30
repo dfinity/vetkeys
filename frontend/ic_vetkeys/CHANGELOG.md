@@ -1,9 +1,16 @@
 # Change Log
 
-## [Unreleased]
+## [0.3.0] - 2025-06-30
 
-### Changes
- - Added isValidTransportPublicKey function
+### Changed
+
+- Added isValidTransportPublicKey function
+
+- Improved code docs.
+
+- Added `deserialize` methods.
+
+- Updated dependencies.
 
 ## [0.2.0] - 2025-06-08
 
