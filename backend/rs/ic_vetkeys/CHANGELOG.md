@@ -6,6 +6,8 @@
 
 - Added MasterPublicKey::production_key which allows accessing the production public keys
 
+- Added IbeCiphertext plaintextSize and ciphertextSize helpers
+
 ## [0.3.0] - 2025-06-30
 
 ### Added

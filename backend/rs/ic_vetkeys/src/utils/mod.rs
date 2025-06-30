@@ -564,6 +564,8 @@ const IBE_HEADER: [u8; 8] = [b'I', b'C', b' ', b'I', b'B', b'E', 0x00, 0x01];
 
 const IBE_HEADER_BYTES: usize = IBE_HEADER.len();
 
+const IBE_OVERHEAD: usize = IBE_HEADER_BYTES + IBE_SEED_BYTES + G2AFFINE_BYTES;
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 /// An IBE (identity based encryption) ciphertext
 pub struct IbeCiphertext {
@@ -599,8 +601,7 @@ impl IbeDomainSep {
 impl IbeCiphertext {
     /// Serialize this IBE ciphertext
     pub fn serialize(&self) -> Vec<u8> {
-        let mut output =
-            Vec::with_capacity(self.header.len() + G2AFFINE_BYTES + IBE_SEED_BYTES + self.c3.len());
+        let mut output = Vec::with_capacity(IBE_OVERHEAD + self.c3.len());
 
         output.extend_from_slice(&self.header);
         output.extend_from_slice(&self.c1.to_compressed());
@@ -614,7 +615,7 @@ impl IbeCiphertext {
     ///
     /// Returns Err if the encoding is not valid
     pub fn deserialize(bytes: &[u8]) -> Result<Self, String> {
-        if bytes.len() < IBE_HEADER_BYTES + G2AFFINE_BYTES + IBE_SEED_BYTES {
+        if bytes.len() < IBE_OVERHEAD {
             return Err("IbeCiphertext too short to be valid".to_string());
         }
 
@@ -637,7 +638,6 @@ impl IbeCiphertext {
     }
 
     fn hash_to_mask(header: &[u8], seed: &[u8; IBE_SEED_BYTES], msg: &[u8]) -> Scalar {
-
         /*
         It would have been better to instead use the SHA-256 of the message instead of the
         message directly, since that would avoid having to allocate an extra buffer of
@@ -761,6 +761,23 @@ impl IbeCiphertext {
             Ok(msg)
         } else {
             Err("decryption failed".to_string())
+        }
+    }
+
+    /// Helper function for determining size of the IBE ciphertext
+    pub fn ciphertext_size(plaintext_size: usize) -> usize {
+        plaintext_size + IBE_OVERHEAD
+    }
+
+    /// Helper function for determining size of the IBE plaintext
+    ///
+    /// Returns None if the indicated length would be a ciphertext
+    /// that is not possibly valid (due to missing required elements)
+    pub fn plaintext_size(ciphertext_size: usize) -> Option<usize> {
+        if ciphertext_size >= IBE_OVERHEAD {
+            Some(ciphertext_size - IBE_OVERHEAD)
+        } else {
+            None
         }
     }
 }
