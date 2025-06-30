@@ -1257,37 +1257,6 @@ dependencies = [
 
 [[package]]
 name = "ic-vetkeys"
-version = "0.2.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e74c7e7811983cde1bbe44b78a6c68fc9aa009e4bb88890e7e854e2e7f8d0b2c"
-dependencies = [
- "anyhow",
- "candid",
- "futures",
- "hex",
- "hkdf",
- "ic-cdk",
- "ic-cdk-macros",
- "ic-stable-structures",
- "ic_bls12_381",
- "lazy_static",
- "pairing",
- "rand 0.8.5",
- "rand_chacha 0.3.1",
- "serde",
- "serde_bytes",
- "serde_cbor",
- "serde_with",
- "sha2 0.10.9",
- "sha3",
- "strum 0.26.3",
- "strum_macros 0.26.4",
- "subtle",
- "zeroize",
-]
-
-[[package]]
-name = "ic-vetkeys"
 version = "0.3.0"
 dependencies = [
  "anyhow",
@@ -1305,6 +1274,37 @@ dependencies = [
  "lazy_static",
  "pairing",
  "pocket-ic",
+ "rand 0.8.5",
+ "rand_chacha 0.3.1",
+ "serde",
+ "serde_bytes",
+ "serde_cbor",
+ "serde_with",
+ "sha2 0.10.9",
+ "sha3",
+ "strum 0.27.1",
+ "strum_macros 0.27.1",
+ "subtle",
+ "zeroize",
+]
+
+[[package]]
+name = "ic-vetkeys"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6d0fe4e1f361dea9b93841e428c00c6934eb5256ee9d35890db2fced4ac1a3c9"
+dependencies = [
+ "anyhow",
+ "candid",
+ "futures",
+ "hex",
+ "hkdf",
+ "ic-cdk",
+ "ic-cdk-macros",
+ "ic-stable-structures",
+ "ic_bls12_381",
+ "lazy_static",
+ "pairing",
  "rand 0.8.5",
  "rand_chacha 0.3.1",
  "serde",
@@ -1343,7 +1343,7 @@ dependencies = [
  "ic-cdk-macros",
  "ic-dummy-getrandom-for-wasm",
  "ic-stable-structures",
- "ic-vetkeys 0.2.0",
+ "ic-vetkeys 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "pocket-ic",
  "rand 0.8.5",
  "rand_chacha 0.3.1",

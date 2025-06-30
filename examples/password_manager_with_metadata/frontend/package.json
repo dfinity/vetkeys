@@ -42,7 +42,7 @@
         "@dfinity/candid": "^2.3.0",
         "@dfinity/identity": "^2.3.0",
         "@dfinity/principal": "^2.3.0",
-        "@dfinity/vetkeys": "^0.2.0",
+        "@dfinity/vetkeys": "^0.3.0",
         "@sveltejs/vite-plugin-svelte": "^3.0.2",
         "daisyui": "^4.12.23",
         "save": "^2.9.0",

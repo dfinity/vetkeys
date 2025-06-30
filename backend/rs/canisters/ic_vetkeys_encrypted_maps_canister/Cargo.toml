@@ -18,7 +18,7 @@ ic-cdk = "0.18.3"
 ic-cdk-macros = "0.18.3"
 ic-dummy-getrandom-for-wasm = "0.1.0"
 ic-stable-structures = "0.6.8"
-ic-vetkeys = "0.2.0"
+ic-vetkeys = "0.3.0"
 serde = "1.0.217"
 
 [dev-dependencies]

@@ -31,7 +31,7 @@
     "@dfinity/candid": "^2.3.0",
     "@dfinity/identity": "^2.3.0",
     "@dfinity/principal": "^2.3.0",
-    "@dfinity/vetkeys": "^0.2.0",
+    "@dfinity/vetkeys": "^0.3.0",
     "@popperjs/core": "^2.11.8",
     "@sveltejs/vite-plugin-svelte": "^3.0.2",
     "@tailwindcss/postcss": "^4.0.6",
