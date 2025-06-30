@@ -1,5 +1,9 @@
 # Encrypted notes: vetKD
 
+| Motoko backend | [![](https://icp.ninja/assets/open.svg)](http://icp.ninja/editor?g=https://github.com/dfinity/vetkeys/tree/main/examples/encrypted_notes_dapp_vetkd/motoko)|
+| --- | --- |
+| Rust backend | [![](https://icp.ninja/assets/open.svg)](http://icp.ninja/editor?g=https://github.com/dfinity/vetkeys/tree/main/examples/encrypted_notes_dapp_vetkd/rust) |
+
 This is a copy of the [`encrypted-notes-dapp` example](https://github.com/dfinity/examples/tree/master/motoko/encrypted-notes-dapp), adapted to use [vetKeys](https://internetcomputer.org/docs/building-apps/network-features/vetkeys/introduction) and add sharing of notes between users.
 
 In particular, instead of creating a principal-specific AES key and syncing it across devices (using device-specific RSA keys), the notes are encrypted with an AES key that is derived (directly in the browser) from a note-ID-specific vetKey obtained from the backend canister (in encrypted form, using an ephemeral transport key), which itself obtains it from the vetKD system API. This way, there is no need for any device management in the dapp, plus sharing of notes becomes possible.
