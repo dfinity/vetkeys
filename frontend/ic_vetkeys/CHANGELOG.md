@@ -1,5 +1,11 @@
 # Change Log
 
+## [0.3.1] - Not Yet Released
+
+### Added
+
+- Added MasterPublicKey.productionKey which allows accessing the production public keys
+
 ## [0.3.0] - 2025-06-30
 
 ### Changed
