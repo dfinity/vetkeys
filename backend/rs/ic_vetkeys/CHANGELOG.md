@@ -2,6 +2,10 @@
 
 ## [0.3.0] - 2025-06-30
 
+### Added
+
+- An additional sanity check that the public key is not the identity.
+
 ### Changed
 
 - Improved docs.
