@@ -765,17 +765,17 @@ impl IbeCiphertext {
     }
 
     /// Helper function for determining size of the IBE ciphertext
-    pub fn ciphertext_size(ptext_len: usize) -> usize {
-        ptext_len + IBE_OVERHEAD
+    pub fn ciphertext_size(plaintext_size: usize) -> usize {
+        plaintext_size + IBE_OVERHEAD
     }
 
     /// Helper function for determining size of the IBE plaintext
     ///
-    /// Returns None if the indicated ctext_len would be a ciphertext
+    /// Returns None if the indicated length would be a ciphertext
     /// that is not possibly valid (due to missing required elements)
-    pub fn plaintext_size(ctext_len: usize) -> Option<usize> {
-        if ctext_len >= IBE_OVERHEAD {
-            Some(ctext_len - IBE_OVERHEAD)
+    pub fn plaintext_size(ciphertext_size: usize) -> Option<usize> {
+        if ciphertext_size >= IBE_OVERHEAD {
+            Some(ciphertext_size - IBE_OVERHEAD)
         } else {
             None
         }
