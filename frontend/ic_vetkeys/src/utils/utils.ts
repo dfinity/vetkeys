@@ -929,6 +929,11 @@ export class IbeSeed {
 }
 
 /**
+ * Total overhead for an IBE ciphertext
+ */
+const IBE_OVERHEAD = IBE_HEADER_LEN + IBE_SEED_BYTES + G2_BYTES;
+
+/**
  * IBE (Identity Based Encryption)
  */
 export class IbeCiphertext {
@@ -936,6 +941,32 @@ export class IbeCiphertext {
     readonly #c1: G2Point;
     readonly #c2: Uint8Array;
     readonly #c3: Uint8Array;
+
+    /**
+     * Helper function for determining size of the IBE ciphertext
+     */
+    static ciphertextSize(plaintextSize: number): number {
+        if (plaintextSize < 0) {
+            throw new Error(
+                "IbeCiphertext.ciphertextSize argument cannot be negative",
+            );
+        }
+
+        return plaintextSize + IBE_OVERHEAD;
+    }
+
+    /**
+     * Helper function for determining size of the IBE plaintext
+     */
+    static plaintextSize(ciphertextSize: number): number {
+        if (ciphertextSize < IBE_OVERHEAD) {
+            throw new Error(
+                "IbeCiphertext.plaintextSize given ciphertext size is too small to be valid",
+            );
+        }
+
+        return ciphertextSize - IBE_OVERHEAD;
+    }
 
     /**
      * Serialize the IBE ciphertext to a bytestring
