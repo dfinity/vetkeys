@@ -1,5 +1,8 @@
 # Basic Identity Based Encryption
 
+> [!IMPORTANT]  
+> These support libraries are under active development and are subject to change. Access to the repositories have been opened to allow for early feedback. Please check back regularly for updates.
+
 The **Basic IBE** example demonstrates how to use **[VetKeys](https://internetcomputer.org/docs/building-apps/network-features/vetkeys/introduction)** to implement secure messaging between users by means of Identity Based Encryption (IBE) on the **Internet Computer (IC)**. This application allows users to send encrypted messages to other users using their **Internet Identity Principal** as the encryption key identifier. This canister (IC smart contract) ensures that only the authorized user can access their private decryption key, meaning that even if someone else knows your principal, they cannot decrypt messages intended for you because neither other users nor this canister can access your private key.
 
 Note that generally it is possible for a canister to request a decryption key to decrypt secrets as part of its code.
