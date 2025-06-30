@@ -1,5 +1,19 @@
 # Change Log
 
+## [0.3.0] - 2025-06-30
+
+### Added
+
+- An additional sanity check that the public key is not the identity.
+
+### Changed
+
+- Improved docs.
+
+- Added zeroization of the used memory.
+
+- Updated dependencies.
+
 ## [0.2.0] - 2025-06-08
 
 ### Breaking Changes

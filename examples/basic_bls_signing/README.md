@@ -1,8 +1,5 @@
 # Basic BLS Signing
 
-> [!IMPORTANT]  
-> These support libraries are under active development and are subject to change. Access to the repositories have been opened to allow for early feedback. Please check back regularly for updates.
-
 The **Basic BLS signing** example demonstrates how to use **[vetKeys](https://internetcomputer.org/docs/building-apps/network-features/vetkeys/introduction)** to implement secure BLS signing on the **Internet Computer (IC)**, where every authenticated user can ask the canister (IC smart contract) to produce signatures, where the **Internet Identity Principal** identifies the signer. This canister ensures that users can only produce signature for their own principal and not for someone else's principal. Furthermore, the vetKeys in this dapp can only be produced upon a user request, as specified in the canister code, meaning that the canister cannot produce signatures for arbitrary users or messages.
 
 For confirming that the canister can only produce signatures in the intended way, users need to inspect the code installed in the canister. For this, it is crucial that canisters using VetKeys have their code public.
