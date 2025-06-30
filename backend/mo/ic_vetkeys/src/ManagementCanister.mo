@@ -53,14 +53,14 @@ module {
         let pointAtInfinity : Blob = Blob.fromArray([192, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
         let vetKdDeriveKeyResponse = await vetKdDeriveKey(message, context, vetKdKeyid, pointAtInfinity);
 
-        let BYTES_SIZE : Nat = 192;
+        let RESPONSE_SIZE : Nat = 192;
         let SIGNATURE_SIZE : Nat = 48;
 
-        if (vetKdDeriveKeyResponse.size() != BYTES_SIZE) {
-            Debug.trap("Expected " # Nat.toText(BYTES_SIZE) # " signature bytes, but got " # Nat.toText(vetKdDeriveKeyResponse.size()));
+        if (vetKdDeriveKeyResponse.size() != RESPONSE_SIZE) {
+            Debug.trap("Expected " # Nat.toText(RESPONSE_SIZE) # " signature bytes, but got " # Nat.toText(vetKdDeriveKeyResponse.size()));
         };
 
-        Blob.fromArray(Array.subArray<Nat8>(Blob.toArray(vetKdDeriveKeyResponse), BYTES_SIZE - SIGNATURE_SIZE, SIGNATURE_SIZE));
+        Blob.fromArray(Array.subArray<Nat8>(Blob.toArray(vetKdDeriveKeyResponse), RESPONSE_SIZE - SIGNATURE_SIZE, SIGNATURE_SIZE));
     };
 
     public func blsPublicKey(canisterId : ?Principal, context : Blob, VetKdKeyid : VetKdKeyid) : async Blob {
