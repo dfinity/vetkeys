@@ -50,9 +50,12 @@ pub fn derive_symmetric_key(input: &[u8], domain_sep: &str, len: usize) -> Vec<u
 }
 
 fn hash_to_scalar(input: &[u8], domain_sep: &str) -> ic_bls12_381::Scalar {
-    use ic_bls12_381::hash_to_curve::HashToField;
+use ic_bls12_381::hash_to_curve::HashToField;
 
-    let mut s = [ic_bls12_381::Scalar::zero()];
+                                  let mut s = [ic_bls12_381::Scalar::zero()];
+
+
+    
     <ic_bls12_381::Scalar as HashToField>::hash_to_field::<ExpandMsgXmd<sha2::Sha256>>(
         input,
         domain_sep.as_bytes(),
