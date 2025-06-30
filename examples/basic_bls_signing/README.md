@@ -1,5 +1,9 @@
 # Basic BLS Signing
 
+| Motoko backend | [![](https://icp.ninja/assets/open.svg)](http://icp.ninja/editor?g=https://github.com/dfinity/vetkeys/tree/main/examples/basic_bls_signing/motoko)|
+| --- | --- |
+| Rust backend | [![](https://icp.ninja/assets/open.svg)](http://icp.ninja/editor?g=https://github.com/dfinity/vetkeys/tree/main/examples/basic_bls_signing/rust) |
+
 The **Basic BLS signing** example demonstrates how to use **[vetKeys](https://internetcomputer.org/docs/building-apps/network-features/vetkeys/introduction)** to implement secure BLS signing on the **Internet Computer (IC)**, where every authenticated user can ask the canister (IC smart contract) to produce signatures, where the **Internet Identity Principal** identifies the signer. This canister ensures that users can only produce signature for their own principal and not for someone else's principal. Furthermore, the vetKeys in this dapp can only be produced upon a user request, as specified in the canister code, meaning that the canister cannot produce signatures for arbitrary users or messages.
 
 For confirming that the canister can only produce signatures in the intended way, users need to inspect the code installed in the canister. For this, it is crucial that canisters using VetKeys have their code public.
@@ -18,18 +22,15 @@ For confirming that the canister can only produce signatures in the intended way
 - [Internet Computer software development kit](https://internetcomputer.org/docs/building-apps/getting-started/install)
 - [npm](https://www.npmjs.com/package/npm)
 
-### Install Dependencies
+### Deploy the Canisters Locally
 
+If you want to deploy this project locally with a Motoko backend, then run:
 ```bash
-npm install
+dfx start --background && dfx deploy
 ```
+from the `motoko` folder.
 
-### Deploy the Canisters
-
-Run the local deployment script, which starts the local development environment (`dfx`) if necessary, builds both backend and frontend (asset) canisters, and installs them locally.
-```bash
-bash deploy_locally.sh
-```
+To use the Rust backend instead of Motoko, run the same command in the `rust` folder.
 
 ## Example Components
 
@@ -44,7 +45,7 @@ The backend consists of a canister that:
 
 The frontend is a vanilla typescript application providing a simple interface for signing, showing the signatures stored in the canister, and publishing a signature.
 
-To run the frontend in development mode with hot reloading (after running `deploy_locally.sh`):
+To run the frontend in development mode with hot reloading (after running `dfx deploy`):
 
 ```bash
 npm run dev

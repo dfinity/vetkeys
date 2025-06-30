@@ -20,12 +20,6 @@ export default defineConfig({
       },
     },
   },
-  resolve: {
-    alias: {
-      'ic_vetkeys': path.resolve(__dirname, '../../../frontend/ic_vetkeys/src'),
-      'ic_vetkeys/tools': path.resolve(__dirname, '../../../frontend/ic_vetkeys/src/tools'),
-    }
-  },
   root: "./",
   server: {
     hmr: false

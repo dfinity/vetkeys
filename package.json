@@ -1,8 +1,7 @@
 {
     "private": true,
     "workspaces": [
-        "frontend/ic_vetkeys",
-        "examples/basic_bls_signing/frontend"
+        "frontend/ic_vetkeys"
     ],
     "scripts": {
         "build": "npm run build --workspaces --if-present; npm run bundle --workspaces --if-present"
