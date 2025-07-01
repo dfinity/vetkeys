@@ -943,7 +943,7 @@ export class IbeCiphertext {
     readonly #c3: Uint8Array;
 
     /**
-     * Helper function for determining size of the IBE ciphertext
+     * Helper function for determining the size of an IBE ciphertext in bytes.
      */
     static ciphertextSize(plaintextSize: number): number {
         if (plaintextSize < 0) {
@@ -956,7 +956,7 @@ export class IbeCiphertext {
     }
 
     /**
-     * Helper function for determining size of the IBE plaintext
+     * Helper function for determining the size of an IBE plaintext in bytes.
      */
     static plaintextSize(ciphertextSize: number): number {
         if (ciphertextSize < IBE_OVERHEAD) {

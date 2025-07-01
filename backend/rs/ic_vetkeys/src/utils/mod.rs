@@ -764,12 +764,12 @@ impl IbeCiphertext {
         }
     }
 
-    /// Helper function for determining size of the IBE ciphertext
+    /// Helper function for determining the size of an IBE ciphertext in bytes.
     pub fn ciphertext_size(plaintext_size: usize) -> usize {
         plaintext_size + IBE_OVERHEAD
     }
 
-    /// Helper function for determining size of the IBE plaintext
+    /// Helper function for determining the size of an IBE plaintext in bytes.
     ///
     /// Returns None if the indicated length would be a ciphertext
     /// that is not possibly valid (due to missing required elements)
