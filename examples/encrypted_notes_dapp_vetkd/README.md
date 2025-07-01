@@ -31,6 +31,12 @@ from the `motoko` folder.
 
 To use the Rust backend instead of Motoko, run the same command in the rust folder.
 
+## Example Components
+
+### Backend
+
+The backend consists of a canister that stores encrypted notes. It is automatically deployed with `dfx deploy`.
+
 ### Frontend
 
 The frontend is a **Svelte** application providing a user-friendly interface for managing encrypted notes.
