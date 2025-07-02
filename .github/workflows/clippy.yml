@@ -27,3 +27,4 @@ jobs:
           set -eExuo pipefail
           export CARGO_TERM_COLOR=always # ensure output has colors
           cargo clippy -- -Dwarnings
+          cargo fmt --check
