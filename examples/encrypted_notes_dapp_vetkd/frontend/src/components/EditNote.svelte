@@ -12,6 +12,7 @@
   import { addNotification, showError } from '../store/notifications';
   import { auth } from '../store/auth';
   import Spinner from './Spinner.svelte';
+  import DOMPurify from 'isomorphic-dompurify';
 
   export let currentRoute: CurrentRoute;
 
@@ -25,7 +26,9 @@
     if ($auth.state !== 'initialized') {
       return;
     }
-    const html = editor.getHTML();
+    console.log(editor.getHTML());
+    const html = DOMPurify.sanitize(editor.getHTML());
+    console.log(html);
     updating = true;
     await updateNote(
       {
