@@ -26,9 +26,7 @@
     if ($auth.state !== 'initialized') {
       return;
     }
-    console.log(editor.getHTML());
     const html = DOMPurify.sanitize(editor.getHTML());
-    console.log(html);
     updating = true;
     await updateNote(
       {
