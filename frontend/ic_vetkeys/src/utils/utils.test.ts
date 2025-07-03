@@ -380,6 +380,14 @@ test("AES-GCM encryption", async () => {
     }
 });
 
+test("IBE ciphertext size utils", () => {
+    for (let ptextLen: number = 0; ptextLen != 1024; ++ptextLen) {
+        const ctextLen = IbeCiphertext.ciphertextSize(ptextLen);
+        const recPtextLen = IbeCiphertext.plaintextSize(ctextLen);
+        assertEqual(ptextLen, recPtextLen);
+    }
+});
+
 test("hkdf test vectors", () => {
     // HKDF test vectors from wycheproof
     const testVectors = [

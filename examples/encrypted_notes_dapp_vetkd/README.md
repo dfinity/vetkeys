@@ -31,6 +31,22 @@ from the `motoko` folder.
 
 To use the Rust backend instead of Motoko, run the same command in the rust folder.
 
+## Example Components
+
+### Backend
+
+The backend consists of a canister that stores encrypted notes. It is automatically deployed with `dfx deploy`.
+
+### Frontend
+
+The frontend is a **Svelte** application providing a user-friendly interface for managing encrypted notes.
+
+To run the frontend in development mode with hot reloading (after running `dfx deploy`):
+
+```bash
+npm run dev
+```
+
 ## Troubleshooting
 
 If you run into issues, clearing all the application-specific IndexedDBs in the browser (which are used to store Internet Identity information and the derived non-extractable AES keys) might help fix the issue. For example in Chrome, go to Inspect → Application → Local Storage → `http://localhost:3000/` → Clear All, and then reload.
