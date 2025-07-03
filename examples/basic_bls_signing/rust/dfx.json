@@ -17,7 +17,7 @@
       "type": "custom",
       "specified_id": "rdmx6-jaaaa-aaaaa-aaadq-cai",
       "remote": {
-      "id": {
+        "id": {
           "ic": "rdmx6-jaaaa-aaaaa-aaadq-cai"
         }
       },
@@ -25,19 +25,15 @@
     },
     "www": {
       "dependencies": ["basic_bls_signing", "internet-identity"],
-      "build": ["cd frontend && npm i --include=dev && npm run build && cd - && rm -r dist > /dev/null 2>&1; mv frontend/dist ./"],
+      "build": [
+        "cd frontend && npm i --include=dev && npm run build && cd - && rm -r dist > /dev/null 2>&1; mv frontend/dist ./"
+      ],
       "frontend": {
         "entrypoint": "dist/index.html"
       },
       "source": ["dist/"],
       "type": "assets",
       "output_env_file": "frontend/.env"
-    }
-  },
-  "defaults": {
-    "build": {
-      "packtool": "npx ic-mops sources",
-      "args": ""
     }
   },
   "networks": {
