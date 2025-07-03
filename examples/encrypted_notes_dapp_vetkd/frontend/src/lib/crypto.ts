@@ -61,7 +61,7 @@ export class CryptoService {
       const tsk = vetkd.TransportSecretKey.random();
 
       const ek_bytes_hex = await this.actor.encrypted_symmetric_key_for_note(note_id, tsk.publicKeyBytes());
-      const encryptedVetKey = new vetkd.EncryptedVetKey(hex_decode(ek_bytes_hex));
+      const encryptedVetKey = vetkd.EncryptedVetKey.deserialize(hex_decode(ek_bytes_hex));
 
       const pk_bytes_hex = await this.actor.symmetric_key_verification_key_for_note();
       const dpk = vetkd.DerivedPublicKey.deserialize(hex_decode(pk_bytes_hex));
