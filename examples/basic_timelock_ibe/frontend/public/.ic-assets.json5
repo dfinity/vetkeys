@@ -1,9 +1,6 @@
 [
     {
         "match": "**/*",
-        "security_policy": "standard",
-        headers: {
-            'Content-Security-Policy': "script-src 'self';"
-        }
+        "security_policy": "standard"
     }
 ]
