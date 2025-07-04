@@ -43,6 +43,12 @@ To run the frontend in development mode with hot reloading (after running `dfx d
 npm run dev
 ```
 
+## Limitations
+
+This example dapp does not implement key rotation, which is strongly recommended in a production environment.
+Key rotation involves periodically changing encryption keys and re-encrypting data to enhance security.
+In a production dapp, key rotation would be useful to limit the impact of potential key compromise if a malicious party gains access to a key, or to limit access when users are added or removed from note sharing.
+
 ## Troubleshooting
 
 If you run into issues, clearing all the application-specific IndexedDBs in the browser (which are used to store Internet Identity information and the derived non-extractable AES keys) might help fix the issue. For example in Chrome, go to Inspect → Application → Local Storage → `http://localhost:3000/` → Clear All, and then reload.

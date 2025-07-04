@@ -54,6 +54,10 @@ To run the frontend in development mode with hot reloading (after running `dfx d
 npm run dev
 ```
 
+## Limitations
+
+This example dapp does not implement key rotation, which is strongly recommended in a production dapp to limit the impact of potential key compromise if a malicious party gains access to the user's decryption key.
+
 ## Additional Resources
 
 - **[What are VetKeys](https://internetcomputer.org/docs/building-apps/network-features/vetkeys/introduction)** - For more information about VetKeys and VetKD.
