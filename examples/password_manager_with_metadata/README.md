@@ -50,7 +50,7 @@ npm run dev
 
 ## Limitations
 
-This example dapp does not implement key rotation, which would be needed in a production environment.
+This example dapp does not implement key rotation, which is strongly recommended in a production environment.
 Key rotation involves periodically changing encryption keys and re-encrypting data to enhance security.
 In a production dapp, key rotation would be useful to limit the impact of potential key compromise if a malicious party gains access to a key, or to limit access when users are added or removed from note sharing.
 

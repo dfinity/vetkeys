@@ -56,7 +56,7 @@ npm run dev
 
 ## Limitations
 
-This example dapp does not implement key rotation, which would be needed in a production dapp to limit the impact of potential key compromise if a malicious party gains access to the user's decryption key.
+This example dapp does not implement key rotation, which is strongly recommended in a production dapp to limit the impact of potential key compromise if a malicious party gains access to the user's decryption key.
 
 ## Additional Resources
 
