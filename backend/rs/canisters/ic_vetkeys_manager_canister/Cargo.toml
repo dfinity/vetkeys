@@ -21,6 +21,7 @@ ic-vetkeys = { path = "../../ic_vetkeys" }
 serde = { workspace = true }
 
 [dev-dependencies]
+assert_matches = "1.5.0"
 ic-vetkeys-test-utils = { path = "../../ic_vetkeys_test_utils" }
 pocket-ic = { workspace = true }
 rand = { workspace = true }
