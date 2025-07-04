@@ -330,7 +330,13 @@ fn should_fail_get_and_set_user_rights_unauthorized() {
         env.update::<Result<Option<AccessRights>, String>>(
             unauthorized,
             "set_user_rights",
-            encode_args((key_owner, key_name.clone(), unauthorized, AccessRights::Read)).unwrap(),
+            encode_args((
+                key_owner,
+                key_name.clone(),
+                unauthorized,
+                AccessRights::Read
+            ))
+            .unwrap(),
         ),
         Err("unauthorized".to_string())
     );
@@ -377,28 +383,44 @@ fn should_allow_other_user_to_manage_key() {
     env.update::<Result<Option<AccessRights>, String>>(
         owner,
         "set_user_rights",
-        encode_args((key_id.0, key_name.clone(), user1, AccessRights::ReadWriteManage)).unwrap(),
-    ).unwrap();
+        encode_args((
+            key_id.0,
+            key_name.clone(),
+            user1,
+            AccessRights::ReadWriteManage,
+        ))
+        .unwrap(),
+    )
+    .unwrap();
 
     env.update::<Result<Option<AccessRights>, String>>(
         owner,
         "set_user_rights",
-        encode_args((key_id.0, key_name.clone(), user2, AccessRights::ReadWriteManage)).unwrap(),
-    ).unwrap();
+        encode_args((
+            key_id.0,
+            key_name.clone(),
+            user2,
+            AccessRights::ReadWriteManage,
+        ))
+        .unwrap(),
+    )
+    .unwrap();
 
     // User2 can remove user1
     env.update::<Result<Option<AccessRights>, String>>(
         user2,
         "remove_user",
         encode_args((key_id.0, key_name.clone(), user1)).unwrap(),
-    ).unwrap();
+    )
+    .unwrap();
 
     // User2 can remove themselves
     env.update::<Result<Option<AccessRights>, String>>(
         user2,
         "remove_user",
         encode_args((key_id.0, key_name.clone(), user2)).unwrap(),
-    ).unwrap();
+    )
+    .unwrap();
 }
 
 #[test]
