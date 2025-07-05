@@ -9,6 +9,7 @@
   import Header from './Header.svelte';
   import NoteEditor from './NoteEditor.svelte';
   import TagEditor from './TagEditor.svelte';
+  import DOMPurify from 'isomorphic-dompurify';
 
   let creating = false;
   let tags: string[] = $draft.tags;
@@ -26,7 +27,7 @@
     }
     creating = true;
     await addNote(
-      noteFromContent(editor.getHTML(), tags, $auth.client.getIdentity().getPrincipal()),
+      noteFromContent(DOMPurify.sanitize(editor.getHTML()), tags, $auth.client.getIdentity().getPrincipal()),
       $auth.actor,
       $auth.crypto
     )
@@ -51,7 +52,7 @@
 
   function saveDraft() {
     draft.set({
-      content: editor.getHTML(),
+      content: DOMPurify.sanitize(editor.getHTML()),
       tags: tags,
     });
   }
