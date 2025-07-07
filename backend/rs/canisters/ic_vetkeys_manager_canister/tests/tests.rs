@@ -377,14 +377,12 @@ fn should_allow_other_user_to_manage_key() {
     let user2 = random_self_authenticating_principal(rng);
     let key_name = random_key_name(rng);
 
-    let key_id = (owner, key_name.clone());
-
     // Owner gives manage rights to users
     env.update::<Result<Option<AccessRights>, String>>(
         owner,
         "set_user_rights",
         encode_args((
-            key_id.0,
+            owner,
             key_name.clone(),
             user1,
             AccessRights::ReadWriteManage,
@@ -397,7 +395,7 @@ fn should_allow_other_user_to_manage_key() {
         owner,
         "set_user_rights",
         encode_args((
-            key_id.0,
+            owner,
             key_name.clone(),
             user2,
             AccessRights::ReadWriteManage,
@@ -410,7 +408,7 @@ fn should_allow_other_user_to_manage_key() {
     env.update::<Result<Option<AccessRights>, String>>(
         user2,
         "remove_user",
-        encode_args((key_id.0, key_name.clone(), user1)).unwrap(),
+        encode_args((owner, key_name.clone(), user1)).unwrap(),
     )
     .unwrap();
 
@@ -418,7 +416,7 @@ fn should_allow_other_user_to_manage_key() {
     env.update::<Result<Option<AccessRights>, String>>(
         user2,
         "remove_user",
-        encode_args((key_id.0, key_name.clone(), user2)).unwrap(),
+        encode_args((owner, key_name.clone(), user2)).unwrap(),
     )
     .unwrap();
 }
