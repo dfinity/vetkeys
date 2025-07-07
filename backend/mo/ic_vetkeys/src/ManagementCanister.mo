@@ -1,4 +1,7 @@
 import Blob "mo:base/Blob";
+import Debug "mo:base/Debug";
+import Nat "mo:base/Nat";
+import Array "mo:base/Array";
 
 module {
     public type VetKdKeyid = {
@@ -41,10 +44,23 @@ module {
         reply.public_key;
     };
 
-    public func signWithBls(message : Blob, context : Blob, VetKdKeyid : VetKdKeyid) : async Blob {
+    public func signWithBls(message : Blob, context : Blob, vetKdKeyid : VetKdKeyid) : async Blob {
+        if (vetKdKeyid.curve != #bls12_381_g2) {
+            Debug.trap("Only BLS12-381 G2 is supported");
+        };
+
         // Encryption with the G1 identity element produces unencrypted vetKeys
         let pointAtInfinity : Blob = Blob.fromArray([192, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
-        await vetKdDeriveKey(message, context, VetKdKeyid, pointAtInfinity);
+        let vetKdDeriveKeyResponse = await vetKdDeriveKey(message, context, vetKdKeyid, pointAtInfinity);
+
+        let RESPONSE_SIZE : Nat = 192;
+        let SIGNATURE_SIZE : Nat = 48;
+
+        if (vetKdDeriveKeyResponse.size() != RESPONSE_SIZE) {
+            Debug.trap("Expected " # Nat.toText(RESPONSE_SIZE) # " signature bytes, but got " # Nat.toText(vetKdDeriveKeyResponse.size()));
+        };
+
+        Blob.fromArray(Array.subArray<Nat8>(Blob.toArray(vetKdDeriveKeyResponse), RESPONSE_SIZE - SIGNATURE_SIZE, SIGNATURE_SIZE));
     };
 
     public func blsPublicKey(canisterId : ?Principal, context : Blob, VetKdKeyid : VetKdKeyid) : async Blob {

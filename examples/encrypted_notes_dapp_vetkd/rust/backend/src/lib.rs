@@ -276,8 +276,12 @@ fn create_note() -> NoteId {
             assert_eq!(id_to_note.insert(new_note.id, new_note), None);
 
             NEXT_NOTE_ID.with_borrow_mut(|next_note_id| {
+                let id_plus_one = next_note_id
+                    .get()
+                    .checked_add(1)
+                    .expect("failed to increase NEXT_NOTE_ID: reached the maximum");
                 next_note_id
-                    .set(next_note_id.get() + 1)
+                    .set(id_plus_one)
                     .unwrap_or_else(|_e| ic_cdk::trap("failed to set NEXT_NOTE_ID"))
             });
             next_note_id

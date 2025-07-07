@@ -1,0 +1,4 @@
+[dependencies]
+base = "0.14.8"
+ic-vetkeys = "0.3.0"
+sha2 = "0.1.2"

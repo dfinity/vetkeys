@@ -4,13 +4,13 @@ if (!window.global) {
 }
 
 import "./style.css";
-import { createActor } from "../../src/declarations/basic_bls_signing";
+import { createActor } from "./declarations/basic_bls_signing";
 import { Principal } from "@dfinity/principal";
 import { AuthClient } from "@dfinity/auth-client";
 import type { ActorSubclass } from "@dfinity/agent";
-import { _SERVICE } from "../../src/declarations/basic_bls_signing/basic_bls_signing.did";
+import { _SERVICE } from "./declarations/basic_bls_signing/basic_bls_signing.did";
 import { DerivedPublicKey, verifyBlsSignature } from "@dfinity/vetkeys";
-import type { Signature } from "../../src/declarations/basic_bls_signing/basic_bls_signing.did";
+import type { Signature } from "./declarations/basic_bls_signing/basic_bls_signing.did";
 
 let myPrincipal: Principal | undefined = undefined;
 let authClient: AuthClient | undefined;
