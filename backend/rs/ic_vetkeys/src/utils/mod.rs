@@ -154,15 +154,6 @@ pub enum PublicKeyDeserializationError {
     InvalidPublicKey,
 }
 
-/// Enumeration identifying the production master public key
-#[derive(Copy, Clone, Debug, Eq, PartialEq)]
-pub enum MasterPublicKeyId {
-    /// The production key created in June 2025
-    Key1,
-    /// The test key created in May 2025
-    TestKey1,
-}
-
 #[derive(Clone, Debug, Eq, PartialEq)]
 /// A master VetKD public key
 pub struct MasterPublicKey {
@@ -218,13 +209,18 @@ impl MasterPublicKey {
     /// Return the hardcoded master public key used on IC
     ///
     /// This allows performing public key derivation offline
-    pub fn production_key(key_id: MasterPublicKeyId) -> Self {
-        match key_id {
-            MasterPublicKeyId::Key1 => Self { point: *G2_KEY_1 },
-            MasterPublicKeyId::TestKey1 => Self {
-                point: *G2_TEST_KEY_1,
-            },
+    ///
+    /// Returns None if the provided key_id is not known
+    pub fn from_key_id(key_id: &VetKDKeyId) -> Option<Self> {
+        match (key_id.curve, key_id.name.as_str()) {
+            (VetKDCurve::Bls12_381_G2, "key_1") => Some(Self::new(*G2_KEY_1)),
+            (VetKDCurve::Bls12_381_G2, "test_key_1") => Some(Self::new(*G2_TEST_KEY_1)),
+            (_, _) => None,
         }
+    }
+
+    fn new(point: G2Affine) -> Self {
+        Self { point }
     }
 }
 
