@@ -74,8 +74,8 @@ export function logout() {
     updateUI(false);
 
     // Reset the lots list and form visibility
-    document.getElementById("lotsList")!.style.display = "none";
-    document.getElementById("lotForm")!.style.display = "none";
+    document.getElementById("lotsList")!.classList.toggle("hidden", true);
+    document.getElementById("lotForm")!.classList.toggle("hidden", true);
 }
 
 async function initAuth() {
@@ -98,12 +98,12 @@ function updateUI(isAuthenticated: boolean) {
     const lotForm = document.getElementById("lotForm")!;
     const lotsList = document.getElementById("lotsList")!;
 
-    loginButton.style.display = isAuthenticated ? "none" : "block";
-    principalDisplay.style.display = isAuthenticated ? "block" : "none";
-    logoutButton.style.display = isAuthenticated ? "block" : "none";
-    lotActions.style.display = isAuthenticated ? "block" : "none";
-    lotForm.style.display = "none";
-    lotsList.style.display = "none";
+    loginButton.classList.toggle("hidden", isAuthenticated);
+    principalDisplay.classList.toggle("hidden", !isAuthenticated);
+    logoutButton.classList.toggle("hidden", !isAuthenticated);
+    lotActions.classList.toggle("hidden", !isAuthenticated);
+    lotForm.classList.toggle("hidden", true);
+    lotsList.classList.toggle("hidden", true);
 
     if (isAuthenticated && myPrincipal) {
         principalDisplay.textContent = `Principal: ${myPrincipal.toString()}`;
@@ -124,16 +124,16 @@ document.querySelector<HTMLDivElement>("#app")!.innerHTML = `
     <h1>Secret Bid Auction using VetKeys (Basic Timelock IBE)</h1>
     <div class="principal-container">
       <div id="principalDisplay" class="principal-display"></div>
-      <button id="logoutButton" style="display: none;">Logout</button>
+      <button id="logoutButton">Logout</button>
     </div>
     <div class="login-container">
       <button id="loginButton">Login</button>
     </div>
-    <div id="lotActions" class="buttons" style="display: none;">
+    <div id="lotActions" class="buttons">
       <button id="createLotButton">Create New Lot</button>
       <button id="listLotsButton">List Lots</button>
     </div>
-    <div id="lotForm" style="display: none;">
+    <div id="lotForm">
       <h3>Create New Lot</h3>
       <form id="createLotForm">
         <div>
@@ -151,7 +151,7 @@ document.querySelector<HTMLDivElement>("#app")!.innerHTML = `
         <button type="submit">Submit</button>
       </form>
     </div>
-    <div id="lotsList" style="display: none;">
+    <div id="lotsList">
       <div id="openLots"></div>
       <div id="closedLots"></div>
     </div>
@@ -162,8 +162,8 @@ document.querySelector<HTMLDivElement>("#app")!.innerHTML = `
 document.getElementById("loginButton")!.addEventListener("click", handleLogin);
 document.getElementById("logoutButton")!.addEventListener("click", logout);
 document.getElementById("createLotButton")!.addEventListener("click", () => {
-    document.getElementById("lotForm")!.style.display = "block";
-    document.getElementById("lotsList")!.style.display = "none";
+    document.getElementById("lotForm")!.classList.toggle("hidden", false);
+    document.getElementById("lotsList")!.classList.toggle("hidden", true);
 });
 document.getElementById("listLotsButton")!.addEventListener("click", () => {
     void (async () => {
@@ -221,7 +221,7 @@ async function createLot(
     } else {
         alert(`Failed to create lot: ${result.Err}`);
     }
-    document.getElementById("lotForm")!.style.display = "none";
+    document.getElementById("lotForm")!.classList.toggle("hidden", true);
 }
 
 function getStatusForOpenLot(
@@ -435,7 +435,7 @@ async function listLots() {
             closedLotsDiv.appendChild(fragment);
         }
 
-        document.getElementById("lotsList")!.style.display = "block";
+        document.getElementById("lotsList")!.classList.toggle("hidden", false);
     } catch (error) {
         alert(`Failed to list lots: ${error as Error}`);
     }

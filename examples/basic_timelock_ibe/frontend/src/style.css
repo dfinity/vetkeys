@@ -416,3 +416,37 @@ button:focus-visible {
   padding-bottom: 0.5rem;
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
+
+/* Auth state classes */
+.hidden {
+  display: none !important;
+}
+
+/* Initial state classes for auth elements */
+#loginButton {
+  display: block;
+}
+
+#messageButtons {
+  display: flex;
+}
+
+#principalDisplay {
+  display: block;
+}
+
+#logoutButton {
+  display: block;
+}
+
+#lotActions {
+  display: flex;
+}
+
+#lotForm {
+  display: block;
+}
+
+#lotsList {
+  display: block;
+}

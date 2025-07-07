@@ -304,10 +304,10 @@ function updateUI(isAuthenticated: boolean) {
     const principalDisplay = document.getElementById("principalDisplay")!;
     const logoutButton = document.getElementById("logoutButton")!;
 
-    loginButton.style.display = isAuthenticated ? "none" : "block";
-    messageButtons.style.display = isAuthenticated ? "flex" : "none";
-    principalDisplay.style.display = isAuthenticated ? "block" : "none";
-    logoutButton.style.display = isAuthenticated ? "block" : "none";
+    loginButton.classList.toggle("hidden", isAuthenticated);
+    messageButtons.classList.toggle("hidden", !isAuthenticated);
+    principalDisplay.classList.toggle("hidden", !isAuthenticated);
+    logoutButton.classList.toggle("hidden", !isAuthenticated);
 
     if (isAuthenticated && myPrincipal) {
         principalDisplay.textContent = `Principal: ${myPrincipal.toString()}`;
@@ -328,12 +328,12 @@ document.querySelector<HTMLDivElement>("#app")!.innerHTML = `
     <h1>Basic IBE Message System with VetKeys</h1>
     <div class="principal-container">
       <div id="principalDisplay" class="principal-display"></div>
-      <button id="logoutButton" style="display: none;">Logout</button>
+      <button id="logoutButton">Logout</button>
     </div>
     <div class="login-container">
       <button id="loginButton">Login</button>
     </div>
-    <div id="messageButtons" class="buttons" style="display: none;">
+    <div id="messageButtons" class="buttons">
       <button id="sendMessage">Send Message</button>
       <button id="showMessages">Show My Messages</button>
     </div>
