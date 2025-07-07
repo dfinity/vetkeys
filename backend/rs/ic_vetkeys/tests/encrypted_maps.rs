@@ -163,7 +163,10 @@ fn add_or_remove_user_by_unauthorized_fails() {
 
     let mut unauthorized_callers = vec![random_self_authenticating_principal(rng)];
 
-    for access_rights in [AccessRights::Read, AccessRights::ReadWrite] {
+    for access_rights in AccessRights::iter() {
+        if access_rights.can_get_user_rights() {
+            continue;
+        }
         let user_to_be_added = random_self_authenticating_principal(rng);
 
         assert_matches!(

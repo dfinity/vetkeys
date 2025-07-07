@@ -8,6 +8,8 @@
 
 - Added IbeCiphertext plaintextSize and ciphertextSize helpers
 
+- `derive(Deserialize)` for `EncryptedMapData`
+
 ## [0.3.0] - 2025-06-30
 
 ### Added
