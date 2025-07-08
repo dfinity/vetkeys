@@ -342,3 +342,33 @@ button:focus-visible {
   margin-top: 0.5rem;
   font-style: italic;
 }
+
+/* Auth state classes */
+.hidden {
+  display: none !important;
+}
+
+/* Initial state classes for auth elements */
+#loginButton {
+  display: block;
+}
+
+#signingActions {
+  display: flex;
+}
+
+#principalDisplay {
+  display: block;
+}
+
+#logoutButton {
+  display: block;
+}
+
+#customSignatureForm {
+  display: block;
+}
+
+#signaturesList {
+  display: block;
+}

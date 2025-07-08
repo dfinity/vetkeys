@@ -67,7 +67,7 @@ export function logout() {
   myVerificationKey = undefined;
   basicBlsSigningCanister = undefined;
   updateUI(false);
-  document.getElementById("signaturesList")!.style.display = "none";
+  document.getElementById("signaturesList")!.classList.toggle("hidden", true);
 }
 
 async function initAuth() {
@@ -90,12 +90,12 @@ function updateUI(isAuthenticated: boolean) {
   const customSignatureForm = document.getElementById("customSignatureForm")!;
   const signaturesList = document.getElementById("signaturesList")!;
 
-  loginButton.style.display = isAuthenticated ? "none" : "block";
-  principalDisplay.style.display = isAuthenticated ? "block" : "none";
-  logoutButton.style.display = isAuthenticated ? "block" : "none";
-  signingActions.style.display = isAuthenticated ? "block" : "none";
-  customSignatureForm.style.display = "none";
-  signaturesList.style.display = "none";
+  loginButton.classList.toggle("hidden", isAuthenticated);
+  principalDisplay.classList.toggle("hidden", !isAuthenticated);
+  logoutButton.classList.toggle("hidden", !isAuthenticated);
+  signingActions.classList.toggle("hidden", !isAuthenticated);
+  customSignatureForm.classList.toggle("hidden", true);
+  signaturesList.classList.toggle("hidden", true);
 
   if (isAuthenticated && myPrincipal) {
     principalDisplay.textContent = `Principal: ${myPrincipal.toString()}`;
@@ -115,17 +115,17 @@ document.querySelector<HTMLDivElement>("#app")!.innerHTML = `
     <h1>Basic BLS Signing using VetKeys</h1>
     <div class="principal-container">
       <div id="principalDisplay" class="principal-display"></div>
-      <button id="logoutButton" style="display: none;">Logout</button>
+      <button id="logoutButton">Logout</button>
     </div>
     <div class="login-container">
       <button id="loginButton">Login</button>
     </div>
-    <div id="signingActions" class="buttons" style="display: none;">
+    <div id="signingActions" class="buttons">
       <button id="signMessageButton">Sign Message</button>
       <button id="listSignaturesButton">List Signatures</button>
       <button id="customSignatureButton">Verify Custom Signature</button>
     </div>
-    <div id="customSignatureForm" style="display: none;">
+    <div id="customSignatureForm">
       <h3>Verify Custom Signature</h3>
       <form id="submitSignatureForm">
         <div>
@@ -143,7 +143,7 @@ document.querySelector<HTMLDivElement>("#app")!.innerHTML = `
         <button type="submit">Submit</button>
       </form>
     </div>
-    <div id="signaturesList" style="display: none;">
+    <div id="signaturesList">
       <h3>My Signatures</h3>
       <div id="signatures"></div>
     </div>
@@ -170,8 +170,10 @@ document.getElementById("signMessageButton")!.addEventListener("click", () => {
 document
   .getElementById("customSignatureButton")!
   .addEventListener("click", () => {
-    document.getElementById("customSignatureForm")!.style.display = "block";
-    document.getElementById("signaturesList")!.style.display = "none";
+    document
+      .getElementById("customSignatureForm")!
+      .classList.toggle("hidden", false);
+    document.getElementById("signaturesList")!.classList.toggle("hidden", true);
   });
 
 document
@@ -268,8 +270,10 @@ async function listSignatures() {
     }
   }
 
-  document.getElementById("signaturesList")!.style.display = "block";
-  document.getElementById("customSignatureForm")!.style.display = "none";
+  document.getElementById("signaturesList")!.classList.toggle("hidden", false);
+  document
+    .getElementById("customSignatureForm")!
+    .classList.toggle("hidden", true);
 }
 
 // Initialize auth
