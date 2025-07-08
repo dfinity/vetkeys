@@ -142,7 +142,7 @@ impl TransportSecretKey {
 /// Return true iff the argument is a valid encoding of a transport public key
 pub fn is_valid_transport_public_key_encoding(bytes: &[u8]) -> bool {
     match bytes.try_into() {
-        Ok(bytes) => option_from_ctoption(G1Affine::from_compressed(&bytes)).is_some(),
+        Ok(bytes) => G1Affine::from_compressed(&bytes).into_option().is_some(),
         Err(_) => false,
     }
 }
@@ -177,7 +177,8 @@ impl MasterPublicKey {
         let dpk_bytes: &[u8; Self::BYTES] = bytes
             .try_into()
             .map_err(|_e: TryFromSliceError| PublicKeyDeserializationError::InvalidPublicKey)?;
-        let dpk = option_from_ctoption(G2Affine::from_compressed(dpk_bytes))
+        let dpk = G2Affine::from_compressed(dpk_bytes)
+            .into_option()
             .ok_or(PublicKeyDeserializationError::InvalidPublicKey)?;
         Ok(Self { point: dpk })
     }
@@ -253,7 +254,8 @@ impl DerivedPublicKey {
         let dpk_bytes: &[u8; Self::BYTES] = bytes
             .try_into()
             .map_err(|_e: TryFromSliceError| PublicKeyDeserializationError::InvalidPublicKey)?;
-        let dpk = option_from_ctoption(G2Affine::from_compressed(dpk_bytes))
+        let dpk = G2Affine::from_compressed(dpk_bytes)
+            .into_option()
             .ok_or(PublicKeyDeserializationError::InvalidPublicKey)?;
         Ok(Self { point: dpk })
     }
@@ -355,7 +357,7 @@ impl VetKey {
             format!("Vetkey is unexpected length {}", bytes.len())
         })?;
 
-        if let Some(pt) = option_from_ctoption(G1Affine::from_compressed(&bytes48)) {
+        if let Some(pt) = G1Affine::from_compressed(&bytes48).into_option() {
             Ok(Self::new(pt))
         } else {
             Err("Invalid VetKey".to_string())
@@ -451,9 +453,9 @@ impl EncryptedVetKey {
             .try_into()
             .map_err(|_e| EncryptedVetKeyDeserializationError::InvalidEncryptedVetKey)?;
 
-        let c1 = option_from_ctoption(G1Affine::from_compressed(c1_bytes));
-        let c2 = option_from_ctoption(G2Affine::from_compressed(c2_bytes));
-        let c3 = option_from_ctoption(G1Affine::from_compressed(c3_bytes));
+        let c1 = G1Affine::from_compressed(c1_bytes).into_option();
+        let c2 = G2Affine::from_compressed(c2_bytes).into_option();
+        let c3 = G1Affine::from_compressed(c3_bytes).into_option();
 
         match (c1, c2, c3) {
             (Some(c1), Some(c2), Some(c3)) => Ok(Self { c1, c2, c3 }),
@@ -792,7 +794,7 @@ impl IbeCiphertext {
 /// the provided public key and input
 pub fn verify_bls_signature(dpk: &DerivedPublicKey, input: &[u8], signature: &[u8]) -> bool {
     let signature: G1Affine = match <[u8; 48]>::try_from(signature) {
-        Ok(bytes) => match option_from_ctoption(G1Affine::from_compressed(&bytes)) {
+        Ok(bytes) => match G1Affine::from_compressed(&bytes).into_option() {
             Some(pt) => pt,
             None => return false,
         },
@@ -838,14 +840,6 @@ fn augmented_hash_to_g1(pk: &G2Affine, data: &[u8]) -> G1Affine {
 
 fn gt_multipairing(terms: &[(&G1Affine, &G2Prepared)]) -> Gt {
     ic_bls12_381::multi_miller_loop(terms).final_exponentiation()
-}
-
-fn option_from_ctoption<T>(ctoption: subtle::CtOption<T>) -> Option<T> {
-    if bool::from(ctoption.is_some()) {
-        Some(ctoption.unwrap())
-    } else {
-        None
-    }
 }
 
 fn deserialize_g2(bytes: &[u8]) -> Result<G2Affine, String> {
