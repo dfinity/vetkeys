@@ -195,7 +195,7 @@ module {
                 case (#err(msg)) { #err(msg) };
                 case (#ok(_)) {
                     if (Principal.equal(caller, keyId.0) and Principal.equal(caller, user)) {
-                        return #err("Cannot change key owner's user rights");
+                        return #err("cannot change key owner's user rights");
                     };
 
                     // Update sharedKeys
@@ -249,7 +249,7 @@ module {
                 case (#err(msg)) { #err(msg) };
                 case (#ok(_)) {
                     if (Principal.equal(caller, user) and Principal.equal(caller, keyId.0)) {
-                        return #err("Cannot remove key owner");
+                        return #err("cannot remove key owner");
                     };
 
                     // Update sharedKeys

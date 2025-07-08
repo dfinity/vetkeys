@@ -107,7 +107,6 @@ impl AccessControl for AccessRights {
 pub trait AccessControl:
     CandidType
     + Serialize
-    + for<'a> Deserialize<'a>
     + Clone
     + Copy
     + PartialEq

@@ -54,6 +54,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "23b62fc65de8e4e7f52534fb52b0f3ed04746ae267519eef2a83941e8085068b"
 
 [[package]]
+name = "assert_matches"
+version = "1.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9b34d609dfbaf33d6889b2b7106d3ca345eacad44200913df5ba02bfd31d2ba9"
+
+[[package]]
 name = "atomic-waker"
 version = "1.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -974,6 +980,7 @@ dependencies = [
 name = "ic-vetkeys-encrypted-maps-canister"
 version = "0.1.0"
 dependencies = [
+ "assert_matches",
  "candid",
  "ic-cdk",
  "ic-cdk-macros",
@@ -985,6 +992,7 @@ dependencies = [
  "rand_chacha 0.3.1",
  "reqwest",
  "serde",
+ "strum 0.27.1",
 ]
 
 [[package]]
