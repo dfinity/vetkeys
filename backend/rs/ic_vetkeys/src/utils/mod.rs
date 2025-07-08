@@ -211,7 +211,7 @@ impl MasterPublicKey {
     /// This allows performing public key derivation offline
     ///
     /// Returns None if the provided key_id is not known
-    pub fn from_key_id(key_id: &VetKDKeyId) -> Option<Self> {
+    pub fn for_mainnet_key(key_id: &VetKDKeyId) -> Option<Self> {
         match (key_id.curve, key_id.name.as_str()) {
             (VetKDCurve::Bls12_381_G2, "key_1") => Some(Self::new(*G2_KEY_1)),
             (VetKDCurve::Bls12_381_G2, "test_key_1") => Some(Self::new(*G2_TEST_KEY_1)),

@@ -90,7 +90,7 @@ fn test_derivation_using_test_key_1() {
         curve: VetKDCurve::Bls12_381_G2,
         name: "test_key_1".to_string(),
     };
-    let test_key1 = MasterPublicKey::from_key_id(&key_id).unwrap();
+    let test_key1 = MasterPublicKey::for_mainnet_key(&key_id).unwrap();
 
     let canister_id = hex!("0000000000c0a0d00101");
 
@@ -117,7 +117,7 @@ fn test_derivation_using_production_key() {
         curve: VetKDCurve::Bls12_381_G2,
         name: "key_1".to_string(),
     };
-    let key1 = MasterPublicKey::from_key_id(&key_id).unwrap();
+    let key1 = MasterPublicKey::for_mainnet_key(&key_id).unwrap();
 
     let canister_id = hex!("0000000000c0a0d00101");
 
