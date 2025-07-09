@@ -1,5 +1,6 @@
 use hex_literal::hex;
 use ic_bls12_381::*;
+use ic_cdk::management_canister::{VetKDCurve, VetKDKeyId};
 use ic_vetkeys::*;
 use ic_vetkeys_test_utils::*;
 use rand::Rng;
@@ -85,7 +86,11 @@ fn test_bls_signature_verification_using_identity() {
 fn test_derivation_using_test_key_1() {
     // This test data was generated on mainnet using test_key_1
 
-    let test_key1 = MasterPublicKey::production_key(MasterPublicKeyId::TestKey1);
+    let key_id = VetKDKeyId {
+        curve: VetKDCurve::Bls12_381_G2,
+        name: "test_key_1".to_string(),
+    };
+    let test_key1 = MasterPublicKey::for_mainnet_key(&key_id).unwrap();
 
     let canister_id = hex!("0000000000c0a0d00101");
 
@@ -108,7 +113,11 @@ fn test_derivation_using_test_key_1() {
 fn test_derivation_using_production_key() {
     // This test data was generated on mainnet using key_1
 
-    let key1 = MasterPublicKey::production_key(MasterPublicKeyId::Key1);
+    let key_id = VetKDKeyId {
+        curve: VetKDCurve::Bls12_381_G2,
+        name: "key_1".to_string(),
+    };
+    let key1 = MasterPublicKey::for_mainnet_key(&key_id).unwrap();
 
     let canister_id = hex!("0000000000c0a0d00101");
 

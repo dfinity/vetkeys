@@ -4,6 +4,7 @@ use candid::Principal;
 use ic_stable_structures::memory_manager::VirtualMemory;
 use ic_stable_structures::storable::Blob;
 use ic_stable_structures::{DefaultMemoryImpl, StableBTreeMap};
+use serde::Deserialize;
 use std::future::Future;
 
 use crate::key_manager::KeyId;
@@ -342,7 +343,7 @@ impl<T: AccessControl> EncryptedMaps<T> {
 }
 
 /// Represents the complete data for an encrypted map, including ownership, contents, and access control.
-#[derive(candid::CandidType)]
+#[derive(candid::CandidType, Deserialize)]
 pub struct EncryptedMapData<T: AccessControl> {
     pub map_owner: Principal,
     pub map_name: ByteBuf,
