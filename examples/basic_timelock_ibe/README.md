@@ -34,6 +34,10 @@ A canister functionality for decrypting secrets can be detected by inspecting th
 - [Internet Computer software development kit](https://internetcomputer.org/docs/building-apps/getting-started/install)
 - [npm](https://www.npmjs.com/package/npm)
 
+### (Optionally) Choose a Different Master Key
+
+This example uses `test_key_1` by default. To use a different [available master key](https://internetcomputer.org/docs/building-apps/network-features/vetkeys/api#available-master-keys), change the `"init_arg": "(\"test_key_1\")"` line in `dfx.json` to the desired key before running `dfx deploy` in the next step.
+
 ### Deploy the Canisters Locally
 
 ```bash
