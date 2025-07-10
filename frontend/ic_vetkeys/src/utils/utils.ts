@@ -1173,7 +1173,7 @@ export class VrfOutput {
      * access to the VRF secret key.
      */
     output(): Uint8Array {
-        return this.#input;
+        return this.#output;
     }
 
     /**
