@@ -17,7 +17,11 @@ This example requires an installation of:
 - [x] Install the [IC SDK](https://internetcomputer.org/docs/current/developer-docs/setup/install/index.mdx).
 - [x] Install [npm](https://www.npmjs.com/package/npm).
 
-## Deploy the Canisters
+### (Optionally) Choose a Different Master Key
+
+This example uses `test_key_1` by default. To use a different [available master key](https://internetcomputer.org/docs/building-apps/network-features/vetkeys/api#available-master-keys), change the `"init_arg": "(\"test_key_1\")"` line in `dfx.json` to the desired key before running `dfx deploy` in the next step.
+
+## Deploy the Canisters Locally
 
 If you want to deploy this project locally with a Motoko backend, then run:
 ```bash
