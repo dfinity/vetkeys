@@ -789,6 +789,7 @@ impl IbeCiphertext {
 }
 
 /// An error occured while decoding or checking a VrfOutput
+#[derive(Copy, Clone, Debug)]
 pub enum InvalidVrfOutput {
     /// The serialization has an incorrect/impossible length
     UnexpectedLength,
