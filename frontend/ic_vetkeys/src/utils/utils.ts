@@ -1141,7 +1141,7 @@ export class VrfOutput {
 
         const proof = VetKey.deserialize(bytes.slice(0, G1_BYTES));
         const dpk = DerivedPublicKey.deserialize(
-            bytes.slice(G1_BYTES, G2_BYTES),
+            bytes.slice(G1_BYTES, G1_BYTES + G2_BYTES),
         );
         const input = bytes.slice(G1_BYTES + G2_BYTES); // remainder is the VRF input string
 
