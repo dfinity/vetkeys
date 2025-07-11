@@ -382,7 +382,9 @@ test("AES-GCM encryption", async () => {
 });
 
 test("VRF with production key output", () => {
-    const vrfBytes = hexToBytes("82c018756fc09660f19f9f4473820c8f047b9709e9371ae705175cb510efbfc610f0f61fb5ca8bba59e998249d466a818a62a9f32cb3dacc11941ea27256ac5b0ca710f8803d111f04b798677d9c54e127e63000c906a85bcb08c422fc81229d07a2554e7882308c6f1c3ecd07c3d72a465f741e4357144afe042c1e6d7f838ecc3f40c5e681e2b55032cfd689ebd17976726620696e707574");
+    const vrfBytes = hexToBytes(
+        "82c018756fc09660f19f9f4473820c8f047b9709e9371ae705175cb510efbfc610f0f61fb5ca8bba59e998249d466a818a62a9f32cb3dacc11941ea27256ac5b0ca710f8803d111f04b798677d9c54e127e63000c906a85bcb08c422fc81229d07a2554e7882308c6f1c3ecd07c3d72a465f741e4357144afe042c1e6d7f838ecc3f40c5e681e2b55032cfd689ebd17976726620696e707574",
+    );
     const vrf = VrfOutput.deserialize(vrfBytes);
 
     assertEqual(vrf.serialize(), vrfBytes);
@@ -398,10 +400,15 @@ test("VRF with production key output", () => {
         new TextEncoder().encode(vrfContext),
     );
 
-    assertEqual(bytesToHex(vrf.publicKey().publicKeyBytes()), bytesToHex(vrfKey.publicKeyBytes()));
+    assertEqual(
+        bytesToHex(vrf.publicKey().publicKeyBytes()),
+        bytesToHex(vrfKey.publicKeyBytes()),
+    );
     assertEqual(vrf.input(), new TextEncoder().encode(vrfInput));
-    assertEqual(bytesToHex(vrf.output()),
-                "a484fc1e8a2b0dca99beb6f4409370f5c6932a931e47a7625c3bfe9e1f9af37f");
+    assertEqual(
+        bytesToHex(vrf.output()),
+        "a484fc1e8a2b0dca99beb6f4409370f5c6932a931e47a7625c3bfe9e1f9af37f",
+    );
 });
 
 test("IBE ciphertext size utils", () => {
