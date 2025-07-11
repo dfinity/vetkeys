@@ -436,7 +436,7 @@ impl EncryptedVetKey {
         let ek_bytes: &[u8; Self::BYTES] = bytes.try_into().map_err(|_e: TryFromSliceError| {
             format!("key not {} bytes but {}", Self::BYTES, bytes.len())
         })?;
-        Self::deserialize_array(ek_bytes).map_err(|e| format!("{:?}", e))
+        Self::deserialize_array(ek_bytes).map_err(|e| format!("{e:?}"))
     }
 
     /// Deserializes an encrypted key from a byte array
@@ -591,7 +591,7 @@ impl IbeDomainSep {
             // padding isn't required - we only need uniquness - but having variable
             // length domain separators is generally not considered a good practice and is
             // easily avoidable here.
-            Self::MaskMsg(len) => format!("ic-vetkd-bls12-381-ibe-mask-msg-{:020}", len),
+            Self::MaskMsg(len) => format!("ic-vetkd-bls12-381-ibe-mask-msg-{len:020}"),
         }
     }
 }
