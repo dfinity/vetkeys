@@ -280,3 +280,25 @@ button:focus-visible {
 .message.deleted-new .deleted-label {
   background-color: #0d6efd;
 }
+
+/* Initial state classes for auth elements */
+#loginButton {
+  display: block;
+}
+
+#messageButtons {
+  display: flex;
+}
+
+#principalDisplay {
+  display: block;
+}
+
+#logoutButton {
+  display: block;
+}
+
+/* Auth state classes */
+.hidden {
+  display: none !important;
+}
