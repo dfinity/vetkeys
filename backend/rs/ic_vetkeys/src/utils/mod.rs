@@ -1152,9 +1152,10 @@ pub mod management_canister {
         context: Vec<u8>,
         key_id: VetKDKeyId,
     ) -> Result<VrfOutput, VetKDDeriveKeyCallError> {
-        let vetkey_bytes = derive_unencrypted_vetkey(input.clone(), context.clone(), key_id.clone())
-            .await
-            .map_err(|_| VetKDDeriveKeyCallError::InvalidReply)?;
+        let vetkey_bytes =
+            derive_unencrypted_vetkey(input.clone(), context.clone(), key_id.clone())
+                .await
+                .map_err(|_| VetKDDeriveKeyCallError::InvalidReply)?;
 
         let vetkey = VetKey::deserialize(&vetkey_bytes)
             .map_err(|_| VetKDDeriveKeyCallError::InvalidReply)?;
