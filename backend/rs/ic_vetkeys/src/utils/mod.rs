@@ -865,8 +865,8 @@ pub mod management_canister {
 
     /// Derives an unencrypted vetKey.
     ///
-    /// Because the vetKey returned by this function is unencrypted, it is public to the canister and ICP nodes.
-    /// Therefore, this function shall only be used if the vetKey would otherwise be decrypted directly by the canister itself, e.g., when it is used as BLS signature, for timelock encryption, or for producing verifiable randomness.
+    /// Because the vetKey returned by this function is unencrypted, it is public to the canister and ICP nodes. Using this function is equivalent to decrypting the vetKey directly by the canister itself.
+    /// Therefore, this function shall only be used if the vetKey is used as public information by the canister, e.g., when it is used as BLS signature, for timelock encryption, or for producing verifiable randomness.
     ///
     /// **Warning**: A vetKey produced by this function is *insecure* to use as a private key by a user.
     ///
