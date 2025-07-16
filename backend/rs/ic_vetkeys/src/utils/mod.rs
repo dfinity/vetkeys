@@ -799,11 +799,14 @@ pub enum InvalidVrfOutput {
     InvalidProof,
 }
 
-/// Verifiable Random Function (VRF) Output
+/// VRF (Verifiable Random Function) Output
 ///
-/// The VetKD protocol can be used to instantiate a verifiable random
-/// function, such that any user can check that the output was created
-/// correctly
+/// VetKD can be used to construct a VRF, which is a public key version of a
+/// keyed hash. Like a standard keyed hash, it takes an input string and produces
+/// a output string which is indistinguishable from random. The difference
+/// between a VRF and a normal keyed hash is that a VRF can only be computed
+/// by someone with access to the VRF secret key, while the VRF output can be verified
+/// by any party with access to the public key.
 ///
 /// For some general background on VRFs consult [RFC 9381](https://www.rfc-editor.org/rfc/rfc9381.html)
 ///

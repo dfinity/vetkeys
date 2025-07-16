@@ -1098,7 +1098,14 @@ const VRF_OUTPUT_BYTES = 32;
 /**
  * VRF (Verifiable Random Function) Output
  *
- * VetKD can be used to construct a VRF,
+ * VetKD can be used to construct a VRF, which is a public key version of a
+ * keyed hash. Like a standard keyed hash, it takes an input string and produces
+ * a output string which is indistinguishable from random. The difference
+ * between a VRF and a normal keyed hash is that a VRF can only be computed
+ * by someone with access to the VRF secret key, while the VRF output can be verified
+ * by any party with access to the public key.
+ *
+ * For some general background on VRFs consult [RFC 9381](https://www.rfc-editor.org/rfc/rfc9381.html)
  */
 export class VrfOutput {
     readonly #proof: VetKey;
@@ -1124,6 +1131,9 @@ export class VrfOutput {
         );
     }
 
+    /**
+     * Serialize a VrfOutput to a byte string
+     */
     serialize(): Uint8Array {
         return new Uint8Array([
             ...this.#proof.serialize(),
@@ -1132,6 +1142,15 @@ export class VrfOutput {
         ]);
     }
 
+    /**
+     * Deserialize and verify a VrfOutput
+     *
+     * Note this verifies the VrfOutput with respect to the derived public key
+     * and VRF input which are included in the struct. It is the responsibility
+     * of the application to examine the return value of `publicKey` and `input`
+     * and ensure these values make sense in the context where this VRF is being
+     * used.
+     */
     static deserialize(bytes: Uint8Array): VrfOutput {
         if (bytes.length < G1_BYTES + G2_BYTES) {
             throw new Error(
