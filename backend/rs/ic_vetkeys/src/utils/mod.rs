@@ -849,16 +849,23 @@ impl VrfOutput {
     /// Create a new VrfOutput from a VetKey
     ///
     /// The provided input and derived public key must be the same values
-    /// which were used to create the VetKey. This is not verified by this
-    /// constructor, but if it does not hold the VrfOutput will be invalid.
-    pub(crate) fn create(proof: VetKey, input: Vec<u8>, dpk: DerivedPublicKey) -> Self {
+    /// which were used to create the VetKey.
+    pub(crate) fn create(
+        proof: VetKey,
+        input: Vec<u8>,
+        dpk: DerivedPublicKey,
+    ) -> Result<Self, InvalidVrfOutput> {
+        if !verify_bls_signature_pt(&dpk, &input, proof.point()) {
+            return Err(InvalidVrfOutput::InvalidProof);
+        }
+
         let output = Self::compute_vrf_hash(&proof, &dpk, &input);
-        Self {
+        Ok(Self {
             proof,
             dpk,
             output,
             input,
-        }
+        })
     }
 
     /// Serialize the VrfOutput
@@ -874,6 +881,12 @@ impl VrfOutput {
     }
 
     /// Deserialize and verify a VrfOutput
+    ///
+    /// Note this verifies the VrfOutput with respect to the derived public key
+    /// and VRF input which are included in the struct. It is the responsibility
+    /// of the application to examine the return value of [`VrfOutput::public_key`]
+    /// and [`VrfOutput::input`] and ensure these values make sense in the context
+    /// where this VRF is being used.
     pub fn deserialize(bytes: &[u8]) -> Result<Self, InvalidVrfOutput> {
         if bytes.len() < G1AFFINE_BYTES + G2AFFINE_BYTES {
             return Err(InvalidVrfOutput::UnexpectedLength);
@@ -1077,11 +1090,7 @@ pub mod management_canister {
     /// Having the public key, message, and signature, we now can verify that the signature is valid.
     /// For that, we can call [`verify_bls_signature`] from this crate in Rust or `verifyBlsSignature` from the `@dfinity/vetkeys` package in TypeScript/JavaScript.
     ///
-    /// This function internally calls the `vetkd_derive_key` method of the Internet Computer, which requires additional cycles to be attached in order to be successful.
-    /// The amount of the required cycles depends on the size of the subnet that holds the vetKD master key (defined by `key_id`).
-    /// Currently, this function attaches to the call `26_153_846_153` cycles, which is the expected maximum of what is needed.
-    /// The unused cycles are refunded after the call.
-    /// In the future, this function will call `ic0_cost_vetkd_derive_key` for a more precise cost calculation.
+    /// This function will use `ic0_cost_vetkd_derive_key` to calculate the precise number of cycles to attach.
     ///
     /// # Arguments
     /// * `message` - the message to be signed
@@ -1126,23 +1135,22 @@ pub mod management_canister {
 
     /// Creates a VRF output for the provided input
     ///
-    /// This function internally calls the `vetkd_derive_key` method of the Internet Computer, which requires additional cycles to be attached in order to be successful.
-    /// The amount of the required cycles depends on the size of the subnet that holds the vetKD master key (defined by `key_id`).
-    /// Currently, this function attaches to the call `26_153_846_153` cycles, which is the expected maximum of what is needed.
-    /// The unused cycles are refunded after the call.
-    /// In the future, this function will call `ic0_cost_vetkd_derive_key` for a more precise cost calculation.
+    /// This function will use `ic0_cost_vetkd_derive_key` to calculate the precise number of cycles to attach.
     ///
     /// # Arguments
-    /// * `input` - the VRF input
     /// * `context` - a string identifying the context in which this VRF output
-    ///   will be used.  For example if the VRF was used to decide the winner of a
-    ///   lottery, the context string should contain at a minimum a unique
-    ///   identifier of that round of the lottery.  If the contexts are not
-    ///   unique, it might be possible for an attacker to substitue a VRF output
-    ///   which is intended for one situation and have it be accepted in some
-    ///   other situation.
-    ///
+    ///   will be used, for example the application
+    /// * `input` - a value that should be unique to a particular situation
     /// * `key_id` - the key ID of the threshold key deployed on the Internet Computer
+    ///
+    /// # Examples
+    ///
+    /// Examples of possible `(input,context)` pairs in various VRF settings
+    ///
+    /// * Lottery: `context` "My Verifiably Random Lottery v1", `input` "Drawing Jan 1, 2028",
+    ///   "Drawing Jan 2, 2028", ...
+    /// * Leader Election: "FooProtocol Random Leader Election", `input` "Leader Election #1",
+    ///   "Leader Election #2", ...
     ///
     /// # Returns
     /// * `Ok(VrfOutput)` - The VRF output structure
@@ -1182,6 +1190,6 @@ pub mod management_canister {
             }
         };
 
-        Ok(VrfOutput::create(vetkey, input, dpk))
+        VrfOutput::create(vetkey, input, dpk).map_err(|_| VetKDDeriveKeyCallError::InvalidReply)
     }
 }

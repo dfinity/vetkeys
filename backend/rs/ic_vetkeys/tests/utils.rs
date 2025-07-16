@@ -91,9 +91,9 @@ fn test_derivation_using_test_key_1() {
     };
     let test_key1 = MasterPublicKey::for_mainnet_key(&key_id).unwrap();
 
-    let canister_id = hex!("0000000000c0a0d00101");
+    let canister_id = candid::Principal::from_text("urq22-tyaaa-aaaag-audia-cai").unwrap();
 
-    let canister_key = test_key1.derive_canister_key(&canister_id);
+    let canister_key = test_key1.derive_canister_key(canister_id.as_slice());
 
     assert_eq!(
         hex::encode(canister_key.serialize()),
@@ -118,9 +118,9 @@ fn test_derivation_using_production_key() {
     };
     let key1 = MasterPublicKey::for_mainnet_key(&key_id).unwrap();
 
-    let canister_id = hex!("0000000000c0a0d00101");
+    let canister_id = candid::Principal::from_text("urq22-tyaaa-aaaag-audia-cai").unwrap();
 
-    let canister_key = key1.derive_canister_key(&canister_id);
+    let canister_key = key1.derive_canister_key(canister_id.as_slice());
 
     assert_eq!(
         hex::encode(canister_key.serialize()),
