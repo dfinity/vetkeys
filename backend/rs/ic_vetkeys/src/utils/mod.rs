@@ -33,6 +33,13 @@ const G1AFFINE_BYTES: usize = 48; // Size of compressed form
 const G2AFFINE_BYTES: usize = 96; // Size of compressed form
 
 /// Derive a symmetric key using HKDF-SHA256
+fn hkdf(okm: &mut [u8], input: &[u8], domain_sep: &str) {
+    let hk = hkdf::Hkdf::<sha2::Sha256>::new(None, input);
+    hk.expand(domain_sep.as_bytes(), okm)
+        .expect("Unsupported output length for HKDF");
+}
+
+/// Derive a symmetric key using HKDF-SHA256
 ///
 /// The `input` parameter should be a sufficiently long random input generated
 /// in a secure way. 256 bits (32 bytes) or longer is preferable.
@@ -42,10 +49,8 @@ const G2AFFINE_BYTES: usize = 96; // Size of compressed form
 ///
 /// The returned vector will be `len` bytes long.
 pub fn derive_symmetric_key(input: &[u8], domain_sep: &str, len: usize) -> Vec<u8> {
-    let hk = hkdf::Hkdf::<sha2::Sha256>::new(None, input);
     let mut okm = vec![0u8; len];
-    hk.expand(domain_sep.as_bytes(), &mut okm)
-        .expect("Unsupported output length for HKDF");
+    hkdf(&mut okm, input, domain_sep);
     okm
 }
 
@@ -61,6 +66,11 @@ fn hash_to_scalar(input: &[u8], domain_sep: &str) -> ic_bls12_381::Scalar {
     s[0]
 }
 
+fn extend_with_length_prefix(vec: &mut Vec<u8>, data: &[u8]) {
+    vec.extend_from_slice(&(data.len() as u64).to_be_bytes());
+    vec.extend(data);
+}
+
 fn hash_to_scalar_two_inputs(
     input1: &[u8],
     input2: &[u8],
@@ -68,10 +78,8 @@ fn hash_to_scalar_two_inputs(
 ) -> ic_bls12_381::Scalar {
     let combined_input = {
         let mut c = Vec::with_capacity(2 * 8 + input1.len() + input2.len());
-        c.extend_from_slice(&(input1.len() as u64).to_be_bytes());
-        c.extend_from_slice(input1);
-        c.extend_from_slice(&(input2.len() as u64).to_be_bytes());
-        c.extend_from_slice(input2);
+        extend_with_length_prefix(&mut c, input1);
+        extend_with_length_prefix(&mut c, input2);
         c
     };
 
@@ -315,7 +323,7 @@ impl VetKey {
      * Use the raw bytes only if your design makes use of the fact that VetKeys
      * are BLS signatures (eg for random beacon or threshold BLS signature
      * generation). If you are using VetKD for key distribution, instead use
-     * derive_symmetric_key
+     * [`derive_symmetric_key`]
      */
     pub fn signature_bytes(&self) -> &[u8; 48] {
         &self.vetkey.1
@@ -780,6 +788,162 @@ impl IbeCiphertext {
     }
 }
 
+/// An error occured while decoding or checking a VrfOutput
+#[derive(Copy, Clone, Debug)]
+pub enum InvalidVrfOutput {
+    /// The serialization has an incorrect/impossible length
+    UnexpectedLength,
+    /// The serialization contains invalid data
+    InvalidData,
+    /// The VRF proof was invalid
+    InvalidProof,
+}
+
+/// VRF (Verifiable Random Function) Output
+///
+/// VetKD can be used to construct a VRF, which is a public key version of a
+/// keyed hash. Like a standard keyed hash, it takes an input string and produces
+/// a output string which is indistinguishable from random. The difference
+/// between a VRF and a normal keyed hash is that a VRF can only be computed
+/// by someone with access to the VRF secret key, while the VRF output can be verified
+/// by any party with access to the public key.
+///
+/// For some general background on VRFs consult [RFC 9381](https://www.rfc-editor.org/rfc/rfc9381.html)
+///
+/// Create a new [`VrfOutput`] using [`management_canister::compute_vrf`]
+#[derive(Eq, PartialEq)]
+pub struct VrfOutput {
+    proof: VetKey,
+    dpk: DerivedPublicKey,
+    output: [u8; Self::VRF_BYTES],
+    input: Vec<u8>,
+}
+
+impl VrfOutput {
+    /// The size of the hashed VRF
+    pub const VRF_BYTES: usize = 32;
+
+    fn compute_vrf_hash(
+        vetkey: &VetKey,
+        dpk: &DerivedPublicKey,
+        input: &[u8],
+    ) -> [u8; Self::VRF_BYTES] {
+        /*
+        We instantiate the VRF by hashing with HKDF the prefix-free concatenation of
+
+        - The vetKey (ie the BLS signature)
+        - The compressed serialization of the derived public key
+        - The input that was used to construct the signature
+
+        Strictly speaking only the vetKey itself is required but binding all available
+        context is generally considered a good practice.
+         */
+        let mut ro_input =
+            Vec::with_capacity(G1AFFINE_BYTES + G2AFFINE_BYTES + input.len() + 3 * 8);
+        extend_with_length_prefix(&mut ro_input, vetkey.serialize());
+        extend_with_length_prefix(&mut ro_input, &dpk.serialize());
+        extend_with_length_prefix(&mut ro_input, input);
+
+        let mut output = [0u8; Self::VRF_BYTES];
+        hkdf(&mut output, &ro_input, "ic-vetkd-bls12-381-g2-vrf");
+        output
+    }
+
+    /// Create a new VrfOutput from a VetKey
+    ///
+    /// The provided input and derived public key must be the same values
+    /// which were used to create the VetKey.
+    pub(crate) fn create(
+        proof: VetKey,
+        input: Vec<u8>,
+        dpk: DerivedPublicKey,
+    ) -> Result<Self, InvalidVrfOutput> {
+        if !verify_bls_signature_pt(&dpk, &input, proof.point()) {
+            return Err(InvalidVrfOutput::InvalidProof);
+        }
+
+        let output = Self::compute_vrf_hash(&proof, &dpk, &input);
+        Ok(Self {
+            proof,
+            dpk,
+            output,
+            input,
+        })
+    }
+
+    /// Serialize the VrfOutput
+    pub fn serialize(&self) -> Vec<u8> {
+        // Note that we do not include the VRF output here - instead we rederive it
+        //
+        // The first two outputs are fixed length so the encoding here is unambigious
+        let mut output = Vec::with_capacity(G1AFFINE_BYTES + G2AFFINE_BYTES + self.input.len());
+        output.extend_from_slice(self.proof.serialize());
+        output.extend_from_slice(&self.dpk.serialize());
+        output.extend_from_slice(&self.input);
+        output
+    }
+
+    /// Deserialize and verify a VrfOutput
+    ///
+    /// Note this verifies the VrfOutput with respect to the derived public key
+    /// and VRF input which are included in the struct. It is the responsibility
+    /// of the application to examine the return value of [`VrfOutput::public_key`]
+    /// and [`VrfOutput::input`] and ensure these values make sense in the context
+    /// where this VRF is being used.
+    pub fn deserialize(bytes: &[u8]) -> Result<Self, InvalidVrfOutput> {
+        if bytes.len() < G1AFFINE_BYTES + G2AFFINE_BYTES {
+            return Err(InvalidVrfOutput::UnexpectedLength);
+        }
+
+        let proof = VetKey::deserialize(&bytes[0..G1AFFINE_BYTES])
+            .map_err(|_| InvalidVrfOutput::InvalidData)?;
+
+        let dpk =
+            DerivedPublicKey::deserialize(&bytes[G1AFFINE_BYTES..G1AFFINE_BYTES + G2AFFINE_BYTES])
+                .map_err(|_| InvalidVrfOutput::InvalidData)?;
+
+        let input = bytes[G1AFFINE_BYTES + G2AFFINE_BYTES..].to_vec();
+
+        if !verify_bls_signature_pt(&dpk, &input, proof.point()) {
+            return Err(InvalidVrfOutput::InvalidProof);
+        }
+
+        let output = Self::compute_vrf_hash(&proof, &dpk, &input);
+
+        Ok(Self {
+            proof,
+            dpk,
+            output,
+            input,
+        })
+    }
+
+    /// Return the input that was used to create this VRF output
+    pub fn input(&self) -> &[u8] {
+        &self.input
+    }
+
+    /// Return the key under which this VRF output was derived
+    pub fn public_key(&self) -> &DerivedPublicKey {
+        &self.dpk
+    }
+
+    /// Return the VRF output
+    ///
+    /// This is a random-looking value which was provably generated by some party with
+    /// access to the VRF secret key.
+    ///
+    /// If your application needs more than [`Self::VRF_BYTES`] of randomness, the easiest
+    /// approach would be to derive a longer value using a KDF, for example using
+    /// [`derive_symmetric_key`].
+    ///
+    /// Another option would be to seed a PRNG ([`ChaCha20Rng::from_seed`]) and then
+    /// invoke the RNG to generate outputs as required.
+    pub fn output(&self) -> &[u8; Self::VRF_BYTES] {
+        &self.output
+    }
+}
+
 /// Verify an augmented BLS signature
 ///
 /// Augmented BLS signatures include the public key as part of the input, and
@@ -929,11 +1093,7 @@ pub mod management_canister {
     /// Having the public key, message, and signature, we now can verify that the signature is valid.
     /// For that, we can call [`verify_bls_signature`] from this crate in Rust or `verifyBlsSignature` from the `@dfinity/vetkeys` package in TypeScript/JavaScript.
     ///
-    /// This function internally calls the `vetkd_derive_key` method of the Internet Computer, which requires additional cycles to be attached in order to be successful.
-    /// The amount of the required cycles depends on the size of the subnet that holds the vetKD master key (defined by `key_id`).
-    /// Currently, this function attaches to the call `26_153_846_153` cycles, which is the expected maximum of what is needed.
-    /// The unused cycles are refunded after the call.
-    /// In the future, this function will call `ic0_cost_vetkd_derive_key` for a more precise cost calculation.
+    /// This function will use `ic0_cost_vetkd_derive_key` to calculate the precise number of cycles to attach.
     ///
     /// # Arguments
     /// * `message` - the message to be signed
@@ -974,5 +1134,65 @@ pub mod management_canister {
         })
         .await
         .map(|r| r.public_key)
+    }
+
+    /// Creates a VRF output for the provided input
+    ///
+    /// This function will use `ic0_cost_vetkd_derive_key` to calculate the precise number of cycles to attach.
+    ///
+    /// # Arguments
+    /// * `context` - a string identifying the context in which this VRF output
+    ///   will be used, for example the application
+    /// * `input` - a value that should be unique to a particular situation
+    /// * `key_id` - the key ID of the threshold key deployed on the Internet Computer
+    ///
+    /// # Examples
+    ///
+    /// Examples of possible `(input,context)` pairs in various VRF settings
+    ///
+    /// * Lottery: `context` "My Verifiably Random Lottery v1", `input` "Drawing Jan 1, 2028",
+    ///   "Drawing Jan 2, 2028", ...
+    /// * Leader Election: "FooProtocol Random Leader Election", `input` "Leader Election #1",
+    ///   "Leader Election #2", ...
+    ///
+    /// # Returns
+    /// * `Ok(VrfOutput)` - The VRF output structure
+    /// * `Err(VetKDDeriveKeyCallError)` - If derivation fails due to unsupported curve or canister call error
+    pub async fn compute_vrf(
+        input: Vec<u8>,
+        context: Vec<u8>,
+        key_id: VetKDKeyId,
+    ) -> Result<VrfOutput, VetKDDeriveKeyCallError> {
+        let vetkey_bytes =
+            derive_unencrypted_vetkey(input.clone(), context.clone(), key_id.clone())
+                .await
+                .map_err(|_| VetKDDeriveKeyCallError::InvalidReply)?;
+
+        let vetkey = VetKey::deserialize(&vetkey_bytes)
+            .map_err(|_| VetKDDeriveKeyCallError::InvalidReply)?;
+        let canister_id = ic_cdk::api::canister_self();
+
+        let dpk = match MasterPublicKey::for_mainnet_key(&key_id) {
+            Some(mk) => mk
+                .derive_canister_key(canister_id.as_slice())
+                .derive_sub_key(&context),
+            None => {
+                // If the key id is not known we must instead perform an online query
+                // for the relevant key
+                let dpk_bytes =
+                    ic_cdk::management_canister::vetkd_public_key(&VetKDPublicKeyArgs {
+                        canister_id: Some(canister_id),
+                        context,
+                        key_id,
+                    })
+                    .await
+                    .map_err(|_| VetKDDeriveKeyCallError::InvalidReply)?;
+
+                DerivedPublicKey::deserialize(&dpk_bytes.public_key)
+                    .map_err(|_| VetKDDeriveKeyCallError::InvalidReply)?
+            }
+        };
+
+        VrfOutput::create(vetkey, input, dpk).map_err(|_| VetKDDeriveKeyCallError::InvalidReply)
     }
 }

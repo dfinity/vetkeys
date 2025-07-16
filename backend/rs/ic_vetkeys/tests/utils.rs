@@ -91,9 +91,9 @@ fn test_derivation_using_test_key_1() {
     };
     let test_key1 = MasterPublicKey::for_mainnet_key(&key_id).unwrap();
 
-    let canister_id = hex!("0000000000c0a0d00101");
+    let canister_id = candid::Principal::from_text("urq22-tyaaa-aaaag-audia-cai").unwrap();
 
-    let canister_key = test_key1.derive_canister_key(&canister_id);
+    let canister_key = test_key1.derive_canister_key(canister_id.as_slice());
 
     assert_eq!(
         hex::encode(canister_key.serialize()),
@@ -118,9 +118,9 @@ fn test_derivation_using_production_key() {
     };
     let key1 = MasterPublicKey::for_mainnet_key(&key_id).unwrap();
 
-    let canister_id = hex!("0000000000c0a0d00101");
+    let canister_id = candid::Principal::from_text("urq22-tyaaa-aaaag-audia-cai").unwrap();
 
-    let canister_key = key1.derive_canister_key(&canister_id);
+    let canister_key = key1.derive_canister_key(canister_id.as_slice());
 
     assert_eq!(
         hex::encode(canister_key.serialize()),
@@ -260,4 +260,28 @@ fn protocol_flow_with_fixed_rng_has_expected_outputs() {
 
     let ptext = ctext.decrypt(&vetkey).expect("IBE decryption failed");
     assert_eq!(ptext, msg);
+}
+
+#[test]
+fn vrf_from_prod_can_be_verified() {
+    let vrf_bytes = hex!("82c018756fc09660f19f9f4473820c8f047b9709e9371ae705175cb510efbfc610f0f61fb5ca8bba59e998249d466a818a62a9f32cb3dacc11941ea27256ac5b0ca710f8803d111f04b798677d9c54e127e63000c906a85bcb08c422fc81229d07a2554e7882308c6f1c3ecd07c3d72a465f741e4357144afe042c1e6d7f838ecc3f40c5e681e2b55032cfd689ebd17976726620696e707574");
+
+    let vrf = VrfOutput::deserialize(&vrf_bytes).unwrap();
+
+    let key_id = VetKDKeyId {
+        curve: VetKDCurve::Bls12_381_G2,
+        name: "key_1".to_string(),
+    };
+    let key1 = MasterPublicKey::for_mainnet_key(&key_id).unwrap();
+    let canister_key = key1.derive_canister_key(&hex!("0000000000c0a0d00101"));
+    let vrf_public_key = canister_key.derive_sub_key(b"vrf context");
+    let input = "vrf input".as_bytes();
+
+    assert_eq!(vrf.public_key().clone(), vrf_public_key);
+    assert_eq!(vrf.input(), input);
+
+    assert_eq!(
+        hex::encode(vrf.output()),
+        "a484fc1e8a2b0dca99beb6f4409370f5c6932a931e47a7625c3bfe9e1f9af37f"
+    );
 }
