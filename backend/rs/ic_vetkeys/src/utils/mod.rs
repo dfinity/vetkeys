@@ -436,7 +436,7 @@ impl EncryptedVetKey {
         let ek_bytes: &[u8; Self::BYTES] = bytes.try_into().map_err(|_e: TryFromSliceError| {
             format!("key not {} bytes but {}", Self::BYTES, bytes.len())
         })?;
-        Self::deserialize_array(ek_bytes).map_err(|e| format!("{:?}", e))
+        Self::deserialize_array(ek_bytes).map_err(|e| format!("{e:?}"))
     }
 
     /// Deserializes an encrypted key from a byte array
@@ -591,7 +591,7 @@ impl IbeDomainSep {
             // padding isn't required - we only need uniquness - but having variable
             // length domain separators is generally not considered a good practice and is
             // easily avoidable here.
-            Self::MaskMsg(len) => format!("ic-vetkd-bls12-381-ibe-mask-msg-{:020}", len),
+            Self::MaskMsg(len) => format!("ic-vetkd-bls12-381-ibe-mask-msg-{len:020}"),
         }
     }
 }
@@ -863,8 +863,10 @@ pub mod management_canister {
 
     use super::*;
 
-    /// Derives a vetKey that is public to the canister and ICP nodes.
-    /// This function is useful if vetKeys are supposed to be decrypted by the canister itself, e.g., when vetKeys are used as BLS signatures, for timelock encryption, or for producing verifiable randomness.
+    /// Derives an unencrypted vetKey.
+    ///
+    /// Because the vetKey returned by this function is unencrypted, it is public to the canister and ICP nodes. Using this function is equivalent to decrypting the vetKey directly by the canister itself.
+    /// Therefore, this function shall only be used if the vetKey is used as public information by the canister, e.g., when it is used as BLS signature, for timelock encryption, or for producing verifiable randomness.
     ///
     /// **Warning**: A vetKey produced by this function is *insecure* to use as a private key by a user.
     ///
@@ -879,7 +881,7 @@ pub mod management_canister {
     /// # Returns
     /// * `Ok(VetKey)` - The derived vetKey on success
     /// * `Err(DeriveUnencryptedVetkeyError)` - If derivation fails due to unsupported curve or canister call error
-    async fn derive_public_vetkey(
+    async fn derive_unencrypted_vetkey(
         input: Vec<u8>,
         context: Vec<u8>,
         key_id: VetKDKeyId,
@@ -946,7 +948,7 @@ pub mod management_canister {
         context: Vec<u8>,
         key_id: VetKDKeyId,
     ) -> Result<Vec<u8>, VetKDDeriveKeyCallError> {
-        derive_public_vetkey(message, context, key_id).await
+        derive_unencrypted_vetkey(message, context, key_id).await
     }
 
     /// Returns the public key of a threshold BLS12-381 key.

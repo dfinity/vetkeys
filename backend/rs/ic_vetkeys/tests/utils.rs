@@ -29,12 +29,11 @@ fn test_hkdf_test_vector() {
 
 #[test]
 fn test_is_valid_transport_public_key() {
-    assert_eq!(
-        is_valid_transport_public_key_encoding(&hex::decode("F00F00F00F00").unwrap()),
-        false
-    );
-    assert_eq!(is_valid_transport_public_key_encoding(&hex::decode("97f1d3a73197d7942695638c4fa9ac0fc3688c4f9774b905a14e3a3f171bac586c55e83ff97a1aeffb3af00adb22c6bb").unwrap()), true);
-    assert_eq!(is_valid_transport_public_key_encoding(&hex::decode("c00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000").unwrap()), true);
+    assert!(!is_valid_transport_public_key_encoding(
+        &hex::decode("F00F00F00F00").unwrap()
+    ));
+    assert!(is_valid_transport_public_key_encoding(&hex::decode("97f1d3a73197d7942695638c4fa9ac0fc3688c4f9774b905a14e3a3f171bac586c55e83ff97a1aeffb3af00adb22c6bb").unwrap()));
+    assert!(is_valid_transport_public_key_encoding(&hex::decode("c00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000").unwrap()));
 }
 
 #[test]
