@@ -396,21 +396,26 @@ export function verifyBlsSignature(
     message: Uint8Array,
     signature: G1Point | Uint8Array,
 ): boolean {
-    const negG2 = bls12_381.G2.ProjectivePoint.BASE.negate();
-    const oneGt = bls12_381.fields.Fp12.ONE;
-
     const signaturePt =
         signature instanceof bls12_381.G1.ProjectivePoint
             ? signature
             : bls12_381.G1.ProjectivePoint.fromHex(signature);
 
-    const messageG1 = augmentedHashToG1(pk, message);
-    const check = bls12_381.pairingBatch([
-        { g1: signaturePt, g2: negG2 },
-        { g1: messageG1, g2: pk.getPoint() },
-    ]);
+    const publicKeyBytes = pk.publicKeyBytes();
 
-    return bls12_381.fields.Fp12.eql(check, oneGt);
+    const publicKeyAndMessage = new Uint8Array([...publicKeyBytes, ...message]);
+
+    // @ts-expect-error
+    const options = Object.assign({}, bls12_381.G1.CURVE.htfDefaults, {
+        DST: "BLS_SIG_BLS12381G1_XMD:SHA-256_SSWU_RO_AUG_",
+    });
+
+    return bls12_381.verifyShortSignature(
+        signature,
+        publicKeyAndMessage,
+        pk.getPoint(),
+        options,
+    );
 }
 
 /**
