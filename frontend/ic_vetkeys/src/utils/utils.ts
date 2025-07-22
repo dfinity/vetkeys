@@ -396,19 +396,18 @@ export function verifyBlsSignature(
     message: Uint8Array,
     signature: G1Point | Uint8Array,
 ): boolean {
-    const signaturePt =
-        signature instanceof bls12_381.G1.ProjectivePoint
-            ? signature
-            : bls12_381.G1.ProjectivePoint.fromHex(signature);
-
     const publicKeyBytes = pk.publicKeyBytes();
 
     const publicKeyAndMessage = new Uint8Array([...publicKeyBytes, ...message]);
 
-    // @ts-expect-error
-    const options = Object.assign({}, bls12_381.G1.CURVE.htfDefaults, {
-        DST: "BLS_SIG_BLS12381G1_XMD:SHA-256_SSWU_RO_AUG_",
-    });
+    const options = Object.assign(
+        {},
+        // @ts-expect-error (https://github.com/paulmillr/noble-curves/issues/179)
+        bls12_381.G1.CURVE.htfDefaults,
+        {
+            DST: "BLS_SIG_BLS12381G1_XMD:SHA-256_SSWU_RO_AUG_",
+        },
+    ) as Opts;
 
     return bls12_381.verifyShortSignature(
         signature,
