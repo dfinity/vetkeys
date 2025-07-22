@@ -6,7 +6,7 @@ edition = "2021"
 license = "Apache-2.0"
 description = "Basic Timelock Identity Based Encryption"
 repository = "https://github.com/dfinity/vetkeys"
-rust-version = "1.75.0"
+rust-version = "1.85.0"
 
 [lib]
 path = "src/lib.rs"

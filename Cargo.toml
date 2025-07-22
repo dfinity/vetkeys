@@ -15,7 +15,7 @@ edition = "2021"
 license = "Apache-2.0"
 description = "Tools and examples for development with vetKeys on the Internet Computer"
 repository = "https://github.com/dfinity/vetkeys"
-rust-version = "1.75.0"
+rust-version = "1.85.0"
 documentation = "https://docs.rs/ic-vetkeys"
 
 [workspace.dependencies]
