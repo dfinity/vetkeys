@@ -1,5 +1,6 @@
 use candid::{CandidType, Decode, Deserialize, Encode, Principal};
 use ic_cdk::api::msg_caller;
+use ic_cdk::init;
 use ic_cdk::update;
 use ic_stable_structures::memory_manager::{MemoryId, MemoryManager, VirtualMemory};
 use ic_stable_structures::{
