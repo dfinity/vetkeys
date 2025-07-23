@@ -98,6 +98,21 @@ thread_local! {
             MEMORY_MANAGER.with_borrow(|m| m.get(MemoryId::new(3))),
         )
     );
+    static KEY_NAME: RefCell<StableCell<String, Memory>> =
+        RefCell::new(StableCell::init(
+            MEMORY_MANAGER.with(|m| m.borrow().get(MemoryId::new(1))),
+            String::new(),
+        )
+        .expect("failed to initialize key name"));
+}
+
+#[init]
+fn init(key_name_string: String) {
+    KEY_NAME.with_borrow_mut(|key_name| {
+        key_name
+            .set(key_name_string)
+            .expect("failed to set key name");
+    });
 }
 
 /// Unlike Motoko, the caller identity is not built into Rust.
@@ -365,7 +380,7 @@ async fn symmetric_key_verification_key_for_note() -> String {
     let request = VetKDPublicKeyArgs {
         canister_id: None,
         context: b"note_symmetric_key".to_vec(),
-        key_id: bls12_381_g2_test_key_1(),
+        key_id: key_id(),
     };
 
     let response: VetKDPublicKeyResult = ic_cdk::management_canister::vetkd_public_key(&request)
@@ -394,7 +409,7 @@ async fn encrypted_symmetric_key_for_note(
                     buf // prefix-free
                 },
                 context: b"note_symmetric_key".to_vec(),
-                key_id: bls12_381_g2_test_key_1(),
+                key_id: key_id(),
                 transport_public_key,
             }
         } else {
@@ -409,9 +424,9 @@ async fn encrypted_symmetric_key_for_note(
     hex::encode(response.encrypted_key)
 }
 
-fn bls12_381_g2_test_key_1() -> VetKDKeyId {
+fn key_id() -> VetKDKeyId {
     VetKDKeyId {
         curve: VetKDCurve::Bls12_381_G2,
-        name: "test_key_1".to_string(),
+        name: KEY_NAME.with_borrow(|key_name| key_name.get().clone()),
     }
 }

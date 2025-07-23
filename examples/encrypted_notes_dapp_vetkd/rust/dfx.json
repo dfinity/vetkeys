@@ -3,7 +3,8 @@
     "encrypted_notes": {
       "type": "rust",
       "candid": "backend/src/encrypted_notes_rust.did",
-      "package": "encrypted_notes_backend"
+      "package": "encrypted_notes_backend",
+      "init_arg": "(\"test_key_1\")"
     },
     "internet-identity": {
       "candid": "https://github.com/dfinity/internet-identity/releases/latest/download/internet_identity.did",

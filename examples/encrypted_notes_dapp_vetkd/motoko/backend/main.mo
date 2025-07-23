@@ -16,7 +16,7 @@ import Hex "./utils/Hex";
 
 // Declare a shared actor class
 // Bind the caller and the initializer
-shared ({ caller = initializer }) actor class () {
+shared ({ caller = initializer }) actor class (keyName: Text) {
 
     // Currently, a single canister smart contract is limited to 4 GB of heap size.
     // For the current limits see https://internetcomputer.org/docs/current/developer-docs/production/resource-limits.
@@ -328,7 +328,7 @@ shared ({ caller = initializer }) actor class () {
         let { public_key } = await management_canister.vetkd_public_key({
             canister_id = null;
             context = Text.encodeUtf8("note_symmetric_key");
-            key_id = { curve = #bls12_381_g2; name = "test_key_1" };
+            key_id = { curve = #bls12_381_g2; name = keyName };
         });
         Hex.encode(Blob.toArray(public_key));
     };
@@ -348,7 +348,7 @@ shared ({ caller = initializer }) actor class () {
         let { encrypted_key } = await (with cycles = 26_153_846_153) management_canister.vetkd_derive_key({
             input;
             context = Text.encodeUtf8("note_symmetric_key");
-            key_id = { curve = #bls12_381_g2; name = "test_key_1" };
+            key_id = { curve = #bls12_381_g2; name = keyName };
             transport_public_key;
         });
         Hex.encode(Blob.toArray(encrypted_key));
