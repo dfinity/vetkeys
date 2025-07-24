@@ -57,13 +57,13 @@
     "module": "dist/lib/index.es.js",
     "typings": "dist/types/index.d.ts",
     "dependencies": {
-        "@dfinity/agent": "^2.3.0",
-        "@dfinity/candid": "^2.3.0",
-        "@dfinity/principal": "^2.3.0",
+        "@dfinity/agent": "^3.0.2",
+        "@dfinity/candid": "^3.0.2",
+        "@dfinity/principal": "^3.0.2",
         "idb-keyval": "^6.2.1"
     },
     "devDependencies": {
-        "@dfinity/identity": "^2.2.0",
+        "@dfinity/identity": "^3.0.2",
         "@eslint/js": "^9.22.0",
         "@types/node": "^24.0.4",
         "@vitest/coverage-v8": "^3.0.5",
