@@ -3,7 +3,6 @@ fn ibe(msg_size: usize) {
     use ic_vetkeys::*;
 
     #[cfg(feature = "canbench-rs")]
-    let _p = canbench_rs::bench_scope("setup");
 
     let tsk = TransportSecretKey::from_seed(vec![0x42; 32]).unwrap();
 
@@ -20,7 +19,7 @@ fn ibe(msg_size: usize) {
     let vetkey = ek.decrypt_and_verify(&tsk, &dpk, &identity).unwrap();
 
     #[cfg(feature = "canbench-rs")]
-    let _p = canbench_rs::bench_scope("IBE decrypt");
+    let _p = canbench_rs::bench_scope("decrypt");
 
     let ptext = ctext.decrypt(&vetkey).expect("IBE decryption failed");
     assert_eq!(ptext, msg);
@@ -32,25 +31,25 @@ mod benches {
     use canbench_rs::bench;
 
     #[bench]
-    fn ibe_decrypt_32_bytes() {
+    fn ibe_32_bytes_msg() {
         // Prevent the compiler from optimizing the call and propagating constants.
         std::hint::black_box(ibe(std::hint::black_box(32)));
     }
 
     #[bench]
-    fn ibe_decrypt_1_000_bytes() {
+    fn ibe_1_000_bytes_msg() {
         // Prevent the compiler from optimizing the call and propagating constants.
         std::hint::black_box(ibe(std::hint::black_box(1_000)));
     }
 
     #[bench]
-    fn ibe_decrypt_100_000_bytes() {
+    fn ibe_100_000_bytes_msg() {
         // Prevent the compiler from optimizing the call and propagating constants.
         std::hint::black_box(ibe(std::hint::black_box(100_000)));
     }
 
     #[bench]
-    fn ibe_decrypt_2_000_000_bytes() {
+    fn ibe_2_000_000_bytes_msg() {
         // Prevent the compiler from optimizing the call and propagating constants.
         std::hint::black_box(ibe(std::hint::black_box(2_000_000)));
     }
