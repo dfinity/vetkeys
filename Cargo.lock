@@ -197,8 +197,6 @@ dependencies = [
  "hex",
  "ic-cdk",
  "ic-vetkeys 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "rand 0.8.5",
- "rand_chacha 0.3.1",
 ]
 
 [[package]]
