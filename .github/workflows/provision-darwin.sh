@@ -34,7 +34,5 @@ curl --location --output install-rustup.sh "https://sh.rustup.rs"
 bash install-rustup.sh -y
 rustup target add wasm32-unknown-unknown
 
-cargo install candid-extractor
-
 # Exit temporary directory.
 popd
