@@ -4,9 +4,11 @@
 
 ### Added
 
-- Added MasterPublicKey::production_key which allows accessing the production public keys
+- Added MasterPublicKey::for_mainnet_key which allows accessing the production public keys
 
-- Added IbeCiphertext plaintextSize and ciphertextSize helpers
+- Added IbeCiphertext plaintext_size and ciphertext_size helpers
+
+- Add VrfOutput type for using VetKeys as a Verifiable Random Function
 
 - `derive(Deserialize)` for `EncryptedMapData`
 

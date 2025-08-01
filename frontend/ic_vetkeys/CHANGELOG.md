@@ -8,6 +8,10 @@
 
 - Added IbeCiphertext plaintextSize and ciphertextSize helpers
 
+### Changed
+
+ - Bump `@dfinity` agent-related packages to major version `3`.
+
 ## [0.3.0] - 2025-06-30
 
 ### Changed

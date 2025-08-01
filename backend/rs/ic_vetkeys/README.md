@@ -2,6 +2,8 @@
 
 This crate contains a set of tools designed to help canister developers integrate **vetKeys** into their Internet Computer (ICP) applications.
 
+The current Minimum Supported Rust Version (MSRV) of this crate is 1.85. Any future increase in the MSRV will be accompanied by a bump in the minor version number.
+
 ## [Key Manager](https://docs.rs/ic-vetkeys/latest/ic_vetkeys/key_manager/struct.KeyManager.html)
 A canister library for derivation of encrypted vetkeys from arbitrary strings. It can be used in combination with the [frontend key manager library](https://dfinity.github.io/vetkeys/classes/_dfinity_vetkeys_key_manager.KeyManager.html).
 

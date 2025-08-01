@@ -6,12 +6,6 @@ on:
   pull_request:
     paths:
       - examples/basic_bls_signing/**
-      - backend/**
-      - Cargo.toml
-      - Cargo.lock
-      - frontend/ic_vetkeys/**
-      - package.json
-      - package-lock.json
       - .github/workflows/provision-darwin.sh
       - .github/workflows/provision-linux.sh
       - .github/workflows/examples-basic-bls-signing.yml
