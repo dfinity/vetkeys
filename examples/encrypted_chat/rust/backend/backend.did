@@ -1,0 +1,32 @@
+type ChatId = variant {
+  Group : nat64;
+  Direct : record { principal; principal };
+};
+type EncryptedMessageMetadata = record {
+  vetkey_epoch : nat64;
+  sender : principal;
+  symmetric_key_epoch : nat64;
+  timestamp : nat64;
+};
+type Result = variant { Ok; Err : text };
+type Result_1 = variant { Ok : blob; Err : text };
+type UserMessage = record {
+  vetkey_epoch : nat64;
+  content : blob;
+  symmetric_key_epoch : nat64;
+  message_id : nat64;
+};
+service : (text) -> {
+  create_direct_chat : (principal, nat64) -> (Result);
+  create_group_chat : (vec principal, nat64) -> (Result);
+  derive_vetkey : (ChatId, opt nat64, blob) -> (Result_1);
+  get_all_messages : () -> (vec UserMessage) query;
+  get_messages : (ChatId, nat64) -> (vec UserMessage) query;
+  get_my_chat_ids : () -> (vec ChatId) query;
+  get_unread_inboxes : () -> (vec ChatId) query;
+  get_unread_message_metadata : (ChatId) -> (
+      vec EncryptedMessageMetadata,
+    ) query;
+  send_direct_message : (UserMessage, principal) -> (Result);
+  send_group_message : (UserMessage, principal) -> (Result);
+}
