@@ -2,31 +2,54 @@ type ChatId = variant {
   Group : nat64;
   Direct : record { principal; principal };
 };
+type EncryptedMessage = record {
+  content : blob;
+  metadata : EncryptedMessageMetadata;
+};
 type EncryptedMessageMetadata = record {
   vetkey_epoch : nat64;
   sender : principal;
   symmetric_key_epoch : nat64;
+  chat_message_id : nat64;
   timestamp : nat64;
 };
-type Result = variant { Ok; Err : text };
-type Result_1 = variant { Ok : blob; Err : text };
+type GroupChatMetadata = record { creation_timestamp : nat64; chat_id : nat64 };
+type GroupModification = record {
+  remove_participants : vec principal;
+  add_participants : vec principal;
+};
+type Result = variant { Ok : nat64; Err : text };
+type Result_1 = variant { Ok : GroupChatMetadata; Err : text };
+type Result_2 = variant { Ok : blob; Err : text };
+type Result_3 = variant { Ok : VetKeyEpochMetadata; Err : text };
+type Result_4 = variant { Ok : opt blob; Err : text };
+type Result_5 = variant { Ok; Err : text };
 type UserMessage = record {
   vetkey_epoch : nat64;
   content : blob;
   symmetric_key_epoch : nat64;
   message_id : nat64;
 };
+type VetKeyEpochMetadata = record {
+  symmetric_key_rotation_duration : nat64;
+  participants : vec principal;
+  creation_timestamp : nat64;
+  epoch_id : nat64;
+};
 service : (text) -> {
-  create_direct_chat : (principal, nat64) -> (Result);
-  create_group_chat : (vec principal, nat64) -> (Result);
-  derive_vetkey : (ChatId, opt nat64, blob) -> (Result_1);
-  get_all_messages : () -> (vec UserMessage) query;
-  get_messages : (ChatId, nat64) -> (vec UserMessage) query;
+  create_direct_chat : (principal, nat64, nat64) -> (Result);
+  create_group_chat : (vec principal, nat64, nat64) -> (Result_1);
+  derive_vetkey : (ChatId, opt nat64, blob) -> (Result_2);
+  get_latest_chat_vetkey_epoch_metadata : (ChatId) -> (Result_3) query;
   get_my_chat_ids : () -> (vec ChatId) query;
-  get_unread_inboxes : () -> (vec ChatId) query;
-  get_unread_message_metadata : (ChatId) -> (
-      vec EncryptedMessageMetadata,
+  get_my_symmetric_key_cache : (ChatId, nat64) -> (Result_4);
+  get_some_messages_for_chat_starting_from : (ChatId, nat64, opt nat32) -> (
+      vec EncryptedMessage,
     ) query;
+  modify_group_chat_participants : (nat64, GroupModification) -> (Result);
+  public_key : (ChatId, nat64) -> (blob);
+  rotate_chat_vetkey : (ChatId) -> (Result);
   send_direct_message : (UserMessage, principal) -> (Result);
-  send_group_message : (UserMessage, principal) -> (Result);
+  send_group_message : (UserMessage, nat64) -> (Result);
+  update_symmetric_key_cache : (ChatId, nat64, blob) -> (Result_5);
 }
