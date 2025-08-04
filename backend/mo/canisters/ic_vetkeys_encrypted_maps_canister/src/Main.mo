@@ -1,13 +1,17 @@
-import IcVetkeys "mo:ic-vetkeys";
-import Types "mo:ic-vetkeys/Types";
+import IcVetkeys "../../../ic_vetkeys/src";
+import Types "../../../ic_vetkeys/src/Types";
 import Principal "mo:base/Principal";
 import Text "mo:base/Text";
 import Blob "mo:base/Blob";
 import Result "mo:base/Result";
 import Array "mo:base/Array";
 
-actor class (keyName : Text) {
-    var encryptedMaps = IcVetkeys.EncryptedMaps.EncryptedMaps<Types.AccessRights>({ curve = #bls12_381_g2; name = keyName }, "encrypted maps dapp", Types.accessRightsOperations());
+persistent actor class (keyName : Text) {
+    let encryptedMapsState = IcVetkeys.EncryptedMaps.newEncryptedMapsState<Types.AccessRights>(
+        { curve = #bls12_381_g2; name = keyName },
+        "encrypted maps dapp",
+    );
+
     /// In this canister, we use the `ByteBuf` type to represent blobs. The reason is that we want to be consistent with the Rust canister implementation.
     /// Unfortunately, the `Blob` type cannot be serialized/deserialized in the current Rust implementation efficiently without nesting it in another type.
     public type ByteBuf = { inner : Blob };
@@ -25,9 +29,13 @@ actor class (keyName : Text) {
         #Err : Err;
     };
 
+    func getEncryptedMaps() : IcVetkeys.EncryptedMaps.EncryptedMaps<Types.AccessRights> {
+        IcVetkeys.EncryptedMaps.EncryptedMaps<Types.AccessRights>(encryptedMapsState, Types.accessRightsOperations());
+    };
+
     public query (msg) func get_accessible_shared_map_names() : async [(Principal, ByteBuf)] {
         Array.map<(Principal, Blob), (Principal, ByteBuf)>(
-            encryptedMaps.getAccessibleSharedMapNames(msg.caller),
+            getEncryptedMaps().getAccessibleSharedMapNames(msg.caller),
 
             func((principal, blob) : (Principal, Blob)) {
                 (principal, { inner = blob });
@@ -39,14 +47,14 @@ actor class (keyName : Text) {
         map_owner : Principal,
         map_name : ByteBuf,
     ) : async Result<[(Principal, Types.AccessRights)], Text> {
-        convertResult(encryptedMaps.getSharedUserAccessForMap(msg.caller, (map_owner, map_name.inner)));
+        convertResult(getEncryptedMaps().getSharedUserAccessForMap(msg.caller, (map_owner, map_name.inner)));
     };
 
     public query (msg) func get_encrypted_values_for_map(
         map_owner : Principal,
         map_name : ByteBuf,
     ) : async Result<[(ByteBuf, ByteBuf)], Text> {
-        let result = encryptedMaps.getEncryptedValuesForMap(msg.caller, (map_owner, map_name.inner));
+        let result = getEncryptedMaps().getEncryptedValuesForMap(msg.caller, (map_owner, map_name.inner));
         switch (result) {
             case (#err(e)) { #Err(e) };
             case (#ok(values)) {
@@ -64,7 +72,7 @@ actor class (keyName : Text) {
 
     public query (msg) func get_all_accessible_encrypted_values() : async [((Principal, ByteBuf), [(ByteBuf, ByteBuf)])] {
         Array.map<((Principal, Blob), [(Blob, Blob)]), ((Principal, ByteBuf), [(ByteBuf, ByteBuf)])>(
-            encryptedMaps.getAllAccessibleEncryptedValues(msg.caller),
+            getEncryptedMaps().getAllAccessibleEncryptedValues(msg.caller),
             func(((owner, map_name), values) : ((Principal, Blob), [(Blob, Blob)])) {
                 (
                     (owner, { inner = map_name }),
@@ -81,7 +89,7 @@ actor class (keyName : Text) {
 
     public query (msg) func get_all_accessible_encrypted_maps() : async [EncryptedMapData] {
         Array.map<IcVetkeys.EncryptedMaps.EncryptedMapData<Types.AccessRights>, EncryptedMapData>(
-            encryptedMaps.getAllAccessibleEncryptedMaps(msg.caller),
+            getEncryptedMaps().getAllAccessibleEncryptedMaps(msg.caller),
             func(map : IcVetkeys.EncryptedMaps.EncryptedMapData<Types.AccessRights>) : EncryptedMapData {
                 {
                     map_owner = map.map_owner;
@@ -103,7 +111,7 @@ actor class (keyName : Text) {
         map_name : ByteBuf,
         map_key : ByteBuf,
     ) : async Result<?ByteBuf, Text> {
-        let result = encryptedMaps.getEncryptedValue(msg.caller, (map_owner, map_name.inner), map_key.inner);
+        let result = getEncryptedMaps().getEncryptedValue(msg.caller, (map_owner, map_name.inner), map_key.inner);
         switch (result) {
             case (#err(e)) { #Err(e) };
             case (#ok(null)) { #Ok(null) };
@@ -115,7 +123,7 @@ actor class (keyName : Text) {
         map_owner : Principal,
         map_name : ByteBuf,
     ) : async Result<[ByteBuf], Text> {
-        let result = encryptedMaps.removeMapValues(msg.caller, (map_owner, map_name.inner));
+        let result = getEncryptedMaps().removeMapValues(msg.caller, (map_owner, map_name.inner));
         switch (result) {
             case (#err(e)) { #Err(e) };
             case (#ok(values)) {
@@ -133,7 +141,7 @@ actor class (keyName : Text) {
 
     public query (msg) func get_owned_non_empty_map_names() : async [ByteBuf] {
         Array.map<Blob, ByteBuf>(
-            encryptedMaps.getOwnedNonEmptyMapNames(msg.caller),
+            getEncryptedMaps().getOwnedNonEmptyMapNames(msg.caller),
             func(blob : Blob) : ByteBuf {
                 { inner = blob };
             },
@@ -146,7 +154,7 @@ actor class (keyName : Text) {
         map_key : ByteBuf,
         value : ByteBuf,
     ) : async Result<?ByteBuf, Text> {
-        let result = encryptedMaps.insertEncryptedValue(msg.caller, (map_owner, map_name.inner), map_key.inner, value.inner);
+        let result = getEncryptedMaps().insertEncryptedValue(msg.caller, (map_owner, map_name.inner), map_key.inner, value.inner);
         switch (result) {
             case (#err(e)) { #Err(e) };
             case (#ok(null)) { #Ok(null) };
@@ -159,7 +167,7 @@ actor class (keyName : Text) {
         map_name : ByteBuf,
         map_key : ByteBuf,
     ) : async Result<?ByteBuf, Text> {
-        let result = encryptedMaps.removeEncryptedValue(msg.caller, (map_owner, map_name.inner), map_key.inner);
+        let result = getEncryptedMaps().removeEncryptedValue(msg.caller, (map_owner, map_name.inner), map_key.inner);
         switch (result) {
             case (#err(e)) { #Err(e) };
             case (#ok(null)) { #Ok(null) };
@@ -168,7 +176,7 @@ actor class (keyName : Text) {
     };
 
     public shared func get_vetkey_verification_key() : async ByteBuf {
-        let inner = await encryptedMaps.getVetkeyVerificationKey();
+        let inner = await getEncryptedMaps().getVetkeyVerificationKey();
         { inner };
     };
 
@@ -177,7 +185,7 @@ actor class (keyName : Text) {
         map_name : ByteBuf,
         transport_key : ByteBuf,
     ) : async Result<ByteBuf, Text> {
-        let result = await encryptedMaps.getEncryptedVetkey(msg.caller, (map_owner, map_name.inner), transport_key.inner);
+        let result = await getEncryptedMaps().getEncryptedVetkey(msg.caller, (map_owner, map_name.inner), transport_key.inner);
         switch (result) {
             case (#err(e)) { #Err(e) };
             case (#ok(vetkey)) { #Ok({ inner = vetkey }) };
@@ -189,7 +197,7 @@ actor class (keyName : Text) {
         map_name : ByteBuf,
         user : Principal,
     ) : async Result<?Types.AccessRights, Text> {
-        convertResult(encryptedMaps.getUserRights(msg.caller, (map_owner, map_name.inner), user));
+        convertResult(getEncryptedMaps().getUserRights(msg.caller, (map_owner, map_name.inner), user));
     };
 
     public shared (msg) func set_user_rights(
@@ -198,7 +206,7 @@ actor class (keyName : Text) {
         user : Principal,
         access_rights : Types.AccessRights,
     ) : async Result<?Types.AccessRights, Text> {
-        convertResult(encryptedMaps.setUserRights(msg.caller, (map_owner, map_name.inner), user, access_rights));
+        convertResult(getEncryptedMaps().setUserRights(msg.caller, (map_owner, map_name.inner), user, access_rights));
     };
 
     public shared (msg) func remove_user(
@@ -206,7 +214,7 @@ actor class (keyName : Text) {
         map_name : ByteBuf,
         user : Principal,
     ) : async Result<?Types.AccessRights, Text> {
-        convertResult(encryptedMaps.removeUser(msg.caller, (map_owner, map_name.inner), user));
+        convertResult(getEncryptedMaps().removeUser(msg.caller, (map_owner, map_name.inner), user));
     };
 
     /// Convert to the result type compatible with Rust's `Result`

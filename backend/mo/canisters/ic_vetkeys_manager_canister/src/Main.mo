@@ -6,8 +6,13 @@ import Blob "mo:base/Blob";
 import Result "mo:base/Result";
 import Array "mo:base/Array";
 
-actor class (keyName : Text) {
-    var keyManager = IcVetkeys.KeyManager.KeyManager<Types.AccessRights>({ curve = #bls12_381_g2; name = keyName }, "key manager", Types.accessRightsOperations());
+persistent actor class (keyName : Text) {
+    let keyManagerState = IcVetkeys.KeyManager.newKeyManagerState<Types.AccessRights>({ curve = #bls12_381_g2; name = keyName }, "key manager");
+
+    func getKeyManager() : IcVetkeys.KeyManager.KeyManager<Types.AccessRights> {
+        IcVetkeys.KeyManager.KeyManager<Types.AccessRights>(keyManagerState, Types.accessRightsOperations());
+    };
+
     /// In this canister, we use the `ByteBuf` type to represent blobs. The reason is that we want to be consistent with the Rust canister implementation.
     /// Unfortunately, the `Blob` type cannot be serialized/deserialized in the current Rust implementation efficiently without nesting it in another type.
     public type ByteBuf = { inner : Blob };
@@ -20,7 +25,7 @@ actor class (keyName : Text) {
 
     public query (msg) func get_accessible_shared_key_ids() : async [(Principal, ByteBuf)] {
         Array.map<(Principal, Blob), (Principal, ByteBuf)>(
-            keyManager.getAccessibleSharedKeyIds(msg.caller),
+            getKeyManager().getAccessibleSharedKeyIds(msg.caller),
             func((principal, blob) : (Principal, Blob)) {
                 (principal, { inner = blob });
             },
@@ -31,11 +36,11 @@ actor class (keyName : Text) {
         key_owner : Principal,
         key_name : ByteBuf,
     ) : async Result<[(Principal, Types.AccessRights)], Text> {
-        convertResult(keyManager.getSharedUserAccessForKey(msg.caller, (key_owner, key_name.inner)));
+        convertResult(getKeyManager().getSharedUserAccessForKey(msg.caller, (key_owner, key_name.inner)));
     };
 
     public shared func get_vetkey_verification_key() : async ByteBuf {
-        let inner = await keyManager.getVetkeyVerificationKey();
+        let inner = await getKeyManager().getVetkeyVerificationKey();
         { inner };
     };
 
@@ -44,7 +49,7 @@ actor class (keyName : Text) {
         key_name : ByteBuf,
         transport_key : ByteBuf,
     ) : async Result<ByteBuf, Text> {
-        let vetkeyBytebuf = await keyManager.getEncryptedVetkey(msg.caller, (key_owner, key_name.inner), transport_key.inner);
+        let vetkeyBytebuf = await getKeyManager().getEncryptedVetkey(msg.caller, (key_owner, key_name.inner), transport_key.inner);
         switch (vetkeyBytebuf) {
             case (#err(e)) { #Err(e) };
             case (#ok(inner)) { #Ok({ inner }) };
@@ -56,7 +61,7 @@ actor class (keyName : Text) {
         key_name : ByteBuf,
         user : Principal,
     ) : async Result<?Types.AccessRights, Text> {
-        convertResult(keyManager.getUserRights(msg.caller, (key_owner, key_name.inner), user));
+        convertResult(getKeyManager().getUserRights(msg.caller, (key_owner, key_name.inner), user));
     };
 
     public shared (msg) func set_user_rights(
@@ -65,7 +70,7 @@ actor class (keyName : Text) {
         user : Principal,
         access_rights : Types.AccessRights,
     ) : async Result<?Types.AccessRights, Text> {
-        convertResult(keyManager.setUserRights(msg.caller, (key_owner, key_name.inner), user, access_rights));
+        convertResult(getKeyManager().setUserRights(msg.caller, (key_owner, key_name.inner), user, access_rights));
     };
 
     public shared (msg) func remove_user(
@@ -73,7 +78,7 @@ actor class (keyName : Text) {
         key_name : ByteBuf,
         user : Principal,
     ) : async Result<?Types.AccessRights, Text> {
-        convertResult(keyManager.removeUserRights(msg.caller, (key_owner, key_name.inner), user));
+        convertResult(getKeyManager().removeUserRights(msg.caller, (key_owner, key_name.inner), user));
     };
 
     /// Convert to the result type compatible with Rust's `Result`
