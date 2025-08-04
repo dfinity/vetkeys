@@ -8,7 +8,10 @@ import Array "mo:base/Array";
 
 persistent actor class (keyName : Text) {
     let encryptedMapsState = IcVetkeys.EncryptedMaps.newEncryptedMapsState<Types.AccessRights>({ curve = #bls12_381_g2; name = "" }, "encrypted maps dapp");
-    encryptedMapsState.keyManager.vetKdKeyId := { curve = #bls12_381_g2; name = keyName };
+    encryptedMapsState.keyManager.vetKdKeyId := {
+        curve = #bls12_381_g2;
+        name = keyName;
+    };
     transient let encryptedMaps = IcVetkeys.EncryptedMaps.EncryptedMaps<Types.AccessRights>(encryptedMapsState, Types.accessRightsOperations());
 
     /// In this canister, we use the `ByteBuf` type to represent blobs. The reason is that we want to be consistent with the Rust canister implementation.
