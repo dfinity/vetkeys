@@ -91,7 +91,7 @@ module {
     public type KeyManagerState<T> = {
         var accessControl : OrderedMap.Map<Principal, [(KeyId, T)]>;
         var sharedKeys : OrderedMap.Map<KeyId, [Principal]>;
-        vetKdKeyId : ManagementCanister.VetKdKeyid;
+        var vetKdKeyId : ManagementCanister.VetKdKeyid;
         domainSeparator : Text;
     };
 
@@ -99,7 +99,7 @@ module {
         {
             var accessControl = accessControlMapOps().empty();
             var sharedKeys = sharedKeysMapOps().empty();
-            vetKdKeyId;
+            var vetKdKeyId = vetKdKeyId;
             domainSeparator;
         };
     };

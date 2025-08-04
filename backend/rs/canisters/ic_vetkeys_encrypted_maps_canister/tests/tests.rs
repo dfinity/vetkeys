@@ -6,6 +6,7 @@ use ic_vetkeys::encrypted_maps::{VetKey, VetKeyVerificationKey};
 use ic_vetkeys::key_manager::key_id_to_vetkd_input;
 use ic_vetkeys::types::{AccessControl, AccessRights, ByteBuf, TransportKey};
 use ic_vetkeys::{DerivedPublicKey, EncryptedVetKey, TransportSecretKey};
+use ic_vetkeys_test_utils::upgrade_for_enhanced_orthogonal_persistence;
 use pocket_ic::{PocketIc, PocketIcBuilder};
 use rand::{CryptoRng, Rng, SeedableRng};
 use rand_chacha::ChaCha20Rng;
@@ -896,15 +897,35 @@ fn should_survive_canister_upgrade() {
     )
     .unwrap();
 
-    let wasm_bytes = load_encrypted_maps_example_canister_wasm();
-    env.pic
-        .upgrade_canister(
+    let obtained_value = env
+        .query::<Result<Option<ByteBuf>, String>>(
+            env.principal_0,
+            "get_encrypted_value",
+            encode_args((env.principal_0, map_name.clone(), map_key.clone())).unwrap(),
+        )
+        .unwrap();
+
+    assert_eq!(obtained_value, Some(encrypted_value.clone()));
+
+    let (wasm_bytes, enhanced_orthogonal_persistence) = load_encrypted_maps_example_canister_wasm();
+
+    if enhanced_orthogonal_persistence {
+        upgrade_for_enhanced_orthogonal_persistence(
+            &env.pic,
             env.example_canister_id,
             wasm_bytes,
             encode_one("dfx_test_key").unwrap(),
-            None,
-        )
-        .unwrap();
+        );
+    } else {
+        env.pic
+            .upgrade_canister(
+                env.example_canister_id,
+                wasm_bytes,
+                encode_one("dfx_test_key").unwrap(),
+                None,
+            )
+            .unwrap();
+    }
 
     let encrypted_vetkey_1 = env
         .update::<Result<VetKey, String>>(
@@ -929,7 +950,10 @@ fn should_survive_canister_upgrade() {
         )
         .unwrap();
 
-    assert_eq!(obtained_value, Some(encrypted_value.clone()));
+    assert!(
+        obtained_value == Some(encrypted_value.clone()),
+        "{obtained_value:?}"
+    );
 }
 
 pub fn reproducible_rng() -> ChaCha20Rng {
@@ -957,7 +981,7 @@ impl TestEnvironment {
         let example_canister_id = pic.create_canister();
         pic.add_cycles(example_canister_id, 2_000_000_000_000);
 
-        let example_wasm_bytes = load_encrypted_maps_example_canister_wasm();
+        let (example_wasm_bytes, _) = load_encrypted_maps_example_canister_wasm();
         pic.install_canister(
             example_canister_id,
             example_wasm_bytes,
@@ -1007,17 +1031,26 @@ impl TestEnvironment {
     }
 }
 
-fn load_encrypted_maps_example_canister_wasm() -> Vec<u8> {
-    let wasm_path_string = match std::env::var("CUSTOM_WASM_PATH") {
-        Ok(path) if !path.is_empty() => path,
-        _ => format!(
-            "{}/target/wasm32-unknown-unknown/release/ic_vetkeys_encrypted_maps_canister.wasm",
-            git_root_dir()
-        ),
-    };
+fn load_encrypted_maps_example_canister_wasm() -> (Vec<u8>, bool) {
+    let (wasm_path_string, enhanced_orthogonal_persistence) =
+        match std::env::var("CUSTOM_WASM_PATH") {
+            Ok(path) if !path.is_empty() => (path, true),
+            _ => (
+                format!(
+                "{}/target/wasm32-unknown-unknown/release/ic_vetkeys_encrypted_maps_canister.wasm",
+                git_root_dir()
+            ),
+                false,
+            ),
+        };
     let wasm_path = Path::new(&wasm_path_string);
-    std::fs::read(wasm_path)
-        .expect("wasm does not exist - run `cargo build --release --target wasm32-unknown-unknown`")
+
+    (
+        std::fs::read(wasm_path).expect(
+            "wasm does not exist - run `cargo build --release --target wasm32-unknown-unknown`",
+        ),
+        enhanced_orthogonal_persistence,
+    )
 }
 
 fn random_transport_key<R: Rng + CryptoRng>(rng: &mut R) -> TransportSecretKey {

@@ -23,6 +23,7 @@ serde = "1.0.217"
 
 [dev-dependencies]
 assert_matches = "1.5.0"
+ic-vetkeys-test-utils = { path = "../../ic_vetkeys_test_utils" }
 pocket-ic = "9.0.0"
 rand = "0.8.5"
 rand_chacha = "0.3.1"

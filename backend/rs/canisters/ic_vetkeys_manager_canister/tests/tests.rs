@@ -3,7 +3,10 @@ use candid::{decode_one, encode_args, encode_one, CandidType, Principal};
 use ic_vetkeys::key_manager::{key_id_to_vetkd_input, VetKey, VetKeyVerificationKey};
 use ic_vetkeys::types::{AccessRights, ByteBuf, TransportKey};
 use ic_vetkeys::{DerivedPublicKey, EncryptedVetKey, TransportSecretKey};
-use ic_vetkeys_test_utils::{git_root_dir, random_self_authenticating_principal, reproducible_rng};
+use ic_vetkeys_test_utils::{
+    git_root_dir, random_self_authenticating_principal, reproducible_rng,
+    upgrade_for_enhanced_orthogonal_persistence,
+};
 use pocket_ic::{PocketIc, PocketIcBuilder};
 use rand::{CryptoRng, Rng};
 use std::path::Path;
@@ -527,15 +530,24 @@ fn should_survive_canister_upgrade() {
         )
         .unwrap();
 
-    let wasm_bytes = load_key_manager_example_canister_wasm();
-    env.pic
-        .upgrade_canister(
+    let (wasm_bytes, enhanced_orthogonal_persistence) = load_key_manager_example_canister_wasm();
+    if enhanced_orthogonal_persistence {
+        upgrade_for_enhanced_orthogonal_persistence(
+            &env.pic,
             env.example_canister_id,
             wasm_bytes,
             encode_one("dfx_test_key").unwrap(),
-            None,
-        )
-        .unwrap();
+        );
+    } else {
+        env.pic
+            .upgrade_canister(
+                env.example_canister_id,
+                wasm_bytes,
+                encode_one("dfx_test_key").unwrap(),
+                None,
+            )
+            .unwrap();
+    }
 
     let encrypted_vetkey_1 = env
         .update::<Result<VetKey, String>>(
@@ -572,7 +584,7 @@ impl TestEnvironment {
         let example_canister_id = pic.create_canister();
         pic.add_cycles(example_canister_id, 2_000_000_000_000);
 
-        let example_wasm_bytes = load_key_manager_example_canister_wasm();
+        let (example_wasm_bytes, _) = load_key_manager_example_canister_wasm();
         pic.install_canister(
             example_canister_id,
             example_wasm_bytes,
@@ -622,17 +634,25 @@ impl TestEnvironment {
     }
 }
 
-fn load_key_manager_example_canister_wasm() -> Vec<u8> {
-    let wasm_path_string = match std::env::var("CUSTOM_WASM_PATH") {
-        Ok(path) if !path.is_empty() => path,
-        _ => format!(
-            "{}/target/wasm32-unknown-unknown/release/ic_vetkeys_manager_canister.wasm",
-            git_root_dir()
-        ),
-    };
+fn load_key_manager_example_canister_wasm() -> (Vec<u8>, bool) {
+    let (wasm_path_string, enhanced_orthogonal_persistence) =
+        match std::env::var("CUSTOM_WASM_PATH") {
+            Ok(path) if !path.is_empty() => (path, true),
+            _ => (
+                format!(
+                    "{}/target/wasm32-unknown-unknown/release/ic_vetkeys_manager_canister.wasm",
+                    git_root_dir()
+                ),
+                false,
+            ),
+        };
     let wasm_path = Path::new(&wasm_path_string);
-    std::fs::read(wasm_path)
-        .expect("wasm does not exist - run `cargo build --release --target wasm32-unknown-unknown`")
+    (
+        std::fs::read(wasm_path).expect(
+            "wasm does not exist - run `cargo build --release --target wasm32-unknown-unknown`",
+        ),
+        enhanced_orthogonal_persistence,
+    )
 }
 
 fn random_transport_key<R: Rng + CryptoRng>(rng: &mut R) -> TransportSecretKey {

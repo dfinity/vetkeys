@@ -1,12 +1,16 @@
 use std::{convert::TryInto, ops::Range};
 
-use candid::Principal;
+use candid::{CandidType, Principal};
 use ic_bls12_381::hash_to_curve::{ExpandMsgXmd, HashToCurve};
 use ic_bls12_381::*;
+use ic_cdk::management_canister::{UpgradeFlags, WasmMemoryPersistence};
 use ic_stable_structures::storable::Blob;
 use ic_vetkeys::types::{AccessRights, ByteBuf, KeyName};
+use pocket_ic::common::rest::RawEffectivePrincipal;
+use pocket_ic::{call_candid_as, PocketIc};
 use rand::{CryptoRng, Rng, RngCore, SeedableRng};
 use rand_chacha::ChaCha20Rng;
+use serde::Serialize;
 use std::convert::TryFrom;
 
 pub fn reproducible_rng() -> ChaCha20Rng {
@@ -212,4 +216,49 @@ pub fn create_encrypted_key<R: CryptoRng + RngCore>(
     output.extend_from_slice(&c2.to_compressed());
     output.extend_from_slice(&c3.to_compressed());
     output
+}
+
+pub fn upgrade_for_enhanced_orthogonal_persistence(
+    server: &PocketIc,
+    canister_principal: Principal,
+    wasm_bytes: Vec<u8>,
+    arg: Vec<u8>,
+) {
+    // Use the call_candid_as method instead of upgrade_canister.
+    // This is important because it will allow us to specify whether the wasm memory
+    // can be kept or not.
+    let wasm_memory_persistence = Some(UpgradeFlags {
+        skip_pre_upgrade: Some(false),
+        wasm_memory_persistence: Some(WasmMemoryPersistence::Keep),
+    });
+
+    let arg = InstallCodeArgument {
+        mode: CanisterInstallModeV2::Upgrade(wasm_memory_persistence),
+        canister_id: canister_principal,
+        wasm_module: wasm_bytes,
+        arg,
+    };
+    let res: Result<(), _> = call_candid_as(
+        server,
+        Principal::management_canister(),
+        RawEffectivePrincipal::CanisterId(canister_principal.as_slice().to_vec()),
+        Principal::anonymous(),
+        "install_code",
+        (arg,),
+    );
+    res.unwrap();
+}
+
+#[derive(CandidType, Serialize, PartialEq)]
+enum CanisterInstallModeV2 {
+    #[serde(rename = "upgrade")]
+    Upgrade(Option<UpgradeFlags>),
+}
+
+#[derive(CandidType, Serialize, PartialEq)]
+struct InstallCodeArgument {
+    pub mode: CanisterInstallModeV2,
+    pub canister_id: Principal,
+    pub wasm_module: Vec<u8>,
+    pub arg: Vec<u8>,
 }

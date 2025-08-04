@@ -7,11 +7,9 @@ import Result "mo:base/Result";
 import Array "mo:base/Array";
 
 persistent actor class (keyName : Text) {
-    let keyManagerState = IcVetkeys.KeyManager.newKeyManagerState<Types.AccessRights>({ curve = #bls12_381_g2; name = keyName }, "key manager");
-
-    func getKeyManager() : IcVetkeys.KeyManager.KeyManager<Types.AccessRights> {
-        IcVetkeys.KeyManager.KeyManager<Types.AccessRights>(keyManagerState, Types.accessRightsOperations());
-    };
+    let keyManagerState = IcVetkeys.KeyManager.newKeyManagerState<Types.AccessRights>({ curve = #bls12_381_g2; name = "" }, "key manager");
+    keyManagerState.vetKdKeyId := { curve = #bls12_381_g2; name = keyName };
+    transient let keyManager = IcVetkeys.KeyManager.KeyManager<Types.AccessRights>(keyManagerState, Types.accessRightsOperations());
 
     /// In this canister, we use the `ByteBuf` type to represent blobs. The reason is that we want to be consistent with the Rust canister implementation.
     /// Unfortunately, the `Blob` type cannot be serialized/deserialized in the current Rust implementation efficiently without nesting it in another type.
@@ -25,7 +23,7 @@ persistent actor class (keyName : Text) {
 
     public query (msg) func get_accessible_shared_key_ids() : async [(Principal, ByteBuf)] {
         Array.map<(Principal, Blob), (Principal, ByteBuf)>(
-            getKeyManager().getAccessibleSharedKeyIds(msg.caller),
+            keyManager.getAccessibleSharedKeyIds(msg.caller),
             func((principal, blob) : (Principal, Blob)) {
                 (principal, { inner = blob });
             },
@@ -36,11 +34,11 @@ persistent actor class (keyName : Text) {
         key_owner : Principal,
         key_name : ByteBuf,
     ) : async Result<[(Principal, Types.AccessRights)], Text> {
-        convertResult(getKeyManager().getSharedUserAccessForKey(msg.caller, (key_owner, key_name.inner)));
+        convertResult(keyManager.getSharedUserAccessForKey(msg.caller, (key_owner, key_name.inner)));
     };
 
     public shared func get_vetkey_verification_key() : async ByteBuf {
-        let inner = await getKeyManager().getVetkeyVerificationKey();
+        let inner = await keyManager.getVetkeyVerificationKey();
         { inner };
     };
 
@@ -49,7 +47,7 @@ persistent actor class (keyName : Text) {
         key_name : ByteBuf,
         transport_key : ByteBuf,
     ) : async Result<ByteBuf, Text> {
-        let vetkeyBytebuf = await getKeyManager().getEncryptedVetkey(msg.caller, (key_owner, key_name.inner), transport_key.inner);
+        let vetkeyBytebuf = await keyManager.getEncryptedVetkey(msg.caller, (key_owner, key_name.inner), transport_key.inner);
         switch (vetkeyBytebuf) {
             case (#err(e)) { #Err(e) };
             case (#ok(inner)) { #Ok({ inner }) };
@@ -61,7 +59,7 @@ persistent actor class (keyName : Text) {
         key_name : ByteBuf,
         user : Principal,
     ) : async Result<?Types.AccessRights, Text> {
-        convertResult(getKeyManager().getUserRights(msg.caller, (key_owner, key_name.inner), user));
+        convertResult(keyManager.getUserRights(msg.caller, (key_owner, key_name.inner), user));
     };
 
     public shared (msg) func set_user_rights(
@@ -70,7 +68,7 @@ persistent actor class (keyName : Text) {
         user : Principal,
         access_rights : Types.AccessRights,
     ) : async Result<?Types.AccessRights, Text> {
-        convertResult(getKeyManager().setUserRights(msg.caller, (key_owner, key_name.inner), user, access_rights));
+        convertResult(keyManager.setUserRights(msg.caller, (key_owner, key_name.inner), user, access_rights));
     };
 
     public shared (msg) func remove_user(
@@ -78,7 +76,7 @@ persistent actor class (keyName : Text) {
         key_name : ByteBuf,
         user : Principal,
     ) : async Result<?Types.AccessRights, Text> {
-        convertResult(getKeyManager().removeUserRights(msg.caller, (key_owner, key_name.inner), user));
+        convertResult(keyManager.removeUserRights(msg.caller, (key_owner, key_name.inner), user));
     };
 
     /// Convert to the result type compatible with Rust's `Result`
