@@ -901,7 +901,7 @@ fn should_survive_canister_upgrade() {
         .upgrade_canister(
             env.example_canister_id,
             wasm_bytes,
-            encode_one("").unwrap(),
+            encode_one("dfx_test_key").unwrap(),
             None,
         )
         .unwrap();
