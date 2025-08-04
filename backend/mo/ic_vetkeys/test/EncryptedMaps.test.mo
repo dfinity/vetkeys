@@ -7,9 +7,9 @@ import Blob "mo:base/Blob";
 import { test } "mo:test";
 
 type EncryptedMaps = VetKey.EncryptedMaps.EncryptedMaps<VetKey.AccessRights>;
-let accessRightsOperations = VetKey.accessRightsOperations();
 func newEncryptedMaps() : EncryptedMaps {
-    EncryptedMaps.EncryptedMaps<VetKey.AccessRights>({ curve = #bls12_381_g2; name = "dfx_test_key" }, "encrypted maps", accessRightsOperations);
+    let encryptedMapsState = EncryptedMaps.newEncryptedMapsState<VetKey.AccessRights>({ curve = #bls12_381_g2; name = "dfx_test_key" }, "encrypted maps");
+    EncryptedMaps.EncryptedMaps<VetKey.AccessRights>(encryptedMapsState, VetKey.accessRightsOperations());
 };
 
 let p1 = Principal.fromText("2vxsx-fae");
