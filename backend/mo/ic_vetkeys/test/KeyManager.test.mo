@@ -10,7 +10,8 @@ let p2 = Principal.fromText("aaaaa-aa");
 let keyName = Text.encodeUtf8("some key");
 
 func newKeyManager() : VetKey.KeyManager.KeyManager<VetKey.AccessRights> {
-    VetKey.KeyManager.KeyManager<VetKey.AccessRights>({ curve = #bls12_381_g2; name = "dfx_test_key" }, "key manager", accessRightsOperations);
+    let keyManagerState = VetKey.KeyManager.newKeyManagerState<VetKey.AccessRights>({ curve = #bls12_381_g2; name = "dfx_test_key" }, "key manager");
+    VetKey.KeyManager.KeyManager<VetKey.AccessRights>(keyManagerState, accessRightsOperations);
 };
 
 test(

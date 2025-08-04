@@ -21,9 +21,11 @@ ic_bls12_381 = { version = "0.10.1", default-features = false, features = [
     "experimental",
     "zeroize",
 ] }
+ic-cdk = { workspace = true }
 ic-stable-structures = { workspace = true }
 ic-vetkeys = { path = "../ic_vetkeys" }
 lazy_static = { workspace = true }
+pocket-ic = { workspace = true }
 rand = { workspace = true }
 rand_chacha = { workspace = true }
 serde = { workspace = true }
