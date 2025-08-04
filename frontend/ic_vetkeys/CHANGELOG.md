@@ -1,6 +1,6 @@
 # Change Log
 
-## [0.3.1] - Not Yet Released
+## [0.4.0] - 2025-08-04
 
 ### Added
 
@@ -26,10 +26,10 @@
 
 ## [0.2.0] - 2025-06-08
 
-### Fixes
+### Fixed
 - Links in code docs.
 
-### Changes
+### Changed
 - The code docs now live on github.io.
 - Replaces some instances of `window` with `globalThis` in a few places for better node compatibility.
 
