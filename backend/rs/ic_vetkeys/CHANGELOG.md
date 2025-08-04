@@ -16,6 +16,10 @@
 
 - `derive(Deserialize)` for `EncryptedMapData`
 
+### Changed
+
+- Set MSRV to 1.85
+
 
 ## [0.3.0] - 2025-06-30
 
