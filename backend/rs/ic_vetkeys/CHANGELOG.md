@@ -16,7 +16,6 @@
 
 - `derive(Deserialize)` for `EncryptedMapData`
 
-
 ## [0.3.0] - 2025-06-30
 
 ### Added

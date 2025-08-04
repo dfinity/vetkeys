@@ -8,6 +8,8 @@
 
 - Added IbeCiphertext plaintextSize and ciphertextSize helpers
 
+- Add VrfOutput type for using VetKeys as a Verifiable Random Function
+
 ### Changed
 
  - Bump `@dfinity` agent-related packages to major version `3`.
