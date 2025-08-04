@@ -1,6 +1,6 @@
 {
     "name": "@dfinity/vetkeys",
-    "version": "0.3.0",
+    "version": "0.4.0",
     "author": "DFINITY Stiftung",
     "description": "JavaScript and TypeScript library to use Internet Computer vetKeys",
     "homepage": "https://internetcomputer.org/docs/building-apps/network-features/vetkeys/introduction",
