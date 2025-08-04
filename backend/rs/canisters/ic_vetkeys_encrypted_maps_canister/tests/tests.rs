@@ -860,6 +860,78 @@ fn should_get_owned_map_names() {
     }
 }
 
+#[test]
+fn should_survive_canister_upgrade() {
+    let rng = &mut reproducible_rng();
+    let env = TestEnvironment::new(rng);
+    let map_name = random_map_name(rng);
+    let map_key = random_map_key(rng);
+    let encrypted_value = random_encrypted_value(rng);
+    let transport_key = random_transport_key(rng);
+    let transport_key_bytes = TransportKey::from(transport_key.public_key());
+
+    let encrypted_vetkey_0 = env
+        .update::<Result<VetKey, String>>(
+            env.principal_0,
+            "get_encrypted_vetkey",
+            encode_args((
+                env.principal_0,
+                map_name.clone(),
+                transport_key_bytes.clone(),
+            ))
+            .unwrap(),
+        )
+        .unwrap();
+
+    env.update::<Result<Option<ByteBuf>, String>>(
+        env.principal_0,
+        "insert_encrypted_value",
+        encode_args((
+            env.principal_0,
+            map_name.clone(),
+            map_key.clone(),
+            encrypted_value.clone(),
+        ))
+        .unwrap(),
+    )
+    .unwrap();
+
+    let wasm_bytes = load_encrypted_maps_example_canister_wasm();
+    env.pic
+        .upgrade_canister(
+            env.example_canister_id,
+            wasm_bytes,
+            encode_one("").unwrap(),
+            None,
+        )
+        .unwrap();
+
+    let encrypted_vetkey_1 = env
+        .update::<Result<VetKey, String>>(
+            env.principal_0,
+            "get_encrypted_vetkey",
+            encode_args((
+                env.principal_0,
+                map_name.clone(),
+                transport_key_bytes.clone(),
+            ))
+            .unwrap(),
+        )
+        .unwrap();
+
+    assert_eq!(encrypted_vetkey_0, encrypted_vetkey_1);
+
+    let obtained_value = env
+        .query::<Result<Option<ByteBuf>, String>>(
+            env.principal_0,
+            "get_encrypted_value",
+            encode_args((env.principal_0, map_name, map_key)).unwrap(),
+        )
+        .unwrap();
+
+    assert_eq!(obtained_value, Some(encrypted_value.clone()));
+}
+
 pub fn reproducible_rng() -> ChaCha20Rng {
     let seed = rand::thread_rng().gen();
     println!("RNG seed: {seed:?}");

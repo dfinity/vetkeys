@@ -2,7 +2,7 @@ use std::cell::RefCell;
 
 use candid::Principal;
 use ic_cdk::management_canister::{VetKDCurve, VetKDKeyId};
-use ic_cdk::{init, query, update};
+use ic_cdk::{init, post_upgrade, query, update};
 use ic_stable_structures::memory_manager::{MemoryId, MemoryManager, VirtualMemory};
 use ic_stable_structures::storable::Blob;
 use ic_stable_structures::DefaultMemoryImpl;
@@ -27,6 +27,24 @@ fn init(key_name: String) {
     KEY_MANAGER.with_borrow_mut(|km| {
         km.replace(KeyManager::init(
             "key_manager_dapp",
+            key_id,
+            id_to_memory(0),
+            id_to_memory(1),
+            id_to_memory(2),
+        ))
+    });
+}
+
+#[post_upgrade]
+fn post_upgrade() {
+    // Note that the value of the key_id is not important, as it is used only if the memory not yet initialized.
+    let key_id = VetKDKeyId {
+        curve: VetKDCurve::Bls12_381_G2,
+        name: "dummy_key_name".to_string(),
+    };
+    KEY_MANAGER.with_borrow_mut(|km| {
+        km.replace(KeyManager::init(
+            "dummy_domain_separator",
             key_id,
             id_to_memory(0),
             id_to_memory(1),

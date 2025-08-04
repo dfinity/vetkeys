@@ -506,6 +506,53 @@ fn should_fail_add_or_remove_user_by_unauthorized() {
     }
 }
 
+#[test]
+fn should_survive_canister_upgrade() {
+    let rng = &mut reproducible_rng();
+    let env = TestEnvironment::new(rng);
+    let key_name = random_key_name(rng);
+    let transport_key = random_transport_key(rng);
+    let transport_key_bytes = TransportKey::from(transport_key.public_key());
+
+    let encrypted_vetkey_0 = env
+        .update::<Result<VetKey, String>>(
+            env.principal_0,
+            "get_encrypted_vetkey",
+            encode_args((
+                env.principal_0,
+                key_name.clone(),
+                transport_key_bytes.clone(),
+            ))
+            .unwrap(),
+        )
+        .unwrap();
+
+    let wasm_bytes = load_key_manager_example_canister_wasm();
+    env.pic
+        .upgrade_canister(
+            env.example_canister_id,
+            wasm_bytes,
+            encode_one("").unwrap(),
+            None,
+        )
+        .unwrap();
+
+    let encrypted_vetkey_1 = env
+        .update::<Result<VetKey, String>>(
+            env.principal_0,
+            "get_encrypted_vetkey",
+            encode_args((
+                env.principal_0,
+                key_name.clone(),
+                transport_key_bytes.clone(),
+            ))
+            .unwrap(),
+        )
+        .unwrap();
+
+    assert_eq!(encrypted_vetkey_0, encrypted_vetkey_1);
+}
+
 struct TestEnvironment {
     pic: PocketIc,
     example_canister_id: Principal,
