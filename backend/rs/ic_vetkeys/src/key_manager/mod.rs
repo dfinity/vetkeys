@@ -119,8 +119,7 @@ impl<T: AccessControl> KeyManager<T> {
                 domain_separator: domain_separator.to_string(),
                 key_id: key_id.clone(),
             },
-        )
-        .expect("failed to initialize key manager config");
+        );
         KeyManager {
             config,
             access_control: StableBTreeMap::init(memory_access_control),
@@ -133,8 +132,8 @@ impl<T: AccessControl> KeyManager<T> {
     pub fn get_accessible_shared_key_ids(&self, caller: Principal) -> Vec<KeyId> {
         self.access_control
             .range((caller, (Principal::management_canister(), Blob::default()))..)
-            .take_while(|((p, _), _)| p == &caller)
-            .map(|((_, key_id), _)| key_id)
+            .take_while(|entry| entry.key().0 == caller)
+            .map(|entry| entry.key().1)
             .collect()
     }
 
@@ -150,8 +149,8 @@ impl<T: AccessControl> KeyManager<T> {
         let users: Vec<_> = self
             .shared_keys
             .range((key_id, Principal::management_canister())..)
-            .take_while(|((k, _), _)| k == &key_id)
-            .map(|((_, user), _)| user)
+            .take_while(|entry| entry.key().0 == key_id)
+            .map(|entry| entry.key().1)
             .collect();
 
         users
