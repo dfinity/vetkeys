@@ -24,7 +24,11 @@ pub struct KeyManagerConfig {
 }
 
 impl Storable for KeyManagerConfig {
-    fn to_bytes(&self) -> Cow<[u8]> {
+    fn into_bytes(self) -> Vec<u8> {
+        self.to_bytes().into_owned()
+    }
+
+    fn to_bytes(&self) -> Cow<'_, [u8]> {
         Cow::Owned(serde_cbor::to_vec(self).unwrap())
     }
 
@@ -61,7 +65,11 @@ pub enum AccessRights {
 }
 
 impl Storable for AccessRights {
-    fn to_bytes(&self) -> Cow<[u8]> {
+    fn into_bytes(self) -> Vec<u8> {
+        self.to_bytes().into_owned()
+    }
+
+    fn to_bytes(&self) -> Cow<'_, [u8]> {
         Cow::Owned(vec![*self as u8])
     }
 
@@ -169,9 +177,14 @@ impl Default for ByteBuf {
 }
 
 impl Storable for ByteBuf {
-    fn to_bytes(&self) -> Cow<[u8]> {
+    fn into_bytes(self) -> Vec<u8> {
+        self.to_bytes().into_owned()
+    }
+
+    fn to_bytes(&self) -> Cow<'_, [u8]> {
         Cow::Owned(Encode!(self).unwrap())
     }
+
     fn from_bytes(bytes: Cow<[u8]>) -> Self {
         Decode!(bytes.as_ref(), Self).unwrap()
     }

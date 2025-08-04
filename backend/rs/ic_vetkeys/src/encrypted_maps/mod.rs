@@ -160,8 +160,8 @@ impl<T: AccessControl> EncryptedMaps<T> {
         let keys: Vec<_> = self
             .mapkey_vals
             .range((key_id, Blob::default())..)
-            .take_while(|((k, _), _)| k == &key_id)
-            .map(|((_name, key), _value)| key)
+            .take_while(|entry| entry.key().0 == key_id)
+            .map(|entry| entry.key().1)
             .collect();
 
         for key in keys.iter() {
@@ -183,8 +183,8 @@ impl<T: AccessControl> EncryptedMaps<T> {
         Ok(self
             .mapkey_vals
             .range((key_id, Blob::default())..)
-            .take_while(|((k, _), _)| k == &key_id)
-            .map(|((_, k), v)| (k, v))
+            .take_while(|entry| entry.key().0 == key_id)
+            .map(|entry| (entry.key().1, entry.value()))
             .collect())
     }
 

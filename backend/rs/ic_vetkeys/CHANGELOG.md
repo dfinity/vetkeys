@@ -1,6 +1,10 @@
 # Change Log
 
-## [0.3.1] - Not Yet Released
+## [0.4.0] - Not Yet Released
+
+### Breaking changes
+
+- Bumped `ic-stable-structures` to `v0.7.0`.
 
 ### Added
 
@@ -11,6 +15,7 @@
 - Add VrfOutput type for using VetKeys as a Verifiable Random Function
 
 - `derive(Deserialize)` for `EncryptedMapData`
+
 
 ## [0.3.0] - 2025-06-30
 
@@ -29,12 +34,15 @@
 ## [0.2.0] - 2025-06-08
 
 ### Breaking Changes
+
 - Changed error types of `crate::management_canister::{bls_public_key, sign_with_bls}`.
 
 ### Fixed
+
 - Links in code docs.
 
 ### Changed
+
 - Bumped `ic_cdk` to `v0.18.3`. Due to this update, the internally dispatched `vetkd_derive_key` calls now attach exactly the needed the amount of cycles (and not sometimes more cycles as it was the case before) because the new version of `ic_cdk` determines the cost by using the `ic0_cost_vetkd_derive_key` endpoint.
 
 ## [0.1.0] - 2025-05-27

@@ -21,11 +21,11 @@ documentation = "https://docs.rs/ic-vetkeys"
 
 [workspace.dependencies]
 anyhow = "1.0.95"
-candid = "0.10.2"
+candid = "0.10.16"
 hex = "0.4.3"
 ic-cdk = "0.18.3"
 ic-cdk-macros = "0.18.3"
-ic-stable-structures = "0.6.8"
+ic-stable-structures = "0.7.0"
 lazy_static = "1.5.0"
 pocket-ic = "9.0.0"
 rand = "0.8.5"
@@ -33,7 +33,6 @@ rand_chacha = "0.3.1"
 serde = "1.0.217"
 serde_bytes = "0.11.15"
 serde_cbor = "0.11.2"
-serde_with = "3.11.0"
 ic-dummy-getrandom-for-wasm = "0.1.0"
 
 [profile.release]
