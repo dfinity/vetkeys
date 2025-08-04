@@ -146,7 +146,9 @@ fn cannot_alter_owner_rights() {
     let mut key_manager = random_key_manager(rng);
 
     assert_eq!(
-        key_manager.set_user_rights(caller, (caller, name), caller, AccessRights::Read),
+        key_manager
+            .set_user_rights(caller, (caller, name), caller, AccessRights::Read)
+            .map_err(|s| s.to_ascii_lowercase()),
         Err("cannot change key owner's user rights".to_string())
     );
 
