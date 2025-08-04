@@ -88,16 +88,30 @@ module {
         OrderedMap.Make<KeyId>(compareKeyIds);
     };
 
+    public type KeyManagerState<T> = {
+        var accessControl : OrderedMap.Map<Principal, [(KeyId, T)]>;
+        var sharedKeys : OrderedMap.Map<KeyId, [Principal]>;
+        var vetKdKeyId : ManagementCanister.VetKdKeyid;
+        domainSeparator : Text;
+    };
+
+    public func newKeyManagerState<T>(vetKdKeyId : ManagementCanister.VetKdKeyid, domainSeparator : Text) : KeyManagerState<T> {
+        {
+            var accessControl = accessControlMapOps().empty();
+            var sharedKeys = sharedKeysMapOps().empty();
+            var vetKdKeyId = vetKdKeyId;
+            domainSeparator;
+        };
+    };
+
     /// See the module documentation for more information.
-    public class KeyManager<T>(vetKdKeyId : ManagementCanister.VetKdKeyid, domainSeparator : Text, accessRightsOperations : Types.AccessControlOperations<T>) {
-        public var accessControl : OrderedMap.Map<Principal, [(KeyId, T)]> = accessControlMapOps().empty();
-        public var sharedKeys : OrderedMap.Map<KeyId, [Principal]> = sharedKeysMapOps().empty();
-        let domainSeparatorBytes = Text.encodeUtf8(domainSeparator);
+    public class KeyManager<T>(keyManagerState : KeyManagerState<T>, accessRightsOperations : Types.AccessControlOperations<T>) {
+        let domainSeparatorBytes = Text.encodeUtf8(keyManagerState.domainSeparator);
 
         /// Retrieves all vetKey IDs shared with the given caller.
         /// This method returns a list of all vetKeys that the caller has access to.
         public func getAccessibleSharedKeyIds(caller : Caller) : [KeyId] {
-            switch (accessControlMapOps().get(accessControl, caller)) {
+            switch (accessControlMapOps().get(keyManagerState.accessControl, caller)) {
                 case (null) { [] };
                 case (?entries) {
                     Array.map<(KeyId, T), KeyId>(entries, func((keyId, _)) = keyId);
@@ -114,7 +128,7 @@ module {
                 case (_) {};
             };
 
-            let users = switch (sharedKeysMapOps().get(sharedKeys, keyId)) {
+            let users = switch (sharedKeysMapOps().get(keyManagerState.sharedKeys, keyId)) {
                 case (null) { return #ok([]) };
                 case (?users) users;
             };
@@ -141,7 +155,7 @@ module {
         /// Retrieves the vetKD verification key for this canister.
         /// This key is used to verify the authenticity of derived vetKeys.
         public func getVetkeyVerificationKey() : async VetKeyVerificationKey {
-            await ManagementCanister.vetKdPublicKey(null, domainSeparatorBytes, vetKdKeyId);
+            await ManagementCanister.vetKdPublicKey(null, domainSeparatorBytes, keyManagerState.vetKdKeyId);
         };
 
         /// Retrieves an encrypted vetKey for caller and key id.
@@ -158,7 +172,7 @@ module {
                         Blob.toArray(keyId.1),
                     ]);
 
-                    #ok(await ManagementCanister.vetKdDeriveKey(Blob.fromArray(input), domainSeparatorBytes, vetKdKeyId, transportKey));
+                    #ok(await ManagementCanister.vetKdDeriveKey(Blob.fromArray(input), domainSeparatorBytes, keyManagerState.vetKdKeyId, transportKey));
                 };
             };
         };
@@ -174,7 +188,7 @@ module {
                             if (Principal.equal(user, keyId.0)) {
                                 accessRightsOperations.ownerRights();
                             } else {
-                                let entries = accessControlMapOps().get(accessControl, user)!;
+                                let entries = accessControlMapOps().get(keyManagerState.accessControl, user)!;
                                 let (k, rights) = Array.find<(KeyId, T)>(
                                     entries,
                                     func((k, rights)) = compareKeyIds(k, keyId) == #equal,
@@ -199,7 +213,7 @@ module {
                     };
 
                     // Update sharedKeys
-                    let currentUsers = switch (sharedKeysMapOps().get(sharedKeys, keyId)) {
+                    let currentUsers = switch (sharedKeysMapOps().get(keyManagerState.sharedKeys, keyId)) {
                         case (null) { [] };
                         case (?users) { users };
                     };
@@ -209,10 +223,10 @@ module {
                         case (null) Array.append<Principal>(currentUsers, [user]);
                     };
 
-                    sharedKeys := sharedKeysMapOps().put(sharedKeys, keyId, newUsers);
+                    keyManagerState.sharedKeys := sharedKeysMapOps().put(keyManagerState.sharedKeys, keyId, newUsers);
 
                     // Update accessControl
-                    let currentEntries = switch (accessControlMapOps().get(accessControl, user)) {
+                    let currentEntries = switch (accessControlMapOps().get(keyManagerState.accessControl, user)) {
                         case (null) { [] };
                         case (?entries) { entries };
                     };
@@ -235,7 +249,7 @@ module {
                             Array.append<(KeyId, T)>(currentEntries, [(keyId, accessRights)]);
                         };
                     };
-                    accessControl := accessControlMapOps().put(accessControl, user, newEntries);
+                    keyManagerState.accessControl := accessControlMapOps().put(keyManagerState.accessControl, user, newEntries);
                     #ok(oldRights);
                 };
             };
@@ -253,15 +267,15 @@ module {
                     };
 
                     // Update sharedKeys
-                    let currentUsers = switch (sharedKeysMapOps().get(sharedKeys, keyId)) {
+                    let currentUsers = switch (sharedKeysMapOps().get(keyManagerState.sharedKeys, keyId)) {
                         case (null) { [] };
                         case (?users) { users };
                     };
                     let newUsers = Array.filter<Caller>(currentUsers, func(u) = not Principal.equal(u, user));
-                    sharedKeys := sharedKeysMapOps().put(sharedKeys, keyId, newUsers);
+                    keyManagerState.sharedKeys := sharedKeysMapOps().put(keyManagerState.sharedKeys, keyId, newUsers);
 
                     // Update accessControl
-                    let currentEntries = switch (accessControlMapOps().get(accessControl, user)) {
+                    let currentEntries = switch (accessControlMapOps().get(keyManagerState.accessControl, user)) {
                         case (null) { [] };
                         case (?entries) { entries };
                     };
@@ -276,7 +290,7 @@ module {
                             };
                         },
                     );
-                    accessControl := accessControlMapOps().put(accessControl, user, newEntries);
+                    keyManagerState.accessControl := accessControlMapOps().put(keyManagerState.accessControl, user, newEntries);
                     #ok(oldRights);
                 };
             };
@@ -289,7 +303,7 @@ module {
                 return #ok(accessRightsOperations.ownerRights());
             };
 
-            switch (accessControlMapOps().get(accessControl, user)) {
+            switch (accessControlMapOps().get(keyManagerState.accessControl, user)) {
                 case (null) { #err("unauthorized") };
                 case (?entries) {
                     for ((k, rights) in entries.vals()) {
@@ -313,7 +327,7 @@ module {
                 return #ok(accessRightsOperations.ownerRights());
             };
 
-            switch (accessControlMapOps().get(accessControl, user)) {
+            switch (accessControlMapOps().get(keyManagerState.accessControl, user)) {
                 case (null) { #err("unauthorized") };
                 case (?entries) {
                     for ((k, rights) in entries.vals()) {
@@ -337,7 +351,7 @@ module {
                 return #ok(accessRightsOperations.ownerRights());
             };
 
-            switch (accessControlMapOps().get(accessControl, user)) {
+            switch (accessControlMapOps().get(keyManagerState.accessControl, user)) {
                 case (null) { #err("unauthorized") };
                 case (?entries) {
                     for ((k, rights) in entries.vals()) {
@@ -361,7 +375,7 @@ module {
                 return #ok(accessRightsOperations.ownerRights());
             };
 
-            switch (accessControlMapOps().get(accessControl, user)) {
+            switch (accessControlMapOps().get(keyManagerState.accessControl, user)) {
                 case (null) { #err("unauthorized") };
                 case (?entries) {
                     for ((k, rights) in entries.vals()) {

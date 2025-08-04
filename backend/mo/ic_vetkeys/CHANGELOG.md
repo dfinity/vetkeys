@@ -6,6 +6,8 @@
 
 - BREAKING CHANGE: Fixed an inconsistency with the Rust backend in the returned text error messages. Two error messages were starting with a capital instead of small letter. This is now fixed.
 
+- BREAKING CHANGE: Extract state to state structures to separate the data from the state. This enables enhanced orthogonal persistence by declaring actors to be `persistent`.
+
 ## [0.3.0] - 2025-06-30
 
 - BREAKING CHANGE: Fixed a few inconsistencies with the Rust backend of encrypted maps. 
