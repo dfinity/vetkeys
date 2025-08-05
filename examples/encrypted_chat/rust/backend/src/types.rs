@@ -189,9 +189,9 @@ pub struct GroupChatId(pub u64);
 storable_delegate!(GroupChatId, u64);
 
 #[derive(CandidType, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Clone, Debug)]
-pub struct SymmetricKeyEpochCache(pub Vec<u8>);
+pub struct EncryptedSymmetricKeyEpochCache(pub Vec<u8>);
 
-storable_unbounded!(SymmetricKeyEpochCache);
+storable_unbounded!(EncryptedSymmetricKeyEpochCache);
 
 #[derive(
     CandidType, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Clone, Debug, Copy,

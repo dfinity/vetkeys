@@ -1,8 +1,8 @@
 use candid::{decode_one, encode_args, encode_one, CandidType, Principal};
 use ic_vetkeys_example_encrypted_chat_backend::types::{
-    ChatId, ChatMessageId, EncryptedMessage, EncryptedMessageMetadata, GroupChatId,
-    GroupChatMetadata, GroupModification, SenderMessageId, SymmetricKeyEpochCache,
-    SymmetricKeyEpochId, Time, UserMessage, VetKeyEpochId, VetKeyEpochMetadata,
+    ChatId, ChatMessageId, EncryptedMessage, EncryptedMessageMetadata,
+    EncryptedSymmetricKeyEpochCache, GroupChatId, GroupChatMetadata, GroupModification,
+    SenderMessageId, SymmetricKeyEpochId, Time, UserMessage, VetKeyEpochId, VetKeyEpochMetadata,
 };
 use pocket_ic::{PocketIc, PocketIcBuilder};
 use rand::{CryptoRng, Rng, SeedableRng};
@@ -739,12 +739,12 @@ fn can_update_and_get_symmetric_key_cache() {
 
         let chat_id = ChatId::Group(group_chat_metadata.chat_id);
         let cache_data = b"dummy symmetric key cache".to_vec();
-        let user_cache = SymmetricKeyEpochCache(cache_data.clone());
+        let user_cache = EncryptedSymmetricKeyEpochCache(cache_data.clone());
 
         // Initially, cache should be empty for all participants
         for caller in participants.iter().copied() {
             assert_eq!(
-                env.update::<Result<Option<SymmetricKeyEpochCache>, String>>(
+                env.update::<Result<Option<EncryptedSymmetricKeyEpochCache>, String>>(
                     caller,
                     "get_my_symmetric_key_cache",
                     encode_args((chat_id, VetKeyEpochId(0))).unwrap(),
@@ -765,7 +765,7 @@ fn can_update_and_get_symmetric_key_cache() {
 
         // Authorized user can retrieve their cache
         for caller in participants.iter().copied() {
-            let result = env.update::<Result<Option<SymmetricKeyEpochCache>, String>>(
+            let result = env.update::<Result<Option<EncryptedSymmetricKeyEpochCache>, String>>(
                 caller,
                 "get_my_symmetric_key_cache",
                 encode_args((chat_id, VetKeyEpochId(0))).unwrap(),
@@ -775,7 +775,7 @@ fn can_update_and_get_symmetric_key_cache() {
 
         // Authorized user can update their cache
         let updated_cache_data = b"updated symmetric key cache".to_vec();
-        let updated_user_cache = SymmetricKeyEpochCache(updated_cache_data.clone());
+        let updated_user_cache = EncryptedSymmetricKeyEpochCache(updated_cache_data.clone());
 
         for caller in participants.iter().copied() {
             let result = env.update::<Result<(), String>>(
@@ -788,7 +788,7 @@ fn can_update_and_get_symmetric_key_cache() {
 
         // Verify the cache was updated
         for caller in participants.iter().copied() {
-            let result = env.update::<Result<Option<SymmetricKeyEpochCache>, String>>(
+            let result = env.update::<Result<Option<EncryptedSymmetricKeyEpochCache>, String>>(
                 caller,
                 "get_my_symmetric_key_cache",
                 encode_args((chat_id, VetKeyEpochId(0))).unwrap(),
@@ -816,7 +816,7 @@ fn unauthorized_user_cannot_access_symmetric_key_cache() {
 
         let chat_id = ChatId::Group(GroupChatId(0));
         let cache_data = b"dummy symmetric key cache".to_vec();
-        let user_cache = SymmetricKeyEpochCache(cache_data);
+        let user_cache = EncryptedSymmetricKeyEpochCache(cache_data);
 
         for unauthorized_participant in unauthorized_participants {
             // Unauthorized user cannot update cache
@@ -835,7 +835,7 @@ fn unauthorized_user_cannot_access_symmetric_key_cache() {
             );
 
             // Unauthorized user cannot get cache
-            let result = env.update::<Result<Option<SymmetricKeyEpochCache>, String>>(
+            let result = env.update::<Result<Option<EncryptedSymmetricKeyEpochCache>, String>>(
                 unauthorized_participant,
                 "get_my_symmetric_key_cache",
                 encode_args((chat_id, VetKeyEpochId(0))).unwrap(),
@@ -877,7 +877,7 @@ fn cannot_access_cache_after_vetkey_epoch_expires() {
 
         let chat_id = ChatId::Group(group_chat_metadata.chat_id);
         let cache_data = b"dummy symmetric key cache".to_vec();
-        let user_cache = SymmetricKeyEpochCache(cache_data.clone());
+        let user_cache = EncryptedSymmetricKeyEpochCache(cache_data.clone());
 
         // Create cache for epoch 0
         for caller in participants.iter().copied() {
@@ -923,7 +923,7 @@ fn cannot_access_cache_after_vetkey_epoch_expires() {
             );
 
             // Cannot get cache for expired epoch
-            let result = env.update::<Result<Option<SymmetricKeyEpochCache>, String>>(
+            let result = env.update::<Result<Option<EncryptedSymmetricKeyEpochCache>, String>>(
                 caller,
                 "get_my_symmetric_key_cache",
                 encode_args((chat_id, VetKeyEpochId(0))).unwrap(),
@@ -961,7 +961,7 @@ fn cannot_derive_vetkey_after_cache_exists() {
 
         let chat_id = ChatId::Group(group_chat_metadata.chat_id);
         let cache_data = b"dummy symmetric key cache".to_vec();
-        let user_cache = SymmetricKeyEpochCache(cache_data.clone());
+        let user_cache = EncryptedSymmetricKeyEpochCache(cache_data.clone());
 
         // DON'T REUSE THE SAME TRANSPORT KEYS IN PRODUCTION
         let transport_key =
@@ -1023,8 +1023,8 @@ fn cache_is_separate_for_different_epochs() {
             .unwrap();
 
         let chat_id = ChatId::Group(group_chat_metadata.chat_id);
-        let user_cache_0 = SymmetricKeyEpochCache(b"cache for epoch 0".to_vec());
-        let user_cache_1 = SymmetricKeyEpochCache(b"cache for epoch 1".to_vec());
+        let user_cache_0 = EncryptedSymmetricKeyEpochCache(b"cache for epoch 0".to_vec());
+        let user_cache_1 = EncryptedSymmetricKeyEpochCache(b"cache for epoch 1".to_vec());
 
         for caller in participants.iter().copied() {
             // Create cache for epoch 0
@@ -1036,7 +1036,7 @@ fn cache_is_separate_for_different_epochs() {
             .unwrap();
 
             // Verify cache exists for epoch 0
-            let result = env.update::<Result<Option<SymmetricKeyEpochCache>, String>>(
+            let result = env.update::<Result<Option<EncryptedSymmetricKeyEpochCache>, String>>(
                 caller,
                 "get_my_symmetric_key_cache",
                 encode_args((chat_id, VetKeyEpochId(0))).unwrap(),
@@ -1044,7 +1044,7 @@ fn cache_is_separate_for_different_epochs() {
             assert_eq!(result, Ok(Some(user_cache_0.clone())));
 
             // Verify no cache exists for epoch 1
-            let result = env.update::<Result<Option<SymmetricKeyEpochCache>, String>>(
+            let result = env.update::<Result<Option<EncryptedSymmetricKeyEpochCache>, String>>(
                 caller,
                 "get_my_symmetric_key_cache",
                 encode_args((chat_id, VetKeyEpochId(1))).unwrap(),
@@ -1078,7 +1078,7 @@ fn cache_is_separate_for_different_epochs() {
             .unwrap();
 
             // Verify cache still exists for epoch 0
-            let result = env.update::<Result<Option<SymmetricKeyEpochCache>, String>>(
+            let result = env.update::<Result<Option<EncryptedSymmetricKeyEpochCache>, String>>(
                 caller,
                 "get_my_symmetric_key_cache",
                 encode_args((chat_id, VetKeyEpochId(0))).unwrap(),
@@ -1086,7 +1086,7 @@ fn cache_is_separate_for_different_epochs() {
             assert_eq!(result, Ok(Some(user_cache_0.clone())));
 
             // Verify cache exists for epoch 1
-            let result = env.update::<Result<Option<SymmetricKeyEpochCache>, String>>(
+            let result = env.update::<Result<Option<EncryptedSymmetricKeyEpochCache>, String>>(
                 caller,
                 "get_my_symmetric_key_cache",
                 encode_args((chat_id, VetKeyEpochId(1))).unwrap(),

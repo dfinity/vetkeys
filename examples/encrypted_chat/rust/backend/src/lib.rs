@@ -593,7 +593,7 @@ fn ensure_latest_and_correct_vetkey_and_symmetric_key_epoch(
 fn update_my_symmetric_key_cache(
     chat_id: ChatId,
     vetkey_epoch_id: VetKeyEpochId,
-    user_cache: SymmetricKeyEpochCache, // TODO encrypted
+    user_cache: EncryptedSymmetricKeyEpochCache,
 ) -> Result<(), String> {
     let caller = ic_cdk::api::msg_caller();
     ensure_chat_and_vetkey_epoch_exist(chat_id, vetkey_epoch_id)?;
@@ -631,7 +631,7 @@ fn update_my_symmetric_key_cache(
 fn get_my_symmetric_key_cache(
     chat_id: ChatId,
     vetkey_epoch_id: VetKeyEpochId,
-) -> Result<Option<SymmetricKeyEpochCache>, String> {
+) -> Result<Option<EncryptedSymmetricKeyEpochCache>, String> {
     let caller = ic_cdk::api::msg_caller();
     ensure_chat_and_vetkey_epoch_exist(chat_id, vetkey_epoch_id)?;
     ensure_user_has_access_to_chat_at_epoch(caller, chat_id, vetkey_epoch_id)?;
@@ -643,7 +643,7 @@ fn get_my_symmetric_key_cache(
             .expect("bug: encrypted maps should be initialized after canister initialization");
 
         maps.get_encrypted_value(caller, map_id(caller), map_key_id(chat_id, vetkey_epoch_id))
-            .map(|opt_cache| opt_cache.map(|cache| SymmetricKeyEpochCache(cache.into())))
+            .map(|opt_cache| opt_cache.map(|cache| EncryptedSymmetricKeyEpochCache(cache.into())))
     })
 }
 
