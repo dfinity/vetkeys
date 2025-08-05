@@ -189,7 +189,7 @@ pub struct GroupChatId(pub u64);
 storable_delegate!(GroupChatId, u64);
 
 #[derive(CandidType, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Clone, Debug)]
-pub struct EncryptedSymmetricKeyEpochCache(pub Vec<u8>);
+pub struct EncryptedSymmetricKeyEpochCache(#[serde(with = "serde_bytes")] pub Vec<u8>);
 
 storable_unbounded!(EncryptedSymmetricKeyEpochCache);
 
@@ -289,7 +289,7 @@ pub struct VetKeyEpochId(pub u64);
 storable_delegate!(VetKeyEpochId, u64);
 
 #[derive(CandidType, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Clone, Debug)]
-pub struct IbeEncryptedVetKey(pub serde_bytes::ByteBuf);
+pub struct IbeEncryptedVetKey(#[serde(with = "serde_bytes")] pub Vec<u8>);
 
 impl Storable for IbeEncryptedVetKey {
     fn to_bytes(&self) -> Cow<'_, [u8]> {
@@ -297,11 +297,11 @@ impl Storable for IbeEncryptedVetKey {
     }
 
     fn into_bytes(self) -> Vec<u8> {
-        self.0.into_vec()
+        self.0
     }
 
     fn from_bytes(bytes: Cow<[u8]>) -> Self {
-        Self(serde_bytes::ByteBuf::from(bytes.into_owned()))
+        Self(bytes.into_owned())
     }
 
     const BOUND: Bound = Bound::Unbounded;

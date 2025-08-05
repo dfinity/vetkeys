@@ -2,7 +2,8 @@ use candid::{decode_one, encode_args, encode_one, CandidType, Principal};
 use ic_vetkeys_example_encrypted_chat_backend::types::{
     ChatId, ChatMessageId, EncryptedMessage, EncryptedMessageMetadata,
     EncryptedSymmetricKeyEpochCache, GroupChatId, GroupChatMetadata, GroupModification,
-    SenderMessageId, SymmetricKeyEpochId, Time, UserMessage, VetKeyEpochId, VetKeyEpochMetadata,
+    IbeEncryptedVetKey, SenderMessageId, SymmetricKeyEpochId, Time, UserMessage, VetKeyEpochId,
+    VetKeyEpochMetadata,
 };
 use pocket_ic::{PocketIc, PocketIcBuilder};
 use rand::{CryptoRng, Rng, SeedableRng};
@@ -1304,6 +1305,535 @@ fn modify_chat_participants() {
             VetKeyEpochId(3)
         ))
     );
+}
+
+#[test]
+fn can_reshare_vetkey() {
+    let rng = &mut reproducible_rng();
+    let env = TestEnvironment::new(rng);
+
+    for other_participants in [
+        vec![env.principal_1],
+        vec![env.principal_1, env.principal_2],
+    ] {
+        let participants: Vec<_> = [env.principal_0]
+            .into_iter()
+            .chain(other_participants.iter().copied())
+            .collect();
+
+        let group_chat_metadata = env
+            .update::<Result<GroupChatMetadata, String>>(
+                participants[0],
+                "create_group_chat",
+                encode_args((other_participants, Time(1_000), Time(10_000))).unwrap(),
+            )
+            .unwrap();
+
+        let chat_id = ChatId::Group(group_chat_metadata.chat_id);
+        let reshared_vetkey = b"dummy_encrypted_vetkey".to_vec();
+
+        // Reshare vetkey to all participants except the resharing user
+        let resharing_user = participants[0];
+        let target_users: Vec<_> = participants
+            .iter()
+            .copied()
+            .filter(|&p| p != resharing_user)
+            .collect();
+
+        env.update::<Result<(), String>>(
+            resharing_user,
+            "reshare_ibe_encrypted_vetkeys",
+            encode_args((
+                chat_id,
+                VetKeyEpochId(0),
+                target_users
+                    .iter()
+                    .map(|&user| (user, IbeEncryptedVetKey(reshared_vetkey.clone())))
+                    .collect::<Vec<_>>(),
+            ))
+            .unwrap(),
+        )
+        .unwrap();
+
+        // Verify all target users can retrieve their reshared vetkey
+        for target_user in target_users.iter().copied() {
+            let result = env.update::<Result<Option<IbeEncryptedVetKey>, String>>(
+                target_user,
+                "get_my_reshared_ibe_encrypted_vetkey",
+                encode_args((chat_id, VetKeyEpochId(0))).unwrap(),
+            );
+
+            assert_eq!(
+                result,
+                Ok(Some(IbeEncryptedVetKey(reshared_vetkey.clone())))
+            );
+        }
+    }
+}
+
+#[test]
+fn reshared_vetkey_is_deleted_and_rejected_after_user_uploads_cache() {
+    let rng = &mut reproducible_rng();
+    let env = TestEnvironment::new(rng);
+
+    for other_participants in [
+        vec![env.principal_1],
+        vec![env.principal_1, env.principal_2],
+    ] {
+        let participants: Vec<_> = [env.principal_0]
+            .into_iter()
+            .chain(other_participants.iter().copied())
+            .collect();
+
+        let group_chat_metadata = env
+            .update::<Result<GroupChatMetadata, String>>(
+                env.principal_0,
+                "create_group_chat",
+                encode_args((other_participants, Time(1_000), Time(10_000))).unwrap(),
+            )
+            .unwrap();
+
+        let chat_id = ChatId::Group(group_chat_metadata.chat_id);
+
+        // Reshare vetkey to all participants except the resharing user
+        let resharing_user = env.principal_0;
+        let target_users: Vec<_> = participants
+            .iter()
+            .copied()
+            .filter(|&p| p != resharing_user)
+            .collect();
+
+        env.update::<Result<(), String>>(
+            resharing_user,
+            "reshare_ibe_encrypted_vetkeys",
+            encode_args((
+                chat_id,
+                VetKeyEpochId(0),
+                target_users
+                    .iter()
+                    .map(|&user| (user, IbeEncryptedVetKey(b"dummy_encrypted_vetkey".to_vec())))
+                    .collect::<Vec<_>>(),
+            ))
+            .unwrap(),
+        )
+        .unwrap();
+
+        // One of the target users uploads their cache
+        let target_user = target_users[0];
+        let user_cache = EncryptedSymmetricKeyEpochCache(b"dummy symmetric key cache".to_vec());
+        let result = env.update::<Result<(), String>>(
+            target_user,
+            "update_my_symmetric_key_cache",
+            encode_args((chat_id, VetKeyEpochId(0), user_cache.clone())).unwrap(),
+        );
+        assert_eq!(result, Ok(()));
+
+        // Verify the reshared vetkey is deleted for that user
+        let result = env.update::<Result<Option<IbeEncryptedVetKey>, String>>(
+            target_user,
+            "get_my_reshared_ibe_encrypted_vetkey",
+            encode_args((chat_id, VetKeyEpochId(0))).unwrap(),
+        );
+
+        assert_eq!(result, Ok(None));
+
+        // Verify that user cannot receive reshared vetkey anymore
+        let result = env.update::<Result<(), String>>(
+            resharing_user,
+            "reshare_ibe_encrypted_vetkeys",
+            encode_args((
+                chat_id,
+                VetKeyEpochId(0),
+                vec![(
+                    target_user,
+                    IbeEncryptedVetKey(b"dummy_encrypted_vetkey".to_vec()),
+                )],
+            ))
+            .unwrap(),
+        );
+        assert_eq!(
+            result,
+            Err(format!(
+                "User {} already has a cached key for chat {chat_id:?} at vetkey epoch {:?}",
+                target_user,
+                VetKeyEpochId(0)
+            ))
+        );
+    }
+}
+
+#[test]
+fn cannot_reshare_vetkey_twice() {
+    let rng = &mut reproducible_rng();
+    let env = TestEnvironment::new(rng);
+
+    for other_participants in [
+        vec![env.principal_1],
+        vec![env.principal_1, env.principal_2],
+    ] {
+        let participants: Vec<_> = [env.principal_0]
+            .into_iter()
+            .chain(other_participants.iter().copied())
+            .collect();
+
+        let group_chat_metadata = env
+            .update::<Result<GroupChatMetadata, String>>(
+                env.principal_0,
+                "create_group_chat",
+                encode_args((other_participants, Time(1_000), Time(10_000))).unwrap(),
+            )
+            .unwrap();
+
+        let chat_id = ChatId::Group(group_chat_metadata.chat_id);
+        let reshared_vetkey = b"dummy_encrypted_vetkey".to_vec();
+
+        // Reshare vetkey to all participants except the resharing user
+        let resharing_user = env.principal_0;
+        let target_users: Vec<_> = participants
+            .iter()
+            .copied()
+            .filter(|&p| p != resharing_user)
+            .collect();
+
+        env.update::<Result<(), String>>(
+            resharing_user,
+            "reshare_ibe_encrypted_vetkeys",
+            encode_args((
+                chat_id,
+                VetKeyEpochId(0),
+                target_users
+                    .iter()
+                    .map(|&user| (user, IbeEncryptedVetKey(reshared_vetkey.clone())))
+                    .collect::<Vec<_>>(),
+            ))
+            .unwrap(),
+        )
+        .unwrap();
+
+        // Try to reshare again to the same users
+        assert_eq!(
+            env.update::<Result<(), String>>(
+                resharing_user,
+                "reshare_ibe_encrypted_vetkeys",
+                encode_args((
+                    chat_id,
+                    VetKeyEpochId(0),
+                    target_users
+                        .iter()
+                        .map(|&user| (
+                            user,
+                            IbeEncryptedVetKey(b"dummy_encrypted_vetkey_2".to_vec())
+                        ))
+                        .collect::<Vec<_>>(),
+                ))
+                .unwrap(),
+            ),
+            Err(format!(
+                "User {} already has a reshared key for chat {chat_id:?} at vetkey epoch {:?}",
+                target_users[0],
+                VetKeyEpochId(0)
+            ))
+        );
+
+        // Verify the original reshared vetkey is still available
+        for target_user in target_users.iter().copied() {
+            let result = env.update::<Result<Option<IbeEncryptedVetKey>, String>>(
+                target_user,
+                "get_my_reshared_ibe_encrypted_vetkey",
+                encode_args((chat_id, VetKeyEpochId(0))).unwrap(),
+            );
+
+            assert_eq!(
+                result,
+                Ok(Some(IbeEncryptedVetKey(reshared_vetkey.clone())))
+            );
+        }
+    }
+}
+
+#[test]
+fn fails_to_reshare_vetkey_if_unauthorized() {
+    let mut rng = reproducible_rng();
+    let env = TestEnvironment::new(&mut rng);
+
+    for other_participants in [
+        vec![env.principal_1],
+        vec![env.principal_1, env.principal_2],
+    ] {
+        let participants: Vec<_> = [env.principal_0]
+            .into_iter()
+            .chain(other_participants.iter().copied())
+            .collect();
+
+        let group_chat_metadata = env
+            .update::<Result<GroupChatMetadata, String>>(
+                env.principal_0,
+                "create_group_chat",
+                encode_args((other_participants, Time(1_000), Time(10_000))).unwrap(),
+            )
+            .unwrap();
+
+        let chat_id = ChatId::Group(group_chat_metadata.chat_id);
+        let reshared_vetkey = b"dummy_encrypted_vetkey".to_vec();
+
+        // Create an unauthorized user
+        let mut unauthorized_user = random_self_authenticating_principal(&mut rng);
+        while participants.contains(&unauthorized_user) {
+            unauthorized_user = random_self_authenticating_principal(&mut rng);
+        }
+
+        assert_eq!(
+            env.update::<Result<(), String>>(
+                unauthorized_user,
+                "reshare_ibe_encrypted_vetkeys",
+                encode_args((
+                    chat_id,
+                    VetKeyEpochId(0),
+                    vec![(participants[0], IbeEncryptedVetKey(reshared_vetkey.clone()))],
+                ))
+                .unwrap(),
+            ),
+            Err(format!(
+                "User {} does not have access to chat {chat_id:?} at epoch {:?}",
+                unauthorized_user,
+                VetKeyEpochId(0)
+            ))
+        );
+
+        // Verify no reshared vetkey was created
+        let result = env.update::<Result<Option<IbeEncryptedVetKey>, String>>(
+            participants[0],
+            "get_my_reshared_ibe_encrypted_vetkey",
+            encode_args((chat_id, VetKeyEpochId(0))).unwrap(),
+        );
+
+        assert_eq!(result, Ok(None));
+    }
+}
+
+#[test]
+fn fails_to_reshare_vetkey_with_oneself() {
+    let rng = &mut reproducible_rng();
+    let env = TestEnvironment::new(rng);
+
+    for other_participants in [
+        vec![env.principal_1],
+        vec![env.principal_1, env.principal_2],
+    ] {
+        let participants: Vec<_> = [env.principal_0]
+            .into_iter()
+            .chain(other_participants.iter().copied())
+            .collect();
+
+        let group_chat_metadata = env
+            .update::<Result<GroupChatMetadata, String>>(
+                env.principal_0,
+                "create_group_chat",
+                encode_args((other_participants, Time(1_000), Time(10_000))).unwrap(),
+            )
+            .unwrap();
+
+        let chat_id = ChatId::Group(group_chat_metadata.chat_id);
+        let reshared_vetkey = b"dummy_encrypted_vetkey".to_vec();
+
+        for resharing_user in participants.iter().copied() {
+            assert_eq!(
+                env.update::<Result<(), String>>(
+                    resharing_user,
+                    "reshare_ibe_encrypted_vetkeys",
+                    encode_args((
+                        chat_id,
+                        VetKeyEpochId(0),
+                        vec![(resharing_user, IbeEncryptedVetKey(reshared_vetkey.clone()))],
+                    ))
+                    .unwrap(),
+                ),
+                Err(format!(
+                    "User {} cannot reshare a vetkey with themselves",
+                    resharing_user
+                ))
+            );
+
+            // Verify no reshared vetkey was created
+            let result = env.update::<Result<Option<IbeEncryptedVetKey>, String>>(
+                resharing_user,
+                "get_my_reshared_ibe_encrypted_vetkey",
+                encode_args((chat_id, VetKeyEpochId(0))).unwrap(),
+            );
+
+            assert_eq!(result, Ok(None));
+        }
+    }
+}
+
+#[test]
+fn fails_to_reshare_or_get_reshared_vetkeys_for_invalid_vetkey_epochs() {
+    let rng = &mut reproducible_rng();
+    let env = TestEnvironment::new(rng);
+    let expiry_setting_minutes = Time(10_000);
+
+    for other_participants in [
+        vec![env.principal_1],
+        vec![env.principal_1, env.principal_2],
+    ] {
+        let participants: Vec<_> = [env.principal_0]
+            .into_iter()
+            .chain(other_participants.iter().copied())
+            .collect();
+
+        let group_chat_metadata = env
+            .update::<Result<GroupChatMetadata, String>>(
+                env.principal_0,
+                "create_group_chat",
+                encode_args((other_participants, Time(1_000), expiry_setting_minutes)).unwrap(),
+            )
+            .unwrap();
+
+        let chat_id = ChatId::Group(group_chat_metadata.chat_id);
+        let reshared_vetkey = b"dummy_encrypted_vetkey".to_vec();
+
+        // Try to reshare to epoch 1 before it exists
+        assert_eq!(
+            env.update::<Result<(), String>>(
+                participants[0],
+                "reshare_ibe_encrypted_vetkeys",
+                encode_args((
+                    chat_id,
+                    VetKeyEpochId(1),
+                    vec![(participants[1], IbeEncryptedVetKey(reshared_vetkey.clone()))],
+                ))
+                .unwrap(),
+            ),
+            Err(format!(
+                "vetKey epoch {:?} not found for chat {chat_id:?}",
+                VetKeyEpochId(1)
+            ))
+        );
+
+        // Reshare to epoch 0
+        env.update::<Result<(), String>>(
+            participants[0],
+            "reshare_ibe_encrypted_vetkeys",
+            encode_args((
+                chat_id,
+                VetKeyEpochId(0),
+                vec![(participants[1], IbeEncryptedVetKey(reshared_vetkey.clone()))],
+            ))
+            .unwrap(),
+        )
+        .unwrap();
+
+        // Try to get reshared vetkey for epoch 1 before it exists
+        let result = env.update::<Result<Option<IbeEncryptedVetKey>, String>>(
+            participants[1],
+            "get_my_reshared_ibe_encrypted_vetkey",
+            encode_args((chat_id, VetKeyEpochId(1))).unwrap(),
+        );
+
+        assert_eq!(
+            result,
+            Err(format!(
+                "vetKey epoch {:?} not found for chat {chat_id:?}",
+                VetKeyEpochId(1)
+            ))
+        );
+
+        // Rotate to epoch 1
+        let new_epoch = env
+            .update::<Result<VetKeyEpochId, String>>(
+                participants[0],
+                "rotate_chat_vetkey",
+                encode_args((chat_id,)).unwrap(),
+            )
+            .unwrap();
+        assert_eq!(new_epoch, VetKeyEpochId(1));
+
+        // Verify epoch 0 reshared vetkey is still available
+        let result = env.update::<Result<Option<IbeEncryptedVetKey>, String>>(
+            participants[1],
+            "get_my_reshared_ibe_encrypted_vetkey",
+            encode_args((chat_id, VetKeyEpochId(0))).unwrap(),
+        );
+
+        assert_eq!(
+            result,
+            Ok(Some(IbeEncryptedVetKey(reshared_vetkey.clone())))
+        );
+
+        // Try to get reshared vetkey for epoch 2 before it exists
+        let result = env.update::<Result<Option<IbeEncryptedVetKey>, String>>(
+            participants[1],
+            "get_my_reshared_ibe_encrypted_vetkey",
+            encode_args((chat_id, VetKeyEpochId(2))).unwrap(),
+        );
+
+        assert_eq!(
+            result,
+            Err(format!(
+                "vetKey epoch {:?} not found for chat {chat_id:?}",
+                VetKeyEpochId(2)
+            ))
+        );
+
+        // Fast forward time to expire epoch 0
+        let expiry_time = group_chat_metadata.creation_timestamp.0
+            + expiry_setting_minutes.0 * NANOSECONDS_IN_MINUTE;
+        env.pic
+            .set_time(pocket_ic::Time::from_nanos_since_unix_epoch(expiry_time));
+
+        // Verify epoch 0 reshared vetkey is expired
+        let result = env.update::<Result<Option<IbeEncryptedVetKey>, String>>(
+            participants[1],
+            "get_my_reshared_ibe_encrypted_vetkey",
+            encode_args((chat_id, VetKeyEpochId(0))).unwrap(),
+        );
+
+        assert_eq!(
+            result,
+            Err(format!("vetKey epoch {:?} expired", VetKeyEpochId(0)))
+        );
+
+        // Verify epoch 1 reshared vetkey is still available
+        env.update::<Result<Option<IbeEncryptedVetKey>, String>>(
+            participants[0],
+            "get_my_reshared_ibe_encrypted_vetkey",
+            encode_args((chat_id, VetKeyEpochId(1))).unwrap(),
+        )
+        .unwrap();
+
+        // Fast forward time to expire epoch 1
+        env.pic.advance_time(std::time::Duration::from_nanos(10));
+
+        let result = env.update::<Result<Option<IbeEncryptedVetKey>, String>>(
+            participants[1],
+            "get_my_reshared_ibe_encrypted_vetkey",
+            encode_args((chat_id, VetKeyEpochId(1))).unwrap(),
+        );
+
+        assert_eq!(
+            result,
+            Err(format!("vetKey epoch {:?} expired", VetKeyEpochId(1)))
+        );
+
+        // Try to reshare to expired epochs
+        for i in 0..2 {
+            let result = env.update::<Result<(), String>>(
+                participants[0],
+                "reshare_ibe_encrypted_vetkeys",
+                encode_args((
+                    chat_id,
+                    VetKeyEpochId(i),
+                    vec![(participants[1], IbeEncryptedVetKey(reshared_vetkey.clone()))],
+                ))
+                .unwrap(),
+            );
+
+            assert_eq!(
+                result,
+                Err(format!("vetKey epoch {:?} expired", VetKeyEpochId(i)))
+            );
+        }
+    }
 }
 
 fn reproducible_rng() -> ChaCha20Rng {

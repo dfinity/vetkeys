@@ -685,7 +685,7 @@ async fn get_vetkey_verification_key_for_my_cache_storage() -> serde_bytes::Byte
 fn reshare_ibe_encrypted_vetkeys(
     chat_id: ChatId,
     vetkey_epoch_id: VetKeyEpochId,
-    users_and_encrypted_vetkeys: Vec<(Principal, serde_bytes::ByteBuf)>,
+    users_and_encrypted_vetkeys: Vec<(Principal, IbeEncryptedVetKey)>,
 ) -> Result<(), String> {
     let caller = ic_cdk::api::msg_caller();
     ensure_chat_and_vetkey_epoch_exist(chat_id, vetkey_epoch_id)?;
@@ -696,10 +696,14 @@ fn reshare_ibe_encrypted_vetkeys(
         ensure_user_has_access_to_chat_at_epoch(*user, chat_id, vetkey_epoch_id)?;
         ensure_user_has_no_cached_key_for_chat_and_vetkey_epoch(*user, chat_id, vetkey_epoch_id)?;
 
+        if *user == caller {
+            return Err(format!("User {user} cannot reshare a vetkey with themselves"));
+        }
+
         RESHARED_VETKEYS.with_borrow_mut(|reshared_vetkeys| {
         let resharing_exists =  reshared_vetkeys.get(&(chat_id, vetkey_epoch_id, *user)).is_some();
-        if resharing_exists{
-            Err(format!("User {user} already has a cached key for chat {chat_id:?} at vetkey epoch {vetkey_epoch_id:?}"))
+        if resharing_exists {
+            Err(format!("User {user} already has a reshared key for chat {chat_id:?} at vetkey epoch {vetkey_epoch_id:?}"))
         }
         else {
             Ok(())
@@ -709,14 +713,26 @@ fn reshare_ibe_encrypted_vetkeys(
 
     for (user, encrypted_vetkey) in users_and_encrypted_vetkeys.into_iter() {
         RESHARED_VETKEYS.with_borrow_mut(|reshared_vetkeys| {
-            let todo_remove_ = reshared_vetkeys.insert(
-                (chat_id, vetkey_epoch_id, user),
-                IbeEncryptedVetKey(encrypted_vetkey),
-            );
+            let todo_remove_ =
+                reshared_vetkeys.insert((chat_id, vetkey_epoch_id, user), encrypted_vetkey);
             assert!(todo_remove_.is_none());
         });
     }
     Ok(())
+}
+
+#[ic_cdk::update]
+fn get_my_reshared_ibe_encrypted_vetkey(
+    chat_id: ChatId,
+    vetkey_epoch_id: VetKeyEpochId,
+) -> Result<Option<IbeEncryptedVetKey>, String> {
+    let caller = ic_cdk::api::msg_caller();
+
+    ensure_chat_and_vetkey_epoch_exist(chat_id, vetkey_epoch_id)?;
+    ensure_vetkey_epoch_did_not_expire(chat_id, vetkey_epoch_id)?;
+
+    Ok(RESHARED_VETKEYS
+        .with_borrow(|reshared_vetkeys| reshared_vetkeys.get(&(chat_id, vetkey_epoch_id, caller))))
 }
 
 #[ic_cdk::update]

@@ -1,8 +1,8 @@
 use candid::{decode_one, encode_args, encode_one, CandidType, Principal};
 use ic_vetkeys_example_encrypted_chat_backend::types::{
     ChatId, ChatMessageId, DirectChatId, EncryptedMessage, EncryptedMessageMetadata,
-    EncryptedSymmetricKeyEpochCache, SenderMessageId, SymmetricKeyEpochId, Time, UserMessage,
-    VetKeyEpochId,
+    EncryptedSymmetricKeyEpochCache, IbeEncryptedVetKey, SenderMessageId, SymmetricKeyEpochId,
+    Time, UserMessage, VetKeyEpochId,
 };
 use pocket_ic::{PocketIc, PocketIcBuilder};
 use rand::{CryptoRng, Rng, SeedableRng};
@@ -1037,6 +1037,404 @@ fn cache_is_separate_for_different_epochs() {
             encode_args((chat_id, VetKeyEpochId(1))).unwrap(),
         );
         assert_eq!(result, Ok(Some(user_cache_1.clone())));
+    }
+}
+
+#[test]
+fn can_reshare_vetkey() {
+    let rng = &mut reproducible_rng();
+    let env = TestEnvironment::new(rng);
+
+    env.update::<Result<Time, String>>(
+        env.principal_0,
+        "create_direct_chat",
+        encode_args((env.principal_1, Time(1_000), Time(10_000))).unwrap(),
+    )
+    .unwrap();
+
+    let chat_id = ChatId::Direct(DirectChatId::new((env.principal_0, env.principal_1)));
+
+    let reshared_vetkey = b"dummy_encrypted_vetkey".to_vec();
+
+    env.update::<Result<(), String>>(
+        env.principal_0,
+        "reshare_ibe_encrypted_vetkeys",
+        encode_args((
+            chat_id,
+            VetKeyEpochId(0),
+            vec![(env.principal_1, IbeEncryptedVetKey(reshared_vetkey.clone()))],
+        ))
+        .unwrap(),
+    )
+    .unwrap();
+
+    let result = env.update::<Result<Option<IbeEncryptedVetKey>, String>>(
+        env.principal_1,
+        "get_my_reshared_ibe_encrypted_vetkey",
+        encode_args((chat_id, VetKeyEpochId(0))).unwrap(),
+    );
+
+    assert_eq!(result, Ok(Some(IbeEncryptedVetKey(reshared_vetkey))));
+}
+
+#[test]
+fn reshared_vetkey_is_deleted_and_rejected_after_user_uploads_cache() {
+    let rng = &mut reproducible_rng();
+    let env = TestEnvironment::new(rng);
+
+    env.update::<Result<Time, String>>(
+        env.principal_0,
+        "create_direct_chat",
+        encode_args((env.principal_1, Time(1_000), Time(10_000))).unwrap(),
+    )
+    .unwrap();
+    let chat_id = ChatId::Direct(DirectChatId::new((env.principal_0, env.principal_1)));
+
+    env.update::<Result<(), String>>(
+        env.principal_0,
+        "reshare_ibe_encrypted_vetkeys",
+        encode_args((
+            chat_id,
+            VetKeyEpochId(0),
+            vec![(
+                env.principal_1,
+                IbeEncryptedVetKey(b"dummy_encrypted_vetkey".to_vec()),
+            )],
+        ))
+        .unwrap(),
+    )
+    .unwrap();
+
+    let user_cache = EncryptedSymmetricKeyEpochCache(b"dummy symmetric key cache".to_vec());
+    let result = env.update::<Result<(), String>>(
+        env.principal_1,
+        "update_my_symmetric_key_cache",
+        encode_args((chat_id, VetKeyEpochId(0), user_cache.clone())).unwrap(),
+    );
+    assert_eq!(result, Ok(()));
+
+    let result = env.update::<Result<Option<IbeEncryptedVetKey>, String>>(
+        env.principal_1,
+        "get_my_reshared_ibe_encrypted_vetkey",
+        encode_args((chat_id, VetKeyEpochId(0))).unwrap(),
+    );
+
+    assert_eq!(result, Ok(None));
+
+    let result = env.update::<Result<(), String>>(
+        env.principal_1,
+        "reshare_ibe_encrypted_vetkeys",
+        encode_args((
+            chat_id,
+            VetKeyEpochId(0),
+            vec![(
+                env.principal_1,
+                IbeEncryptedVetKey(b"dummy_encrypted_vetkey".to_vec()),
+            )],
+        ))
+        .unwrap(),
+    );
+    assert_eq!(
+        result,
+        Err(format!(
+            "User {} already has a cached key for chat {chat_id:?} at vetkey epoch {:?}",
+            env.principal_1,
+            VetKeyEpochId(0)
+        ))
+    );
+}
+
+#[test]
+fn cannot_reshare_vetkey_twice() {
+    let rng = &mut reproducible_rng();
+    let env = TestEnvironment::new(rng);
+
+    env.update::<Result<Time, String>>(
+        env.principal_0,
+        "create_direct_chat",
+        encode_args((env.principal_1, Time(1_000), Time(10_000))).unwrap(),
+    )
+    .unwrap();
+
+    let chat_id = ChatId::Direct(DirectChatId::new((env.principal_0, env.principal_1)));
+
+    let reshared_vetkey = b"dummy_encrypted_vetkey".to_vec();
+
+    env.update::<Result<(), String>>(
+        env.principal_0,
+        "reshare_ibe_encrypted_vetkeys",
+        encode_args((
+            chat_id,
+            VetKeyEpochId(0),
+            vec![(env.principal_1, IbeEncryptedVetKey(reshared_vetkey.clone()))],
+        ))
+        .unwrap(),
+    )
+    .unwrap();
+
+    assert_eq!(
+        env.update::<Result<(), String>>(
+            env.principal_0,
+            "reshare_ibe_encrypted_vetkeys",
+            encode_args((
+                chat_id,
+                VetKeyEpochId(0),
+                vec![(
+                    env.principal_1,
+                    IbeEncryptedVetKey(b"dummy_encrypted_vetkey_2".to_vec())
+                )],
+            ))
+            .unwrap(),
+        ),
+        Err(format!(
+            "User {} already has a reshared key for chat {chat_id:?} at vetkey epoch {:?}",
+            env.principal_1,
+            VetKeyEpochId(0)
+        ))
+    );
+
+    let result = env.update::<Result<Option<IbeEncryptedVetKey>, String>>(
+        env.principal_1,
+        "get_my_reshared_ibe_encrypted_vetkey",
+        encode_args((chat_id, VetKeyEpochId(0))).unwrap(),
+    );
+
+    assert_eq!(result, Ok(Some(IbeEncryptedVetKey(reshared_vetkey))));
+}
+
+#[test]
+fn fails_to_reshare_vetkey_if_unauthorized() {
+    let rng = &mut reproducible_rng();
+    let env = TestEnvironment::new(rng);
+
+    env.update::<Result<Time, String>>(
+        env.principal_0,
+        "create_direct_chat",
+        encode_args((env.principal_1, Time(1_000), Time(10_000))).unwrap(),
+    )
+    .unwrap();
+
+    let chat_id = ChatId::Direct(DirectChatId::new((env.principal_0, env.principal_1)));
+
+    let reshared_vetkey = b"dummy_encrypted_vetkey".to_vec();
+
+    assert_eq!(
+        env.update::<Result<(), String>>(
+            env.principal_2,
+            "reshare_ibe_encrypted_vetkeys",
+            encode_args((
+                chat_id,
+                VetKeyEpochId(0),
+                vec![(env.principal_1, IbeEncryptedVetKey(reshared_vetkey.clone()))],
+            ))
+            .unwrap(),
+        ),
+        Err(format!(
+            "User {} does not have access to chat {chat_id:?} at epoch {:?}",
+            env.principal_2,
+            VetKeyEpochId(0)
+        ))
+    );
+
+    let result = env.update::<Result<Option<IbeEncryptedVetKey>, String>>(
+        env.principal_0,
+        "get_my_reshared_ibe_encrypted_vetkey",
+        encode_args((chat_id, VetKeyEpochId(0))).unwrap(),
+    );
+
+    assert_eq!(result, Ok(None));
+}
+
+#[test]
+fn fails_to_reshare_vetkey_with_oneself() {
+    let rng = &mut reproducible_rng();
+    let env = TestEnvironment::new(rng);
+
+    env.update::<Result<Time, String>>(
+        env.principal_0,
+        "create_direct_chat",
+        encode_args((env.principal_1, Time(1_000), Time(10_000))).unwrap(),
+    )
+    .unwrap();
+
+    let chat_id = ChatId::Direct(DirectChatId::new((env.principal_0, env.principal_1)));
+
+    let reshared_vetkey = b"dummy_encrypted_vetkey".to_vec();
+
+    assert_eq!(
+        env.update::<Result<(), String>>(
+            env.principal_0,
+            "reshare_ibe_encrypted_vetkeys",
+            encode_args((
+                chat_id,
+                VetKeyEpochId(0),
+                vec![(env.principal_0, IbeEncryptedVetKey(reshared_vetkey.clone()))],
+            ))
+            .unwrap(),
+        ),
+        Err(format!(
+            "User {} cannot reshare a vetkey with themselves",
+            env.principal_0
+        ))
+    );
+
+    let result = env.update::<Result<Option<IbeEncryptedVetKey>, String>>(
+        env.principal_0,
+        "get_my_reshared_ibe_encrypted_vetkey",
+        encode_args((chat_id, VetKeyEpochId(0))).unwrap(),
+    );
+
+    assert_eq!(result, Ok(None));
+}
+
+#[test]
+fn fails_to_reshare_or_get_reshared_vetkeys_for_invalid_vetkey_epochs() {
+    let rng = &mut reproducible_rng();
+    let env = TestEnvironment::new(rng);
+
+    let message_expiry_time_minutes = Time(10_000);
+
+    let chat_creation_time = env
+        .update::<Result<Time, String>>(
+            env.principal_0,
+            "create_direct_chat",
+            encode_args((env.principal_1, Time(1_000), message_expiry_time_minutes)).unwrap(),
+        )
+        .unwrap();
+
+    let chat_id = ChatId::Direct(DirectChatId::new((env.principal_0, env.principal_1)));
+
+    let reshared_vetkey = b"dummy_encrypted_vetkey".to_vec();
+
+    assert_eq!(
+        env.update::<Result<(), String>>(
+            env.principal_0,
+            "reshare_ibe_encrypted_vetkeys",
+            encode_args((
+                chat_id,
+                VetKeyEpochId(1),
+                vec![(env.principal_1, IbeEncryptedVetKey(reshared_vetkey.clone()))],
+            ))
+            .unwrap(),
+        ),
+        Err(format!(
+            "vetKey epoch {:?} not found for chat {chat_id:?}",
+            VetKeyEpochId(1)
+        ))
+    );
+
+    env.update::<Result<(), String>>(
+        env.principal_0,
+        "reshare_ibe_encrypted_vetkeys",
+        encode_args((
+            chat_id,
+            VetKeyEpochId(0),
+            vec![(env.principal_1, IbeEncryptedVetKey(reshared_vetkey.clone()))],
+        ))
+        .unwrap(),
+    )
+    .unwrap();
+
+    let result = env.update::<Result<Option<IbeEncryptedVetKey>, String>>(
+        env.principal_1,
+        "get_my_reshared_ibe_encrypted_vetkey",
+        encode_args((chat_id, VetKeyEpochId(1))).unwrap(),
+    );
+
+    assert_eq!(
+        result,
+        Err(format!(
+            "vetKey epoch {:?} not found for chat {chat_id:?}",
+            VetKeyEpochId(1)
+        ))
+    );
+
+    let new_epoch = env
+        .update::<Result<VetKeyEpochId, String>>(
+            env.principal_0,
+            "rotate_chat_vetkey",
+            encode_args((chat_id,)).unwrap(),
+        )
+        .unwrap();
+    assert_eq!(new_epoch, VetKeyEpochId(1));
+
+    let result = env.update::<Result<Option<IbeEncryptedVetKey>, String>>(
+        env.principal_1,
+        "get_my_reshared_ibe_encrypted_vetkey",
+        encode_args((chat_id, VetKeyEpochId(0))).unwrap(),
+    );
+
+    assert_eq!(
+        result,
+        Ok(Some(IbeEncryptedVetKey(reshared_vetkey.clone())))
+    );
+
+    let result = env.update::<Result<Option<IbeEncryptedVetKey>, String>>(
+        env.principal_1,
+        "get_my_reshared_ibe_encrypted_vetkey",
+        encode_args((chat_id, VetKeyEpochId(2))).unwrap(),
+    );
+
+    assert_eq!(
+        result,
+        Err(format!(
+            "vetKey epoch {:?} not found for chat {chat_id:?}",
+            VetKeyEpochId(2)
+        ))
+    );
+
+    env.pic
+        .set_time(pocket_ic::Time::from_nanos_since_unix_epoch(
+            chat_creation_time.0 + message_expiry_time_minutes.0 * NANOSECONDS_IN_MINUTE,
+        ));
+
+    let result = env.update::<Result<Option<IbeEncryptedVetKey>, String>>(
+        env.principal_1,
+        "get_my_reshared_ibe_encrypted_vetkey",
+        encode_args((chat_id, VetKeyEpochId(0))).unwrap(),
+    );
+
+    assert_eq!(
+        result,
+        Err(format!("vetKey epoch {:?} expired", VetKeyEpochId(0)))
+    );
+
+    env.update::<Result<Option<IbeEncryptedVetKey>, String>>(
+        env.principal_1,
+        "get_my_reshared_ibe_encrypted_vetkey",
+        encode_args((chat_id, VetKeyEpochId(1))).unwrap(),
+    )
+    .unwrap();
+
+    env.pic.advance_time(std::time::Duration::from_nanos(10));
+
+    let result = env.update::<Result<Option<IbeEncryptedVetKey>, String>>(
+        env.principal_1,
+        "get_my_reshared_ibe_encrypted_vetkey",
+        encode_args((chat_id, VetKeyEpochId(1))).unwrap(),
+    );
+
+    assert_eq!(
+        result,
+        Err(format!("vetKey epoch {:?} expired", VetKeyEpochId(1)))
+    );
+
+    for i in 0..2 {
+        let result = env.update::<Result<(), String>>(
+            env.principal_0,
+            "reshare_ibe_encrypted_vetkeys",
+            encode_args((
+                chat_id,
+                VetKeyEpochId(i),
+                vec![(env.principal_1, IbeEncryptedVetKey(reshared_vetkey.clone()))],
+            ))
+            .unwrap(),
+        );
+
+        assert_eq!(
+            result,
+            Err(format!("vetKey epoch {:?} expired", VetKeyEpochId(i)))
+        );
     }
 }
 
