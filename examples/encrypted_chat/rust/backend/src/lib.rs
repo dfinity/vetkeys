@@ -74,6 +74,8 @@ thread_local! {
     //
     // map = ENCRYPTED_MAPS[(caller, "encrypted_chat_cache")]
     // map[SHA256(chat_id || vetkey_epoch_id)] = cache
+    //
+    // The reason for not storing that data directly is that in encrypted maps, the key is limited to 32 bytes, which is a conservative constant due to the fact that stable structures cannot currently store unbounded data in tuples.
     static ENCRYPTED_MAPS: RefCell<Option<EncryptedMaps<AccessRights>>> = const { RefCell::new(None) };
 
     static VETKD_KEY_NAME: RefCell<StableCell<String, Memory>> =
@@ -248,7 +250,7 @@ fn create_group_chat(
 }
 
 #[ic_cdk::update]
-async fn public_key(chat_id: ChatId, vetkey_epoch_id: VetKeyEpochId) -> serde_bytes::ByteBuf {
+async fn chat_public_key(chat_id: ChatId, vetkey_epoch_id: VetKeyEpochId) -> serde_bytes::ByteBuf {
     let request = VetKDPublicKeyArgs {
         canister_id: None,
         context: ratchet_context(chat_id, vetkey_epoch_id),
@@ -274,7 +276,7 @@ async fn public_key(chat_id: ChatId, vetkey_epoch_id: VetKeyEpochId) -> serde_by
 /// * If the user does not have access to the chat or vetKey epoch.
 /// * If the user has already cached the key.
 #[ic_cdk::update]
-async fn derive_vetkey(
+async fn derive_chat_vetkey(
     chat_id: ChatId,
     opt_vetkey_epoch_id: Option<VetKeyEpochId>,
     transport_key: serde_bytes::ByteBuf,
@@ -608,7 +610,7 @@ fn update_my_symmetric_key_cache(
                 caller,
                 map_id(caller),
                 map_key_id(chat_id, vetkey_epoch_id),
-                ic_vetkeys::types::ByteBuf::from(user_cache.to_bytes().into_owned()),
+                ic_vetkeys::types::ByteBuf::from(user_cache.0),
             )
             .expect("bug: failed to insert encrypted value");
     });
@@ -641,7 +643,7 @@ fn get_my_symmetric_key_cache(
             .expect("bug: encrypted maps should be initialized after canister initialization");
 
         maps.get_encrypted_value(caller, map_id(caller), map_key_id(chat_id, vetkey_epoch_id))
-            .map(|opt_cache| opt_cache.map(|cache| SymmetricKeyEpochCache(cache.into_bytes())))
+            .map(|opt_cache| opt_cache.map(|cache| SymmetricKeyEpochCache(cache.into())))
     })
 }
 

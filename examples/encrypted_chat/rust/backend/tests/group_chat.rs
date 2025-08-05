@@ -345,7 +345,7 @@ fn can_get_vetkey_for_chat() {
                         let raw_encrypted_vetkey = env
                             .update::<Result<serde_bytes::ByteBuf, String>>(
                                 caller,
-                                "derive_vetkey",
+                                "derive_chat_vetkey",
                                 encode_args((
                                     chat_id,
                                     vetkey_epoch_id,
@@ -378,7 +378,7 @@ fn can_get_vetkey_for_chat() {
             let raw_public_key = env
                 .update::<serde_bytes::ByteBuf>(
                     env.principal_0,
-                    "public_key",
+                    "chat_public_key",
                     encode_args((chat_id, VetKeyEpochId(epoch))).unwrap(),
                 )
                 .into_vec();
@@ -406,7 +406,7 @@ fn public_keys_for_different_chats_and_epochs_are_different() {
     let raw_public_key_00 = env
         .update::<serde_bytes::ByteBuf>(
             env.principal_0,
-            "public_key",
+            "chat_public_key",
             encode_args((chat_id_0, VetKeyEpochId(0))).unwrap(),
         )
         .into_vec();
@@ -414,7 +414,7 @@ fn public_keys_for_different_chats_and_epochs_are_different() {
     let raw_public_key_01 = env
         .update::<serde_bytes::ByteBuf>(
             env.principal_0,
-            "public_key",
+            "chat_public_key",
             encode_args((chat_id_0, VetKeyEpochId(1))).unwrap(),
         )
         .into_vec();
@@ -422,7 +422,7 @@ fn public_keys_for_different_chats_and_epochs_are_different() {
     let raw_public_key_10 = env
         .update::<serde_bytes::ByteBuf>(
             env.principal_0,
-            "public_key",
+            "chat_public_key",
             encode_args((chat_id_1, VetKeyEpochId(0))).unwrap(),
         )
         .into_vec();
@@ -454,7 +454,7 @@ fn fails_to_get_vetkey_for_chat_if_unauthorized() {
         for unauthorized_participant in unauthorized_participants {
             let result = env.update::<Result<serde_bytes::ByteBuf, String>>(
                 unauthorized_participant,
-                "derive_vetkey",
+                "derive_chat_vetkey",
                 encode_args((
                     chat_id,
                     Option::<VetKeyEpochId>::None,
@@ -583,7 +583,7 @@ fn fails_to_derive_vetkey_with_wrong_vetkey_epoch() {
             for caller in participants.iter().copied() {
                 let result = env.update::<Result<serde_bytes::ByteBuf, String>>(
                     caller,
-                    "derive_vetkey",
+                    "derive_chat_vetkey",
                     encode_args((
                         chat_id,
                         Some(VetKeyEpochId(latest_epoch + 1)),
@@ -642,7 +642,7 @@ fn can_rotate_chat_vetkey() {
         // Initially, epoch 0 should be the latest (we can verify this by trying to use epoch 1)
         let result = env.update::<Result<serde_bytes::ByteBuf, String>>(
             env.principal_0,
-            "derive_vetkey",
+            "derive_chat_vetkey",
             encode_args((
                 chat_id,
                 Some(VetKeyEpochId(1)),
@@ -757,7 +757,7 @@ fn can_update_and_get_symmetric_key_cache() {
         for caller in participants.iter().copied() {
             let result = env.update::<Result<(), String>>(
                 caller,
-                "update_symmetric_key_cache",
+                "update_my_symmetric_key_cache",
                 encode_args((chat_id, VetKeyEpochId(0), user_cache.clone())).unwrap(),
             );
             assert_eq!(result, Ok(()));
@@ -780,7 +780,7 @@ fn can_update_and_get_symmetric_key_cache() {
         for caller in participants.iter().copied() {
             let result = env.update::<Result<(), String>>(
                 caller,
-                "update_symmetric_key_cache",
+                "update_my_symmetric_key_cache",
                 encode_args((chat_id, VetKeyEpochId(0), updated_user_cache.clone())).unwrap(),
             );
             assert_eq!(result, Ok(()));
@@ -822,7 +822,7 @@ fn unauthorized_user_cannot_access_symmetric_key_cache() {
             // Unauthorized user cannot update cache
             let result = env.update::<Result<(), String>>(
                 unauthorized_participant,
-                "update_symmetric_key_cache",
+                "update_my_symmetric_key_cache",
                 encode_args((chat_id, VetKeyEpochId(0), user_cache.clone())).unwrap(),
             );
             assert_eq!(
@@ -883,7 +883,7 @@ fn cannot_access_cache_after_vetkey_epoch_expires() {
         for caller in participants.iter().copied() {
             env.update::<Result<(), String>>(
                 caller,
-                "update_symmetric_key_cache",
+                "update_my_symmetric_key_cache",
                 encode_args((chat_id, VetKeyEpochId(0), user_cache.clone())).unwrap(),
             )
             .unwrap();
@@ -914,7 +914,7 @@ fn cannot_access_cache_after_vetkey_epoch_expires() {
             // Cannot update cache for expired epoch
             let result = env.update::<Result<(), String>>(
                 caller,
-                "update_symmetric_key_cache",
+                "update_my_symmetric_key_cache",
                 encode_args((chat_id, VetKeyEpochId(0), user_cache.clone())).unwrap(),
             );
             assert_eq!(
@@ -971,7 +971,7 @@ fn cannot_derive_vetkey_after_cache_exists() {
             // Create cache
             env.update::<Result<(), String>>(
                 caller,
-                "update_symmetric_key_cache",
+                "update_my_symmetric_key_cache",
                 encode_args((chat_id, VetKeyEpochId(0), user_cache.clone())).unwrap(),
             )
             .unwrap();
@@ -979,7 +979,7 @@ fn cannot_derive_vetkey_after_cache_exists() {
             // Now derive_vetkey should fail
             let result = env.update::<Result<serde_bytes::ByteBuf, String>>(
                 caller,
-                "derive_vetkey",
+                "derive_chat_vetkey",
                 encode_args((
                     chat_id,
                     Option::<VetKeyEpochId>::None,
@@ -1030,7 +1030,7 @@ fn cache_is_separate_for_different_epochs() {
             // Create cache for epoch 0
             env.update::<Result<(), String>>(
                 caller,
-                "update_symmetric_key_cache",
+                "update_my_symmetric_key_cache",
                 encode_args((chat_id, VetKeyEpochId(0), user_cache_0.clone())).unwrap(),
             )
             .unwrap();
@@ -1072,7 +1072,7 @@ fn cache_is_separate_for_different_epochs() {
             // Create cache for epoch 1
             env.update::<Result<(), String>>(
                 caller,
-                "update_symmetric_key_cache",
+                "update_my_symmetric_key_cache",
                 encode_args((chat_id, VetKeyEpochId(1), user_cache_1.clone())).unwrap(),
             )
             .unwrap();
