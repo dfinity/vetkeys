@@ -1836,6 +1836,104 @@ fn fails_to_reshare_or_get_reshared_vetkeys_for_invalid_vetkey_epochs() {
     }
 }
 
+#[test]
+fn time_job_reports_cleaned_up_expired_items() {
+    let rng = &mut reproducible_rng();
+    let env = TestEnvironment::new(rng);
+
+    let user_cache = EncryptedSymmetricKeyEpochCache(b"dummy_symmetric_key".to_vec());
+    let dummy_encrypted_vetkey = IbeEncryptedVetKey(b"dummy_encrypted_vetkey".to_vec());
+
+    // Create two group chats
+    let group_chat_metadata_1 = env
+        .update::<Result<GroupChatMetadata, String>>(
+            env.principal_0,
+            "create_group_chat",
+            encode_args((vec![env.principal_1], Time(30), Time(60))).unwrap(),
+        )
+        .unwrap();
+
+    let group_chat_metadata_2 = env
+        .update::<Result<GroupChatMetadata, String>>(
+            env.principal_0,
+            "create_group_chat",
+            encode_args((vec![env.principal_2], Time(30), Time(60))).unwrap(),
+        )
+        .unwrap();
+
+    let chat_id_1 = ChatId::Group(group_chat_metadata_1.chat_id);
+    let chat_id_2 = ChatId::Group(group_chat_metadata_2.chat_id);
+
+    for i in 0..2 {
+        for j in 0..2 {
+            let user_message = UserMessage {
+                content: b"hello".to_vec(),
+                vetkey_epoch: VetKeyEpochId(i),
+                symmetric_key_epoch: SymmetricKeyEpochId(0),
+                message_id: SenderMessageId(i + 2 * j),
+            };
+            env.update::<Result<Time, String>>(
+                env.principal_0,
+                "send_group_message",
+                encode_args((user_message.clone(), group_chat_metadata_1.chat_id)).unwrap(),
+            )
+            .unwrap();
+            env.update::<Result<Time, String>>(
+                env.principal_0,
+                "send_group_message",
+                encode_args((user_message.clone(), group_chat_metadata_2.chat_id)).unwrap(),
+            )
+            .unwrap();
+        }
+
+        for (chat_id, receiver) in [(chat_id_1, env.principal_1), (chat_id_2, env.principal_2)] {
+            env.update::<Result<(), String>>(
+                env.principal_0,
+                "update_my_symmetric_key_cache",
+                encode_args((chat_id, VetKeyEpochId(i), user_cache.clone())).unwrap(),
+            )
+            .unwrap();
+
+            env.update::<Result<(), String>>(
+                env.principal_0,
+                "reshare_ibe_encrypted_vetkeys",
+                encode_args((
+                    chat_id,
+                    VetKeyEpochId(i),
+                    vec![(receiver, dummy_encrypted_vetkey.clone())],
+                ))
+                .unwrap(),
+            )
+            .unwrap();
+
+            if i == 0 {
+                let new_epoch = env
+                    .update::<Result<VetKeyEpochId, String>>(
+                        env.principal_0,
+                        "rotate_chat_vetkey",
+                        encode_args((chat_id,)).unwrap(),
+                    )
+                    .unwrap();
+
+                assert_eq!(new_epoch, VetKeyEpochId(1));
+            }
+        }
+    }
+
+    env.pic
+        .advance_time(std::time::Duration::from_secs(24 * 3600));
+    env.pic.tick();
+
+    let logs = env
+        .pic
+        .fetch_canister_logs(env.canister_id, Principal::anonymous())
+        .unwrap();
+    let log_string = logs.iter().fold(String::new(), |acc, log| {
+        format!("{acc}{}", String::from_utf8(log.content.clone()).unwrap())
+    });
+    assert_eq!(log_string, "Timer job: cleaned up 0 expired direct messages, 8 expired group messages, 4 expired vetkey epochs caches, 4 expired reshared vetkeys");
+}
+
 fn reproducible_rng() -> ChaCha20Rng {
     let mut seed = [0u8; 32];
     rand::rng().fill(&mut seed);

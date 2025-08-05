@@ -393,7 +393,7 @@ fn send_direct_message(user_message: UserMessage, receiver: Principal) -> Result
     });
 
     DIRECT_CHAT_MESSAGES.with_borrow_mut(|messages| {
-        messages.insert((direct_chat_id, chat_message_id), stored_message);
+        messages.insert((direct_chat_id, chat_message_id), stored_message.clone());
     });
 
     let expiry_time = CHAT_TO_MESSAGE_EXPIRY_SETTING.with_borrow(|expiry_settings| {
@@ -868,7 +868,7 @@ fn periodic_cleanup_of_expired_items() {
         let now = Time(ic_cdk::api::time());
         let expired_messages: Vec<_> = expiring_messages
             .iter()
-            .filter(|entry| entry.key().0 < now)
+            .filter(|entry| entry.key().0 <= now)
             .map(|entry| *entry.key())
             .collect();
         for key in expired_messages {
@@ -898,7 +898,7 @@ fn periodic_cleanup_of_expired_items() {
         let mut expired_vetkey_epochs = std::collections::BTreeSet::new();
         let expired_vetkey_epochs_caches: Vec<_> = expiring_vetkey_epochs_caches
             .iter()
-            .filter(|entry| entry.key().0 < now)
+            .filter(|entry| entry.key().0 <= now)
             .map(|entry| (*entry.key(), entry.value()))
             .collect();
         for ((time, chat_id, principal), vetkey_epoch_id) in expired_vetkey_epochs_caches {
@@ -910,15 +910,17 @@ fn periodic_cleanup_of_expired_items() {
                 let maps = opt_maps.as_mut().expect(
                     "bug: encrypted maps should be initialized after canister initialization",
                 );
-                num_expired_vetkey_epochs_caches += 1;
-                let todo_remove_2 = maps
+                if maps
                     .remove_encrypted_value(
                         principal,
                         map_id(principal),
                         map_key_id(chat_id, vetkey_epoch_id),
                     )
-                    .unwrap();
-                assert!(todo_remove_2.is_some());
+                    .unwrap()
+                    .is_some()
+                {
+                    num_expired_vetkey_epochs_caches += 1
+                }
             });
         }
 
@@ -938,7 +940,7 @@ fn periodic_cleanup_of_expired_items() {
         }
     });
 
-    println!(
+    ic_cdk::println!(
         "Timer job: cleaned up {} expired direct messages, {} expired group messages, {} expired vetkey epochs caches, {} expired reshared vetkeys",
         num_expired_direct_messages,
         num_expired_group_messages,
