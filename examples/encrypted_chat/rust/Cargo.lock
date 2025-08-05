@@ -161,9 +161,9 @@ checksum = "d71b6127be86fdcfddb610f7182ac57211d4b18a3e9c82eb2d17662f2227ad6a"
 
 [[package]]
 name = "candid"
-version = "0.10.14"
+version = "0.10.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f9d90f5a1426d0489283a0bd5da9ed406fb3e69597e0d823dcb88a1965bb58d2"
+checksum = "eaac522d18020d5fbc8320ecb12a9b13b2137ae31133da2d42fa256a825507c4"
 dependencies = [
  "anyhow",
  "binread",
@@ -184,9 +184,9 @@ dependencies = [
 
 [[package]]
 name = "candid_derive"
-version = "0.6.6"
+version = "0.10.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3de398570c386726e7a59d9887b68763c481477f9a043fb998a2e09d428df1a9"
+checksum = "8a1b4fddbd462182050989068d53604a91a3d0f117c3c8316c6818023df00add"
 dependencies = [
  "lazy_static",
  "proc-macro2",
@@ -634,6 +634,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "hex-literal"
+version = "1.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bcaaec4551594c969335c98c903c1397853d4198408ea609190f420500f6be71"
+
+[[package]]
 name = "hkdf"
 version = "0.12.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -818,6 +824,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "ic-cdk-timers"
+version = "0.12.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9ea87cf31444de833db85bbd15e97bc135ee14529b13158ffdaf6530bf6d7e85"
+dependencies = [
+ "candid",
+ "futures",
+ "ic-cdk",
+ "ic0",
+ "serde",
+ "serde_bytes",
+ "slotmap",
+]
+
+[[package]]
 name = "ic-certification"
 version = "3.0.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -862,15 +883,6 @@ dependencies = [
 
 [[package]]
 name = "ic-stable-structures"
-version = "0.6.9"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4d30d4cf17aff1024e13133897048bcba580e063c9000571ab766ca37e2996f4"
-dependencies = [
- "ic_principal",
-]
-
-[[package]]
-name = "ic-stable-structures"
 version = "0.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e54aeb082293c69def5ab34c70593ba85ff000386f7d0eacdf73514daaeca031"
@@ -898,18 +910,18 @@ dependencies = [
 
 [[package]]
 name = "ic-vetkeys"
-version = "0.3.0"
+version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6d0fe4e1f361dea9b93841e428c00c6934eb5256ee9d35890db2fced4ac1a3c9"
+checksum = "89db8e638924d9e07dd8fa33dc5cfcdc69b7331bed7fcc72e2586f3956b12e58"
 dependencies = [
  "anyhow",
  "candid",
  "futures",
- "hex",
+ "hex-literal",
  "hkdf",
  "ic-cdk",
  "ic-cdk-macros",
- "ic-stable-structures 0.6.9",
+ "ic-stable-structures",
  "ic_bls12_381",
  "lazy_static",
  "pairing",
@@ -918,7 +930,6 @@ dependencies = [
  "serde",
  "serde_bytes",
  "serde_cbor",
- "serde_with",
  "sha2",
  "sha3",
  "strum 0.27.2",
@@ -934,8 +945,9 @@ dependencies = [
  "candid",
  "ic-cdk",
  "ic-cdk-macros",
+ "ic-cdk-timers",
  "ic-dummy-getrandom-for-wasm",
- "ic-stable-structures 0.7.0",
+ "ic-stable-structures",
  "ic-vetkeys",
  "pocket-ic",
  "rand 0.9.2",
@@ -944,6 +956,7 @@ dependencies = [
  "serde_bytes",
  "serde_cbor",
  "serde_with",
+ "sha2",
 ]
 
 [[package]]

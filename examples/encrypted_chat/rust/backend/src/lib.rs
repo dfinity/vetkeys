@@ -1,14 +1,13 @@
-// TODOs:
-// * cache vetKey API and eventually encrypted maps
-// * vetKey resharing (vetKey API + storage)
-// * removal of expired messages and cache: if a vetKey epoch expires, we need to remove all associated messages, cache, and resharings. This can be done by a timer job.
-
 use candid::Principal;
 use ic_cdk::management_canister::{VetKDCurve, VetKDDeriveKeyArgs, VetKDKeyId, VetKDPublicKeyArgs};
 use ic_stable_structures::memory_manager::{MemoryId, MemoryManager, VirtualMemory};
 use ic_stable_structures::{
     BTreeMap as StableBTreeMap, Cell as StableCell, DefaultMemoryImpl, Storable,
 };
+use ic_vetkeys::encrypted_maps::EncryptedMaps;
+use ic_vetkeys::types::AccessRights;
+use sha2::Digest;
+use std::borrow::Cow;
 use std::cell::RefCell;
 
 pub mod types;
@@ -17,6 +16,11 @@ use types::*;
 type Memory = VirtualMemory<DefaultMemoryImpl>;
 
 const NANOSECONDS_IN_MINUTE: u64 = 60_000_000_000;
+
+pub static DOMAIN_SEPARATOR_VETKEY_ROTATION: &str = "vetkeys-example-encrypted-chat-rotation";
+pub static DOMAIN_SEPARATOR_USER_CACHE: &str = "vetkeys-example-encrypted-chat-user-cache";
+pub static DOMAIN_SEPARATOR_VETKEY_RESHARING: &str =
+    "vetkeys-example-encrypted-chat-vetkey-resharing";
 
 thread_local! {
     static MEMORY_MANAGER: RefCell<MemoryManager<DefaultMemoryImpl>> =
@@ -50,11 +54,11 @@ thread_local! {
         MEMORY_MANAGER.with(|m| m.borrow().get(MemoryId::new(6))),
     ));
 
-    static EXPIRING_MESSAGES: RefCell<StableBTreeMap<Time, (ChatId, ChatMessageId), Memory>> = RefCell::new(StableBTreeMap::init(
+    static EXPIRING_MESSAGES: RefCell<StableBTreeMap<(Time, ChatId, ChatMessageId), (), Memory>> = RefCell::new(StableBTreeMap::init(
         MEMORY_MANAGER.with(|m| m.borrow().get(MemoryId::new(7))),
     ));
 
-    static EXPIRING_VETKEY_EPOCHS_CACHES: RefCell<StableBTreeMap<Time, (ChatId, Principal, VetKeyEpochId), Memory>> = RefCell::new(StableBTreeMap::init(
+    static EXPIRING_VETKEY_EPOCHS_CACHES: RefCell<StableBTreeMap<(Time, ChatId, Principal),  VetKeyEpochId, Memory>> = RefCell::new(StableBTreeMap::init(
         MEMORY_MANAGER.with(|m| m.borrow().get(MemoryId::new(8))),
     ));
 
@@ -62,25 +66,44 @@ thread_local! {
         MEMORY_MANAGER.with(|m| m.borrow().get(MemoryId::new(9))),
     ));
 
-    static USER_SYMMETRIC_KEY_CACHE: RefCell<StableBTreeMap<(ChatId, VetKeyEpochId, Principal), SymmetricKeyEpochCache, Memory>> = RefCell::new(StableBTreeMap::init(
-        MEMORY_MANAGER.with(|m| m.borrow().get(MemoryId::new(10))),
-    ));
-
-    static RESHARED_VETKEYS: RefCell<StableBTreeMap<(ChatId, Principal,VetKeyEpochId), IbeEncryptedVetKey, Memory>> = RefCell::new(StableBTreeMap::init(
+    static RESHARED_VETKEYS: RefCell<StableBTreeMap<(ChatId, VetKeyEpochId, Principal), IbeEncryptedVetKey, Memory>> = RefCell::new(StableBTreeMap::init(
         MEMORY_MANAGER.with(|m| m.borrow().get(MemoryId::new(11))),
     ));
+
+    // Store symmetric key cache in encrypted maps. On a high level, store the cache in:
+    //
+    // map = ENCRYPTED_MAPS[(caller, "encrypted_chat_cache")]
+    // map[SHA256(chat_id || vetkey_epoch_id)] = cache
+    static ENCRYPTED_MAPS: RefCell<Option<EncryptedMaps<AccessRights>>> = const { RefCell::new(None) };
 
     static VETKD_KEY_NAME: RefCell<StableCell<String, Memory>> =
         RefCell::new(StableCell::init(MEMORY_MANAGER.with(|m| m.borrow().get(MemoryId::new(12))), String::new()));
 }
-
-pub static DOMAIN_SEPARATOR_VETKEY_ROTATION: &str = "vetkeys-example-encrypted-chat-ratchet";
 
 #[ic_cdk::init]
 fn init(key_name: String) {
     VETKD_KEY_NAME.with(|name| {
         name.borrow_mut().set(key_name);
     });
+
+    ENCRYPTED_MAPS.with_borrow_mut(|maps| {
+        let x = EncryptedMaps::init(
+            DOMAIN_SEPARATOR_USER_CACHE,
+            key_id(),
+            MEMORY_MANAGER.with(|m| m.borrow().get(MemoryId::new(13))),
+            MEMORY_MANAGER.with(|m| m.borrow().get(MemoryId::new(14))),
+            MEMORY_MANAGER.with(|m| m.borrow().get(MemoryId::new(15))),
+            MEMORY_MANAGER.with(|m| m.borrow().get(MemoryId::new(16))),
+        );
+        *maps = Some(x);
+    });
+
+    start_expired_cleanup_timer_job_with_interval(24 * 3600);
+}
+
+#[ic_cdk::post_upgrade]
+fn post_upgrade(key_name: String) {
+    init(key_name);
 }
 
 #[ic_cdk::update]
@@ -264,7 +287,7 @@ async fn derive_vetkey(
 
     ensure_chat_and_vetkey_epoch_exist(chat_id, vetkey_epoch_id)?;
     ensure_user_has_access_to_chat_at_epoch(caller, chat_id, vetkey_epoch_id)?;
-    ensure_user_has_no_cached_key_for_vetkey_epoch(caller, chat_id, vetkey_epoch_id)?;
+    ensure_user_has_no_cached_key_for_chat_and_vetkey_epoch(caller, chat_id, vetkey_epoch_id)?;
 
     let request = VetKDDeriveKeyArgs {
         input: vec![],
@@ -319,7 +342,7 @@ fn rotate_chat_vetkey(chat_id: ChatId) -> Result<VetKeyEpochId, String> {
         let todo_remove = metadata.insert((chat_id, now), new_vetkey_epoch_metadata);
         assert!(todo_remove.is_none());
 
-        clean_up_expired_vetkey_epochs(metadata, chat_id, now);
+        clean_up_expired_vetkey_epochs(metadata, chat_id);
 
         new_vetkey_epoch_id
     });
@@ -371,6 +394,18 @@ fn send_direct_message(user_message: UserMessage, receiver: Principal) -> Result
         messages.insert((direct_chat_id, chat_message_id), stored_message);
     });
 
+    let expiry_time = CHAT_TO_MESSAGE_EXPIRY_SETTING.with_borrow(|expiry_settings| {
+        expiry_settings
+            .get(&chat_id)
+            .expect("bug: uninitialized expiry setting")
+    });
+
+    EXPIRING_MESSAGES.with_borrow_mut(|expiring_messages| {
+        let todo_insert =
+            expiring_messages.insert((Time(now.0 + expiry_time.0), chat_id, chat_message_id), ());
+        assert!(todo_insert.is_none());
+    });
+
     Ok(now)
 }
 
@@ -418,6 +453,18 @@ fn send_group_message(
 
     GROUP_CHAT_MESSAGES.with_borrow_mut(|messages| {
         messages.insert((group_chat_id, chat_message_id), stored_message);
+    });
+
+    let expiry_time = CHAT_TO_MESSAGE_EXPIRY_SETTING.with_borrow(|expiry_settings| {
+        expiry_settings
+            .get(&chat_id)
+            .expect("bug: uninitialized expiry setting")
+    });
+
+    EXPIRING_MESSAGES.with_borrow_mut(|expiring_messages| {
+        let todo_insert =
+            expiring_messages.insert((Time(now.0 + expiry_time.0), chat_id, chat_message_id), ());
+        assert!(todo_insert.is_none());
     });
 
     Ok(now)
@@ -541,18 +588,38 @@ fn ensure_latest_and_correct_vetkey_and_symmetric_key_epoch(
 }
 
 #[ic_cdk::update]
-fn update_symmetric_key_cache(
+fn update_my_symmetric_key_cache(
     chat_id: ChatId,
     vetkey_epoch_id: VetKeyEpochId,
-    user_cache: SymmetricKeyEpochCache,
+    user_cache: SymmetricKeyEpochCache, // TODO encrypted
 ) -> Result<(), String> {
     let caller = ic_cdk::api::msg_caller();
     ensure_chat_and_vetkey_epoch_exist(chat_id, vetkey_epoch_id)?;
     ensure_user_has_access_to_chat_at_epoch(caller, chat_id, vetkey_epoch_id)?;
     ensure_vetkey_epoch_did_not_expire(chat_id, vetkey_epoch_id)?;
+    ensure_payload_has_reasonable_size_for_key(&user_cache.0)?;
 
-    USER_SYMMETRIC_KEY_CACHE.with_borrow_mut(|caches| {
-        caches.insert((chat_id, vetkey_epoch_id, caller), user_cache);
+    ENCRYPTED_MAPS.with_borrow_mut(|opt_maps| {
+        let maps = opt_maps
+            .as_mut()
+            .expect("bug: encrypted maps should be initialized after canister initialization");
+        let _ = maps
+            .insert_encrypted_value(
+                caller,
+                map_id(caller),
+                map_key_id(chat_id, vetkey_epoch_id),
+                ic_vetkeys::types::ByteBuf::from(user_cache.to_bytes().into_owned()),
+            )
+            .expect("bug: failed to insert encrypted value");
+    });
+
+    let now = Time(ic_cdk::api::time());
+    EXPIRING_VETKEY_EPOCHS_CACHES.with_borrow_mut(|caches| {
+        caches.insert((now, chat_id, caller), vetkey_epoch_id);
+    });
+
+    RESHARED_VETKEYS.with_borrow_mut(|reshared_vetkeys| {
+        let _ = reshared_vetkeys.remove(&(chat_id, vetkey_epoch_id, caller));
     });
 
     Ok(())
@@ -568,8 +635,118 @@ fn get_my_symmetric_key_cache(
     ensure_user_has_access_to_chat_at_epoch(caller, chat_id, vetkey_epoch_id)?;
     ensure_vetkey_epoch_did_not_expire(chat_id, vetkey_epoch_id)?;
 
-    Ok(USER_SYMMETRIC_KEY_CACHE
-        .with_borrow(|caches| caches.get(&(chat_id, vetkey_epoch_id, caller))))
+    ENCRYPTED_MAPS.with_borrow(|opt_maps| {
+        let maps = opt_maps
+            .as_ref()
+            .expect("bug: encrypted maps should be initialized after canister initialization");
+
+        maps.get_encrypted_value(caller, map_id(caller), map_key_id(chat_id, vetkey_epoch_id))
+            .map(|opt_cache| opt_cache.map(|cache| SymmetricKeyEpochCache(cache.into_bytes())))
+    })
+}
+
+#[ic_cdk::update]
+async fn get_encrypted_vetkey_for_my_cache_storage(
+    transport_key: serde_bytes::ByteBuf,
+) -> serde_bytes::ByteBuf {
+    let caller: Principal = ic_cdk::api::msg_caller();
+    let transport_key = ic_vetkeys::types::ByteBuf::from(transport_key.into_vec());
+
+    let encrypted_vetkey = ENCRYPTED_MAPS
+        .with_borrow(|opt_maps| {
+            opt_maps
+                .as_ref()
+                .expect("bug: encrypted maps should be initialized after canister initialization")
+                .get_encrypted_vetkey(caller, map_id(caller), transport_key)
+                .expect("bug: failed to get user's vetkey")
+        })
+        .await;
+
+    serde_bytes::ByteBuf::from(encrypted_vetkey.into_bytes())
+}
+
+#[ic_cdk::update]
+async fn get_vetkey_verification_key_for_my_cache_storage() -> serde_bytes::ByteBuf {
+    let verification_key = ENCRYPTED_MAPS
+        .with_borrow(|opt_maps| {
+            opt_maps
+                .as_ref()
+                .expect("bug: encrypted maps should be initialized after canister initialization")
+                .get_vetkey_verification_key()
+        })
+        .await;
+
+    serde_bytes::ByteBuf::from(verification_key.into_bytes())
+}
+
+#[ic_cdk::update]
+fn reshare_ibe_encrypted_vetkeys(
+    chat_id: ChatId,
+    vetkey_epoch_id: VetKeyEpochId,
+    users_and_encrypted_vetkeys: Vec<(Principal, serde_bytes::ByteBuf)>,
+) -> Result<(), String> {
+    let caller = ic_cdk::api::msg_caller();
+    ensure_chat_and_vetkey_epoch_exist(chat_id, vetkey_epoch_id)?;
+    ensure_user_has_access_to_chat_at_epoch(caller, chat_id, vetkey_epoch_id)?;
+    ensure_vetkey_epoch_did_not_expire(chat_id, vetkey_epoch_id)?;
+
+    users_and_encrypted_vetkeys.iter().map(|(user, _encrypted_vetkey)| {
+        ensure_user_has_access_to_chat_at_epoch(*user, chat_id, vetkey_epoch_id)?;
+        ensure_user_has_no_cached_key_for_chat_and_vetkey_epoch(*user, chat_id, vetkey_epoch_id)?;
+
+        RESHARED_VETKEYS.with_borrow_mut(|reshared_vetkeys| {
+        let resharing_exists =  reshared_vetkeys.get(&(chat_id, vetkey_epoch_id, *user)).is_some();
+        if resharing_exists{
+            Err(format!("User {user} already has a cached key for chat {chat_id:?} at vetkey epoch {vetkey_epoch_id:?}"))
+        }
+        else {
+            Ok(())
+        }
+    })
+    }).collect::<Result<Vec<_>, String>>()?;
+
+    for (user, encrypted_vetkey) in users_and_encrypted_vetkeys.into_iter() {
+        RESHARED_VETKEYS.with_borrow_mut(|reshared_vetkeys| {
+            let todo_remove_ = reshared_vetkeys.insert(
+                (chat_id, vetkey_epoch_id, user),
+                IbeEncryptedVetKey(encrypted_vetkey),
+            );
+            assert!(todo_remove_.is_none());
+        });
+    }
+    Ok(())
+}
+
+#[ic_cdk::update]
+async fn get_vetkey_resharing_ibe_decryption_key(
+    transport_key: serde_bytes::ByteBuf,
+) -> serde_bytes::ByteBuf {
+    let caller = ic_cdk::api::msg_caller();
+    let args = ic_cdk::management_canister::VetKDDeriveKeyArgs {
+        input: vec![],
+        context: resharing_context(caller),
+        transport_public_key: transport_key.into_vec(),
+        key_id: key_id(),
+    };
+    let result = ic_cdk::management_canister::vetkd_derive_key(&args)
+        .await
+        .unwrap();
+    serde_bytes::ByteBuf::from(result.encrypted_key)
+}
+
+#[ic_cdk::update]
+async fn get_vetkey_resharing_ibe_encryption_key() -> serde_bytes::ByteBuf {
+    let caller = ic_cdk::api::msg_caller();
+    let args = ic_cdk::management_canister::VetKDPublicKeyArgs {
+        canister_id: None,
+        context: resharing_context(caller),
+        key_id: key_id(),
+    };
+    let result = ic_cdk::management_canister::vetkd_public_key(&args)
+        .await
+        .unwrap();
+
+    serde_bytes::ByteBuf::from(result.public_key)
 }
 
 #[ic_cdk::update]
@@ -648,7 +825,7 @@ fn modify_group_chat_participants(
         let todo_remove = metadata.insert((chat_id, now), new_vetkey_epoch_metadata);
         assert!(todo_remove.is_none());
 
-        clean_up_expired_vetkey_epochs(metadata, chat_id, now);
+        clean_up_expired_vetkey_epochs(metadata, chat_id);
 
         new_vetkey_epoch_id
     });
@@ -656,11 +833,107 @@ fn modify_group_chat_participants(
     Ok(new_vetkey_epoch_id)
 }
 
+fn start_expired_cleanup_timer_job_with_interval(secs: u64) {
+    let secs = std::time::Duration::from_secs(secs);
+    let _timer_id = ic_cdk_timers::set_timer_interval(secs, periodic_cleanup_of_expired_items);
+}
+
+fn periodic_cleanup_of_expired_items() {
+    let now = Time(ic_cdk::api::time());
+
+    let mut num_expired_direct_messages: usize = 0;
+    let mut num_expired_group_messages: usize = 0;
+    let mut num_expired_vetkey_epochs_caches: usize = 0;
+    let mut num_expired_reshared_vetkeys: usize = 0;
+
+    EXPIRING_MESSAGES.with_borrow_mut(|expiring_messages| {
+        let now = Time(ic_cdk::api::time());
+        let expired_messages: Vec<_> = expiring_messages
+            .iter()
+            .filter(|entry| entry.key().0 < now)
+            .map(|entry| *entry.key())
+            .collect();
+        for key in expired_messages {
+            let todo_remove = expiring_messages.remove(&key);
+            assert!(todo_remove.is_some());
+
+            match key.1 {
+                ChatId::Direct(chat_id) => {
+                    num_expired_direct_messages += 1;
+                    DIRECT_CHAT_MESSAGES.with_borrow_mut(|messages| {
+                        let todo_remove = messages.remove(&(chat_id, key.2));
+                        assert!(todo_remove.is_some());
+                    });
+                }
+                ChatId::Group(group_chat_id) => {
+                    num_expired_group_messages += 1;
+                    GROUP_CHAT_MESSAGES.with_borrow_mut(|messages| {
+                        let todo_remove = messages.remove(&(group_chat_id, key.2));
+                        assert!(todo_remove.is_some());
+                    });
+                }
+            }
+        }
+    });
+
+    EXPIRING_VETKEY_EPOCHS_CACHES.with_borrow_mut(|expiring_vetkey_epochs_caches| {
+        let mut expired_vetkey_epochs = std::collections::BTreeSet::new();
+        let expired_vetkey_epochs_caches: Vec<_> = expiring_vetkey_epochs_caches
+            .iter()
+            .filter(|entry| entry.key().0 < now)
+            .map(|entry| (*entry.key(), entry.value()))
+            .collect();
+        for ((time, chat_id, principal), vetkey_epoch_id) in expired_vetkey_epochs_caches {
+            expired_vetkey_epochs.insert((chat_id, vetkey_epoch_id));
+            let todo_remove_1 = expiring_vetkey_epochs_caches.remove(&(time, chat_id, principal));
+            assert!(todo_remove_1.is_some());
+
+            ENCRYPTED_MAPS.with_borrow_mut(|opt_maps| {
+                let maps = opt_maps.as_mut().expect(
+                    "bug: encrypted maps should be initialized after canister initialization",
+                );
+                num_expired_vetkey_epochs_caches += 1;
+                let todo_remove_2 = maps
+                    .remove_encrypted_value(
+                        principal,
+                        map_id(principal),
+                        map_key_id(chat_id, vetkey_epoch_id),
+                    )
+                    .unwrap();
+                assert!(todo_remove_2.is_some());
+            });
+        }
+
+        for (chat_id, vetkey_epoch_id) in expired_vetkey_epochs {
+            RESHARED_VETKEYS.with_borrow_mut(|reshared_vetkeys| {
+                let reshared_vetkeys_to_remove: Vec<_> = reshared_vetkeys
+                    .range(&(chat_id, vetkey_epoch_id, Principal::management_canister())..)
+                    .filter(|entry| entry.key().0 == chat_id && entry.key().1 == vetkey_epoch_id)
+                    .map(|entry| *entry.key())
+                    .collect();
+                for key in reshared_vetkeys_to_remove {
+                    let todo_remove = reshared_vetkeys.remove(&key);
+                    assert!(todo_remove.is_some());
+                    num_expired_reshared_vetkeys += 1;
+                }
+            });
+        }
+    });
+
+    println!(
+        "Timer job: cleaned up {} expired direct messages, {} expired group messages, {} expired vetkey epochs caches, {} expired reshared vetkeys",
+        num_expired_direct_messages,
+        num_expired_group_messages,
+        num_expired_vetkey_epochs_caches,
+        num_expired_reshared_vetkeys
+    );
+}
+
 fn clean_up_expired_vetkey_epochs(
     metadata: &mut StableBTreeMap<(ChatId, Time), VetKeyEpochMetadata, Memory>,
     chat_id: ChatId,
-    now: Time,
 ) {
+    let now = Time(ic_cdk::api::time());
     let message_expiry_setting = CHAT_TO_MESSAGE_EXPIRY_SETTING
         .with_borrow(|expiry_settings| expiry_settings.get(&chat_id))
         .expect("bug: expiry should always exist for existing chats");
@@ -692,13 +965,26 @@ fn ensure_user_has_access_to_chat_at_epoch(
     ))
 }
 
-fn ensure_user_has_no_cached_key_for_vetkey_epoch(
+fn ensure_user_has_no_cached_key_for_chat_and_vetkey_epoch(
     user: Principal,
     chat_id: ChatId,
     vetkey_epoch_id: VetKeyEpochId,
 ) -> Result<(), String> {
-    let cache_exists = USER_SYMMETRIC_KEY_CACHE
-        .with_borrow_mut(|caches| caches.contains_key(&(chat_id, vetkey_epoch_id, user)));
+    let cache_exists = ENCRYPTED_MAPS.with_borrow(|opt_maps| {
+        let maps = opt_maps
+            .as_ref()
+            .expect("bug: encrypted maps should be initialized after canister initialization");
+        let map_id = (
+            user,
+            ic_stable_structures::storable::Blob::<32>::from_bytes(Cow::Borrowed(
+                b"encrypted_chat_cache",
+            )),
+        );
+        let map_key_id = map_key_id(chat_id, vetkey_epoch_id);
+        maps.get_encrypted_value(user, map_id, map_key_id)
+            .expect("bug: failed to get encrypted value")
+            .is_some()
+    });
     if cache_exists {
         Err(format!(
             "User {} already has a cached key for chat {:?} at vetkey epoch {:?}",
@@ -774,6 +1060,43 @@ fn ensure_vetkey_epoch_did_not_expire(
     }
 }
 
+fn ensure_payload_has_reasonable_size_for_key(payload: &[u8]) -> Result<(), String> {
+    if payload.len() > 200 {
+        Err(format!(
+            "Payload is way too large: expected <= 200 B, got {} B",
+            payload.len()
+        ))
+    } else {
+        Ok(())
+    }
+}
+
+fn map_id(caller: Principal) -> (Principal, ic_stable_structures::storable::Blob<32>) {
+    (
+        caller,
+        ic_stable_structures::storable::Blob::<32>::from_bytes(Cow::Borrowed(
+            b"encrypted_chat_cache",
+        )),
+    )
+}
+
+fn map_key_id(
+    chat_id: ChatId,
+    vetkey_epoch_id: VetKeyEpochId,
+) -> ic_stable_structures::storable::Blob<32> {
+    ic_stable_structures::storable::Blob::<32>::from_bytes(Cow::Owned(
+        sha2::Sha256::digest(
+            chat_id
+                .to_bytes()
+                .iter()
+                .cloned()
+                .chain(vetkey_epoch_id.to_bytes().iter().cloned())
+                .collect::<Vec<u8>>(),
+        )
+        .to_vec(),
+    ))
+}
+
 fn latest_vetkey_epoch_id(chat_id: ChatId) -> Option<VetKeyEpochId> {
     CHAT_TO_VETKEYS_METADATA.with_borrow(|metadata| {
         metadata
@@ -813,6 +1136,17 @@ pub fn ratchet_context(chat_id: ChatId, vetkey_epoch_id: VetKeyEpochId) -> Vec<u
     context.extend_from_slice(&chat_id_bytes);
 
     context.extend_from_slice(&vetkey_epoch_id.0.to_le_bytes());
+
+    context
+}
+
+pub fn resharing_context(caller: Principal) -> Vec<u8> {
+    let mut context = vec![];
+
+    context.extend_from_slice(&[DOMAIN_SEPARATOR_VETKEY_RESHARING.as_bytes().len() as u8]);
+    context.extend_from_slice(DOMAIN_SEPARATOR_VETKEY_ROTATION.as_bytes());
+
+    context.extend_from_slice(&caller.as_slice());
 
     context
 }

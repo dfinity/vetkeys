@@ -6,12 +6,12 @@ use std::borrow::Cow;
 macro_rules! storable_unbounded {
     ($name:ident) => {
         impl Storable for $name {
-            fn into_bytes(self) -> Vec<u8> {
-                serde_cbor::to_vec(&self).expect("failed to serialize")
-            }
-
             fn to_bytes(&self) -> Cow<[u8]> {
                 Cow::Owned(serde_cbor::to_vec(self).expect("failed to serialize"))
+            }
+
+            fn into_bytes(self) -> Vec<u8> {
+                self.to_bytes().into_owned()
             }
 
             fn from_bytes(bytes: Cow<[u8]>) -> Self {
