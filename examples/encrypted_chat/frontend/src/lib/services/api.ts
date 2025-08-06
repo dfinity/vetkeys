@@ -284,7 +284,7 @@ export class ChatAPI {
 		return _chatId === 'direct-2' || _chatId === 'group-2';
 	}
 
-	async rotateKeys(): Promise<KeyRotationStatus> {
+	async rotateKeys(_chatId: string): Promise<KeyRotationStatus> {
 		await this.delay(1000);
 
 		return {

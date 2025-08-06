@@ -4,7 +4,10 @@ import adapter from '@sveltejs/adapter-static';
 const config = {
 	preprocess: vitePreprocess(),
 	kit: {
-		adapter: adapter()
+		adapter: adapter(),
+		output: {
+			bundleStrategy: 'single'
+		}
 	}
 };
 
