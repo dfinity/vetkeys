@@ -6,10 +6,10 @@ import typescript from '@rollup/plugin-typescript';
 
 export default defineConfig({
 	plugins: [
-	  typescript(),
-      tailwindcss(),
-	  sveltekit(),
-	  environment("all", { prefix: "CANISTER_" }),
-	  environment("all", { prefix: "DFX_" }),
-	],
-})
+		typescript(),
+		tailwindcss(),
+		sveltekit(),
+		environment('all', { prefix: 'CANISTER_' }),
+		environment('all', { prefix: 'DFX_' })
+	]
+});

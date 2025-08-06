@@ -284,7 +284,11 @@ export class ChatAPI {
 		return _chatId === 'direct-2' || _chatId === 'group-2';
 	}
 
-	async rotateKeys(_chatId: string): Promise<KeyRotationStatus> {
+	async rotateKeys(chatId: string): Promise<KeyRotationStatus> {
+		// TODO: Implement actual key rotation
+		if (chatId === 'direct-2') {
+			await this.delay(1000);
+		}
 		await this.delay(1000);
 
 		return {
