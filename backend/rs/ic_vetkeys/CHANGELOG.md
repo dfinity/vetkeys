@@ -1,6 +1,6 @@
 # Change Log
 
-## [0.4.0] - Not Yet Released
+## [0.4.0] - 2025-08-04
 
 ### Breaking changes
 
@@ -16,6 +16,9 @@
 
 - `derive(Deserialize)` for `EncryptedMapData`
 
+### Changed
+
+- Set MSRV to 1.85
 
 ## [0.3.0] - 2025-06-30
 
