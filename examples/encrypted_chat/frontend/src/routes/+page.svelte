@@ -68,7 +68,9 @@
 	</div>
 {/if}
 
-<style>
+<style lang="postcss">
+    @reference "tailwindcss";
+
 	.chat-container {
 		background: var(--color-surface-50);
 	}
