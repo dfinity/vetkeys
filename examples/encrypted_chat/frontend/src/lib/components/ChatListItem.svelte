@@ -56,7 +56,7 @@
 </script>
 
 <button
-	class="chat-item w-full p-3 text-left overflow-hidden transition-colors duration-200 {isSelected
+	class="chat-item w-full p-3 text-left overflow-hidden transition-all duration-200 {isSelected
 		? 'selected'
 		: 'hover:bg-surface-100-800-token'}"
 	on:click={handleClick}
@@ -65,13 +65,13 @@
 		<!-- Avatar -->
 		<div class="relative">
 			<div
-				class="avatar flex h-12 w-12 items-center justify-center rounded-full bg-primary-500 text-lg"
+				class="avatar flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-primary-500 to-primary-600 text-white text-lg shadow-sm"
 			>
 				{getDisplayAvatar()}
 			</div>
 			<!-- Status indicator -->
 			<div class="absolute -right-1 -bottom-1">
-				<div class="h-4 w-4 rounded-full {getStatusColor()} flex items-center justify-center">
+				<div class="h-4 w-4 rounded-full {getStatusColor()} flex items-center justify-center shadow-sm">
 					<svelte:component this={getStatusIcon()} class="h-2.5 w-2.5 text-white" />
 				</div>
 			</div>
@@ -80,14 +80,14 @@
 		<!-- Chat info -->
 		<div class="min-w-0 flex-1 overflow-hidden">
 			<div class="mb-1 flex items-center justify-between">
-				<h3 class="truncate text-sm font-semibold">{getDisplayName()}</h3>
+				<h3 class="truncate text-sm font-semibold text-surface-900-100-token">{getDisplayName()}</h3>
 				<div class="flex items-center gap-2">
 					{#if chat.type === 'group'}
-						<Users class="text-surface-600-300-token h-3 w-3" />
+						<Users class="text-surface-500-400-token h-3 w-3" />
 					{:else}
-						<User class="text-surface-600-300-token h-3 w-3" />
+						<User class="text-surface-500-400-token h-3 w-3" />
 					{/if}
-					<span class="text-surface-600-300-token text-xs">
+					<span class="text-surface-500-400-token text-xs">
 						{formatTime(chat.lastActivity)}
 					</span>
 				</div>
@@ -104,7 +104,7 @@
 
 				{#if chat.unreadCount > 0}
 					<div
-						class="unread-badge flex h-5 min-w-[20px] items-center justify-center rounded-full bg-primary-500 px-2 py-1 text-xs text-white"
+						class="unread-badge flex h-5 min-w-[20px] items-center justify-center rounded-full bg-gradient-to-r from-primary-500 to-primary-600 px-2 py-1 text-xs text-white shadow-sm"
 					>
 						{chat.unreadCount > 99 ? '99+' : chat.unreadCount}
 					</div>
@@ -115,7 +115,7 @@
 			<div class="mt-1 flex items-center gap-2">
 				{#if chat.disappearingMessagesDuration > 0}
 					<div
-						class="status-chip bg-surface-200-700-token flex items-center gap-1 rounded px-2 py-0.5 text-xs"
+						class="status-chip bg-gradient-to-r from-amber-100 to-amber-200 text-amber-800 flex items-center gap-1 rounded-full px-2 py-0.5 text-xs shadow-sm"
 					>
 						<Clock class="h-3 w-3" />
 						{chat.disappearingMessagesDuration}d
@@ -127,53 +127,92 @@
 </button>
 
 <style>
-
 	.chat-item {
-		border-bottom: 1px solid var(--color-surface-300);
 		margin: 2px 0px;
-		padding: 5px 5px;
+		padding: 12px 16px;
 		border-radius: 12px;
 		border: 1px solid var(--color-surface-200);
+		background: var(--color-surface-50);
 		transition: all 0.2s ease;
+		position: relative;
 	}
 
 	.chat-item:hover {
 		background: var(--color-surface-100);
 		border-color: var(--color-surface-300);
-		box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+		box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+		transform: translateY(-1px);
 	}
 
 	:global(.dark) .chat-item {
-		border-bottom-color: var(--color-surface-600);
+		background: var(--color-surface-800);
 		border-color: var(--color-surface-700);
 	}
 
 	:global(.dark) .chat-item:hover {
 		background: var(--color-surface-700);
 		border-color: var(--color-surface-600);
-		box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+		box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
 	}
 
 	.chat-item.selected {
-		background: var(--color-primary-100);
-		border-color: var(--color-primary-300);
-		border-right: 3px solid var(--color-primary-500);
-		box-shadow: 0 2px 12px rgba(59, 130, 246, 0.15);
+		background: linear-gradient(135deg, var(--color-primary-50), var(--color-primary-100));
+		border-color: var(--color-primary-200);
+		border-left: 4px solid var(--color-primary-500);
+		box-shadow: 0 4px 16px rgba(59, 130, 246, 0.15);
+		transform: translateY(-1px);
 	}
 
 	:global(.dark) .chat-item.selected {
-		background: var(--color-primary-900);
+		background: linear-gradient(135deg, var(--color-primary-900), var(--color-primary-800));
 		border-color: var(--color-primary-700);
-		box-shadow: 0 2px 12px rgba(59, 130, 246, 0.25);
+		box-shadow: 0 4px 16px rgba(59, 130, 246, 0.25);
+	}
+
+	.status-ready {
+		background: linear-gradient(135deg, #10b981, #059669);
+	}
+
+	.status-updating {
+		background: linear-gradient(135deg, #f59e0b, #d97706);
+		animation: pulse 2s infinite;
+	}
+
+	.status-error {
+		background: linear-gradient(135deg, #ef4444, #dc2626);
+	}
+
+	@keyframes pulse {
+		0%, 100% {
+			opacity: 1;
+		}
+		50% {
+			opacity: 0.7;
+		}
 	}
 
 	.unread-badge {
 		font-size: 10px;
 		line-height: 1;
+		font-weight: 600;
 	}
 
 	.status-chip {
 		font-size: 10px;
 		line-height: 1;
+		font-weight: 500;
+	}
+
+	:global(.dark) .status-chip {
+		background: linear-gradient(135deg, #92400e, #78350f);
+		color: #fef3c7;
+	}
+
+	.avatar {
+		transition: transform 0.2s ease;
+	}
+
+	.chat-item:hover .avatar {
+		transform: scale(1.05);
 	}
 </style>
