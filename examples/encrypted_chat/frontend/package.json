@@ -44,6 +44,7 @@
 	"dependencies": {
 		"@dfinity/agent": "^3.1.0",
 		"@dfinity/auth-client": "^3.1.0",
+		"@melt-ui/svelte": "^0.86.6",
 		"@skeletonlabs/skeleton": "^3.1.7",
 		"@skeletonlabs/tw-plugin": "^0.4.1",
 		"@sveltejs/adapter-static": "^3.0.8",

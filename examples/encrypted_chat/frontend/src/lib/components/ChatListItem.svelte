@@ -56,7 +56,7 @@
 </script>
 
 <button
-	class="chat-item w-full p-3 text-left transition-colors duration-200 {isSelected
+	class="chat-item w-full p-3 text-left overflow-hidden transition-colors duration-200 {isSelected
 		? 'selected'
 		: 'hover:bg-surface-100-800-token'}"
 	on:click={handleClick}
@@ -78,7 +78,7 @@
 		</div>
 
 		<!-- Chat info -->
-		<div class="min-w-0 flex-1">
+		<div class="min-w-0 flex-1 overflow-hidden">
 			<div class="mb-1 flex items-center justify-between">
 				<h3 class="truncate text-sm font-semibold">{getDisplayName()}</h3>
 				<div class="flex items-center gap-2">
@@ -121,37 +121,50 @@
 						{chat.disappearingMessagesDuration}d
 					</div>
 				{/if}
-
-				{#if chat.keyRotationStatus.isRotationNeeded}
-					<div class="status-chip rounded bg-warning-500 px-2 py-0.5 text-xs text-white">
-						Key rotation needed
-					</div>
-				{/if}
-
-				<div class="status-chip bg-surface-200-700-token rounded px-2 py-0.5 text-xs">
-					Epoch {chat.ratchetEpoch}
-				</div>
 			</div>
 		</div>
 	</div>
 </button>
 
 <style>
+
 	.chat-item {
 		border-bottom: 1px solid var(--color-surface-300);
+		margin: 2px 0px;
+		padding: 5px 5px;
+		border-radius: 12px;
+		border: 1px solid var(--color-surface-200);
+		transition: all 0.2s ease;
+	}
+
+	.chat-item:hover {
+		background: var(--color-surface-100);
+		border-color: var(--color-surface-300);
+		box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 	}
 
 	:global(.dark) .chat-item {
 		border-bottom-color: var(--color-surface-600);
+		border-color: var(--color-surface-700);
+	}
+
+	:global(.dark) .chat-item:hover {
+		background: var(--color-surface-700);
+		border-color: var(--color-surface-600);
+		box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 	}
 
 	.chat-item.selected {
 		background: var(--color-primary-100);
+		border-color: var(--color-primary-300);
 		border-right: 3px solid var(--color-primary-500);
+		box-shadow: 0 2px 12px rgba(59, 130, 246, 0.15);
 	}
 
 	:global(.dark) .chat-item.selected {
 		background: var(--color-primary-900);
+		border-color: var(--color-primary-700);
+		box-shadow: 0 2px 12px rgba(59, 130, 246, 0.25);
 	}
 
 	.unread-badge {

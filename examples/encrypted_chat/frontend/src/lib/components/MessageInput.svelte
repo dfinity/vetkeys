@@ -2,6 +2,8 @@
 	import { createEventDispatcher } from 'svelte';
 	import { Send, Paperclip, Smile, X } from 'lucide-svelte';
 	import EmojiPicker from './EmojiPicker.svelte';
+	import Button from './ui/Button.svelte';
+	import Card from './ui/Card.svelte';
 	import type { FileUpload } from '../types';
 
 	export let disabled = false;
@@ -103,38 +105,32 @@
 	}
 </script>
 
-<div
-	class="message-input-container bg-surface-100-800-token border-surface-300-600-token border-t p-4"
->
+<div class="border-t border-white/10 glass-effect p-6 backdrop-blur-xl">
 	<!-- File preview -->
 	{#if selectedFile}
-		<div class="file-preview bg-surface-200-700-token mb-3 rounded-lg p-3">
+		<Card padding="sm" class="mb-3">
 			<div class="flex items-start gap-3">
 				{#if selectedFile.preview}
 					<img src={selectedFile.preview} alt="Preview" class="h-16 w-16 rounded object-cover" />
 				{:else}
-					<div class="bg-surface-300-600-token flex h-16 w-16 items-center justify-center rounded">
+					<div class="flex h-16 w-16 items-center justify-center rounded bg-surface-200-700">
 						<Paperclip class="h-6 w-6" />
 					</div>
 				{/if}
 
 				<div class="min-w-0 flex-1">
 					<p class="truncate text-sm font-medium">{selectedFile.file.name}</p>
-					<p class="text-surface-600-300-token text-xs">{formatFileSize(selectedFile.file.size)}</p>
+					<p class="text-xs text-surface-500-400">{formatFileSize(selectedFile.file.size)}</p>
 					{#if !selectedFile.isValid && selectedFile.error}
 						<p class="mt-1 text-xs text-error-500">{selectedFile.error}</p>
 					{/if}
 				</div>
 
-				<button
-					class="variant-ghost-surface btn-icon"
-					on:click={removeFile}
-					aria-label="Remove file"
-				>
+				<Button variant="ghost" size="sm" on:click={removeFile} aria-label="Remove file">
 					<X class="h-4 w-4" />
-				</button>
+				</Button>
 			</div>
-		</div>
+		</Card>
 	{/if}
 
 	<!-- Input area -->
@@ -148,16 +144,6 @@
 			style="display: none;"
 		/>
 
-		<!-- File button -->
-		<button
-			class="variant-ghost-surface btn-icon"
-			on:click={handleFileSelect}
-			{disabled}
-			aria-label="Attach file"
-		>
-			<Paperclip class="h-5 w-5" />
-		</button>
-
 		<!-- Message input -->
 		<div class="relative flex-1">
 			<textarea
@@ -166,37 +152,48 @@
 				{placeholder}
 				{disabled}
 				rows="1"
-				class="message-input bg-surface-200-700-token border-surface-300-600-token w-full resize-none rounded-lg border px-3 py-2 pr-10 text-sm focus:border-transparent focus:ring-2 focus:ring-primary-500 focus:outline-none"
-				style="min-height: 40px; max-height: 120px;"
+				class="message-input w-full resize-none rounded-xl border border-gray-200/50 bg-white/80 backdrop-blur-sm px-4 py-3 pr-20 text-sm shadow-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none dark:border-gray-700/50 dark:bg-gray-800/80"
+				style="min-height: 44px; max-height: 120px;"
 			></textarea>
 
-			<!-- Emoji button -->
-			<button
-				class="variant-ghost-surface absolute top-1/2 right-2 btn-icon -translate-y-1/2"
-				on:click={() => (showEmojiPicker = !showEmojiPicker)}
-				{disabled}
-				aria-label="Add emoji"
-			>
-				<Smile class="h-4 w-4" />
-			</button>
+			<!-- Attachment and Emoji buttons -->
+			<div class="absolute top-1/2 right-2 -translate-y-1/2 flex items-center gap-1">
+				<!-- Attachment button -->
+				<Button
+					variant="ghost"
+					size="sm"
+					on:click={handleFileSelect}
+					{disabled}
+					title="Attach file (max {MAX_FILE_SIZE / 1024}KB)"
+					aria-label="Attach file"
+				>
+					<Paperclip class="h-4 w-4" />
+				</Button>
+
+				<!-- Emoji button -->
+				<Button
+					variant="ghost"
+					size="sm"
+					on:click={() => (showEmojiPicker = !showEmojiPicker)}
+					{disabled}
+					aria-label="Add emoji"
+				>
+					<Smile class="h-4 w-4" />
+				</Button>
+			</div>
 		</div>
 
 		<!-- Send button -->
-		<button
-			class="variant-filled-primary btn"
+		<Button
+			variant="filled"
 			on:click={handleSend}
-			disabled={disabled ||
-				(!messageText.trim() && !selectedFile) ||
-				(selectedFile && !selectedFile.isValid)}
+			disabled={disabled || 
+				(!messageText.trim() && !selectedFile) || 
+				!!(selectedFile && selectedFile.isValid === false)}
 			aria-label="Send message"
 		>
 			<Send class="h-5 w-5" />
-		</button>
-	</div>
-
-	<!-- File size info -->
-	<div class="text-surface-600-300-token mt-2 text-xs">
-		Maximum file size: {MAX_FILE_SIZE / 1024}KB
+		</Button>
 	</div>
 </div>
 
@@ -208,6 +205,8 @@
 />
 
 <style>
+	@reference "tailwindcss";
+	
 	.message-input {
 		scrollbar-width: thin;
 	}
@@ -217,7 +216,7 @@
 	}
 
 	.message-input::-webkit-scrollbar-thumb {
-		background-color: var(--color-surface-400);
+		@apply bg-gray-400;
 		border-radius: 2px;
 	}
 </style>

@@ -1,6 +1,8 @@
 <script lang="ts">
 	import { Settings, RotateCcw, Info, ArrowLeft } from 'lucide-svelte';
-	import type { Chat, RatchetStats } from '../types';
+	import Button from './ui/Button.svelte';
+	import Card from './ui/Card.svelte';
+	import type { Chat, RatchetStats, GroupChat } from '../types';
 	import { chatAPI } from '../services/api';
 	import { chatActions } from '../stores/chat';
 	import GroupManagementModal from './GroupManagementModal.svelte';
@@ -14,6 +16,14 @@
 	let loadingRatchetStats = false;
 	let showGroupManagement = false;
 
+	// Reset state when chat changes
+	$: if (chat) {
+		showChatInfo = false;
+		ratchetStats = null;
+		loadingRatchetStats = false;
+		showGroupManagement = false;
+	}
+
 	async function handleChatInfoToggle() {
 		showChatInfo = !showChatInfo;
 		if (showChatInfo && !ratchetStats && !loadingRatchetStats) {
@@ -26,7 +36,7 @@
 
 		loadingRatchetStats = true;
 		try {
-			ratchetStats = await chatAPI.getRatchetStats(chat.id);
+			ratchetStats = await chatAPI.getRatchetStats();
 		} catch (error) {
 			console.error('Failed to load ratchet stats:', error);
 		} finally {
@@ -109,68 +119,60 @@
 	}
 </script>
 
-<div class="chat-header bg-surface-100-800-token border-surface-300-600-token border-b p-4">
+<div class="chat-header glass-effect border-b border-white/10 p-6 backdrop-blur-xl">
 	<div class="flex items-center justify-between">
 		<!-- Chat info -->
 		<div class="flex items-center gap-3">
 			<!-- Mobile back button -->
 			{#if showMobileBackButton}
-				<button
-					class="variant-ghost-surface btn-icon md:hidden"
-					on:click={onMobileBack}
+				<Button
+					variant="ghost"
+					size="sm"
+					class="md:hidden"
+					on:click={onMobileBack || (() => {})}
 					aria-label="Back to chat list"
 				>
 					<ArrowLeft class="h-5 w-5" />
-				</button>
+				</Button>
 			{/if}
 			<div
-				class="avatar flex h-10 w-10 items-center justify-center rounded-full bg-primary-500 text-lg"
+				class="avatar flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-purple-600 text-white text-lg font-bold shadow-lg"
 			>
 				{getDisplayAvatar()}
 			</div>
 			<div>
-				<h2 class="text-lg font-semibold">{getDisplayName()}</h2>
-				<p class="text-surface-600-300-token text-sm">{getOnlineStatus()}</p>
+				<h2 class="text-xl font-bold bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent dark:from-gray-100 dark:to-gray-300">{getDisplayName()}</h2>
+				<p class="text-gray-500 dark:text-gray-400 text-sm font-medium">{getOnlineStatus()}</p>
 			</div>
 		</div>
 
 		<!-- Actions -->
 		<div class="flex items-center gap-2">
-			{#if chat.keyRotationStatus.isRotationNeeded}
-				<button
-					class="variant-filled-warning btn"
-					on:click={rotateKeys}
-					disabled={chat.isUpdating}
-					title="Rotate encryption keys"
-				>
-					<RotateCcw class="h-4 w-4 {chat.isUpdating ? 'animate-spin' : ''}" />
-					Rotate Keys
-				</button>
-			{/if}
-
-			<button
-				class="variant-ghost-surface btn-icon"
+			<Button
+				variant="ghost"
+				size="sm"
 				on:click={handleChatInfoToggle}
 				title="Chat information"
 			>
 				<Info class="h-5 w-5" />
-			</button>
+			</Button>
 
 			{#if chat.type === 'group'}
-				<button
-					class="variant-ghost-surface btn-icon"
+				<Button
+					variant="ghost"
+					size="sm"
 					on:click={() => (showGroupManagement = true)}
 					title="Manage group"
 				>
 					<Settings class="h-5 w-5" />
-				</button>
+				</Button>
 			{/if}
 		</div>
 	</div>
 
 	<!-- Chat info panel -->
 	{#if showChatInfo}
-		<div class="chat-info bg-surface-200-700-token mt-4 rounded-lg p-4">
+		<Card class="mt-4">
 			<h3 class="mb-3 font-semibold">Chat Information</h3>
 
 			<div class="grid grid-cols-1 gap-4 md:grid-cols-2">
@@ -179,15 +181,15 @@
 					<h4 class="mb-2 font-medium">Details</h4>
 					<div class="space-y-2 text-sm">
 						<div class="flex justify-between">
-							<span class="text-surface-600-300-token">Type:</span>
+							<span class="text-surface-500-400">Type:</span>
 							<span class="capitalize">{chat.type}</span>
 						</div>
 						<div class="flex justify-between">
-							<span class="text-surface-600-300-token">Participants:</span>
+							<span class="text-surface-500-400">Participants:</span>
 							<span>{chat.participants.length}</span>
 						</div>
 						<div class="flex justify-between">
-							<span class="text-surface-600-300-token">Disappearing messages:</span>
+							<span class="text-surface-500-400">Disappearing messages:</span>
 							<span
 								>{chat.disappearingMessagesDuration === 0
 									? 'Disabled'
@@ -195,7 +197,7 @@
 							>
 						</div>
 						<div class="flex justify-between">
-							<span class="text-surface-600-300-token">Status:</span>
+							<span class="text-surface-500-400">Status:</span>
 							<span class="flex items-center gap-1">
 								<div
 									class="h-2 w-2 rounded-full {chat.isReady ? 'bg-success-500' : 'bg-error-500'}"
@@ -211,19 +213,19 @@
 					<h4 class="mb-2 font-medium">Encryption</h4>
 					<div class="space-y-2 text-sm">
 						<div class="flex justify-between">
-							<span class="text-surface-600-300-token">Ratchet epoch:</span>
+							<span class="text-surface-500-400">Ratchet epoch:</span>
 							<span>{chat.ratchetEpoch}</span>
 						</div>
 						<div class="flex justify-between">
-							<span class="text-surface-600-300-token">Last key rotation:</span>
+							<span class="text-surface-500-400">Last key rotation:</span>
 							<span>{formatDate(chat.keyRotationStatus.lastRotation)}</span>
 						</div>
 						<div class="flex justify-between">
-							<span class="text-surface-600-300-token">Next rotation:</span>
+							<span class="text-surface-500-400">Next rotation:</span>
 							<span>{formatDate(chat.keyRotationStatus.nextRotation)}</span>
 						</div>
 						<div class="flex justify-between">
-							<span class="text-surface-600-300-token">Rotation needed:</span>
+							<span class="text-surface-500-400">Rotation needed:</span>
 							<span
 								class="text-{chat.keyRotationStatus.isRotationNeeded ? 'warning' : 'success'}-500"
 							>
@@ -239,19 +241,19 @@
 						<h4 class="mb-2 font-medium">Ratchet Statistics</h4>
 						<div class="grid grid-cols-2 gap-4 text-sm">
 							<div class="flex justify-between">
-								<span class="text-surface-600-300-token">Current epoch:</span>
+								<span class="text-surface-500-400">Current epoch:</span>
 								<span>{ratchetStats.currentEpoch}</span>
 							</div>
 							<div class="flex justify-between">
-								<span class="text-surface-600-300-token">Messages in epoch:</span>
+								<span class="text-surface-500-400">Messages in epoch:</span>
 								<span>{ratchetStats.messagesInCurrentEpoch}</span>
 							</div>
 							<div class="flex justify-between">
-								<span class="text-surface-600-300-token">Last rotation:</span>
+								<span class="text-surface-500-400">Last rotation:</span>
 								<span>{formatDate(ratchetStats.lastRotation)}</span>
 							</div>
 							<div class="flex justify-between">
-								<span class="text-surface-600-300-token">Next scheduled:</span>
+								<span class="text-surface-500-400">Next scheduled:</span>
 								<span>{formatDate(ratchetStats.nextScheduledRotation)}</span>
 							</div>
 						</div>
@@ -284,7 +286,7 @@
 												? 'bg-success-500'
 												: 'bg-surface-400'}"
 										></div>
-										<span class="text-surface-600-300-token">
+										<span class="text-surface-500-400">
 											{participant.isOnline ? 'Online' : 'Offline'}
 										</span>
 									</div>
@@ -294,7 +296,7 @@
 					</div>
 				{/if}
 			</div>
-		</div>
+		</Card>
 	{/if}
 </div>
 
@@ -302,7 +304,7 @@
 {#if chat.type === 'group'}
 	<GroupManagementModal
 		bind:show={showGroupManagement}
-		groupChat={chat}
+		groupChat={chat as GroupChat}
 		on:save={handleGroupManagementSave}
 		on:close={() => (showGroupManagement = false)}
 	/>

@@ -38,20 +38,23 @@
 
 {#if $isLoading}
 	<!-- Loading state -->
-	<div class="loading-screen bg-surface-100-800-token flex h-full items-center justify-center">
-		<div class="text-center">
-			<div
-				class="mx-auto mb-4 h-16 w-16 animate-spin rounded-full border-4 border-primary-500 border-t-transparent"
-			></div>
-			<h2 class="mb-2 text-lg font-semibold">Loading VetKeys Chat</h2>
-			<p class="text-surface-600-300-token">Initializing secure communication...</p>
+	<div class="loading-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800 flex h-full items-center justify-center">
+		<div class="text-center animate-fade-in">
+			<div class="mx-auto mb-6 h-16 w-16 animate-spin rounded-full border-4 border-blue-500 border-t-transparent shadow-lg"></div>
+			<h2 class="mb-3 text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">Loading VetKeys Chat</h2>
+			<p class="text-gray-600 dark:text-gray-400 font-medium">Initializing secure communication...</p>
+			<div class="mt-4 flex justify-center space-x-1">
+				<div class="h-2 w-2 bg-blue-500 rounded-full animate-bounce"></div>
+				<div class="h-2 w-2 bg-blue-500 rounded-full animate-bounce" style="animation-delay: 0.1s"></div>
+				<div class="h-2 w-2 bg-blue-500 rounded-full animate-bounce" style="animation-delay: 0.2s"></div>
+			</div>
 		</div>
 	</div>
 {:else}
 	<!-- Main chat interface -->
-	<div class="chat-container flex h-full">
+	<div class="chat-container flex h-full bg-gradient-to-br from-gray-50 via-blue-50 to-indigo-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
 		<!-- Chat List Sidebar (Desktop) or Full Screen (Mobile) -->
-		<div class="chat-list-wrapper {isMobile ? (showMobileChatList ? 'block' : 'hidden') : 'block'}">
+		<div class="chat-list-wrapper width-full {isMobile ? (showMobileChatList ? 'block' : 'hidden') : 'block'}">
 			<ChatList />
 		</div>
 
@@ -69,5 +72,5 @@
 {/if}
 
 <style lang="postcss">
-	@reference "tailwindcss";
+    @reference "tailwindcss";
 </style>

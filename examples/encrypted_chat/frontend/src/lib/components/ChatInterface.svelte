@@ -31,21 +31,31 @@
 
 <div class="chat-interface flex h-full flex-col">
 	{#if $selectedChat}
-		<!-- Chat Header -->
-		<ChatHeader chat={$selectedChat} showMobileBackButton={isMobile} {onMobileBack} />
+		{#key $selectedChat.id}
+			<!-- Chat Header -->
+			<ChatHeader chat={$selectedChat} showMobileBackButton={isMobile} {onMobileBack} />
 
-		<!-- Message History -->
-		<MessageHistory />
+			<!-- Message History -->
+			<MessageHistory />
 
-		<!-- Message Input -->
-		<MessageInput
-			disabled={!$selectedChat.isReady}
-			placeholder={$selectedChat.isReady ? 'Type a message...' : 'Chat is not ready...'}
-			on:send={handleSendMessage}
-		/>
-	{:else}
+			<!-- Message Input -->
+			<MessageInput
+				disabled={!$selectedChat.isReady}
+				placeholder={$selectedChat.isReady ? 'Type a message...' : 'Chat is not ready...'}
+				on:send={handleSendMessage}
+			/>
+		{/key}
+{:else}
 		<!-- No chat selected state -->
-		<div class="no-chat-selected flex flex-1 items-center justify-center">
+		<!-- Empty Chat Header -->
+		<div class="glass-effect border-b border-white/10 p-6">
+			<div class="flex items-center justify-center">
+				<h2 class="text-xl font-bold bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent dark:from-gray-100 dark:to-gray-300">VetKeys Chat</h2>
+			</div>
+		</div>
+		
+		<!-- Welcome content -->
+		<div class="flex flex-1 items-center justify-center">
 			<div class="max-w-md p-8 text-center">
 				<div
 					class="bg-surface-200-700-token mx-auto mb-6 flex h-24 w-24 items-center justify-center rounded-full text-4xl"
@@ -85,11 +95,5 @@
 		background: var(--color-surface-900);
 	}
 
-	.no-chat-selected {
-		background: var(--color-surface-100);
-	}
 
-	:global(.dark) .no-chat-selected {
-		background: var(--color-surface-800);
-	}
 </style>

@@ -45,23 +45,22 @@
 	}
 </script>
 
-<!-- Disclaimer Banner -->
+<!-- Disclaimer Banner - Bottom Overlay -->
 {#if showDisclaimer}
 	<div
-		class="alert variant-filled-warning fixed top-0 right-0 left-0 z-50 rounded-none border-0 border-b"
-		transition:fly={{ y: -100, duration: 300 }}
+		class="fixed bottom-0 right-0 left-0 z-50 bg-orange-100 border-t-2 border-orange-400 shadow-lg"
+		transition:fly={{ y: 100, duration: 300 }}
 	>
-		<AlertTriangle class="h-6 w-6" />
-		<div class="alert-message flex-1">
-			<h3 class="h4">Disclaimer</h3>
-			<p>
-				This sample dapp is intended exclusively for experimental purpose. You are advised not to
-				use this dapp for storing your critical data such as keys or passwords.
-			</p>
-		</div>
-		<div class="alert-actions">
+		<div class="flex items-center gap-3 p-3">
+			<AlertTriangle class="h-5 w-5 text-orange-600" />
+			<div class="flex-1">
+				<span class="text-sm text-orange-800">
+					<strong>Disclaimer:</strong> This sample dapp is intended exclusively for experimental purposes. 
+					You are advised not to use this dapp for storing your critical data such as keys or passwords.
+				</span>
+			</div>
 			<button
-				class="variant-filled btn-icon"
+				class="text-orange-600 hover:text-orange-800 p-1 rounded transition-colors"
 				on:click={dismissDisclaimer}
 				aria-label="Dismiss disclaimer"
 			>
@@ -117,4 +116,6 @@
 		align-items: center;
 		gap: 0.5rem;
 	}
+
+
 </style>

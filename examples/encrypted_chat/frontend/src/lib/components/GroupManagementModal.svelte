@@ -70,10 +70,10 @@
 
 {#if show}
 	<!-- Backdrop -->
-	<div class="bg-opacity-50 fixed inset-0 z-50 flex items-center justify-center bg-black p-4">
+	<div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
 		<!-- Modal -->
 		<div
-			class="bg-surface-100-800-token max-h-[80vh] w-full max-w-2xl overflow-hidden rounded-lg shadow-xl"
+			class="card max-h-[80vh] w-full max-w-2xl overflow-hidden rounded-xl shadow-2xl backdrop-blur-xl"
 		>
 			<!-- Header -->
 			<div class="border-surface-300-600-token flex items-center justify-between border-b p-6">
@@ -227,14 +227,22 @@
 
 			<!-- Footer -->
 			<div class="border-surface-300-600-token flex items-center justify-end gap-3 border-t p-6">
-				<button class="variant-ghost-surface btn" on:click={handleClose}> Cancel </button>
+				<button 
+					class="variant-ghost-surface btn" 
+					on:click={handleClose}
+					title="Cancel"
+					aria-label="Cancel"
+				> 
+					<X class="h-4 w-4" />
+				</button>
 				<button
 					class="variant-filled-primary btn"
 					on:click={handleSave}
 					disabled={selectedToAdd.length === 0 && selectedToRemove.length === 0}
+					title="Save Changes"
+					aria-label="Save Changes"
 				>
-					<Save class="mr-2 h-4 w-4" />
-					Save Changes
+					<Save class="h-4 w-4" />
 				</button>
 			</div>
 		</div>

@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { Download, File } from 'lucide-svelte';
+	import Button from './ui/Button.svelte';
 	import type { Message, User } from '../types';
 
 	export let message: Message;
@@ -7,6 +8,7 @@
 	export let isOwnMessage: boolean = false;
 	export let showAvatar: boolean = true;
 	export let showTimestamp: boolean = true;
+	export let isGroupChat: boolean = false;
 
 	function formatTime(date: Date): string {
 		return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -63,6 +65,46 @@
 		}
 		return result;
 	}
+
+	// Generate a consistent color for a user based on their name
+	function getUserColor(userName: string): string {
+		if (!userName) return 'bg-gray-500';
+		
+		// Predefined color palette for better visual consistency
+		const colors = [
+			'bg-purple-500',
+			'bg-blue-500', 
+			'bg-green-500',
+			'bg-yellow-500',
+			'bg-red-500',
+			'bg-indigo-500',
+			'bg-pink-500',
+			'bg-teal-500',
+			'bg-orange-500',
+			'bg-cyan-500',
+			'bg-lime-500',
+			'bg-rose-500'
+		];
+
+		// Simple hash function for consistency
+		let hash = 0;
+		for (let i = 0; i < userName.length; i++) {
+			hash = userName.charCodeAt(i) + ((hash << 5) - hash);
+		}
+		const index = Math.abs(hash) % colors.length;
+		return colors[index];
+	}
+
+	// Get message bubble color classes
+	function getMessageBubbleClasses(): string {
+		if (isOwnMessage) {
+			return 'own-message';
+		} else if (isGroupChat && sender) {
+			return `other-message group-message ${getUserColor(sender.name)}`;
+		} else {
+			return 'other-message';
+		}
+	}
 </script>
 
 <div
@@ -90,9 +132,7 @@
 
 		<!-- Message bubble -->
 		<div
-			class="message-bubble {isOwnMessage
-				? 'own-message'
-				: 'other-message'} max-w-full rounded-2xl px-3 py-2 break-words"
+			class="message-bubble {getMessageBubbleClasses()} max-w-full rounded-2xl px-3 py-2 break-words inline-block"
 		>
 			{#if message.type === 'text'}
 				<!-- eslint-disable-next-line svelte/no-at-html-tags -->
@@ -120,17 +160,19 @@
 						<div class="flex items-center justify-between">
 							<div class="min-w-0 flex-1">
 								<p class="truncate text-sm font-medium">{message.fileData.name}</p>
-								<p class="text-surface-600-300-token text-xs">
+								<p class="text-xs text-surface-500-400">
 									{formatFileSize(message.fileData.size)}
 								</p>
 							</div>
-							<button
-								class="variant-ghost-surface ml-2 btn-icon"
+							<Button
+								variant="ghost"
+								size="sm"
+								class="ml-2"
 								on:click={downloadFile}
 								aria-label="Download file"
 							>
 								<Download class="h-4 w-4" />
-							</button>
+							</Button>
 						</div>
 					</div>
 				</div>
@@ -156,8 +198,9 @@
 
 <style>
 	.message-bubble.own-message {
-		background: var(--color-primary-500);
+		background: var(--color-primary-600);
 		color: white;
+		border: 1px solid var(--color-primary-700);
 	}
 
 	.message-bubble.other-message {
@@ -170,12 +213,48 @@
 		color: var(--color-surface-100);
 	}
 
+	/* Group chat message colors */
+	.message-bubble.group-message {
+		color: white !important;
+		border: 1px solid rgba(255, 255, 255, 0.2);
+	}
+
+	/* User-specific colors for group chats */
+	.message-bubble.bg-purple-500 { background: #8b5cf6; }
+	.message-bubble.bg-blue-500 { background: #3b82f6; }
+	.message-bubble.bg-green-500 { background: #10b981; }
+	.message-bubble.bg-yellow-500 { background: #f59e0b; }
+	.message-bubble.bg-red-500 { background: #ef4444; }
+	.message-bubble.bg-indigo-500 { background: #6366f1; }
+	.message-bubble.bg-pink-500 { background: #ec4899; }
+	.message-bubble.bg-teal-500 { background: #14b8a6; }
+	.message-bubble.bg-orange-500 { background: #f97316; }
+	.message-bubble.bg-cyan-500 { background: #06b6d4; }
+	.message-bubble.bg-lime-500 { background: #84cc16; }
+	.message-bubble.bg-rose-500 { background: #f43f5e; }
+
+	/* Dark mode variants */
+	:global(.dark) .message-bubble.bg-purple-500 { background: #7c3aed; }
+	:global(.dark) .message-bubble.bg-blue-500 { background: #2563eb; }
+	:global(.dark) .message-bubble.bg-green-500 { background: #059669; }
+	:global(.dark) .message-bubble.bg-yellow-500 { background: #d97706; }
+	:global(.dark) .message-bubble.bg-red-500 { background: #dc2626; }
+	:global(.dark) .message-bubble.bg-indigo-500 { background: #4f46e5; }
+	:global(.dark) .message-bubble.bg-pink-500 { background: #db2777; }
+	:global(.dark) .message-bubble.bg-teal-500 { background: #0d9488; }
+	:global(.dark) .message-bubble.bg-orange-500 { background: #ea580c; }
+	:global(.dark) .message-bubble.bg-cyan-500 { background: #0891b2; }
+	:global(.dark) .message-bubble.bg-lime-500 { background: #65a30d; }
+	:global(.dark) .message-bubble.bg-rose-500 { background: #e11d48; }
+
 	.file-message {
 		min-width: 200px;
 	}
 
 	.message-container {
 		transition: all 0.2s ease;
+		margin: 4px 0;
+		border-radius: 8px;
 	}
 
 	.message-container:hover {

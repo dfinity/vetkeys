@@ -104,7 +104,7 @@
 		>
 			{#if $selectedChatMessages.length === 0}
 				<!-- Empty state -->
-				<div class="empty-state flex h-full flex-col items-center justify-center p-8 text-center">
+				<div class="empty-state flex h-full flex-col items-center justify-center p-8 pt-12 text-center">
 					<div
 						class="avatar mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary-500 text-2xl"
 					>
@@ -158,6 +158,7 @@
 								isOwnMessage={isOwnMessage(message)}
 								showAvatar={shouldShowAvatar(message, index)}
 								showTimestamp={shouldShowTimestamp(message, index)}
+								isGroupChat={$selectedChat?.type === 'group'}
 							/>
 						</div>
 					{/each}
@@ -223,11 +224,6 @@
 
 	.date-separator {
 		margin: 8px 0;
-	}
-
-	.empty-state,
-	.no-chat-selected {
-		background: var(--color-surface-50);
 	}
 
 	:global(.dark) .empty-state,

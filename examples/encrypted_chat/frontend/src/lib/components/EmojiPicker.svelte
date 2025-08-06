@@ -155,7 +155,7 @@
 {#if show}
 	<!-- Backdrop -->
 	<div
-		class="bg-opacity-25 fixed inset-0 z-40 bg-black"
+		class="fixed inset-0 z-40 bg-black/25"
 		on:click={handleOutsideClick}
 		role="button"
 		tabindex="-1"
