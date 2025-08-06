@@ -1,0 +1,10 @@
+type NftDrop = record { nft : blob; title : text; event_id : nat32 };
+type NftDropEvent = record { drops_at : nat64; title : text; event_id : nat32 };
+type Result = variant { Ok : NftDrop; Err : text };
+service : (text) -> {
+  create_new_event : (text, nat64) -> ();
+  get_my_nfts : () -> (vec nat64);
+  list_active_events : () -> (vec NftDropEvent);
+  retrieve_nft : (nat64) -> (Result) query;
+  sign_up_for_event : (nat32) -> ();
+}
