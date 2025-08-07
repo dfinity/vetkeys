@@ -4,11 +4,23 @@ import adapter from '@sveltejs/adapter-static';
 const config = {
 	preprocess: vitePreprocess(),
 	kit: {
-		adapter: adapter(),
+		adapter: adapter({
+			pages: 'dist',
+			assets: 'dist',
+			fallback: null,
+			precompress: true
+		}),
+		prerender: {
+			entries: ['*'] // ensures all routes are prerendered
+		},
 		output: {
 			bundleStrategy: 'single'
 		}
+	},
+	compilerOptions: {
+		experimental: {
+			async: true
+		}
 	}
 };
-
 export default config;
