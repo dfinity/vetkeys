@@ -81,7 +81,7 @@
 					<Users class="h-6 w-6" />
 					<h2 class="text-lg font-bold">Manage Group: {groupChat.name}</h2>
 				</div>
-				<button class="variant-ghost-surface btn-icon" on:click={handleClose} aria-label="Close">
+				<button class="variant-ghost-surface btn-icon" onclick={handleClose} aria-label="Close">
 					<X class="h-5 w-5" />
 				</button>
 			</div>
@@ -98,7 +98,7 @@
 							>
 								<div class="flex items-center gap-3">
 									<div
-										class="avatar flex h-8 w-8 items-center justify-center rounded-full bg-primary-500 text-sm"
+										class="avatar bg-primary-500 flex h-8 w-8 items-center justify-center rounded-full text-sm"
 									>
 										{member.avatar || '👤'}
 									</div>
@@ -112,12 +112,12 @@
 											></div>
 											{member.isOnline ? 'Online' : 'Offline'}
 											{#if member.id === groupChat.adminId}
-												<span class="rounded bg-primary-500 px-2 py-0.5 text-xs text-white"
+												<span class="bg-primary-500 rounded px-2 py-0.5 text-xs text-white"
 													>Admin</span
 												>
 											{/if}
 											{#if member.id === 'current-user'}
-												<span class="rounded bg-surface-400 px-2 py-0.5 text-xs text-white"
+												<span class="bg-surface-400 rounded px-2 py-0.5 text-xs text-white"
 													>You</span
 												>
 											{/if}
@@ -128,7 +128,7 @@
 								{#if canRemoveUser(member.id)}
 									<button
 										class="variant-ghost-error btn-icon"
-										on:click={() => toggleRemoveUser(member.id)}
+										onclick={() => toggleRemoveUser(member.id)}
 										class:variant-filled-error={selectedToRemove.includes(member.id)}
 										title="Remove from group"
 									>
@@ -151,7 +151,7 @@
 								>
 									<div class="flex items-center gap-3">
 										<div
-											class="avatar flex h-8 w-8 items-center justify-center rounded-full bg-primary-500 text-sm"
+											class="avatar bg-primary-500 flex h-8 w-8 items-center justify-center rounded-full text-sm"
 										>
 											{user.avatar || '👤'}
 										</div>
@@ -170,7 +170,7 @@
 
 									<button
 										class="variant-ghost-success btn-icon"
-										on:click={() => toggleAddUser(user.id)}
+										onclick={() => toggleAddUser(user.id)}
 										class:variant-filled-success={selectedToAdd.includes(user.id)}
 										title="Add to group"
 									>
@@ -207,7 +207,7 @@
 
 				<!-- Summary -->
 				{#if selectedToAdd.length > 0 || selectedToRemove.length > 0}
-					<div class="rounded-lg border border-primary-500/20 bg-primary-500/10 p-4">
+					<div class="border-primary-500/20 bg-primary-500/10 rounded-lg border p-4">
 						<h4 class="mb-2 text-sm font-semibold">Changes Summary</h4>
 						<div class="space-y-1 text-sm">
 							{#if selectedToAdd.length > 0}
@@ -227,17 +227,17 @@
 
 			<!-- Footer -->
 			<div class="border-surface-300-600-token flex items-center justify-end gap-3 border-t p-6">
-				<button 
-					class="variant-ghost-surface btn" 
-					on:click={handleClose}
+				<button
+					class="variant-ghost-surface btn"
+					onclick={handleClose}
 					title="Cancel"
 					aria-label="Cancel"
-				> 
+				>
 					<X class="h-4 w-4" />
 				</button>
 				<button
 					class="variant-filled-primary btn"
-					on:click={handleSave}
+					onclick={handleSave}
 					disabled={selectedToAdd.length === 0 && selectedToRemove.length === 0}
 					title="Save Changes"
 					aria-label="Save Changes"

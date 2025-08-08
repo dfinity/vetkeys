@@ -1,7 +1,8 @@
 <script lang="ts">
-	export let variant: 'filled' | 'glass' | 'outlined' = 'filled';
-	export let padding: 'none' | 'sm' | 'md' | 'lg' = 'md';
-	let className: string = '';
+	/** @type {{ variant: 'filled' | 'glass' | 'outlined' }}
+	 *  @type {{ padding: 'none' | 'sm' | 'md' | 'lg' }}
+	 */
+	let { variant = 'filled', padding = 'md', children, className = '', ...rest } = $props();
 	export { className as class };
 
 	const variantClasses = {
@@ -17,13 +18,11 @@
 		lg: 'p-8'
 	};
 
-	$: classes = [
-		variantClasses[variant],
-		paddingClasses[padding],
-		className
-	].filter(Boolean).join(' ');
+	let classes = $derived(
+		[variantClasses[variant], paddingClasses[padding], className].filter(Boolean).join(' ')
+	);
 </script>
 
-<div class={classes} {...$$restProps}>
-	<slot />
+<div class={classes} {...rest}>
+	{@render children?.()}
 </div>

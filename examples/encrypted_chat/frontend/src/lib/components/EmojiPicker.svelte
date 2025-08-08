@@ -156,10 +156,10 @@
 	<!-- Backdrop -->
 	<div
 		class="fixed inset-0 z-40 bg-black/25"
-		on:click={handleOutsideClick}
+		onclick={handleOutsideClick}
 		role="button"
 		tabindex="-1"
-		on:keydown={() => {}}
+		onkeydown={() => {}}
 	></div>
 
 	<!-- Emoji Picker -->
@@ -170,7 +170,7 @@
 			<h3 class="text-sm font-semibold">Add Emoji</h3>
 			<button
 				class="variant-ghost-surface btn-icon"
-				on:click={closeModal}
+				onclick={closeModal}
 				aria-label="Close emoji picker"
 			>
 				×
@@ -185,7 +185,7 @@
 						{#each emojis as emoji (emoji)}
 							<button
 								class="emoji-button hover:bg-surface-200-700-token flex h-8 w-8 items-center justify-center rounded text-lg transition-colors"
-								on:click={() => selectEmoji(emoji)}
+								onclick={() => selectEmoji(emoji)}
 								title={emoji}
 							>
 								{emoji}

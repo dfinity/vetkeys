@@ -1,62 +1,44 @@
-import { writable, derived, get } from 'svelte/store';
-import type { Chat, Message, User, UserConfig, Notification } from '../types';
+import type { Chat, Message, UserConfig, Notification } from '../types';
 import { chatAPI } from '../services/api';
 import { storageService } from '../services/storage';
-import { identityService } from '../services/identity';
+import { SvelteDate } from 'svelte/reactivity';
+import { auth } from '$lib/stores/auth.svelte';
+import { createActor } from '../../declarations/encrypted_chat';
+import { HttpAgent, type ActorSubclass } from '@dfinity/agent';
+import fetch from 'isomorphic-fetch';
+import type { _SERVICE , ChatId, EncryptedMessage, } from '../../declarations/encrypted_chat/encrypted_chat.did';
+import { SvelteMap } from 'svelte/reactivity';
 
-// Chat stores
-export const chats = writable<Chat[]>([]);
-export const selectedChatId = writable<string | null>(null);
-export const messages = writable<{ [chatId: string]: Message[] }>({});
-export const currentUser = writable<User | null>(null);
-export const userConfig = writable<UserConfig | null>(null);
-export const notifications = writable<Notification[]>([]);
-export const isLoading = writable(false);
+export const chats = $state<{ state: Chat[] }>({ state: [] });
+export const selectedChatId = $state<{ state: string | null }>({ state: null });
+export const userConfig = $state<{ state: UserConfig | null }>({ state: null });
+export const notifications = $state<{ state: Notification[] }>({ state: [] });
+export const isLoading = $state({ state: false });
+export const isBlocked = $state({ state: false });
+export const availableChats = $state({ state: [] });
+export const messages = new SvelteMap<[ChatId, bigint], EncryptedMessage>(); 
 
-// Derived stores
-export const selectedChat = derived([chats, selectedChatId], ([$chats, $selectedChatId]) => {
-	if (!$selectedChatId) return null;
-	return $chats.find((chat) => chat.id === $selectedChatId) || null;
-});
-
-export const selectedChatMessages = derived(
-	[messages, selectedChatId],
-	([$messages, $selectedChatId]) => {
-		if (!$selectedChatId) return [];
-		return $messages[$selectedChatId] || [];
-	}
-);
-
-export const unreadMessageCount = derived(chats, ($chats) =>
-	$chats.reduce((total, chat) => total + chat.unreadCount, 0)
-);
-
-// Chat actions
 export const chatActions = {
 	async initialize() {
-		isLoading.set(true);
+		isLoading.state = true;
 		try {
-			// Initialize identity service
-			await identityService.init();
-
 			// Load user config
 			let config = await storageService.getUserConfig();
 			if (!config) {
 				config = await storageService.getDefaultUserConfig();
 				await storageService.saveUserConfig(config);
 			}
-			userConfig.set(config);
-
-			// Set current user (dummy for now)
-			const user = await identityService.getDummyCurrentUser();
-			currentUser.set(user);
+			userConfig.state = config;
 
 			// Load chats from API
-			const chatList = await chatAPI.getChats();
-			chats.set(chatList);
+			const actor = await getActor();
+			if (actor) {
+				const chatList = await chatAPI.getChatIdsAndCurrentNumbersOfMessages(actor);
+				chats.state = chatList;
+			}
 
 			// Load messages for each chat from storage and merge with API data
-			const messageMap: { [chatId: string]: Message[] } = {};
+			const messageMap: Record<string, Message[]> = {};
 			for (const chat of chatList) {
 				// First load from storage
 				let chatMessages = await storageService.getMessages(chat.id);
@@ -72,12 +54,12 @@ export const chatActions = {
 
 				messageMap[chat.id] = chatMessages;
 			}
-			messages.set(messageMap);
+			messages.state = messageMap;
 
 			// Set up periodic cleanup
 			setInterval(() => {
 				chatActions.cleanupDisappearingMessages();
-			}, 60000); // Check every minute
+			}, 60000);
 		} catch (error) {
 			console.error('Failed to initialize chat:', error);
 			chatActions.addNotification({
@@ -87,16 +69,24 @@ export const chatActions = {
 				isDismissible: true
 			});
 		} finally {
-			isLoading.set(false);
+			isLoading.state = false;
+		}
+	},
+
+	async refreshChats() {
+		const actor = await getActor();
+		if (actor) {
+			const chats = await actor.get_my_chat_ids();
+			console.log('fetched ' + (await chats).length + ' chats');
 		}
 	},
 
 	selectChat(chatId: string) {
-		selectedChatId.set(chatId);
+		selectedChatId.state = chatId;
 
 		// Mark as read
-		chats.update(($chats) =>
-			$chats.map((chat) => (chat.id === chatId ? { ...chat, unreadCount: 0 } : chat))
+		chats.state = chats.state.map((chat) =>
+			chat.id === chatId ? { ...chat, unreadCount: 0 } : chat
 		);
 	},
 
@@ -104,10 +94,7 @@ export const chatActions = {
 		try {
 			const chatMessages = await chatAPI.getChatMessages(chatId);
 
-			messages.update(($messages) => ({
-				...$messages,
-				[chatId]: chatMessages
-			}));
+			messages.state = { ...messages.state, [chatId]: chatMessages };
 
 			// Save to storage
 			for (const message of chatMessages) {
@@ -140,20 +127,20 @@ export const chatActions = {
 				chatId,
 				content,
 				fileData ? 'file' : 'text',
-				fileData
+				fileData ? fileData.data : undefined
 			);
 
 			// Add to messages
-			messages.update(($messages) => ({
-				...$messages,
-				[chatId]: [...($messages[chatId] || []), message]
-			}));
+			messages.state = {
+				...messages.state,
+				[chatId]: [...(messages.state[chatId] || []), message]
+			};
 
 			// Update chat last activity
-			chats.update(($chats) =>
-				$chats.map((chat) =>
-					chat.id === chatId ? { ...chat, lastActivity: new Date(), lastMessage: message } : chat
-				)
+			chats.state = chats.state.map((chat) =>
+				chat.id === chatId
+					? { ...chat, lastActivity: new SvelteDate(), lastMessage: message }
+					: chat
 			);
 
 			// Save to storage
@@ -172,24 +159,22 @@ export const chatActions = {
 	async rotateKeys(chatId: string) {
 		try {
 			// Mark chat as updating
-			chats.update(($chats) =>
-				$chats.map((chat) => (chat.id === chatId ? { ...chat, isUpdating: true } : chat))
+			chats.state = chats.state.map((chat) =>
+				chat.id === chatId ? { ...chat, isUpdating: true } : chat
 			);
 
 			const newKeyStatus = await chatAPI.rotateKeys(chatId);
 
 			// Update chat with new key status
-			chats.update(($chats) =>
-				$chats.map((chat) =>
-					chat.id === chatId
-						? {
-								...chat,
-								isUpdating: false,
-								keyRotationStatus: newKeyStatus,
-								ratchetEpoch: newKeyStatus.currentEpoch
-							}
-						: chat
-				)
+			chats.state = chats.state.map((chat) =>
+				chat.id === chatId
+					? {
+							...chat,
+							isUpdating: false,
+							keyRotationStatus: newKeyStatus,
+							ratchetEpoch: newKeyStatus.currentEpoch
+						}
+					: chat
 			);
 
 			chatActions.addNotification({
@@ -203,8 +188,8 @@ export const chatActions = {
 			console.error('Failed to rotate keys:', error);
 
 			// Mark chat as not updating
-			chats.update(($chats) =>
-				$chats.map((chat) => (chat.id === chatId ? { ...chat, isUpdating: false } : chat))
+			chats.state = chats.state.map((chat) =>
+				chat.id === chatId ? { ...chat, isUpdating: false } : chat
 			);
 
 			chatActions.addNotification({
@@ -217,11 +202,10 @@ export const chatActions = {
 	},
 
 	async updateUserConfig(config: Partial<UserConfig>) {
-		const currentConfig = get(userConfig);
-		if (!currentConfig) return;
+		if (!userConfig.state) return;
 
-		const newConfig = { ...currentConfig, ...config };
-		userConfig.set(newConfig);
+		const newConfig = { ...userConfig.state, ...config };
+		userConfig.state = newConfig;
 		await storageService.saveUserConfig(newConfig);
 
 		// Trigger cache cleanup if retention days changed
@@ -233,8 +217,7 @@ export const chatActions = {
 	addNotification(notification: Omit<Notification, 'id'>) {
 		const id = `notification-${Date.now()}-${Math.random()}`;
 		const newNotification: Notification = { ...notification, id };
-
-		notifications.update(($notifications) => [...$notifications, newNotification]);
+		notifications.state = [...notifications.state, newNotification];
 
 		// Auto-dismiss if duration is set
 		if (notification.duration) {
@@ -245,13 +228,11 @@ export const chatActions = {
 	},
 
 	dismissNotification(id: string) {
-		notifications.update(($notifications) => $notifications.filter((n) => n.id !== id));
+		notifications.state = notifications.state.filter((n) => n.id !== id);
 	},
 
 	async cleanupDisappearingMessages() {
-		const $chats = get(chats);
-
-		for (const chat of $chats) {
+		for (const chat of chats.state) {
 			if (chat.disappearingMessagesDuration > 0) {
 				await storageService.cleanupOldMessages(chat.id, chat.disappearingMessagesDuration);
 			}
@@ -259,7 +240,24 @@ export const chatActions = {
 	}
 };
 
-// Initialize on module load
+async function getActor(): Promise<ActorSubclass<_SERVICE> | undefined> {
+	if (auth.state.label === 'initialized') {
+		const host = process.env.DFX_NETWORK === 'ic' ? 'https://icp-api.io' : 'http://127.0.0.1:8000';
+		const agent = HttpAgent.createSync({
+			identity: auth.state.client.getIdentity(),
+			fetch,
+			host
+		});
+		if (!process.env.CANISTER_ID_ENCRYPTED_CHAT) {
+			throw new Error('CANISTER_ID_ENCRYPTED_CHAT is not set');
+		}
+		return createActor(process.env.CANISTER_ID_ENCRYPTED_CHAT, { agent });
+	} else {
+		return undefined;
+	}
+}
+
+// Initialize on module load (browser only)
 if (typeof window !== 'undefined') {
-	chatActions.initialize();
+	void chatActions.initialize();
 }

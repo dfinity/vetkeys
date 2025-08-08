@@ -56,22 +56,24 @@
 </script>
 
 <button
-	class="chat-item w-full p-3 text-left overflow-hidden transition-all duration-200 {isSelected
+	class="chat-item w-full overflow-hidden p-3 text-left transition-all duration-200 {isSelected
 		? 'selected'
 		: 'hover:bg-surface-100-800-token'}"
-	on:click={handleClick}
+	onclick={handleClick}
 >
 	<div class="flex items-center gap-3">
 		<!-- Avatar -->
 		<div class="relative">
 			<div
-				class="avatar flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-primary-500 to-primary-600 text-white text-lg shadow-sm"
+				class="avatar from-primary-500 to-primary-600 flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br text-lg text-white shadow-sm"
 			>
 				{getDisplayAvatar()}
 			</div>
 			<!-- Status indicator -->
 			<div class="absolute -right-1 -bottom-1">
-				<div class="h-4 w-4 rounded-full {getStatusColor()} flex items-center justify-center shadow-sm">
+				<div
+					class="h-4 w-4 rounded-full {getStatusColor()} flex items-center justify-center shadow-sm"
+				>
 					<svelte:component this={getStatusIcon()} class="h-2.5 w-2.5 text-white" />
 				</div>
 			</div>
@@ -80,7 +82,9 @@
 		<!-- Chat info -->
 		<div class="min-w-0 flex-1 overflow-hidden">
 			<div class="mb-1 flex items-center justify-between">
-				<h3 class="truncate text-sm font-semibold text-surface-900-100-token">{getDisplayName()}</h3>
+				<h3 class="text-surface-900-100-token truncate text-sm font-semibold">
+					{getDisplayName()}
+				</h3>
 				<div class="flex items-center gap-2">
 					{#if chat.type === 'group'}
 						<Users class="text-surface-500-400-token h-3 w-3" />
@@ -104,7 +108,7 @@
 
 				{#if chat.unreadCount > 0}
 					<div
-						class="unread-badge flex h-5 min-w-[20px] items-center justify-center rounded-full bg-gradient-to-r from-primary-500 to-primary-600 px-2 py-1 text-xs text-white shadow-sm"
+						class="unread-badge from-primary-500 to-primary-600 flex h-5 min-w-[20px] items-center justify-center rounded-full bg-gradient-to-r px-2 py-1 text-xs text-white shadow-sm"
 					>
 						{chat.unreadCount > 99 ? '99+' : chat.unreadCount}
 					</div>
@@ -115,7 +119,7 @@
 			<div class="mt-1 flex items-center gap-2">
 				{#if chat.disappearingMessagesDuration > 0}
 					<div
-						class="status-chip bg-gradient-to-r from-amber-100 to-amber-200 text-amber-800 flex items-center gap-1 rounded-full px-2 py-0.5 text-xs shadow-sm"
+						class="status-chip flex items-center gap-1 rounded-full bg-gradient-to-r from-amber-100 to-amber-200 px-2 py-0.5 text-xs text-amber-800 shadow-sm"
 					>
 						<Clock class="h-3 w-3" />
 						{chat.disappearingMessagesDuration}d
@@ -183,7 +187,8 @@
 	}
 
 	@keyframes pulse {
-		0%, 100% {
+		0%,
+		100% {
 			opacity: 1;
 		}
 		50% {

@@ -36,5 +36,15 @@ export default ts.config(
 				svelteConfig
 			}
 		}
+	},
+	{
+		ignores: [
+			'dist/',
+			'src/declarations',
+			'*.config.js',
+			'*.config.cjs',
+			'*.config.mjs',
+			'.svelte-kit'
+		]
 	}
 );

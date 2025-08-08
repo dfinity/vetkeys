@@ -206,6 +206,7 @@ pub struct VetKeyEpochMetadata {
     pub participants: Vec<Principal>,
     pub creation_timestamp: Time,
     pub symmetric_key_rotation_duration: Time,
+    pub messages_start_with_id: ChatMessageId,
 }
 
 storable_unbounded!(VetKeyEpochMetadata);

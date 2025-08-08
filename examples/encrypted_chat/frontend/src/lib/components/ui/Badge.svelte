@@ -1,17 +1,17 @@
 <script lang="ts">
-	export let variant: 'filled' | 'outline' | 'soft' = 'filled';
-	export let color: 'primary' | 'secondary' | 'tertiary' | 'success' | 'warning' | 'error' = 'primary';
-	let className: string = '';
+	/** @type {{ variant: 'filled' | 'outline' | 'soft' }}
+	 *  @type {{ color: 'primary' | 'secondary' | 'tertiary' | 'success' | 'warning' | 'error' }}
+	 */
+	let { variant = 'filled', color = 'primary', children, className = '', ...rest } = $props();
 	export { className as class };
 
-	$: classes = [
-		'badge',
-		`variant-${variant}-${color}`,
-		'transition-all duration-200',
-		className
-	].filter(Boolean).join(' ');
+	let classes = $derived(
+		['badge', `variant-${variant}-${color}`, 'transition-all duration-200', className]
+			.filter(Boolean)
+			.join(' ')
+	);
 </script>
 
-<span class={classes} {...$$restProps}>
-	<slot />
+<span class={classes} {...rest}>
+	{@render children?.()}
 </span>

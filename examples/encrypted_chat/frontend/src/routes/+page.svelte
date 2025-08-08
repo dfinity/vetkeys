@@ -2,10 +2,12 @@
 	import { onMount } from 'svelte';
 	import ChatList from '$lib/components/ChatList.svelte';
 	import ChatInterface from '$lib/components/ChatInterface.svelte';
-	import { isLoading, selectedChatId } from '$lib/stores/chat';
+	import { isLoading, selectedChatId } from '$lib/stores/chat.svelte';
+	import Hero from '$lib/components/Hero.svelte';
+	import { auth } from '$lib/stores/auth.svelte';
 
-	let showMobileChatList = false;
-	let isMobile = false;
+	let isMobile = $state(false);
+	let showMobileChatList = $derived(isMobile && selectedChatId);
 
 	onMount(() => {
 		// Check if mobile
@@ -24,37 +26,58 @@
 	function handleMobileBackToChatList() {
 		showMobileChatList = true;
 	}
-
-	// Update mobile chat list visibility when chat is selected
-	$: if (isMobile && $selectedChatId) {
-		showMobileChatList = false;
-	}
 </script>
 
 <svelte:head>
-	<title>VetKeys Encrypted Chat</title>
+	<title>Encrypted Chat using vetKeys</title>
 	<meta name="description" content="Secure encrypted chat application using VetKeys" />
 </svelte:head>
 
-{#if $isLoading}
+{#if auth.state.label !== 'initialized'}
+	<Hero/>
+{:else if isLoading.state}
 	<!-- Loading state -->
-	<div class="loading-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800 flex h-full items-center justify-center">
-		<div class="text-center animate-fade-in">
-			<div class="mx-auto mb-6 h-16 w-16 animate-spin rounded-full border-4 border-blue-500 border-t-transparent shadow-lg"></div>
-			<h2 class="mb-3 text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">Loading VetKeys Chat</h2>
-			<p class="text-gray-600 dark:text-gray-400 font-medium">Initializing secure communication...</p>
+	<div
+		class="loading-screen flex h-full items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800"
+	>
+		<div class="animate-fade-in text-center">
+			<div
+				class="mx-auto mb-6 h-16 w-16 animate-spin rounded-full border-4 border-blue-500 border-t-transparent shadow-lg"
+			></div>
+			<h2
+				class="mb-3 bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-xl font-bold text-transparent"
+			>
+				Loading vetKeys Chat
+			</h2>
+			<p class="font-medium text-gray-600 dark:text-gray-400">
+				Initializing secure communication...
+			</p>
 			<div class="mt-4 flex justify-center space-x-1">
-				<div class="h-2 w-2 bg-blue-500 rounded-full animate-bounce"></div>
-				<div class="h-2 w-2 bg-blue-500 rounded-full animate-bounce" style="animation-delay: 0.1s"></div>
-				<div class="h-2 w-2 bg-blue-500 rounded-full animate-bounce" style="animation-delay: 0.2s"></div>
+				<div class="h-2 w-2 animate-bounce rounded-full bg-blue-500"></div>
+				<div
+					class="h-2 w-2 animate-bounce rounded-full bg-blue-500"
+					style="animation-delay: 0.1s"
+				></div>
+				<div
+					class="h-2 w-2 animate-bounce rounded-full bg-blue-500"
+					style="animation-delay: 0.2s"
+				></div>
 			</div>
 		</div>
 	</div>
 {:else}
 	<!-- Main chat interface -->
-	<div class="chat-container flex h-full bg-gradient-to-br from-gray-50 via-blue-50 to-indigo-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
+	<div
+		class="chat-container flex h-full bg-gradient-to-br from-gray-50 via-blue-50 to-indigo-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900"
+	>
 		<!-- Chat List Sidebar (Desktop) or Full Screen (Mobile) -->
-		<div class="chat-list-wrapper width-full {isMobile ? (showMobileChatList ? 'block' : 'hidden') : 'block'}">
+		<div
+			class="chat-list-wrapper width-full {isMobile
+				? showMobileChatList
+					? 'block'
+					: 'hidden'
+				: 'block'}"
+		>
 			<ChatList />
 		</div>
 
@@ -72,5 +95,5 @@
 {/if}
 
 <style lang="postcss">
-    @reference "tailwindcss";
+	@reference "tailwindcss";
 </style>

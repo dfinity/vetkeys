@@ -27,14 +27,14 @@ export interface Chat {
 	id: string;
 	name: string;
 	type: 'direct' | 'group';
-	participants: User[];
 	lastMessage?: Message;
 	lastActivity: Date;
 	isReady: boolean;
 	isUpdating: boolean;
 	disappearingMessagesDuration: number; // in days, 0 = never
-	keyRotationStatus: KeyRotationStatus;
-	ratchetEpoch: number;
+	keyRotationStatus: VetKeyRotationStatus;
+	vetKeyEpoch: number;
+	symmetricRatchetEpoch: number;
 	unreadCount: number;
 	avatar?: string;
 }
@@ -46,21 +46,19 @@ export interface DirectChat extends Chat {
 
 export interface GroupChat extends Chat {
 	type: 'group';
-	adminId: string;
-	canModify: boolean;
-	allowHistoryForNewMembers: boolean;
+	otherParticipants: User[];
 }
 
-export interface KeyRotationStatus {
+export interface VetKeyRotationStatus {
 	lastRotation: Date;
 	nextRotation: Date;
 	isRotationNeeded: boolean;
 	currentEpoch: number;
 }
 
-export interface RatchetStats {
-	currentEpoch: number;
-	messagesInCurrentEpoch: number;
+export interface SymmetricRatchetStats {
+	vetKeyEpoch: number;
+	rotationDurationNs: number;
 	lastRotation: Date;
 	nextScheduledRotation: Date;
 }

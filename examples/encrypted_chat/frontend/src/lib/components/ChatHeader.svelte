@@ -2,9 +2,9 @@
 	import { Settings, RotateCcw, Info, ArrowLeft } from 'lucide-svelte';
 	import Button from './ui/Button.svelte';
 	import Card from './ui/Card.svelte';
-	import type { Chat, RatchetStats, GroupChat } from '../types';
+	import type { Chat, SymmetricRatchetStats, GroupChat } from '../types';
 	import { chatAPI } from '../services/api';
-	import { chatActions } from '../stores/chat';
+	import { chatActions } from '../stores/chat.svelte';
 	import GroupManagementModal from './GroupManagementModal.svelte';
 
 	export let chat: Chat;
@@ -12,7 +12,7 @@
 	export let onMobileBack: (() => void) | undefined = undefined;
 
 	let showChatInfo = false;
-	let ratchetStats: RatchetStats | null = null;
+	let ratchetStats: SymmetricRatchetStats | null = null;
 	let loadingRatchetStats = false;
 	let showGroupManagement = false;
 
@@ -78,13 +78,6 @@
 		return `${onlineCount} of ${chat.participants.length} online`;
 	}
 
-	async function rotateKeys() {
-		await chatActions.rotateKeys(chat.id);
-		// Reload ratchet stats after rotation
-		ratchetStats = null;
-		await loadRatchetStats();
-	}
-
 	function formatDate(date: Date): string {
 		return date.toLocaleString();
 	}
@@ -129,31 +122,30 @@
 					variant="ghost"
 					size="sm"
 					class="md:hidden"
-					on:click={onMobileBack || (() => {})}
+					onclick={onMobileBack || (() => {})}
 					aria-label="Back to chat list"
 				>
 					<ArrowLeft class="h-5 w-5" />
 				</Button>
 			{/if}
 			<div
-				class="avatar flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-purple-600 text-white text-lg font-bold shadow-lg"
+				class="avatar flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-purple-600 text-lg font-bold text-white shadow-lg"
 			>
 				{getDisplayAvatar()}
 			</div>
 			<div>
-				<h2 class="text-xl font-bold bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent dark:from-gray-100 dark:to-gray-300">{getDisplayName()}</h2>
-				<p class="text-gray-500 dark:text-gray-400 text-sm font-medium">{getOnlineStatus()}</p>
+				<h2
+					class="bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-xl font-bold text-transparent dark:from-gray-100 dark:to-gray-300"
+				>
+					{getDisplayName()}
+				</h2>
+				<p class="text-sm font-medium text-gray-500 dark:text-gray-400">{getOnlineStatus()}</p>
 			</div>
 		</div>
 
 		<!-- Actions -->
 		<div class="flex items-center gap-2">
-			<Button
-				variant="ghost"
-				size="sm"
-				on:click={handleChatInfoToggle}
-				title="Chat information"
-			>
+			<Button variant="ghost" size="sm" onclick={handleChatInfoToggle} title="Chat information">
 				<Info class="h-5 w-5" />
 			</Button>
 
@@ -161,7 +153,7 @@
 				<Button
 					variant="ghost"
 					size="sm"
-					on:click={() => (showGroupManagement = true)}
+					onclick={() => (showGroupManagement = true)}
 					title="Manage group"
 				>
 					<Settings class="h-5 w-5" />
@@ -275,7 +267,7 @@
 							{#each chat.participants as participant (participant.id)}
 								<div class="flex items-center gap-2 text-sm">
 									<div
-										class="avatar flex h-6 w-6 items-center justify-center rounded-full bg-primary-500 text-xs"
+										class="avatar bg-primary-500 flex h-6 w-6 items-center justify-center rounded-full text-xs"
 									>
 										{participant.avatar || '👤'}
 									</div>

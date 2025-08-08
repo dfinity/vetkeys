@@ -1,35 +1,40 @@
 <script lang="ts">
-	import { chats, selectedChatId, chatActions } from '../stores/chat';
+	import { chats, selectedChatId, chatActions } from '../stores/chat.svelte';
+	import { auth } from '$lib/stores/auth.svelte';
 	import ChatListItem from './ChatListItem.svelte';
 	import UserProfile from './UserProfile.svelte';
 
-	function handleChatSelect(event: CustomEvent<string>) {
-		const chatId = event.detail;
-		chatActions.selectChat(chatId);
-
-		// Load messages for the selected chat
-		chatActions.loadChatMessages(chatId);
-	}
+	$effect(() => {
+		if (selectedChatId.$) {
+			chatActions.loadChatMessages(selectedChatId.state);
+		}
+	});
 </script>
 
-<div
-	class="chat-list glass-effect flex h-full flex-col border-r border-white/20 backdrop-blur-xl"
->
+<div class="chat-list glass-effect flex h-full flex-col border-r border-white/20 backdrop-blur-xl">
 	<!-- User Profile -->
 	<UserProfile />
 
 	<!-- Chat List Header -->
 	<div class="border-b border-white/10 p-6">
-		<h2 class="text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">Chats</h2>
-		<p class="text-gray-500 dark:text-gray-400 text-sm font-medium mt-1">
-			{$chats.length} conversation{$chats.length !== 1 ? 's' : ''}
+		<h2
+			class="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-xl font-bold text-transparent"
+		>
+			Chats
+		</h2>
+		<p class="mt-1 text-sm font-medium text-gray-500 dark:text-gray-400">
+			{chats.state.length} conversation{chats.state.length !== 1 ? 's' : ''}
 		</p>
 	</div>
 
 	<!-- Chat List -->
 	<div class="scrollbar-thin flex-1 overflow-y-auto p-2">
-		{#each $chats as chat (chat.id)}
-			<ChatListItem {chat} isSelected={$selectedChatId === chat.id} on:select={handleChatSelect} />
+		{#each chats.state as chat (chat.id)}
+			<ChatListItem
+				{chat}
+				isSelected={selectedChatId.state === chat.id}
+				on:select={(e) => (selectedChatId.state = e.detail)}
+			/>
 		{:else}
 			<div class="p-8 text-center text-surface-600-500">
 				<p class="text-lg mb-2">No chats yet</p>

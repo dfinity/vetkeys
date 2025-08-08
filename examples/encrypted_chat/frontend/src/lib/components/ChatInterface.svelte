@@ -1,15 +1,20 @@
 <script lang="ts">
-	import { selectedChat, chatActions } from '../stores/chat';
+	import { chatActions, chats, selectedChatId } from '../stores/chat.svelte';
 	import ChatHeader from './ChatHeader.svelte';
 	import MessageHistory from './MessageHistory.svelte';
 	import MessageInput from './MessageInput.svelte';
 	import type { FileUpload } from '../types';
 
-	export let isMobile = false;
-	export let onMobileBack: (() => void) | undefined = undefined;
+	let { isMobile, onMobileBack } = $props();
+
+	const selectedChat = $derived(
+		selectedChatId.state
+			? (chats.state.find((chat) => chat.id === selectedChatId.state) ?? null)
+			: null
+	);
 
 	async function handleSendMessage(event: CustomEvent<{ content: string; file?: FileUpload }>) {
-		if (!$selectedChat) return;
+		if (!selectedChat) return;
 
 		const { content, file } = event.detail;
 
@@ -25,35 +30,39 @@
 			};
 		}
 
-		await chatActions.sendMessage($selectedChat.id, content, fileData);
+		await chatActions.sendMessage(selectedChat.id, content, fileData);
 	}
 </script>
 
 <div class="chat-interface flex h-full flex-col">
-	{#if $selectedChat}
-		{#key $selectedChat.id}
-			<!-- Chat Header -->
-			<ChatHeader chat={$selectedChat} showMobileBackButton={isMobile} {onMobileBack} />
+	{#if selectedChat}
+		<!-- Chat Header -->
+		<ChatHeader chat={selectedChat} showMobileBackButton={isMobile} {onMobileBack} />
 
-			<!-- Message History -->
-			<MessageHistory />
+		<!-- Message History -->
+		<MessageHistory />
 
-			<!-- Message Input -->
+		<!-- Message Input (keyed to reset input state per chat without remounting the whole pane) -->
+		{#key selectedChat.id}
 			<MessageInput
-				disabled={!$selectedChat.isReady}
-				placeholder={$selectedChat.isReady ? 'Type a message...' : 'Chat is not ready...'}
+				disabled={!selectedChat.isReady}
+				placeholder={selectedChat.isReady ? 'Type a message...' : 'Chat is not ready...'}
 				on:send={handleSendMessage}
 			/>
 		{/key}
-{:else}
+	{:else}
 		<!-- No chat selected state -->
 		<!-- Empty Chat Header -->
 		<div class="glass-effect border-b border-white/10 p-6">
 			<div class="flex items-center justify-center">
-				<h2 class="text-xl font-bold bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent dark:from-gray-100 dark:to-gray-300">VetKeys Chat</h2>
+				<h2
+					class="bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-xl font-bold text-transparent dark:from-gray-100 dark:to-gray-300"
+				>
+					VetKeys Chat
+				</h2>
 			</div>
 		</div>
-		
+
 		<!-- Welcome content -->
 		<div class="flex flex-1 items-center justify-center">
 			<div class="max-w-md p-8 text-center">
@@ -94,6 +103,4 @@
 	:global(.dark) .chat-interface {
 		background: var(--color-surface-900);
 	}
-
-
 </style>

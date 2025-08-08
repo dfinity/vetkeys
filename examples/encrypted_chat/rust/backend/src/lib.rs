@@ -137,6 +137,7 @@ fn create_direct_chat(
             participants: vec![caller, receiver],
             creation_timestamp: now,
             symmetric_key_rotation_duration,
+            messages_start_with_id: ChatMessageId(0),
         };
         metadata.insert((chat_id, now), vetkey_epoch_metadata.clone())
     });
@@ -218,6 +219,7 @@ fn create_group_chat(
             participants: participants.clone(),
             creation_timestamp: now,
             symmetric_key_rotation_duration,
+            messages_start_with_id: ChatMessageId(0),
         };
         metadata.insert((chat_id, now), vetkey_epoch_metadata.clone())
     });
@@ -326,11 +328,16 @@ fn rotate_chat_vetkey(chat_id: ChatId) -> Result<VetKeyEpochId, String> {
         latest_vetkey_epoch_metadata(chat_id).ok_or(format!("No chat {chat_id:?} found"))?;
     ensure_user_has_access_to_chat_at_epoch(caller, chat_id, latest_epoch_metadata.epoch_id)?;
 
+    let messages_start_with_id = CHAT_TO_MESSAGE_COUNTERS.with_borrow(|counters| {
+        counters.get(&chat_id).expect("bug: uninitialized chat message counter")
+    });
+
     let new_vetkey_epoch_id = CHAT_TO_VETKEYS_METADATA.with_borrow_mut(|metadata| {
         let new_vetkey_epoch_id = VetKeyEpochId(latest_epoch_metadata.epoch_id.0 + 1);
         let new_vetkey_epoch_metadata = VetKeyEpochMetadata {
             epoch_id: new_vetkey_epoch_id,
             creation_timestamp: now,
+            messages_start_with_id,
             ..latest_epoch_metadata
         };
 
@@ -473,13 +480,15 @@ fn send_group_message(
 }
 
 #[ic_cdk::query]
-fn get_my_chat_ids() -> Vec<ChatId> {
+fn get_my_chat_ids() -> Vec<(ChatId, ChatMessageId)> {
     let caller = ic_cdk::api::msg_caller();
     USER_TO_CHAT_MAP.with_borrow(|map| {
+        CHAT_TO_MESSAGE_COUNTERS.with_borrow(|counters| {
         map.keys_range((caller, ChatId::MIN_VALUE, VetKeyEpochId(0))..)
             .take_while(|(user, _, _)| user == &caller)
-            .map(|(_, chat_id, _)| chat_id)
-            .collect()
+                    .map(|(_, chat_id, _)| (chat_id, ChatMessageId(counters.get(&chat_id).expect("bug: uninitialized chat message counter").0)))
+                .collect()
+        })
     })
 }
 
@@ -817,6 +826,10 @@ fn modify_group_chat_participants(
         .retain(|participant| !group_modification.remove_participants.contains(participant));
     new_participants.sort();
 
+    let messages_start_with_id = CHAT_TO_MESSAGE_COUNTERS.with_borrow(|counters| {
+        counters.get(&chat_id).expect("bug: uninitialized chat message counter")
+    });
+
     let new_vetkey_epoch_id = CHAT_TO_VETKEYS_METADATA.with_borrow_mut(|metadata| {
         let new_vetkey_epoch_id = VetKeyEpochId(latest_epoch_metadata.epoch_id.0 + 1);
         let new_vetkey_epoch_metadata = VetKeyEpochMetadata {
@@ -824,6 +837,7 @@ fn modify_group_chat_participants(
             creation_timestamp: now,
             participants: new_participants,
             symmetric_key_rotation_duration: latest_epoch_metadata.symmetric_key_rotation_duration,
+            messages_start_with_id,
         };
 
         for participant in new_vetkey_epoch_metadata.participants.iter().copied() {

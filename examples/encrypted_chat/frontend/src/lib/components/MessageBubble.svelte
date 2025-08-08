@@ -3,12 +3,10 @@
 	import Button from './ui/Button.svelte';
 	import type { Message, User } from '../types';
 
-	export let message: Message;
-	export let sender: User | null = null;
-	export let isOwnMessage: boolean = false;
-	export let showAvatar: boolean = true;
-	export let showTimestamp: boolean = true;
-	export let isGroupChat: boolean = false;
+	/** @type {{ message: Message }}
+	 *  @type {{ sender: User | null }}
+	 */
+	let { message, sender = null, isOwnMessage = false, showAvatar = true, showTimestamp = true, isGroupChat = false } = $props();
 
 	function formatTime(date: Date): string {
 		return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -69,11 +67,11 @@
 	// Generate a consistent color for a user based on their name
 	function getUserColor(userName: string): string {
 		if (!userName) return 'bg-gray-500';
-		
+
 		// Predefined color palette for better visual consistency
 		const colors = [
 			'bg-purple-500',
-			'bg-blue-500', 
+			'bg-blue-500',
 			'bg-green-500',
 			'bg-yellow-500',
 			'bg-red-500',
@@ -113,7 +111,7 @@
 	<!-- Avatar -->
 	{#if showAvatar && !isOwnMessage}
 		<div
-			class="avatar flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-primary-500 text-sm"
+			class="avatar bg-primary-500 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full text-sm"
 		>
 			{sender?.avatar || '👤'}
 		</div>
@@ -132,7 +130,7 @@
 
 		<!-- Message bubble -->
 		<div
-			class="message-bubble {getMessageBubbleClasses()} max-w-full rounded-2xl px-3 py-2 break-words inline-block"
+			class="message-bubble {getMessageBubbleClasses()} inline-block max-w-full rounded-2xl px-3 py-2 break-words"
 		>
 			{#if message.type === 'text'}
 				<!-- eslint-disable-next-line svelte/no-at-html-tags -->
@@ -160,7 +158,7 @@
 						<div class="flex items-center justify-between">
 							<div class="min-w-0 flex-1">
 								<p class="truncate text-sm font-medium">{message.fileData.name}</p>
-								<p class="text-xs text-surface-500-400">
+								<p class="text-surface-500-400 text-xs">
 									{formatFileSize(message.fileData.size)}
 								</p>
 							</div>
@@ -168,7 +166,7 @@
 								variant="ghost"
 								size="sm"
 								class="ml-2"
-								on:click={downloadFile}
+								onclick={downloadFile}
 								aria-label="Download file"
 							>
 								<Download class="h-4 w-4" />
@@ -220,32 +218,80 @@
 	}
 
 	/* User-specific colors for group chats */
-	.message-bubble.bg-purple-500 { background: #8b5cf6; }
-	.message-bubble.bg-blue-500 { background: #3b82f6; }
-	.message-bubble.bg-green-500 { background: #10b981; }
-	.message-bubble.bg-yellow-500 { background: #f59e0b; }
-	.message-bubble.bg-red-500 { background: #ef4444; }
-	.message-bubble.bg-indigo-500 { background: #6366f1; }
-	.message-bubble.bg-pink-500 { background: #ec4899; }
-	.message-bubble.bg-teal-500 { background: #14b8a6; }
-	.message-bubble.bg-orange-500 { background: #f97316; }
-	.message-bubble.bg-cyan-500 { background: #06b6d4; }
-	.message-bubble.bg-lime-500 { background: #84cc16; }
-	.message-bubble.bg-rose-500 { background: #f43f5e; }
+	.message-bubble.bg-purple-500 {
+		background: #8b5cf6;
+	}
+	.message-bubble.bg-blue-500 {
+		background: #3b82f6;
+	}
+	.message-bubble.bg-green-500 {
+		background: #10b981;
+	}
+	.message-bubble.bg-yellow-500 {
+		background: #f59e0b;
+	}
+	.message-bubble.bg-red-500 {
+		background: #ef4444;
+	}
+	.message-bubble.bg-indigo-500 {
+		background: #6366f1;
+	}
+	.message-bubble.bg-pink-500 {
+		background: #ec4899;
+	}
+	.message-bubble.bg-teal-500 {
+		background: #14b8a6;
+	}
+	.message-bubble.bg-orange-500 {
+		background: #f97316;
+	}
+	.message-bubble.bg-cyan-500 {
+		background: #06b6d4;
+	}
+	.message-bubble.bg-lime-500 {
+		background: #84cc16;
+	}
+	.message-bubble.bg-rose-500 {
+		background: #f43f5e;
+	}
 
 	/* Dark mode variants */
-	:global(.dark) .message-bubble.bg-purple-500 { background: #7c3aed; }
-	:global(.dark) .message-bubble.bg-blue-500 { background: #2563eb; }
-	:global(.dark) .message-bubble.bg-green-500 { background: #059669; }
-	:global(.dark) .message-bubble.bg-yellow-500 { background: #d97706; }
-	:global(.dark) .message-bubble.bg-red-500 { background: #dc2626; }
-	:global(.dark) .message-bubble.bg-indigo-500 { background: #4f46e5; }
-	:global(.dark) .message-bubble.bg-pink-500 { background: #db2777; }
-	:global(.dark) .message-bubble.bg-teal-500 { background: #0d9488; }
-	:global(.dark) .message-bubble.bg-orange-500 { background: #ea580c; }
-	:global(.dark) .message-bubble.bg-cyan-500 { background: #0891b2; }
-	:global(.dark) .message-bubble.bg-lime-500 { background: #65a30d; }
-	:global(.dark) .message-bubble.bg-rose-500 { background: #e11d48; }
+	:global(.dark) .message-bubble.bg-purple-500 {
+		background: #7c3aed;
+	}
+	:global(.dark) .message-bubble.bg-blue-500 {
+		background: #2563eb;
+	}
+	:global(.dark) .message-bubble.bg-green-500 {
+		background: #059669;
+	}
+	:global(.dark) .message-bubble.bg-yellow-500 {
+		background: #d97706;
+	}
+	:global(.dark) .message-bubble.bg-red-500 {
+		background: #dc2626;
+	}
+	:global(.dark) .message-bubble.bg-indigo-500 {
+		background: #4f46e5;
+	}
+	:global(.dark) .message-bubble.bg-pink-500 {
+		background: #db2777;
+	}
+	:global(.dark) .message-bubble.bg-teal-500 {
+		background: #0d9488;
+	}
+	:global(.dark) .message-bubble.bg-orange-500 {
+		background: #ea580c;
+	}
+	:global(.dark) .message-bubble.bg-cyan-500 {
+		background: #0891b2;
+	}
+	:global(.dark) .message-bubble.bg-lime-500 {
+		background: #65a30d;
+	}
+	:global(.dark) .message-bubble.bg-rose-500 {
+		background: #e11d48;
+	}
 
 	.file-message {
 		min-width: 200px;

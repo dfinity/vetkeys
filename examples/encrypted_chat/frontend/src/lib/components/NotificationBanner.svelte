@@ -2,7 +2,7 @@
 	import { onMount } from 'svelte';
 	import { fly } from 'svelte/transition';
 	import { X, AlertTriangle, Info, CheckCircle, XCircle } from 'lucide-svelte';
-	import { notifications, chatActions } from '../stores/chat';
+	import { notifications, chatActions } from '../stores/chat.svelte';
 	import { storageService } from '../services/storage';
 	import type { Notification } from '../types';
 
@@ -48,20 +48,20 @@
 <!-- Disclaimer Banner - Bottom Overlay -->
 {#if showDisclaimer}
 	<div
-		class="fixed bottom-0 right-0 left-0 z-50 bg-orange-100 border-t-2 border-orange-400 shadow-lg"
+		class="fixed right-0 bottom-0 left-0 z-50 border-t-2 border-orange-400 bg-orange-100 shadow-lg"
 		transition:fly={{ y: 100, duration: 300 }}
 	>
 		<div class="flex items-center gap-3 p-3">
 			<AlertTriangle class="h-5 w-5 text-orange-600" />
 			<div class="flex-1">
 				<span class="text-sm text-orange-800">
-					<strong>Disclaimer:</strong> This sample dapp is intended exclusively for experimental purposes. 
+					<strong>Disclaimer:</strong> This sample dapp is intended exclusively for experimental purposes.
 					You are advised not to use this dapp for storing your critical data such as keys or passwords.
 				</span>
 			</div>
 			<button
-				class="text-orange-600 hover:text-orange-800 p-1 rounded transition-colors"
-				on:click={dismissDisclaimer}
+				class="rounded p-1 text-orange-600 transition-colors hover:text-orange-800"
+				onclick={dismissDisclaimer}
 				aria-label="Dismiss disclaimer"
 			>
 				<X class="h-4 w-4" />
@@ -72,7 +72,7 @@
 
 <!-- Notification Stack -->
 <div class="fixed top-4 right-4 z-40 max-w-sm space-y-2">
-	{#each $notifications as notification (notification.id)}
+	{#each notifications.state as notification (notification.id)}
 		<div
 			class="alert {getNotificationColor(notification.type)} shadow-lg"
 			transition:fly={{ x: 300, duration: 300 }}
@@ -86,7 +86,7 @@
 				<div class="alert-actions">
 					<button
 						class="variant-soft btn-icon"
-						on:click={() => chatActions.dismissNotification(notification.id)}
+						onclick={() => chatActions.dismissNotification(notification.id)}
 						aria-label="Dismiss notification"
 					>
 						<X class="h-4 w-4" />
@@ -116,6 +116,4 @@
 		align-items: center;
 		gap: 0.5rem;
 	}
-
-
 </style>

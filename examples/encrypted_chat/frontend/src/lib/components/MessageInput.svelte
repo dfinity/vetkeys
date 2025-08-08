@@ -105,7 +105,7 @@
 	}
 </script>
 
-<div class="border-t border-white/10 glass-effect p-6 backdrop-blur-xl">
+<div class="glass-effect border-t border-white/10 p-6 backdrop-blur-xl">
 	<!-- File preview -->
 	{#if selectedFile}
 		<Card padding="sm" class="mb-3">
@@ -113,20 +113,20 @@
 				{#if selectedFile.preview}
 					<img src={selectedFile.preview} alt="Preview" class="h-16 w-16 rounded object-cover" />
 				{:else}
-					<div class="flex h-16 w-16 items-center justify-center rounded bg-surface-200-700">
+					<div class="bg-surface-200-700 flex h-16 w-16 items-center justify-center rounded">
 						<Paperclip class="h-6 w-6" />
 					</div>
 				{/if}
 
 				<div class="min-w-0 flex-1">
 					<p class="truncate text-sm font-medium">{selectedFile.file.name}</p>
-					<p class="text-xs text-surface-500-400">{formatFileSize(selectedFile.file.size)}</p>
+					<p class="text-surface-500-400 text-xs">{formatFileSize(selectedFile.file.size)}</p>
 					{#if !selectedFile.isValid && selectedFile.error}
-						<p class="mt-1 text-xs text-error-500">{selectedFile.error}</p>
+						<p class="text-error-500 mt-1 text-xs">{selectedFile.error}</p>
 					{/if}
 				</div>
 
-				<Button variant="ghost" size="sm" on:click={removeFile} aria-label="Remove file">
+				<Button variant="ghost" size="sm" onclick={removeFile} aria-label="Remove file">
 					<X class="h-4 w-4" />
 				</Button>
 			</div>
@@ -139,7 +139,7 @@
 		<input
 			type="file"
 			bind:this={fileInput}
-			on:change={handleFileChange}
+			onchange={handleFileChange}
 			accept="image/*,.pdf,.doc,.docx,.txt,.zip"
 			style="display: none;"
 		/>
@@ -148,21 +148,21 @@
 		<div class="relative flex-1">
 			<textarea
 				bind:value={messageText}
-				on:keydown={handleKeydown}
+				onkeydown={handleKeydown}
 				{placeholder}
 				{disabled}
 				rows="1"
-				class="message-input w-full resize-none rounded-xl border border-gray-200/50 bg-white/80 backdrop-blur-sm px-4 py-3 pr-20 text-sm shadow-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none dark:border-gray-700/50 dark:bg-gray-800/80"
+				class="message-input w-full resize-none rounded-xl border border-gray-200/50 bg-white/80 px-4 py-3 pr-20 text-sm shadow-lg backdrop-blur-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none dark:border-gray-700/50 dark:bg-gray-800/80"
 				style="min-height: 44px; max-height: 120px;"
 			></textarea>
 
 			<!-- Attachment and Emoji buttons -->
-			<div class="absolute top-1/2 right-2 -translate-y-1/2 flex items-center gap-1">
+			<div class="absolute top-1/2 right-2 flex -translate-y-1/2 items-center gap-1">
 				<!-- Attachment button -->
 				<Button
 					variant="ghost"
 					size="sm"
-					on:click={handleFileSelect}
+					onclick={handleFileSelect}
 					{disabled}
 					title="Attach file (max {MAX_FILE_SIZE / 1024}KB)"
 					aria-label="Attach file"
@@ -174,7 +174,7 @@
 				<Button
 					variant="ghost"
 					size="sm"
-					on:click={() => (showEmojiPicker = !showEmojiPicker)}
+					onclick={() => (showEmojiPicker = !showEmojiPicker)}
 					{disabled}
 					aria-label="Add emoji"
 				>
@@ -184,16 +184,18 @@
 		</div>
 
 		<!-- Send button -->
+		<div class="pb-2">
 		<Button
 			variant="filled"
-			on:click={handleSend}
-			disabled={disabled || 
-				(!messageText.trim() && !selectedFile) || 
+			onclick={handleSend}
+			disabled={disabled ||
+				(!messageText.trim() && !selectedFile) ||
 				!!(selectedFile && selectedFile.isValid === false)}
 			aria-label="Send message"
 		>
-			<Send class="h-5 w-5" />
-		</Button>
+				<Send class="h-5 w-5" />
+			</Button>
+		</div>
 	</div>
 </div>
 
@@ -206,7 +208,7 @@
 
 <style>
 	@reference "tailwindcss";
-	
+
 	.message-input {
 		scrollbar-width: thin;
 	}

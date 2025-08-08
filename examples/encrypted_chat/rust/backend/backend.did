@@ -33,6 +33,7 @@ type UserMessage = record {
 type VetKeyEpochMetadata = record {
   symmetric_key_rotation_duration : nat64;
   participants : vec principal;
+  messages_start_with_id : nat64;
   creation_timestamp : nat64;
   epoch_id : nat64;
 };
@@ -54,7 +55,7 @@ service : (text) -> {
   derive_chat_vetkey : (ChatId, opt nat64, blob) -> (Result_2);
   get_encrypted_vetkey_for_my_cache_storage : (blob) -> (blob);
   get_latest_chat_vetkey_epoch_metadata : (ChatId) -> (Result_3) query;
-  get_my_chat_ids : () -> (vec ChatId) query;
+  get_my_chat_ids : () -> (vec record { ChatId; nat64 }) query;
   get_my_reshared_ibe_encrypted_vetkey : (ChatId, nat64) -> (Result_4);
   get_my_symmetric_key_cache : (ChatId, nat64) -> (Result_4);
   // Returns messages for a chat starting from a given message id.

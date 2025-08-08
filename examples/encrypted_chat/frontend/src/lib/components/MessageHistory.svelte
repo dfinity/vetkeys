@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { selectedChatMessages, selectedChat } from '../stores/chat';
+	import { chats, selectedChatId, messages } from '../stores/chat.svelte';
 	import MessageBubble from './MessageBubble.svelte';
 	import type { Message, User } from '../types';
 	import { SvelteDate } from 'svelte/reactivity';
@@ -7,9 +7,19 @@
 	let messagesContainer: HTMLDivElement | undefined = $state(undefined);
 	let autoScroll = $state(true);
 
+	const selectedChat = $derived(
+		selectedChatId.state
+			? (chats.state.find((chat) => chat.id === selectedChatId.state) ?? null)
+			: null
+	);
+
+	const selectedChatMessages = $derived(
+		selectedChatId.state ? (messages.state[selectedChatId.state] ?? []) : []
+	);
+
 	// Scroll to bottom when new messages arrive
 	$effect(() => {
-		if (autoScroll && messagesContainer && $selectedChatMessages) {
+		if (autoScroll && messagesContainer && selectedChatMessages) {
 			messagesContainer.scrollTop = messagesContainer.scrollHeight;
 		}
 	});
@@ -31,9 +41,9 @@
 	}
 
 	function getSender(message: Message): User | null {
-		if (!$selectedChat) return null;
+		if (!selectedChat) return null;
 
-		return $selectedChat.participants.find((p) => p.id === message.senderId) || null;
+		return selectedChat.participants.find((p) => p.id === message.senderId) || null;
 	}
 
 	function isOwnMessage(message: Message): boolean {
@@ -44,14 +54,14 @@
 		if (isOwnMessage(message)) return false;
 		if (index === 0) return true;
 
-		const prevMessage = $selectedChatMessages[index - 1];
+		const prevMessage = selectedChatMessages[index - 1];
 		return prevMessage.senderId !== message.senderId;
 	}
 
 	function shouldShowTimestamp(message: Message, index: number): boolean {
-		if (index === $selectedChatMessages.length - 1) return true;
+		if (index === selectedChatMessages.length - 1) return true;
 
-		const nextMessage = $selectedChatMessages[index + 1];
+		const nextMessage = selectedChatMessages[index + 1];
 		const timeDiff = nextMessage.timestamp.getTime() - message.timestamp.getTime();
 
 		// Show timestamp if next message is more than 5 minutes later
@@ -75,7 +85,7 @@
 	function shouldShowDateSeparator(message: Message, index: number): boolean {
 		if (index === 0) return true;
 
-		const prevMessage = $selectedChatMessages[index - 1];
+		const prevMessage = selectedChatMessages[index - 1];
 		const messageDate = message.timestamp;
 		const prevDate = prevMessage.timestamp;
 
@@ -84,50 +94,52 @@
 
 	// Get participant info for display
 	function getParticipantInfo(): string {
-		if (!$selectedChat) return '';
+		if (!selectedChat) return '';
 
-		if ($selectedChat.type === 'direct') {
-			const otherUser = $selectedChat.participants.find((p) => p.id !== 'current-user');
+		if (selectedChat.type === 'direct') {
+			const otherUser = selectedChat.participants.find((p) => p.id !== 'current-user');
 			return otherUser ? `This is the beginning of your conversation with ${otherUser.name}` : '';
 		}
 
-		return `This is the beginning of the ${$selectedChat.name} group chat`;
+		return `This is the beginning of the ${selectedChat.name} group chat`;
 	}
 </script>
 
 <div class="message-history flex min-h-0 flex-1 flex-col">
-	{#if $selectedChat}
+	{#if selectedChat}
 		<div
 			bind:this={messagesContainer}
 			onscroll={handleScroll}
 			class="messages-container scrollbar-thin flex-1 overflow-y-auto"
 		>
-			{#if $selectedChatMessages.length === 0}
+			{#if selectedChatMessages.length === 0}
 				<!-- Empty state -->
-				<div class="empty-state flex h-full flex-col items-center justify-center p-8 pt-12 text-center">
+				<div
+					class="empty-state flex h-full flex-col items-center justify-center p-8 pt-12 text-center"
+				>
 					<div
-						class="avatar mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary-500 text-2xl"
+						class="avatar bg-primary-500 mb-4 flex h-16 w-16 items-center justify-center rounded-full text-2xl"
 					>
-						{#if $selectedChat.type === 'direct'}
-							{$selectedChat.participants.find((p) => p.id !== 'current-user')?.avatar || '👤'}
+						{#if selectedChat.type === 'direct'}
+							{selectedChat.participants.find((p) => p.id !== 'current-user')?.avatar || '👤'}
 						{:else}
-							{$selectedChat.avatar || '👥'}
+							{selectedChat.avatar || '👥'}
 						{/if}
 					</div>
 					<h3 class="mb-2 text-lg font-semibold">
-						{#if $selectedChat.type === 'direct'}
-							{$selectedChat.participants.find((p) => p.id !== 'current-user')?.name || 'Unknown'}
+						{#if selectedChat.type === 'direct'}
+							{selectedChat.participants.find((p) => p.id !== 'current-user')?.name || 'Unknown'}
 						{:else}
-							{$selectedChat.name}
+							{selectedChat.name}
 						{/if}
 					</h3>
 					<p class="text-surface-600-300-token mb-4 max-w-md">
 						{getParticipantInfo()}
 					</p>
-					{#if $selectedChat.disappearingMessagesDuration > 0}
+					{#if selectedChat.disappearingMessagesDuration > 0}
 						<div class="alert variant-ghost-warning">
 							<span class="text-sm">
-								🕐 Messages disappear after {$selectedChat.disappearingMessagesDuration} day{$selectedChat.disappearingMessagesDuration !==
+								🕐 Messages disappear after {selectedChat.disappearingMessagesDuration} day{selectedChat.disappearingMessagesDuration !==
 								1
 									? 's'
 									: ''}
@@ -138,7 +150,7 @@
 			{:else}
 				<!-- Messages -->
 				<div class="messages-list py-4">
-					{#each $selectedChatMessages as message, index (message.id)}
+					{#each selectedChatMessages as message, index (message.id)}
 						<!-- Date separator -->
 						{#if shouldShowDateSeparator(message, index)}
 							<div class="date-separator flex items-center justify-center py-4">
@@ -158,7 +170,7 @@
 								isOwnMessage={isOwnMessage(message)}
 								showAvatar={shouldShowAvatar(message, index)}
 								showTimestamp={shouldShowTimestamp(message, index)}
-								isGroupChat={$selectedChat?.type === 'group'}
+								isGroupChat={selectedChat?.type === 'group'}
 							/>
 						</div>
 					{/each}

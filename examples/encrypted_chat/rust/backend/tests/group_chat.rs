@@ -1147,6 +1147,7 @@ fn modify_chat_participants() {
                 participants: sorted_principals(vec![principal_0, principal_1]),
                 creation_timestamp: Time(env.pic.get_time().as_nanos_since_unix_epoch()),
                 symmetric_key_rotation_duration,
+                messages_start_with_id: ChatMessageId(0),
             }
         );
     }
@@ -1186,6 +1187,7 @@ fn modify_chat_participants() {
                 ]),
                 creation_timestamp: Time(env.pic.get_time().as_nanos_since_unix_epoch()),
                 symmetric_key_rotation_duration,
+                messages_start_with_id: ChatMessageId(0),
             }
         );
     }
@@ -1220,6 +1222,7 @@ fn modify_chat_participants() {
                 participants: sorted_principals(vec![principal_0, principal_3]),
                 creation_timestamp: Time(env.pic.get_time().as_nanos_since_unix_epoch()),
                 symmetric_key_rotation_duration,
+                messages_start_with_id: ChatMessageId(0),
             }
         );
     }
@@ -1254,6 +1257,7 @@ fn modify_chat_participants() {
                 participants: sorted_principals(vec![principal_0, principal_1, principal_2]),
                 creation_timestamp: Time(env.pic.get_time().as_nanos_since_unix_epoch()),
                 symmetric_key_rotation_duration,
+                messages_start_with_id: ChatMessageId(0),
             }
         );
     }

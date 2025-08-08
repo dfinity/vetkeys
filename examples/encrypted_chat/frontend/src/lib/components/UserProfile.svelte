@@ -1,15 +1,38 @@
 <script lang="ts">
 	import { Settings, X, Check } from 'lucide-svelte';
-	import { currentUser, userConfig, chatActions } from '../stores/chat';
+	import { userConfig, chatActions } from '../stores/chat.svelte';
+	import { auth } from '$lib/stores/auth.svelte';
+	import type { User } from '$lib/types';
+	
+	const currentUser = $derived<{ state: User | null }>({
+		state: {
+			...getDummyCurrentUser(),
+			name:
+				auth.state.label === 'initialized'
+					? auth.state.client.getIdentity().getPrincipal().toString()
+					: ''
+		}
+	});
 
-	let showConfig = false;
-	let configForm = {
-		cacheRetentionDays: 7
-	};
-
-	$: if ($userConfig) {
-		configForm.cacheRetentionDays = $userConfig.cacheRetentionDays;
+	function getDummyCurrentUser(): User {
+		return {
+			id: 'current-user',
+			name: 'You',
+			avatar: '👤',
+			isOnline: true
+		};
 	}
+
+	let showConfig = $state(false);
+	let configForm = $state({
+		cacheRetentionDays: 7
+	});
+
+	$effect(() => {
+		if (userConfig.state) {
+			configForm.cacheRetentionDays = userConfig.state.cacheRetentionDays;
+		}
+	});
 
 	function toggleConfig() {
 		showConfig = !showConfig;
@@ -31,23 +54,19 @@
 	<div class="flex items-center justify-between">
 		<div class="flex items-center gap-3">
 			<div
-				class="avatar flex h-10 w-10 items-center justify-center rounded-full bg-primary-500 text-lg"
+				class="avatar bg-primary-500 flex h-10 w-10 items-center justify-center rounded-full text-lg"
 			>
-				{$currentUser?.avatar || '👤'}
+				{currentUser.state?.avatar || '👤'}
 			</div>
 			<div>
-				<h3 class="text-sm font-semibold">{$currentUser?.name || 'User'}</h3>
-				<div class="flex items-center gap-1">
-					<div class="h-2 w-2 rounded-full bg-success-500"></div>
-					<span class="text-surface-600-300-token text-xs">Online</span>
-				</div>
+				<h3 class="text-sm font-semibold">Name: ---<br /></h3>
+				<h4 class="text-xs font-semibold">{currentUser.state?.name}</h4>
 			</div>
 		</div>
-		<button class="variant-ghost-surface btn-icon" on:click={toggleConfig} aria-label="Settings">
+		<button class="variant-ghost-surface btn-icon" onclick={toggleConfig} aria-label="Settings">
 			<Settings class="h-5 w-5" />
 		</button>
 	</div>
-
 </div>
 
 <!-- Settings Modal -->
@@ -55,21 +74,25 @@
 	<!-- Backdrop -->
 	<div
 		class="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm"
-		on:click={handleBackdropClick}
+		onclick={handleBackdropClick}
 		role="button"
 		tabindex="-1"
-		on:keydown={() => {}}
+		onkeydown={() => {}}
 	></div>
 
 	<!-- Modal -->
 	<div class="fixed inset-0 z-50 flex items-center justify-center p-4">
-		<div class="config-modal bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 w-full max-w-md">
+		<div
+			class="config-modal w-full max-w-md rounded-2xl border border-gray-200 bg-white shadow-2xl dark:border-gray-700 dark:bg-gray-800"
+		>
 			<!-- Header -->
-			<div class="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
+			<div
+				class="flex items-center justify-between border-b border-gray-200 p-6 dark:border-gray-700"
+			>
 				<h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100">Settings</h3>
 				<button
-					class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-					on:click={() => (showConfig = false)}
+					class="rounded-lg p-1 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-700 dark:hover:text-gray-300"
+					onclick={() => (showConfig = false)}
 					aria-label="Close settings"
 				>
 					<X class="h-5 w-5" />
@@ -77,9 +100,12 @@
 			</div>
 
 			<!-- Content -->
-			<div class="p-6 space-y-4">
+			<div class="space-y-4 p-6">
 				<div>
-					<label for="cache-retention" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+					<label
+						for="cache-retention"
+						class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300"
+					>
 						Cache Retention (days)
 					</label>
 					<input
@@ -88,7 +114,7 @@
 						min="1"
 						max="365"
 						bind:value={configForm.cacheRetentionDays}
-						class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
+						class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-gray-900 transition-all outline-none focus:border-transparent focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
 						placeholder="7"
 					/>
 					<p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
@@ -98,16 +124,18 @@
 			</div>
 
 			<!-- Footer -->
-			<div class="flex items-center justify-end gap-3 p-6 border-t border-gray-200 dark:border-gray-700">
+			<div
+				class="flex items-center justify-end gap-3 border-t border-gray-200 p-6 dark:border-gray-700"
+			>
 				<button
-					class="px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
-					on:click={() => (showConfig = false)}
+					class="rounded-lg px-4 py-2 text-gray-700 transition-colors hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
+					onclick={() => (showConfig = false)}
 				>
 					Cancel
 				</button>
 				<button
-					class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors flex items-center gap-2"
-					on:click={saveConfig}
+					class="flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-white transition-colors hover:bg-blue-700"
+					onclick={saveConfig}
 				>
 					<Check class="h-4 w-4" />
 					Save

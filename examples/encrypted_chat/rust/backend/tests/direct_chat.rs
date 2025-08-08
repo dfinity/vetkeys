@@ -22,7 +22,11 @@ fn can_create_chat() {
 
     for p in [env.principal_0, env.principal_1] {
         assert_eq!(
-            env.query::<Vec<ChatId>>(p, "get_my_chat_ids", encode_args(()).unwrap()),
+            env.query::<Vec<(ChatId, ChatMessageId)>>(
+                p,
+                "get_my_chat_ids",
+                encode_args(()).unwrap()
+            ),
             vec![]
         );
     }
@@ -34,12 +38,16 @@ fn can_create_chat() {
     )
     .unwrap();
 
-    let chat_ids: Vec<ChatId> =
+    let chat_ids: Vec<(ChatId, ChatMessageId)> =
         env.query(env.principal_0, "get_my_chat_ids", encode_args(()).unwrap());
-    assert_eq!(chat_ids, vec![p0_self_chat_id]);
+    assert_eq!(chat_ids, vec![(p0_self_chat_id, ChatMessageId(0))]);
 
     assert_eq!(
-        env.query::<Vec<ChatId>>(env.principal_1, "get_my_chat_ids", encode_args(()).unwrap()),
+        env.query::<Vec<(ChatId, ChatMessageId)>>(
+            env.principal_1,
+            "get_my_chat_ids",
+            encode_args(()).unwrap()
+        ),
         vec![]
     );
 
@@ -51,15 +59,18 @@ fn can_create_chat() {
     .unwrap();
 
     assert_eq!(
-        env.query::<Vec<ChatId>>(env.principal_1, "get_my_chat_ids", encode_args(()).unwrap()),
-        vec![p0_p1_chat_id]
+        env.query::<Vec<(ChatId, ChatMessageId)>>(
+            env.principal_1,
+            "get_my_chat_ids",
+            encode_args(()).unwrap()
+        ),
+        vec![(p0_p1_chat_id, ChatMessageId(0))]
     );
 
-    let chat_ids: Vec<ChatId> =
+    let chat_ids: Vec<(ChatId, ChatMessageId)> =
         env.query(env.principal_0, "get_my_chat_ids", encode_args(()).unwrap());
-    for chat_id in vec![p0_self_chat_id, p0_p1_chat_id] {
-        assert!(chat_ids.contains(&chat_id));
-    }
+    assert!(chat_ids.contains(&(p0_self_chat_id, ChatMessageId(0))));
+    assert!(chat_ids.contains(&(p0_p1_chat_id, ChatMessageId(0))));
     assert_eq!(chat_ids.len(), 2);
 }
 
