@@ -97,14 +97,17 @@ export class ChatAPI {
 		}
 	}
 
-	async getRatchetStats(): Promise<SymmetricRatchetStats> {
-		return {
-			vetKeyEpoch: Math.floor(Math.random() * 30) + 1,
-			rotationDurationNs: Math.floor(Math.random() * 50) + 1,
-			lastRotation: new Date(Date.now() - 1000 * 60 * 60 * Math.random() * 24),
-			nextScheduledRotation: new Date(Date.now() + 1000 * 60 * 60 * Math.random() * 24)
-		};
-	}
+  async getRatchetStats(): Promise<SymmetricRatchetStats> {
+    const now = Date.now();
+    const last = new Date(now - 1000 * 60 * 60 * Math.random() * 24);
+    const next = new Date(now + 1000 * 60 * 60 * Math.random() * 24);
+    return {
+      currentEpoch: Math.floor(Math.random() * 30) + 1,
+      messagesInCurrentEpoch: Math.floor(Math.random() * 200),
+      lastRotation: last,
+      nextScheduledRotation: next
+    };
+  }
 
 	async updateGroupMembers(
 		chatId: string,

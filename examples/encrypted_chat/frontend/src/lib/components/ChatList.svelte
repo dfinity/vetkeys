@@ -1,14 +1,18 @@
 <script lang="ts">
-	import { chats, selectedChatId, chatActions } from '../stores/chat.svelte';
+    import { chats, selectedChatId, chatActions } from '../stores/chat.svelte';
 	import { auth } from '$lib/stores/auth.svelte';
 	import ChatListItem from './ChatListItem.svelte';
 	import UserProfile from './UserProfile.svelte';
+    import Button from './ui/Button.svelte';
+    import NewChatModal from './NewChatModal.svelte';
 
-	$effect(() => {
-		if (selectedChatId.$) {
-			chatActions.loadChatMessages(selectedChatId.state);
-		}
-	});
+    $effect(() => {
+        if (selectedChatId.state) {
+            chatActions.loadChatMessages(selectedChatId.state);
+        }
+    });
+
+    let showNewChat = $state(false);
 </script>
 
 <div class="chat-list glass-effect flex h-full flex-col border-r border-white/20 backdrop-blur-xl">
@@ -25,6 +29,9 @@
 		<p class="mt-1 text-sm font-medium text-gray-500 dark:text-gray-400">
 			{chats.state.length} conversation{chats.state.length !== 1 ? 's' : ''}
 		</p>
+    <div class="mt-3 flex gap-2">
+      <Button size="sm" variant="filled" onclick={() => (showNewChat = true)}>New Chat</Button>
+    </div>
 	</div>
 
 	<!-- Chat List -->
@@ -43,6 +50,8 @@
 		{/each}
 	</div>
 </div>
+
+<NewChatModal bind:show={showNewChat} />
 
 <style>
 	.chat-list {

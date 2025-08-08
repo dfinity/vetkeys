@@ -27,6 +27,8 @@ export interface Chat {
 	id: string;
 	name: string;
 	type: 'direct' | 'group';
+  // Participants are required by UI components like ChatHeader/ChatListItem
+  participants: User[];
 	lastMessage?: Message;
 	lastActivity: Date;
 	isReady: boolean;
@@ -35,6 +37,8 @@ export interface Chat {
 	keyRotationStatus: VetKeyRotationStatus;
 	vetKeyEpoch: number;
 	symmetricRatchetEpoch: number;
+  // Some components read ratchetEpoch directly
+  ratchetEpoch: number;
 	unreadCount: number;
 	avatar?: string;
 }
@@ -47,6 +51,7 @@ export interface DirectChat extends Chat {
 export interface GroupChat extends Chat {
 	type: 'group';
 	otherParticipants: User[];
+  adminId?: string;
 }
 
 export interface VetKeyRotationStatus {
@@ -57,10 +62,10 @@ export interface VetKeyRotationStatus {
 }
 
 export interface SymmetricRatchetStats {
-	vetKeyEpoch: number;
-	rotationDurationNs: number;
-	lastRotation: Date;
-	nextScheduledRotation: Date;
+  currentEpoch: number;
+  messagesInCurrentEpoch: number;
+  lastRotation: Date;
+  nextScheduledRotation: Date;
 }
 
 export interface UserConfig {
