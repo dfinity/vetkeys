@@ -190,8 +190,8 @@ impl G2PrecomputedTable {
         let mut val = ic_bls12_381::G2Affine::identity();
 
         let index = index.wrapping_sub(1);
-        for v in 0..from.len() {
-            val.conditional_assign(&from[v], usize::ct_eq(&v, &index));
+        for (idx, v) in from.iter().enumerate() {
+            val.conditional_assign(&v, usize::ct_eq(&idx, &index));
         }
 
         val
