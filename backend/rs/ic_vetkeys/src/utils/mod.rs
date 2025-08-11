@@ -373,6 +373,91 @@ impl VetKey {
     }
 }
 
+/// Key material derived from a VetKey
+#[derive(Clone, Zeroize, ZeroizeOnDrop)]
+pub struct DerivedKeyMaterial {
+    key: Vec<u8>,
+}
+
+#[derive(Copy, Clone, Eq, PartialEq, Debug)]
+/// An error while encrypting
+pub enum EncryptionFailed {
+    /// The provided message was too long to be encrypted
+    PlaintextTooLong,
+}
+
+#[derive(Copy, Clone, Eq, PartialEq, Debug)]
+/// An error while decrypting
+pub enum DecryptionFailed {
+    /// The ciphertext was too short to possibly be valid
+    MessageTooShort,
+    /// The GCM tag did not validate
+    InvalidCiphertext,
+}
+
+impl DerivedKeyMaterial {
+    /// Create a new DerivedKeyMaterial
+    pub fn new(vetkey: &VetKey) -> Self {
+        Self {
+            key: vetkey.serialize().to_vec(),
+        }
+    }
+
+    fn derive_aes_gcm_key(&self, domain_sep: &str) -> Vec<u8> {
+        derive_symmetric_key(&self.key, domain_sep, 32)
+    }
+
+    /// Encrypt a message
+    pub fn encrypt_message<R: rand::RngCore + rand::CryptoRng>(
+        &self,
+        message: &[u8],
+        domain_sep: &str,
+        rng: &mut R,
+    ) -> Result<Vec<u8>, EncryptionFailed> {
+        use aes_gcm::{aead::Aead, aead::AeadCore, Aes256Gcm, Key, KeyInit};
+        let key = self.derive_aes_gcm_key(domain_sep);
+        let key = Key::<Aes256Gcm>::from_slice(&key);
+        let nonce = Aes256Gcm::generate_nonce(rng);
+        let gcm = Aes256Gcm::new(key);
+
+        // The function returns an opaque `Error` with no details, but upon
+        // examination, the only way it can fail is if the plaintext is larger
+        // than GCM's maximum input length of 2^36 bytes.
+        let ctext = gcm
+            .encrypt(&nonce, message)
+            .map_err(|_| EncryptionFailed::PlaintextTooLong)?;
+
+        let mut res = vec![];
+        res.extend_from_slice(nonce.as_slice());
+        res.extend_from_slice(ctext.as_slice());
+        Ok(res)
+    }
+
+    /// Decrypt a message
+    pub fn decrypt_message(
+        &self,
+        ctext: &[u8],
+        domain_sep: &str,
+    ) -> Result<Vec<u8>, DecryptionFailed> {
+        use aes_gcm::{aead::Aead, Aes256Gcm, Key, KeyInit};
+        let key = self.derive_aes_gcm_key(domain_sep);
+        let key = Key::<Aes256Gcm>::from_slice(&key);
+
+        // Minimum possible length 12 bytes nonce plus 16 bytes GCM tag
+        if ctext.len() < 12 + 16 {
+            return Err(DecryptionFailed::MessageTooShort);
+        }
+        let nonce = aes_gcm::Nonce::from_slice(&ctext[0..12]);
+        let gcm = Aes256Gcm::new(key);
+
+        let ptext = gcm
+            .decrypt(nonce, &ctext[12..])
+            .map_err(|_| DecryptionFailed::InvalidCiphertext)?;
+
+        Ok(ptext.as_slice().to_vec())
+    }
+}
+
 #[derive(Copy, Clone, Debug)]
 /// Error indicating that deserializing an encrypted key failed
 pub enum EncryptedVetKeyDeserializationError {
