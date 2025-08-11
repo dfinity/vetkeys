@@ -118,7 +118,7 @@ dependencies = [
  "getrandom 0.2.16",
  "hex",
  "ic-cdk",
- "ic-vetkeys 0.3.0",
+ "ic-vetkeys 0.4.0",
 ]
 
 [[package]]
