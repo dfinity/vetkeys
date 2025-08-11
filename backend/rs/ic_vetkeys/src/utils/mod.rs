@@ -120,7 +120,11 @@ impl G2PrecomputedTable {
             s
         };
 
-        let mut accum = if let Some(add) = extra_add { ic_bls12_381::G2Projective::from(add) } else { ic_bls12_381::G2Projective::identity() };
+        let mut accum = if let Some(add) = extra_add {
+            ic_bls12_381::G2Projective::from(add)
+        } else {
+            ic_bls12_381::G2Projective::identity()
+        };
 
         for i in 0..Self::WINDOWS {
             let tbl_for_i = &self.tbl[Self::WINDOW_ELEMENTS * i..Self::WINDOW_ELEMENTS * (i + 1)];
