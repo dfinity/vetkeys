@@ -191,7 +191,7 @@ impl G2PrecomputedTable {
 
         let index = index.wrapping_sub(1);
         for (idx, v) in from.iter().enumerate() {
-            val.conditional_assign(&v, usize::ct_eq(&idx, &index));
+            val.conditional_assign(v, usize::ct_eq(&idx, &index));
         }
 
         val
