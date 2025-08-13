@@ -1,10 +1,11 @@
 <script lang="ts">
-	import { chats, selectedChatId, messages, chatIdToString } from '../stores/chat.svelte';
+	import { chats, selectedChatId, messages } from '../stores/chat.svelte';
 	import MessageBubble from './MessageBubble.svelte';
 	import type { Message, User } from '../types';
 	import { SvelteDate } from 'svelte/reactivity';
 	import { auth, getMyPrincipal } from '$lib/stores/auth.svelte';
-
+	import { chatIdToString } from '$lib/utils';
+	
 	let messagesContainer: HTMLDivElement | undefined = $state(undefined);
 	let autoScroll = $state(true);
 

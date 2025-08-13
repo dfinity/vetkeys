@@ -1,10 +1,11 @@
 <script lang="ts">
-	import { chatActions, chatIdToString, chats, selectedChatId } from '../stores/chat.svelte';
+	import { chatActions, chats, selectedChatId } from '../stores/chat.svelte';
 	import ChatHeader from './ChatHeader.svelte';
 	import MessageHistory from './MessageHistory.svelte';
 	import MessageInput from './MessageInput.svelte';
 	import type { FileUpload } from '../types';
-
+	import { chatIdToString } from '$lib/utils';
+	
 	let { isMobile, onMobileBack } = $props();
 
 	const selectedChat = $derived(

@@ -329,7 +329,9 @@ fn rotate_chat_vetkey(chat_id: ChatId) -> Result<VetKeyEpochId, String> {
     ensure_user_has_access_to_chat_at_epoch(caller, chat_id, latest_epoch_metadata.epoch_id)?;
 
     let messages_start_with_id = CHAT_TO_MESSAGE_COUNTERS.with_borrow(|counters| {
-        counters.get(&chat_id).expect("bug: uninitialized chat message counter")
+        counters
+            .get(&chat_id)
+            .expect("bug: uninitialized chat message counter")
     });
 
     let new_vetkey_epoch_id = CHAT_TO_VETKEYS_METADATA.with_borrow_mut(|metadata| {
@@ -486,9 +488,19 @@ fn get_my_chat_ids() -> Vec<(ChatId, ChatMessageId)> {
     let caller = ic_cdk::api::msg_caller();
     USER_TO_CHAT_MAP.with_borrow(|map| {
         CHAT_TO_MESSAGE_COUNTERS.with_borrow(|counters| {
-        map.keys_range((caller, ChatId::MIN_VALUE, VetKeyEpochId(0))..)
-            .take_while(|(user, _, _)| user == &caller)
-                    .map(|(_, chat_id, _)| (chat_id, ChatMessageId(counters.get(&chat_id).expect("bug: uninitialized chat message counter").0)))
+            map.keys_range((caller, ChatId::MIN_VALUE, VetKeyEpochId(0))..)
+                .take_while(|(user, _, _)| user == &caller)
+                .map(|(_, chat_id, _)| {
+                    (
+                        chat_id,
+                        ChatMessageId(
+                            counters
+                                .get(&chat_id)
+                                .expect("bug: uninitialized chat message counter")
+                                .0,
+                        ),
+                    )
+                })
                 .collect()
         })
     })
@@ -675,7 +687,7 @@ async fn get_encrypted_vetkey_for_my_cache_storage(
         })
         .await;
 
-    serde_bytes::ByteBuf::from(encrypted_vetkey.into_bytes())
+    serde_bytes::ByteBuf::from(encrypted_vetkey.as_ref().to_vec())
 }
 
 #[ic_cdk::update]
@@ -689,7 +701,7 @@ async fn get_vetkey_verification_key_for_my_cache_storage() -> serde_bytes::Byte
         })
         .await;
 
-    serde_bytes::ByteBuf::from(verification_key.into_bytes())
+    serde_bytes::ByteBuf::from(verification_key.as_ref().to_vec())
 }
 
 #[ic_cdk::update]
@@ -829,7 +841,9 @@ fn modify_group_chat_participants(
     new_participants.sort();
 
     let messages_start_with_id = CHAT_TO_MESSAGE_COUNTERS.with_borrow(|counters| {
-        counters.get(&chat_id).expect("bug: uninitialized chat message counter")
+        counters
+            .get(&chat_id)
+            .expect("bug: uninitialized chat message counter")
     });
 
     let new_vetkey_epoch_id = CHAT_TO_VETKEYS_METADATA.with_borrow_mut(|metadata| {

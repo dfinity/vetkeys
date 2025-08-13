@@ -9,7 +9,7 @@ import type {
 	VetKeyEpochMetadata
 } from '../../declarations/encrypted_chat/encrypted_chat.did';
 import { Principal } from '@dfinity/principal';
-import { chatIdToString, stringifyBigInt } from '$lib/stores/chat.svelte';
+import { chatIdToString, stringifyBigInt } from '$lib/utils';
 import { TransportSecretKey, EncryptedVetKey, DerivedPublicKey, VetKey } from '@dfinity/vetkeys';
 
 // Dummy API service that simulates backend calls

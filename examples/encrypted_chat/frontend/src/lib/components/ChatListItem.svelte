@@ -2,7 +2,7 @@
 	import { createEventDispatcher } from 'svelte';
 	import { Clock, Users, User, Loader2, AlertCircle, CheckCircle } from 'lucide-svelte';
 	import type { Chat } from '../types';
-	import { chatIdToString } from '$lib/stores/chat.svelte';
+	import { chatIdToString } from '$lib/utils';
 
 	export let chat: Chat;
 	export let isSelected = false;

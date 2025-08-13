@@ -1,6 +1,6 @@
 import { get, set, del, clear, keys } from 'idb-keyval';
 import type { Message, Chat, UserConfig } from '../types';
-import { chatIdToString } from '$lib/stores/chat.svelte';
+import { chatIdToString } from '$lib/utils';
 
 // IndexedDB storage service for persistent chat data
 export class StorageService {

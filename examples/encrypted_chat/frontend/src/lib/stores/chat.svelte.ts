@@ -1,4 +1,11 @@
-import type { Chat, Message, UserConfig, Notification, SymmetricRatchetStats } from '../types';
+import {
+	type Chat,
+	type Message,
+	type UserConfig,
+	type Notification,
+	type SymmetricRatchetStats,
+	VetKeyEncryptedCache
+} from '../types';
 import { chatAPI } from '../services/api';
 import { storageService } from '../services/storage';
 import { SvelteDate } from 'svelte/reactivity';
@@ -11,12 +18,19 @@ import type {
 	ChatId,
 	EncryptedMessage,
 	VetKeyEpochMetadata,
-	UserMessage,
-	GroupChatMetadata
+	UserMessage
 } from '../../declarations/encrypted_chat/encrypted_chat.did';
 import { Principal } from '@dfinity/principal';
 import { SvelteMap } from 'svelte/reactivity';
 import { DerivedKeyMaterial, deriveSymmetricKey } from '@dfinity/vetkeys';
+import {
+	chatIdFromString,
+	chatIdToString,
+	chatIdVetKeyEpochToString,
+	sizePrefixedBytesFromString,
+	stringifyBigInt,
+	uBigIntTo8ByteUint8ArrayBigEndian
+} from '$lib/utils';
 
 const DOMAIN_RATCHET_INIT = sizePrefixedBytesFromString('ic-vetkeys-chat-example-ratchet-init');
 const DOMAIN_RATCHET_STEP = sizePrefixedBytesFromString('ic-vetkeys-chat-example-ratchet-step');
@@ -44,12 +58,13 @@ const chatIdStringToVetKeyEpochMetadata = new SvelteMap<string, VetKeyEpochMetad
 
 type KeyState =
 	| { status: 'missing' }
-	| { status: 'loading'; promise: Promise<CryptoKey> }
+	| { status: 'loading'; promise: Promise<{ key: CryptoKey; symmetricKeyEpoch: bigint }> }
 	| { status: 'ready'; symmetricKeyEpoch: bigint; key: CryptoKey }
 	| { status: 'error'; error: string };
 
 export const chatIdStringToEpochKeyState = new SvelteMap<string, KeyState>();
 
+// eslint-disable-next-line svelte/prefer-svelte-reactivity
 const chatIdStringToNumberOfMessagesIs = new Map<string, bigint>();
 export const chatIdStringToNumberOfMessagesShould = new SvelteMap<string, bigint>();
 
@@ -109,19 +124,44 @@ export function initVetKeyReactions() {
 				}
 				const actor = getActor();
 				if (!actor) throw new Error('Not authenticated');
-				const chatId = chatIdFromStr(chatIdStr);
+				const chatId = chatIdFromString(chatIdStr);
 
-				const p1 = chatAPI.getVetKey(actor, chatId, meta.metadata.epoch_id);
-				const p2 = Promise.resolve(p1).then(async (vetKey) => {
-					const rootKey = deriveSymmetricKey(new Uint8Array(), DOMAIN_RATCHET_INIT, 32);
+				const vetKeyEncryptedCache = new VetKeyEncryptedCache(getMyPrincipal(), actor);
+				const rootKeyPromise = vetKeyEncryptedCache
+					.fetchAndDecryptFor(chatId, meta.metadata.epoch_id)
+
+					.catch((error) => {
+						console.info(`User doesn't have key cache for chat ${chatIdStr}: `, error);
+						return Promise.resolve(chatAPI.getVetKey(actor, chatId, meta.metadata.epoch_id)).then(
+							(vetKey) => {
+								const rootKey = deriveSymmetricKey(
+									vetKey.signatureBytes(),
+									DOMAIN_RATCHET_INIT,
+									32
+								);
+								console.log(
+									`Computed rootKey=${stringifyBigInt(rootKey)} from vetKey=${stringifyBigInt(vetKey.signatureBytes())}`
+								);
+								console.log('starting to store the root key in cache: ', rootKey);
+								const vetKeyEncryptedCache = new VetKeyEncryptedCache(getMyPrincipal(), actor);
+								const keyState = { keyBytes: rootKey, symmetricKeyEpoch: 0n };
+								// await this future in background
+								vetKeyEncryptedCache.encryptAndStoreFor(chatId, meta.metadata.epoch_id, keyState);
+
+								return keyState;
+							}
+						);
+					});
+				const p2 = Promise.resolve(rootKeyPromise).then(async ({ keyBytes, symmetricKeyEpoch }) => {
 					const exportable = false;
-					return await globalThis.crypto.subtle.importKey(
+					const key = await globalThis.crypto.subtle.importKey(
 						'raw',
-						new Uint8Array(rootKey),
+						new Uint8Array(keyBytes),
 						'HKDF',
 						exportable,
 						['deriveKey', 'deriveBits']
 					);
+					return { key, symmetricKeyEpoch };
 				});
 
 				chatIdStringToEpochKeyState.set(key, {
@@ -213,7 +253,7 @@ export const chatActions = {
 			}
 
 			for (const [chatIdStr, meta] of chatIdStringToVetKeyEpochMetadata.entries()) {
-				const chatId = chatIdFromStr(chatIdStr);
+				const chatId = chatIdFromString(chatIdStr);
 
 				const participants = meta.status === 'ready' ? meta.metadata.participants : [];
 				if (!participants) {
@@ -317,7 +357,6 @@ export const chatActions = {
 					new Uint8Array(m.content),
 					m.metadata.sender_message_id
 				);
-				`/// decryptMessageContent: ${chatIdToString(chatId)} vetkeyEpoch: ${BigInt(m.metadata.vetkey_epoch).toString()} symmetricKeyEpoch: ${BigInt(m.metadata.symmetric_key_epoch).toString()} sender: ${m.metadata.sender.toText()} userMessageId: ${m.metadata.sender_message_id.toString()}`;
 				m.content = plaintextMessageContent;
 				mapped.push(toUiMessage(chatIdToString(chatId), m));
 			}
@@ -326,14 +365,11 @@ export const chatActions = {
 			} else {
 				console.log('loadChatMessages: no messages loaded for chat:', chatIdStr);
 			}
-            // Reassign to trigger reactivity for consumers relying on identity changes
-            messages.state = {
-                ...messages.state,
-                [chatIdStr]: [
-                    ...((messages.state[chatIdStr] as Message[] | undefined) ?? []),
-                    ...mapped
-                ]
-            };
+			// Reassign to trigger reactivity for consumers relying on identity changes
+			messages.state = {
+				...messages.state,
+				[chatIdStr]: [...((messages.state[chatIdStr] as Message[] | undefined) ?? []), ...mapped]
+			};
 			if (mapped.length !== 0) {
 				const pos = chats.state.findIndex((c) => chatIdToString(c.id) === chatIdStr);
 				const lastMessageBefore = chats.state[pos].lastMessage;
@@ -623,20 +659,6 @@ function getActor(): ActorSubclass<_SERVICE> | undefined {
 	}
 }
 
-export function chatIdToString(chatId: ChatId): string {
-	if ('Group' in chatId) return `group/${chatId.Group.toString()}`;
-	const [a, b] = chatId.Direct;
-	return `direct/${a.toString()}/${b.toString()}`;
-}
-
-export function chatIdFromStr(chatIdStr: string): ChatId {
-	if (typeof chatIdStr !== 'string')
-		throw new Error('chatIdStr is not a string but ' + typeof chatIdStr);
-	if (chatIdStr.startsWith('group/')) return { Group: BigInt(chatIdStr.slice(6)) };
-	const [a, b] = chatIdStr.split('/').slice(1);
-	return { Direct: [Principal.fromText(a), Principal.fromText(b)] };
-}
-
 function shortenId(id: string): string {
 	return id.length > 8 ? `${id.slice(0, 6)}…${id.slice(-2)}` : id;
 }
@@ -661,10 +683,10 @@ function toUiMessage(chatIdStr: string, m: EncryptedMessage): Message {
 			? getMyPrincipal().toString()
 			: senderPrincipal;
 	const contentStr = new TextDecoder().decode(new Uint8Array(m.content));
-	const contentTyped: {
+	const contentTyped = JSON.parse(contentStr) as {
 		content: string;
 		fileData?: { name: string; size: number; type: string; data: ArrayBuffer };
-	} = JSON.parse(contentStr);
+	};
 	return {
 		id: m.metadata.chat_message_id.toString(),
 		chatId: chatIdStr,
@@ -695,7 +717,10 @@ async function ensureVetKeyEpochMetadata(actor: ActorSubclass<_SERVICE>, chatId:
 			})
 			.catch((error) => {
 				// transition to error so UI can react
-				chatIdStringToVetKeyEpochMetadata.set(chatIdStr, { status: 'error', error });
+				chatIdStringToVetKeyEpochMetadata.set(chatIdStr, {
+					status: 'error',
+					error: error instanceof Error ? error.message : 'Unknown error'
+				});
 				console.log('ensureVetKeyEpochMetadata error', chatIdStr);
 				throw error;
 			});
@@ -707,8 +732,7 @@ async function fastForwardSymmetricRatchetWithoutSavingUntil(
 	vetkeyEpoch: bigint,
 	symmetricKeyEpoch: bigint
 ): Promise<DerivedKeyMaterial> {
-	const chatIdStr = chatIdToString(chatId);
-	const mapKey = `${chatIdStr}/${vetkeyEpoch.toString()}`;
+	const mapKey = chatIdVetKeyEpochToString(chatId, vetkeyEpoch);
 	const cur = chatIdStringToEpochKeyState.get(mapKey);
 	if (!cur) {
 		throw new Error('Bug: failed to get epoch key');
@@ -741,20 +765,19 @@ async function ensureRootKey(actor: ActorSubclass<_SERVICE>, chatId: ChatId, epo
 
 	if (cur?.status === 'loading') {
 		await cur.promise
-			.then((key) => {
+			.then(({ key, symmetricKeyEpoch }) => {
 				console.log('ensureRootKey ready', chatIdStr);
 				chatIdStringToEpochKeyState.set(mapKey, {
 					status: 'ready',
-					symmetricKeyEpoch: 0n,
+					symmetricKeyEpoch,
 					key
 				});
-				return key;
 			})
 			.catch((error) => {
 				console.log('ensureRootKey error', chatIdStr);
 				chatIdStringToEpochKeyState.set(mapKey, {
 					status: 'error',
-					error
+					error: error instanceof Error ? error.message : 'Unknown error'
 				});
 				throw error;
 			});
@@ -769,8 +792,7 @@ async function symmetricRatchetUntil(
 	while ((await getCurrentSymmetricEpoch(chatId, vetkeyEpoch)) < symmetricKeyEpoch) {
 		try {
 			const currentSymmetricEpoch = await getCurrentSymmetricEpoch(chatId, vetkeyEpoch);
-			const chatIdStr = chatIdToString(chatId);
-			const mapKey = `${chatIdStr}/${vetkeyEpoch.toString()}`;
+			const mapKey = chatIdVetKeyEpochToString(chatId, vetkeyEpoch);
 			chatIdStringToEpochKeyState.set(mapKey, {
 				status: 'ready',
 				symmetricKeyEpoch: currentSymmetricEpoch + 1n,
@@ -788,7 +810,7 @@ async function symmetricRatchet(
 	expectedSymmetricKeyEpoch: bigint
 ) {
 	const chatIdStr = chatIdToString(chatId);
-	const mapKey = `${chatIdStr}/${vetkeyEpoch.toString()}`;
+	const mapKey = chatIdVetKeyEpochToString(chatId, vetkeyEpoch);
 	const cur = chatIdStringToEpochKeyState.get(mapKey);
 	console.log(
 		`symmetricRatchet: ${chatIdStr} vetkeyEpoch: ${vetkeyEpoch.toString()} expectedSymmetricKeyEpoch: ${expectedSymmetricKeyEpoch.toString()}`
@@ -840,18 +862,8 @@ if (typeof window !== 'undefined') {
 	void chatActions.initialize();
 }
 
-export function stringifyBigInt(value: any): string {
-	return JSON.stringify(value, (_key, value) => {
-		if (typeof value === 'bigint') {
-			return value.toString();
-		}
-		return value;
-	});
-}
-
 async function getCurrentSymmetricEpoch(chatId: ChatId, vetkeyEpoch: bigint): Promise<bigint> {
-	const chatIdStr = chatIdToString(chatId);
-	const mapKey = `${chatIdStr}/${vetkeyEpoch.toString()}`;
+	const mapKey = chatIdVetKeyEpochToString(chatId, vetkeyEpoch);
 	while (true) {
 		const cur = chatIdStringToEpochKeyState.get(mapKey);
 		if (cur?.status === 'ready') {
@@ -867,7 +879,7 @@ async function getSymmetricEpochKey(
 	symmetricKeyEpoch: bigint
 ): Promise<DerivedKeyMaterial> {
 	const chatIdStr = chatIdToString(chatId);
-	const mapKey = `${chatIdStr}/${vetkeyEpoch.toString()}`;
+	const mapKey = chatIdVetKeyEpochToString(chatId, vetkeyEpoch);
 	let cur: KeyState | undefined = undefined; // wait in a loop with timeout till we get the key
 
 	console.log(
@@ -945,30 +957,10 @@ async function decryptMessageContent(
 	return await epochKey.decryptMessage(encryptedMessageContent, domainSeparator);
 }
 
-function messageEncryptionDomainSeparator(sender: Principal, messageId: bigint): Uint8Array {
+export function messageEncryptionDomainSeparator(sender: Principal, messageId: bigint): Uint8Array {
 	return new Uint8Array([
 		...DOMAIN_MESSAGE_ENCRYPTION,
 		...sender.toUint8Array(),
 		...uBigIntTo8ByteUint8ArrayBigEndian(messageId)
 	]);
-}
-
-function uBigIntTo8ByteUint8ArrayBigEndian(value: bigint): Uint8Array {
-	if (value < 0n) throw new RangeError('Accpts only bigint n >= 0');
-
-	const bytes = new Uint8Array(8);
-	for (let i = 0; i < 8; i++) {
-		bytes[i] = Number((value >> BigInt(i * 8)) & 0xffn);
-	}
-	return bytes;
-}
-
-function sizePrefixedBytesFromString(text: string): Uint8Array {
-	const bytes = new TextEncoder().encode(text);
-	if (bytes.length > 255) {
-		throw new Error('Text is too long');
-	}
-	const size = new Uint8Array(1);
-	size[0] = bytes.length & 0xff;
-	return new Uint8Array([...size, ...bytes]);
 }

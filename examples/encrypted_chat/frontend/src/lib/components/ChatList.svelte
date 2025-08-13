@@ -3,8 +3,6 @@
 		chats,
 		selectedChatId,
 		chatActions,
-		chatIdToString,
-		chatIdFromStr,
 		getNumberOfMessagesIs,
 		chatIdStringToNumberOfMessagesShould,
 		getChatIds
@@ -13,6 +11,7 @@
 	import UserProfile from './UserProfile.svelte';
 	import Button from './ui/Button.svelte';
 	import NewChatModal from './NewChatModal.svelte';
+	import { chatIdToString, chatIdFromString } from '$lib/utils';
 
 	$effect(() => {
 		console.log(`$effect loadChatMessages`);
@@ -64,7 +63,7 @@
 				isSelected={selectedChatId.state
 					? chatIdToString(selectedChatId.state) === chatIdToString(chat.id)
 					: false}
-				on:select={(e: CustomEvent<string>) => (selectedChatId.state = chatIdFromStr(e.detail))}
+				on:select={(e: CustomEvent<string>) => (selectedChatId.state = chatIdFromString(e.detail))}
 			/>
 		{:else}
 			<div class="p-8 text-center text-surface-600-500">
