@@ -1,7 +1,7 @@
 <script lang="ts">
-	import { Settings, X, Check } from 'lucide-svelte';
+	import { Settings, X, Check, LogOut } from 'lucide-svelte';
 	import { userConfig, chatActions } from '../stores/chat.svelte';
-	import { auth, getMyPrincipal } from '$lib/stores/auth.svelte';
+	import { auth, getMyPrincipal, logout } from '$lib/stores/auth.svelte';
 	import type { User } from '$lib/types';
 
 	const currentUser = $derived<{ state: User | null }>({
@@ -62,10 +62,15 @@
 				<h3 class="text-sm font-semibold">Name: ---<br /></h3>
 				<h4 class="text-xs font-semibold">{currentUser.state?.name}</h4>
 			</div>
+	</div>
+		<div class="flex items-center gap-2">
+			<button class="variant-ghost-surface btn-icon" onclick={logout} aria-label="Logout">
+				<LogOut class="h-5 w-5" />
+			</button>
+			<button class="variant-ghost-surface btn-icon" onclick={toggleConfig} aria-label="Settings">
+				<Settings class="h-5 w-5" />
+			</button>
 		</div>
-		<button class="variant-ghost-surface btn-icon" onclick={toggleConfig} aria-label="Settings">
-			<Settings class="h-5 w-5" />
-		</button>
 	</div>
 </div>
 
