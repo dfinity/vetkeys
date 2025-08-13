@@ -2,7 +2,7 @@ import type { Chat, Message, UserConfig, Notification, SymmetricRatchetStats } f
 import { chatAPI } from '../services/api';
 import { storageService } from '../services/storage';
 import { SvelteDate } from 'svelte/reactivity';
-import { auth } from '$lib/stores/auth.svelte';
+import { auth, getMyPrincipal } from '$lib/stores/auth.svelte';
 import { createActor } from '../../declarations/encrypted_chat';
 import { HttpAgent, type ActorSubclass } from '@dfinity/agent';
 import fetch from 'isomorphic-fetch';
@@ -326,7 +326,14 @@ export const chatActions = {
 			} else {
 				console.log('loadChatMessages: no messages loaded for chat:', chatIdStr);
 			}
-			messages.state[chatIdStr].push(...mapped);
+            // Reassign to trigger reactivity for consumers relying on identity changes
+            messages.state = {
+                ...messages.state,
+                [chatIdStr]: [
+                    ...((messages.state[chatIdStr] as Message[] | undefined) ?? []),
+                    ...mapped
+                ]
+            };
 			if (mapped.length !== 0) {
 				const pos = chats.state.findIndex((c) => chatIdToString(c.id) === chatIdStr);
 				const lastMessageBefore = chats.state[pos].lastMessage;
@@ -650,7 +657,9 @@ function toUiMessage(chatIdStr: string, m: EncryptedMessage): Message {
 			? auth.state.client.getIdentity().getPrincipal().toString()
 			: undefined;
 	const senderId =
-		currentPrincipal && senderPrincipal === currentPrincipal ? 'current-user' : senderPrincipal;
+		currentPrincipal && senderPrincipal === currentPrincipal
+			? getMyPrincipal().toString()
+			: senderPrincipal;
 	const contentStr = new TextDecoder().decode(new Uint8Array(m.content));
 	const contentTyped: {
 		content: string;

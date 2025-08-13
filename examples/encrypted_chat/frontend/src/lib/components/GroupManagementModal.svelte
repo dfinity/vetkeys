@@ -2,6 +2,9 @@
 	import { createEventDispatcher } from 'svelte';
 	import { UserPlus, UserMinus, X, Save, Users } from 'lucide-svelte';
 	import type { GroupChat, User } from '../types';
+	import { getMyPrincipal } from '$lib/stores/auth.svelte';
+	import { Principal } from '@dfinity/principal';
+	import type { Principal as PrincipalType } from '@dfinity/principal';
 
 	export let show = false;
 	export let groupChat: GroupChat;
@@ -11,17 +14,42 @@
 		save: { addUsers: string[]; removeUsers: string[]; allowHistoryForNew: boolean };
 	}>();
 
-	// Dummy users that could be added to the group
-	const availableUsers: User[] = [
-		{ id: 'user-frank', name: 'Frank Miller', avatar: '👨‍🏫', isOnline: true },
-		{ id: 'user-grace', name: 'Grace Lee', avatar: '👩‍⚕️', isOnline: false },
-		{ id: 'user-henry', name: 'Henry Taylor', avatar: '👨‍🎤', isOnline: true },
-		{ id: 'user-ivy', name: 'Ivy Chen', avatar: '👩‍🎨', isOnline: false }
-	];
-
 	let selectedToAdd: string[] = [];
 	let selectedToRemove: string[] = [];
-	let allowHistoryForNew = false;
+	let allowHistoryForNew = true;
+	let usersToShow: User[] = [];
+
+	// Text input for adding multiple principals
+	let principalsInput = '';
+	let validPrincipalStrings: string[] = [];
+	let invalidPrincipalTokens: string[] = [];
+
+	// Reactively parse and validate principals from text input
+	$: {
+		const rawTokens = principalsInput
+			.split(/[\s,;\n\r]+/)
+			.map((t) => t.trim())
+			.filter((t) => t.length > 0);
+		const uniqueTokens = Array.from(new Set(rawTokens));
+		const nextValid: string[] = [];
+		const nextInvalid: string[] = [];
+		for (const token of uniqueTokens) {
+			try {
+				// Validate deserialization. Keep original string for dispatching.
+				Principal.fromText(token);
+				nextValid.push(token);
+			} catch (_) {
+				nextInvalid.push(token);
+			}
+		}
+		validPrincipalStrings = nextValid;
+		invalidPrincipalTokens = nextInvalid;
+	}
+
+	// Total adds including typed principals
+	$: totalAddCount = selectedToAdd.length + validPrincipalStrings.length;
+	$: canSave =
+		(totalAddCount > 0 || selectedToRemove.length > 0) && invalidPrincipalTokens.length === 0;
 
 	function toggleAddUser(userId: string) {
 		if (selectedToAdd.includes(userId)) {
@@ -40,8 +68,13 @@
 	}
 
 	function handleSave() {
+		// Block saving if any invalid principals are present
+		if (invalidPrincipalTokens.length > 0) {
+			return;
+		}
+		const combinedAddUsers = Array.from(new Set([...selectedToAdd, ...validPrincipalStrings]));
 		dispatch('save', {
-			addUsers: selectedToAdd,
+			addUsers: combinedAddUsers,
 			removeUsers: selectedToRemove,
 			allowHistoryForNew
 		});
@@ -53,19 +86,18 @@
 		selectedToAdd = [];
 		selectedToRemove = [];
 		allowHistoryForNew = false;
+		principalsInput = '';
+		validPrincipalStrings = [];
+		invalidPrincipalTokens = [];
 		dispatch('close');
 	}
 
-	function canRemoveUser(userId: string): boolean {
+	function canRemoveUser(userId: PrincipalType): boolean {
 		// Can't remove current user or admin
-		return userId !== 'current-user' && userId !== groupChat.adminId;
+		return (
+			userId.toString() !== getMyPrincipal().toString() && userId.toString() !== groupChat.adminId
+		);
 	}
-
-	// Filter available users to only show those not in the group
-	let usersToShow: User[] = [];
-	$: usersToShow = availableUsers.filter(
-		(user) => !groupChat.participants.some((p) => p.id === user.id)
-	);
 </script>
 
 {#if show}
@@ -111,12 +143,12 @@
 													: 'bg-surface-400'}"
 											></div>
 											{member.isOnline ? 'Online' : 'Offline'}
-											{#if member.id === groupChat.adminId}
+											{#if member.id.toString() === groupChat.adminId}
 												<span class="bg-primary-500 rounded px-2 py-0.5 text-xs text-white"
 													>Admin</span
 												>
 											{/if}
-											{#if member.id === 'current-user'}
+											{#if member.id.toString() === getMyPrincipal().toString()}
 												<span class="bg-surface-400 rounded px-2 py-0.5 text-xs text-white"
 													>You</span
 												>
@@ -128,8 +160,8 @@
 								{#if canRemoveUser(member.id)}
 									<button
 										class="variant-ghost-error btn-icon"
-										onclick={() => toggleRemoveUser(member.id)}
-										class:variant-filled-error={selectedToRemove.includes(member.id)}
+										onclick={() => toggleRemoveUser(member.id.toString())}
+										class:variant-filled-error={selectedToRemove.includes(member.id.toString())}
 										title="Remove from group"
 									>
 										<UserMinus class="h-4 w-4" />
@@ -140,55 +172,37 @@
 					</div>
 				</div>
 
-				<!-- Add New Members -->
-				{#if usersToShow.length > 0}
-					<div>
-						<h3 class="mb-3 font-semibold">Add Members</h3>
-						<div class="space-y-2">
-							{#each usersToShow as user (user.id)}
-								<div
-									class="bg-surface-200-700-token flex items-center justify-between rounded-lg p-3"
-								>
-									<div class="flex items-center gap-3">
-										<div
-											class="avatar bg-primary-500 flex h-8 w-8 items-center justify-center rounded-full text-sm"
-										>
-											{user.avatar || '👤'}
-										</div>
-										<div>
-											<p class="text-sm font-medium">{user.name}</p>
-											<div class="text-surface-600-300-token flex items-center gap-2 text-xs">
-												<div
-													class="h-2 w-2 rounded-full {user.isOnline
-														? 'bg-success-500'
-														: 'bg-surface-400'}"
-												></div>
-												{user.isOnline ? 'Online' : 'Offline'}
-											</div>
-										</div>
-									</div>
+				<!-- Add by Principal Text Input -->
+				<div>
+					<h3 class="mb-3 font-semibold">Add by Principal</h3>
+					<div class="space-y-2">
+						<textarea
+							class="border-surface-300-600-token w-full rounded-lg border p-3 text-sm focus:outline-none"
+							class:border-error-500={invalidPrincipalTokens.length > 0}
+							rows="3"
+							bind:value={principalsInput}
+							placeholder="Enter one or more principals separated by commas or whitespace"
+						></textarea>
 
-									<button
-										class="variant-ghost-success btn-icon"
-										onclick={() => toggleAddUser(user.id)}
-										class:variant-filled-success={selectedToAdd.includes(user.id)}
-										title="Add to group"
-									>
-										<UserPlus class="h-4 w-4" />
-									</button>
+						{#if invalidPrincipalTokens.length > 0}
+							<div class="text-error-500 text-xs">
+								Invalid principals:
+								<div class="mt-1 flex flex-wrap gap-1">
+									{#each invalidPrincipalTokens as t}
+										<span class="bg-error-500/10 text-error-600 rounded px-2 py-0.5">{t}</span>
+									{/each}
 								</div>
-							{/each}
-						</div>
+							</div>
+						{:else if validPrincipalStrings.length > 0}
+							<div class="text-surface-600-300-token text-xs">
+								Will add {validPrincipalStrings.length} principal{validPrincipalStrings.length !== 1 ? 's' : ''}
+							</div>
+						{/if}
 					</div>
-				{:else}
-					<div class="text-surface-600-300-token py-8 text-center">
-						<Users class="mx-auto mb-2 h-12 w-12 opacity-50" />
-						<p>No additional users available to add</p>
-					</div>
-				{/if}
+				</div>
 
-				<!-- Options -->
-				{#if selectedToAdd.length > 0}
+			<!-- Options -->
+			{#if totalAddCount > 0}
 					<div>
 						<h3 class="mb-3 font-semibold">Options</h3>
 						<label
@@ -205,14 +219,14 @@
 					</div>
 				{/if}
 
-				<!-- Summary -->
-				{#if selectedToAdd.length > 0 || selectedToRemove.length > 0}
+			<!-- Summary -->
+			{#if totalAddCount > 0 || selectedToRemove.length > 0}
 					<div class="border-primary-500/20 bg-primary-500/10 rounded-lg border p-4">
 						<h4 class="mb-2 text-sm font-semibold">Changes Summary</h4>
 						<div class="space-y-1 text-sm">
-							{#if selectedToAdd.length > 0}
+						{#if totalAddCount > 0}
 								<p class="text-success-500">
-									+ {selectedToAdd.length} member{selectedToAdd.length !== 1 ? 's' : ''} to add
+								+ {totalAddCount} member{totalAddCount !== 1 ? 's' : ''} to add
 								</p>
 							{/if}
 							{#if selectedToRemove.length > 0}
@@ -238,7 +252,7 @@
 				<button
 					class="variant-filled-primary btn"
 					onclick={handleSave}
-					disabled={selectedToAdd.length === 0 && selectedToRemove.length === 0}
+					disabled={!canSave}
 					title="Save Changes"
 					aria-label="Save Changes"
 				>

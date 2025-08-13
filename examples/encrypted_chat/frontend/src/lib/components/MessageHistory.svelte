@@ -19,11 +19,14 @@
 		selectedChatId.state ? (messages.state[chatIdToString(selectedChatId.state)] ?? []) : []
 	);
 
-	// Scroll to bottom when new messages arrive
+	// Scroll to bottom when new messages arrive (after DOM updates)
 	$effect(() => {
-		if (autoScroll && messagesContainer && selectedChatMessages) {
-			// eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-			messagesContainer.scrollTop = messagesContainer.scrollHeight;
+		const messageCount = selectedChatMessages.length;
+		if (autoScroll && messagesContainer) {
+			requestAnimationFrame(() => {
+				if (!messagesContainer) return;
+				messagesContainer.scrollTop = messagesContainer.scrollHeight;
+			});
 		}
 	});
 
@@ -38,8 +41,11 @@
 
 	function scrollToBottom() {
 		if (messagesContainer) {
-			messagesContainer.scrollTop = messagesContainer.scrollHeight;
-			autoScroll = true;
+			requestAnimationFrame(() => {
+				if (!messagesContainer) return;
+				messagesContainer.scrollTop = messagesContainer.scrollHeight;
+				autoScroll = true;
+			});
 		}
 	}
 
@@ -51,8 +57,8 @@
 
 	function isOwnMessage(message: Message): boolean {
 		if (auth.state.label !== 'initialized') throw new Error('Unexpectedly not authenticated');
-		const myPrincipal = auth.state.client.getIdentity().getPrincipal();
-		return message.senderId === myPrincipal.toString();
+		console.log('isOwnMessage', message.senderId, getMyPrincipal().toString());
+		return message.senderId === getMyPrincipal().toString();
 	}
 
 	function shouldShowAvatar(message: Message, index: number): boolean {
