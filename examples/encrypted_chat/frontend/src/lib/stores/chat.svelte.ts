@@ -366,62 +366,82 @@ export const chatActions = {
 
 		const chatIdStr = chatIdToString(chatId);
 
-		if (auth.state.label !== 'initialized') {
-			throw new Error('Unexpectedly not authenticated');
-		}
-		const myPrincipal = auth.state.client.getIdentity().getPrincipal();
+		let repetitions = 0;
+		const MAX_REPETITIONS = 10;
 
-		try {
-			const vetKeyEpochMeta = chatIdStringToVetKeyEpochMetadata.get(chatIdStr);
-			if (vetKeyEpochMeta?.status !== 'ready') {
-				console.error('Failed to get vetkey epoch metadata for chat:', chatId);
-				return;
+		// reencrypt and resend the message if vetkey or symmetric key epoch has changed
+		while (repetitions < MAX_REPETITIONS) {
+			if (auth.state.label !== 'initialized') {
+				throw new Error('Unexpectedly not authenticated');
 			}
-			const vetKeyEpochId = vetKeyEpochMeta.metadata.epoch_id;
-			const elapsedSinceVetKeyEpoch =
-				BigInt(Date.now()) * 1_000_000n - vetKeyEpochMeta.metadata.creation_timestamp;
-			const symmetricKeyEpoch =
-				elapsedSinceVetKeyEpoch / vetKeyEpochMeta.metadata.symmetric_key_rotation_duration;
+			const myPrincipal = auth.state.client.getIdentity().getPrincipal();
 
-			const buf = new Uint8Array(8);
-			globalThis.crypto.getRandomValues(buf);
-			let message_id = 0n;
-			for (const b of buf) message_id = (message_id << 8n) | BigInt(b);
+			try {
+				const vetKeyEpochMeta = chatIdStringToVetKeyEpochMetadata.get(chatIdStr);
+				if (vetKeyEpochMeta?.status !== 'ready') {
+					console.error('Failed to get vetkey epoch metadata for chat:', chatId);
+					return;
+				}
+				const vetKeyEpochId = vetKeyEpochMeta.metadata.epoch_id;
+				const elapsedSinceVetKeyEpoch =
+					BigInt(Date.now()) * 1_000_000n - vetKeyEpochMeta.metadata.creation_timestamp;
+				const symmetricKeyEpoch =
+					elapsedSinceVetKeyEpoch / vetKeyEpochMeta.metadata.symmetric_key_rotation_duration;
 
-			const messageContent = JSON.stringify({ content, fileData });
-			const encryptedMessageContent = await encryptMessageContent(
-				chatId,
-				vetKeyEpochId,
-				symmetricKeyEpoch,
-				myPrincipal,
-				new TextEncoder().encode(messageContent),
-				message_id
-			);
+				const buf = new Uint8Array(8);
+				globalThis.crypto.getRandomValues(buf);
+				let messageId = 0n;
+				for (const b of buf) messageId = (messageId << 8n) | BigInt(b);
 
-			const message: UserMessage = {
-				vetkey_epoch: vetKeyEpochId,
-				content: encryptedMessageContent,
-				symmetric_key_epoch: symmetricKeyEpoch,
-				message_id
-			};
+				const messageContent = JSON.stringify({ content, fileData });
+				const encryptedMessageContent = await encryptMessageContent(
+					chatId,
+					vetKeyEpochId,
+					symmetricKeyEpoch,
+					myPrincipal,
+					new TextEncoder().encode(messageContent),
+					messageId
+				);
 
-			if ('Direct' in chatId) {
-				const receiver =
-					chatId.Direct[0].toString() === myPrincipal.toString()
-						? chatId.Direct[1]
-						: chatId.Direct[0];
-				await chatAPI.sendDirectMessage(actor, receiver, message);
-			} else {
-				await chatAPI.sendGroupMessage(actor, chatId.Group, message);
+				const message: UserMessage = {
+					vetkey_epoch: vetKeyEpochId,
+					content: encryptedMessageContent,
+					symmetric_key_epoch: symmetricKeyEpoch,
+					message_id: messageId
+				};
+
+				if ('Direct' in chatId) {
+					const receiver =
+						chatId.Direct[0].toString() === myPrincipal.toString()
+							? chatId.Direct[1]
+							: chatId.Direct[0];
+					await chatAPI.sendDirectMessage(actor, receiver, message);
+				} else {
+					await chatAPI.sendGroupMessage(actor, chatId.Group, message);
+				}
+				break;
+			} catch (error) {
+				if (
+					error instanceof Error &&
+					(error.message.startsWith('Wrong vetkey epoch') ||
+						error.message.startsWith('Wrong symmetric key epoch'))
+				) {
+					console.info(
+						`Failed to send message - wrong vetkey or symmetric key epoch in message: ${error.message}`
+					);
+					await new Promise((resolve) => setTimeout(resolve, 1000));
+					repetitions++;
+					continue;
+				} else {
+					console.error('Failed to send message:', error);
+					chatActions.addNotification({
+						type: 'error',
+						title: 'Send Error',
+						message: 'Failed to send message. Please try again.',
+						isDismissible: true
+					});
+				}
 			}
-		} catch (error) {
-			console.error('Failed to send message:', error);
-			chatActions.addNotification({
-				type: 'error',
-				title: 'Send Error',
-				message: 'Failed to send message. Please try again.',
-				isDismissible: true
-			});
 		}
 	},
 
