@@ -41,19 +41,20 @@
 
 {#if show}
 	<div
-		class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+		class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
 		role="dialog"
 		aria-modal="true"
 	>
-		<Card class="w-full max-w-lg">
-			<div class="mb-4 flex items-center justify-between">
-				<h3 class="text-lg font-semibold">Create Chat</h3>
-				<button class="variant-ghost-surface btn-icon" onclick={close} aria-label="Close">
-					<X class="h-5 w-5" />
-				</button>
-			</div>
+		<Card class="w-full max-w-lg rounded-xl shadow-2xl ring-1 ring-black/10 dark:ring-white/10 bg-white dark:bg-neutral-900">
+			<div class="p-6 md:p-8">
+				<div class="mb-4 flex items-center justify-between border-b border-black/5 dark:border-white/10 pb-4">
+					<h3 class="text-lg font-semibold">Create Chat</h3>
+					<button class="variant-ghost-surface btn-icon" onclick={close} aria-label="Close">
+						<X class="h-5 w-5" />
+					</button>
+				</div>
 
-			<div class="mb-4 flex gap-2">
+				<div class="mb-4 flex gap-2">
 				<button
 					class="btn {tab === 'direct' ? 'variant-filled-primary' : 'variant-ghost-surface'}"
 					onclick={() => (tab = 'direct')}
@@ -68,34 +69,34 @@
 					<Users class="h-4 w-4" />
 					<span class="ml-1">Group</span>
 				</button>
-			</div>
+				</div>
 
-			{#if tab === 'direct'}
-				<div class="space-y-3">
+				{#if tab === 'direct'}
+					<div class="space-y-3">
 					<label class="block text-sm">
 						<span class="mb-1 block font-medium">Receiver Principal</span>
 						<input
-							class="w-full rounded border px-3 py-2"
+							class="w-full rounded-md border px-3 py-2 bg-white dark:bg-neutral-800"
 							bind:value={directPrincipal}
 							placeholder="aaaaa-aa"
 						/>
 					</label>
 					<div class="grid grid-cols-2 gap-3">
 						<label class="block text-sm">
-							<span class="mb-1 block font-medium">Rotation (min)</span>
+							<span class="mb-1 block font-medium">Symmetric Key Rotation (min)</span>
 							<input
 								type="number"
 								min="0"
-								class="w-full rounded border px-3 py-2"
+								class="w-full rounded-md border px-3 py-2 bg-white dark:bg-neutral-800"
 								bind:value={directRotationMinutes}
 							/>
 						</label>
 						<label class="block text-sm">
-							<span class="mb-1 block font-medium">Expiration (min)</span>
+							<span class="mb-1 block font-medium">Message Expiration (min)</span>
 							<input
 								type="number"
 								min="0"
-								class="w-full rounded border px-3 py-2"
+								class="w-full rounded-md border px-3 py-2 bg-white dark:bg-neutral-800"
 								bind:value={directExpirationMinutes}
 							/>
 						</label>
@@ -106,14 +107,14 @@
 							<span class="ml-1">Create</span>
 						</Button>
 					</div>
-				</div>
-			{:else}
-				<div class="space-y-3">
+					</div>
+				{:else}
+					<div class="space-y-3">
 					<label class="block text-sm">
 						<span class="mb-1 block font-medium">Participant Principals</span>
 						<textarea
 							rows="3"
-							class="w-full rounded border px-3 py-2"
+							class="w-full rounded-md border px-3 py-2 bg-white dark:bg-neutral-800"
 							bind:value={groupPrincipalsText}
 							placeholder="comma or space separated principals"
 						></textarea>
@@ -124,7 +125,7 @@
 							<input
 								type="number"
 								min="0"
-								class="w-full rounded border px-3 py-2"
+								class="w-full rounded-md border px-3 py-2 bg-white dark:bg-neutral-800"
 								bind:value={groupRotationMinutes}
 							/>
 						</label>
@@ -133,7 +134,7 @@
 							<input
 								type="number"
 								min="0"
-								class="w-full rounded border px-3 py-2"
+								class="w-full rounded-md border px-3 py-2 bg-white dark:bg-neutral-800"
 								bind:value={groupExpirationMinutes}
 							/>
 						</label>
@@ -144,8 +145,9 @@
 							<span class="ml-1">Create Group</span>
 						</Button>
 					</div>
-				</div>
-			{/if}
+					</div>
+				{/if}
+			</div>
 		</Card>
 	</div>
 {/if}

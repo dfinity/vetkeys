@@ -118,7 +118,7 @@
 						placeholder="7"
 					/>
 					<p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
-						How long to keep cached data before automatic cleanup
+						How long to keep symmetric key cache before automatic cleanup
 					</p>
 				</div>
 			</div>
