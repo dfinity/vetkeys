@@ -5,6 +5,8 @@
 	import { getMyPrincipal } from '$lib/stores/auth.svelte';
 	import { Principal } from '@dfinity/principal';
 	import type { Principal as PrincipalType } from '@dfinity/principal';
+	import Card from './ui/Card.svelte';
+	import Button from './ui/Button.svelte';
 
 	export let show = false;
 	export let groupChat: GroupChat;
@@ -102,24 +104,24 @@
 
 {#if show}
 	<!-- Backdrop -->
-	<div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+	<div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
 		<!-- Modal -->
-		<div
-			class="card max-h-[80vh] w-full max-w-2xl overflow-hidden rounded-xl shadow-2xl backdrop-blur-xl"
-		>
-			<!-- Header -->
-			<div class="border-surface-300-600-token flex items-center justify-between border-b p-6">
-				<div class="flex items-center gap-3">
-					<Users class="h-6 w-6" />
-					<h2 class="text-lg font-bold">Manage Group: {groupChat.name}</h2>
+		<Card class="w-full max-w-2xl rounded-xl shadow-2xl ring-1 ring-black/10 dark:ring-white/10 bg-white dark:bg-neutral-900">
+			<div class="p-6 md:p-8">
+				<!-- Header -->
+				<div class="mb-4 flex items-center justify-between border-b border-black/5 dark:border-white/10 pb-4">
+					<div class="flex items-center gap-3">
+						<Users class="h-6 w-6" />
+						<h2 class="text-lg font-semibold">Manage Group</h2>
+						<span class="text-surface-600-300-token text-sm truncate">{groupChat.name}</span>
+					</div>
+					<button class="variant-ghost-surface btn-icon" onclick={handleClose} aria-label="Close">
+						<X class="h-5 w-5" />
+					</button>
 				</div>
-				<button class="variant-ghost-surface btn-icon" onclick={handleClose} aria-label="Close">
-					<X class="h-5 w-5" />
-				</button>
-			</div>
 
-			<!-- Content -->
-			<div class="max-h-[60vh] space-y-6 overflow-y-auto p-6">
+				<!-- Content -->
+				<div class="max-h-[60vh] space-y-6 overflow-y-auto">
 				<!-- Current Members -->
 				<div>
 					<h3 class="mb-3 font-semibold">Current Members ({groupChat.participants.length})</h3>
@@ -237,29 +239,21 @@
 						</div>
 					</div>
 				{/if}
-			</div>
+				</div>
 
-			<!-- Footer -->
-			<div class="border-surface-300-600-token flex items-center justify-end gap-3 border-t p-6">
-				<button
-					class="variant-ghost-surface btn"
-					onclick={handleClose}
-					title="Cancel"
-					aria-label="Cancel"
-				>
-					<X class="h-4 w-4" />
-				</button>
-				<button
-					class="variant-filled-primary btn"
-					onclick={handleSave}
-					disabled={!canSave}
-					title="Save Changes"
-					aria-label="Save Changes"
-				>
-					<Save class="h-4 w-4" />
-				</button>
+				<!-- Footer -->
+				<div class="mt-4 flex justify-end gap-2">
+					<Button variant="ghost" onclick={handleClose} aria-label="Cancel">
+						<X class="h-4 w-4" />
+						<span class="ml-1">Cancel</span>
+					</Button>
+					<Button onclick={handleSave} disabled={!canSave} aria-label="Save Changes">
+						<Save class="h-4 w-4" />
+						<span class="ml-1">Save Changes</span>
+					</Button>
+				</div>
 			</div>
-		</div>
+		</Card>
 	</div>
 {/if}
 
