@@ -1,25 +1,28 @@
 <script lang="ts">
-	import { chats, selectedChatId, messages } from '../stores/chat.svelte';
+	import { chats, selectedChatId, messages, chatIdToString } from '../stores/chat.svelte';
 	import MessageBubble from './MessageBubble.svelte';
 	import type { Message, User } from '../types';
 	import { SvelteDate } from 'svelte/reactivity';
+	import { auth, getMyPrincipal } from '$lib/stores/auth.svelte';
 
 	let messagesContainer: HTMLDivElement | undefined = $state(undefined);
 	let autoScroll = $state(true);
 
 	const selectedChat = $derived(
 		selectedChatId.state
-			? (chats.state.find((chat) => chat.id === selectedChatId.state) ?? null)
+			? (chats.state.find((chat) => selectedChatId.state && chatIdToString(chat.id) === chatIdToString(selectedChatId.state)) ??
+				null)
 			: null
 	);
 
 	const selectedChatMessages = $derived(
-		selectedChatId.state ? (messages.state[selectedChatId.state] ?? []) : []
+		selectedChatId.state ? (messages.state[chatIdToString(selectedChatId.state)] ?? []) : []
 	);
 
 	// Scroll to bottom when new messages arrive
 	$effect(() => {
 		if (autoScroll && messagesContainer && selectedChatMessages) {
+			// eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
 			messagesContainer.scrollTop = messagesContainer.scrollHeight;
 		}
 	});
@@ -43,11 +46,13 @@
 	function getSender(message: Message): User | null {
 		if (!selectedChat) return null;
 
-		return selectedChat.participants.find((p) => p.id === message.senderId) || null;
+		return selectedChat.participants.find((p) => p.id.toString() === message.senderId) || null;
 	}
 
 	function isOwnMessage(message: Message): boolean {
-		return message.senderId === 'current-user';
+		if (auth.state.label !== 'initialized') throw new Error('Unexpectedly not authenticated');
+		const myPrincipal = auth.state.client.getIdentity().getPrincipal();
+		return message.senderId === myPrincipal.toString();
 	}
 
 	function shouldShowAvatar(message: Message, index: number): boolean {
@@ -96,8 +101,13 @@
 	function getParticipantInfo(): string {
 		if (!selectedChat) return '';
 
+		if (auth.state.label !== 'initialized') throw new Error('Unexpectedly not authenticated');
+		const myPrincipal = auth.state.client.getIdentity().getPrincipal();
+
 		if (selectedChat.type === 'direct') {
-			const otherUser = selectedChat.participants.find((p) => p.id !== 'current-user');
+			const otherUser = selectedChat.participants.find(
+				(p) => p.id.toString() !== myPrincipal.toString()
+			);
 			return otherUser ? `This is the beginning of your conversation with ${otherUser.name}` : '';
 		}
 
@@ -121,14 +131,18 @@
 						class="avatar bg-primary-500 mb-4 flex h-16 w-16 items-center justify-center rounded-full text-2xl"
 					>
 						{#if selectedChat.type === 'direct'}
-							{selectedChat.participants.find((p) => p.id !== 'current-user')?.avatar || '👤'}
+							{selectedChat.participants.find(
+								(p) => p.id.toString() !== getMyPrincipal().toString()
+							)?.avatar || '👤'}
 						{:else}
 							{selectedChat.avatar || '👥'}
 						{/if}
 					</div>
 					<h3 class="mb-2 text-lg font-semibold">
 						{#if selectedChat.type === 'direct'}
-							{selectedChat.participants.find((p) => p.id !== 'current-user')?.name || 'Unknown'}
+							{selectedChat.participants.find(
+								(p) => p.id.toString() !== getMyPrincipal().toString()
+							)?.name || 'Me'}
 						{:else}
 							{selectedChat.name}
 						{/if}

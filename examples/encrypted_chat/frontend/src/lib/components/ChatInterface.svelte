@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { chatActions, chats, selectedChatId } from '../stores/chat.svelte';
+	import { chatActions, chatIdToString, chats, selectedChatId } from '../stores/chat.svelte';
 	import ChatHeader from './ChatHeader.svelte';
 	import MessageHistory from './MessageHistory.svelte';
 	import MessageInput from './MessageInput.svelte';
@@ -9,7 +9,11 @@
 
 	const selectedChat = $derived(
 		selectedChatId.state
-			? (chats.state.find((chat) => chat.id === selectedChatId.state) ?? null)
+			? chats.state.find((chat) =>
+					selectedChatId.state
+						? chatIdToString(chat.id) === chatIdToString(selectedChatId.state)
+						: false
+				)
 			: null
 	);
 
@@ -29,7 +33,6 @@
 				data: arrayBuffer
 			};
 		}
-
 		await chatActions.sendMessage(selectedChat.id, content, fileData);
 	}
 </script>

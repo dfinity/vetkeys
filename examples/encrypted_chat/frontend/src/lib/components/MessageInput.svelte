@@ -18,7 +18,7 @@
 	let fileInput: HTMLInputElement;
 	let selectedFile: FileUpload | null = null;
 
-	const MAX_FILE_SIZE = 100 * 1024; // 100KB
+	const MAX_FILE_SIZE_1_MB = 1_000 * 1024; // 100KB
 
 	function handleSend() {
 		const content = messageText.trim();
@@ -51,11 +51,11 @@
 
 		if (!file) return;
 
-		if (file.size > MAX_FILE_SIZE) {
+		if (file.size > MAX_FILE_SIZE_1_MB) {
 			selectedFile = {
 				file,
 				isValid: false,
-				error: `File too large. Maximum size is ${MAX_FILE_SIZE / 1024}KB.`
+				error: `File too large. Maximum size is ${MAX_FILE_SIZE_1_MB / (1024 * 1024)}MB.`
 			};
 			return;
 		}
@@ -164,7 +164,7 @@
 					size="sm"
 					onclick={handleFileSelect}
 					{disabled}
-					title="Attach file (max {MAX_FILE_SIZE / 1024}KB)"
+					title="Attach file (max {MAX_FILE_SIZE_1_MB / (1024 * 1024)}MB)"
 					aria-label="Attach file"
 				>
 					<Paperclip class="h-4 w-4" />
@@ -185,14 +185,14 @@
 
 		<!-- Send button -->
 		<div class="pb-2">
-		<Button
-			variant="filled"
-			onclick={handleSend}
-			disabled={disabled ||
-				(!messageText.trim() && !selectedFile) ||
-				!!(selectedFile && selectedFile.isValid === false)}
-			aria-label="Send message"
-		>
+			<Button
+				variant="filled"
+				onclick={handleSend}
+				disabled={disabled ||
+					(!messageText.trim() && !selectedFile) ||
+					!!(selectedFile && selectedFile.isValid === false)}
+				aria-label="Send message"
+			>
 				<Send class="h-5 w-5" />
 			</Button>
 		</div>

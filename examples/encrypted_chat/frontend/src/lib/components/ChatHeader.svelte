@@ -6,6 +6,7 @@
 	import { chatAPI } from '../services/api';
 	import { chatActions } from '../stores/chat.svelte';
 	import GroupManagementModal from './GroupManagementModal.svelte';
+	import { Principal } from '@dfinity/principal';
 
 	export let chat: Chat;
 	export let showMobileBackButton = false;
@@ -24,19 +25,19 @@
 		showGroupManagement = false;
 	}
 
-	async function handleChatInfoToggle() {
+	function handleChatInfoToggle() {
 		showChatInfo = !showChatInfo;
 		if (showChatInfo && !ratchetStats && !loadingRatchetStats) {
-			await loadRatchetStats();
+			loadRatchetStats();
 		}
 	}
 
-	async function loadRatchetStats() {
+	function loadRatchetStats() {
 		if (!chat) return;
 
 		loadingRatchetStats = true;
 		try {
-			ratchetStats = await chatAPI.getRatchetStats();
+			ratchetStats = chatAPI.getRatchetStats();
 		} catch (error) {
 			console.error('Failed to load ratchet stats:', error);
 		} finally {
@@ -45,50 +46,39 @@
 	}
 
 	function getDisplayName(): string {
-		if (chat.type === 'direct') {
-			return chat.participants.find((p) => p.id !== 'current-user')?.name || 'Unknown';
-		}
 		return chat.name;
 	}
 
 	function getDisplayAvatar(): string {
 		if (chat.type === 'direct') {
-			return chat.participants.find((p) => p.id !== 'current-user')?.avatar || '👤';
+			return '👤';
 		}
 		return chat.avatar || '👥';
-	}
-
-	function getOnlineStatus(): string {
-		if (chat.type === 'direct') {
-			const otherUser = chat.participants.find((p) => p.id !== 'current-user');
-			if (otherUser?.isOnline) return 'Online';
-			if (otherUser?.lastSeen) {
-				const lastSeen = new Date(otherUser.lastSeen);
-				const diff = Date.now() - lastSeen.getTime();
-				const hours = Math.floor(diff / (1000 * 60 * 60));
-				const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-
-				if (hours < 1) return 'Last seen recently';
-				if (hours < 24) return `Last seen ${hours}h ago`;
-				return `Last seen ${days}d ago`;
-			}
-			return 'Offline';
-		}
-		const onlineCount = chat.participants.filter((p) => p.isOnline).length;
-		return `${onlineCount} of ${chat.participants.length} online`;
 	}
 
 	function formatDate(date: Date): string {
 		return date.toLocaleString();
 	}
 
-	async function handleGroupManagementSave(
-		event: CustomEvent<{ addUsers: string[]; removeUsers: string[]; allowHistoryForNew: boolean }>
+	function handleGroupManagementSave(
+		event: CustomEvent<{
+			addUsers: string[];
+			removeUsers: string[];
+			allowHistoryForNew: boolean;
+		}>
 	) {
 		const { addUsers, removeUsers, allowHistoryForNew } = event.detail;
 
+		const addUsersPrincipal = addUsers.map((id) => Principal.fromText(id));
+		const removeUsersPrincipal = removeUsers.map((id) => Principal.fromText(id));
+
 		try {
-			await chatAPI.updateGroupMembers(chat.id, addUsers, removeUsers, allowHistoryForNew);
+			chatAPI.updateGroupMembers(
+				chat.id,
+				addUsersPrincipal,
+				removeUsersPrincipal,
+				allowHistoryForNew
+			);
 
 			chatActions.addNotification({
 				type: 'success',
@@ -139,7 +129,6 @@
 				>
 					{getDisplayName()}
 				</h2>
-				<p class="text-sm font-medium text-gray-500 dark:text-gray-400">{getOnlineStatus()}</p>
 			</div>
 		</div>
 

@@ -15,6 +15,7 @@
 	<NotificationBanner />
 
 	<!-- Main content -->
+	<!-- eslint-disable-next-line @typescript-eslint/no-unsafe-call -->
 	{@render children?.()}
 </div>
 

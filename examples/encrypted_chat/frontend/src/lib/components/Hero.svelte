@@ -5,8 +5,8 @@
 	import { auth } from '$lib/stores/auth.svelte';
 </script>
 
-<div class="hero min-h-screen content-start pt-8 sm:content-center sm:pt-0">
-	<div class="hero-content text-center">
+<div class="flex min-h-screen flex-col items-center justify-start pt-8 sm:justify-center sm:pt-0">
+	<div class="flex max-w-xl flex-col items-center text-center">
 		<div class="max-w-xl">
 			<h1 class="text-primary mb-5 text-4xl font-bold sm:text-5xl dark:text-white">
 				Encrypted Chat using vetKeys

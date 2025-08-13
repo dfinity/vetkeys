@@ -2,7 +2,12 @@
 	import { onMount } from 'svelte';
 	import ChatList from '$lib/components/ChatList.svelte';
 	import ChatInterface from '$lib/components/ChatInterface.svelte';
-	import { isLoading, selectedChatId, chatActions } from '$lib/stores/chat.svelte';
+	import {
+		isLoading,
+		selectedChatId,
+		chatActions,
+		initVetKeyReactions
+	} from '$lib/stores/chat.svelte';
 	import Hero from '$lib/components/Hero.svelte';
 	import { auth } from '$lib/stores/auth.svelte';
 
@@ -24,13 +29,19 @@
 	});
 
 	onMount(() => {
-		const interval = setInterval(async () => {
-			if (auth.state.label === 'initialized') {
-			    await chatActions.refreshChats();
-			}
+		const interval = setInterval(() => {
+			(async () => {
+				if (auth.state.label === 'initialized') {
+					await chatActions.refreshChats();
+				}
+			})().catch(console.error);
 		}, 1000);
 
 		return () => clearInterval(interval);
+	});
+
+	onMount(() => {
+		initVetKeyReactions();
 	});
 
 	function handleMobileBackToChatList() {

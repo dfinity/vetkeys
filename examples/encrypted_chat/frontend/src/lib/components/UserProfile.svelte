@@ -1,9 +1,9 @@
 <script lang="ts">
 	import { Settings, X, Check } from 'lucide-svelte';
 	import { userConfig, chatActions } from '../stores/chat.svelte';
-	import { auth } from '$lib/stores/auth.svelte';
+	import { auth, getMyPrincipal } from '$lib/stores/auth.svelte';
 	import type { User } from '$lib/types';
-	
+
 	const currentUser = $derived<{ state: User | null }>({
 		state: {
 			...getDummyCurrentUser(),
@@ -16,7 +16,7 @@
 
 	function getDummyCurrentUser(): User {
 		return {
-			id: 'current-user',
+			id: getMyPrincipal(),
 			name: 'You',
 			avatar: '👤',
 			isOnline: true

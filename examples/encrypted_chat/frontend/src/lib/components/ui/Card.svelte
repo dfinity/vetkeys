@@ -5,30 +5,31 @@
 	let { variant = 'filled', padding = 'md', children, className = '', ...rest } = $props();
 	export { className as class };
 
-    const variantClasses = {
+	const variantClasses = {
 		filled: 'card',
 		glass: 'card variant-glass',
 		outlined: 'card variant-outline'
-    } as const;
+	} as const;
 
-    const paddingClasses = {
+	const paddingClasses = {
 		none: '',
 		sm: 'p-4',
 		md: 'p-6',
 		lg: 'p-8'
-    } as const;
+	} as const;
 
-    let classes = $derived(
-        [
-            variantClasses[variant as keyof typeof variantClasses],
-            paddingClasses[padding as keyof typeof paddingClasses],
-            className
-        ]
-            .filter(Boolean)
-            .join(' ')
-    );
+	let classes = $derived(
+		[
+			variantClasses[variant as keyof typeof variantClasses],
+			paddingClasses[padding as keyof typeof paddingClasses],
+			className
+		]
+			.filter(Boolean)
+			.join(' ')
+	);
 </script>
 
 <div class={classes} {...rest}>
+	<!-- eslint-disable-next-line @typescript-eslint/no-unsafe-call -->
 	{@render children?.()}
 </div>

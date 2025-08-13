@@ -1,4 +1,5 @@
 import { AuthClient } from '@dfinity/auth-client';
+import type { Principal } from '@dfinity/principal';
 
 if (import.meta.env.SSR || typeof window === 'undefined') {
 	const {
@@ -74,7 +75,7 @@ export async function login() {
 				globalThis.process.env.DFX_NETWORK === 'ic'
 					? 'https://identity.ic0.app/#authorize'
 					: `http://rdmx6-jaaaa-aaaaa-aaadq-cai.localhost:8000/#authorize`,
-			onSuccess: async () => {
+			onSuccess: () => {
 				authenticate(client);
 			},
 			onError: (e) => console.error('Failed to authenticate with internet identity: ' + e)
@@ -97,4 +98,9 @@ export async function logout() {
 			client: auth.state.client
 		};
 	}
+}
+
+export function getMyPrincipal(): Principal {
+	if (auth.state.label !== 'initialized') throw new Error('Unexpectedly not authenticated');
+	return auth.state.client.getIdentity().getPrincipal();
 }

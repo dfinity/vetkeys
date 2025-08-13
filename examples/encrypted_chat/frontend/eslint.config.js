@@ -6,13 +6,14 @@ import globals from 'globals';
 import { fileURLToPath } from 'node:url';
 import ts from 'typescript-eslint';
 import svelteConfig from './svelte.config.js';
+import path from 'node:path';
 
 const gitignorePath = fileURLToPath(new URL('./.gitignore', import.meta.url));
 
 export default ts.config(
 	includeIgnoreFile(gitignorePath),
 	js.configs.recommended,
-	...ts.configs.recommended,
+	...ts.configs.recommendedTypeChecked,
 	...svelte.configs.recommended,
 	prettier,
 	...svelte.configs.prettier,
@@ -27,13 +28,24 @@ export default ts.config(
 		}
 	},
 	{
+		files: ['**/*.ts'],
+		languageOptions: {
+			parser: ts.parser,
+			parserOptions: {
+				projectService: true,
+				tsconfigRootDir: import.meta.dirname
+			}
+		}
+	},
+	{
 		files: ['**/*.svelte', '**/*.svelte.ts', '**/*.svelte.js'],
 		languageOptions: {
 			parserOptions: {
-				projectService: true,
 				extraFileExtensions: ['.svelte'],
 				parser: ts.parser,
-				svelteConfig
+				svelteConfig,
+				projectService: true,
+				tsconfigRootDir: import.meta.dirname
 			}
 		}
 	},
@@ -42,9 +54,11 @@ export default ts.config(
 			'dist/',
 			'src/declarations',
 			'*.config.js',
+			'*.config.ts',
 			'*.config.cjs',
 			'*.config.mjs',
-			'.svelte-kit'
+			'.svelte-kit',
+			'e2e/'
 		]
 	}
 );

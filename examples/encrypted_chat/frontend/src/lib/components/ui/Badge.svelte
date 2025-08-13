@@ -13,5 +13,6 @@
 </script>
 
 <span class={classes} {...rest}>
+	<!-- eslint-disable-next-line @typescript-eslint/no-unsafe-call -->
 	{@render children?.()}
 </span>

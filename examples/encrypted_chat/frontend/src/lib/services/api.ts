@@ -9,6 +9,8 @@ import type {
 	VetKeyEpochMetadata
 } from '../../declarations/encrypted_chat/encrypted_chat.did';
 import { Principal } from '@dfinity/principal';
+import { chatIdToString, stringifyBigInt } from '$lib/stores/chat.svelte';
+import { TransportSecretKey, EncryptedVetKey, DerivedPublicKey, VetKey } from '@dfinity/vetkeys';
 
 // Dummy API service that simulates backend calls
 // In real implementation, these would make actual API calls to the backend
@@ -25,10 +27,10 @@ export class ChatAPI {
 			symmetricKeyRotationDurationMinutes,
 			messageExpirationDurationMinutes
 		);
-		if ('Ok' in result) {
-			return { creationDate: new Date(Number(result.Ok / BigInt(1_000_000))) };
-		} else {
+		if ('Err' in result) {
 			throw new Error(result.Err);
+		} else {
+			return { creationDate: new Date(Number(result.Ok / BigInt(1_000_000))) };
 		}
 	}
 
@@ -56,6 +58,9 @@ export class ChatAPI {
 		message: UserMessage
 	): Promise<{ chatMessageId: bigint }> {
 		const result = await actor.send_direct_message(message, receiver);
+		console.log(
+			`sendDirectMessage: ${stringifyBigInt(message)} to ${receiver.toText()} with result ${stringifyBigInt(result)}`
+		);
 		if ('Ok' in result) {
 			return { chatMessageId: result.Ok };
 		} else {
@@ -69,6 +74,9 @@ export class ChatAPI {
 		message: UserMessage
 	): Promise<{ chatMessageId: bigint }> {
 		const result = await actor.send_group_message(message, groupChatId);
+		console.log(
+			`sendGroupMessage: ${stringifyBigInt(message)} to ${groupChatId} with result ${stringifyBigInt(result)}`
+		);
 		if ('Ok' in result) {
 			return { chatMessageId: result.Ok };
 		} else {
@@ -80,16 +88,23 @@ export class ChatAPI {
 		actor: ActorSubclass<_SERVICE>
 	): Promise<{ chatId: ChatId; numMessages: bigint }[]> {
 		const chatIds = await actor.get_my_chat_ids();
+		const summary: string = chatIds.reduce((acc, [chatId, numMessages]) => {
+			return acc + ' ' + chatIdToString(chatId) + ' ' + numMessages.toString();
+		}, '');
+		console.log('getChatIdsAndCurrentNumbersOfMessages: ' + summary);
 		return chatIds.map(([chatId, numMessages]) => {
 			return { chatId, numMessages };
 		});
 	}
 
-	async getAccessibleVetKeyEpochMetadata(
+	async getLatestVetKeyEpochMetadata(
 		actor: ActorSubclass<_SERVICE>,
 		chatId: ChatId
 	): Promise<VetKeyEpochMetadata> {
 		const metadata = await actor.get_latest_chat_vetkey_epoch_metadata(chatId);
+		console.log(
+			`getLatestVetKeyEpochMetadata: ${stringifyBigInt(chatId)} with result ${stringifyBigInt(metadata)}`
+		);
 		if ('Ok' in metadata) {
 			return metadata.Ok;
 		} else {
@@ -97,26 +112,57 @@ export class ChatAPI {
 		}
 	}
 
-  async getRatchetStats(): Promise<SymmetricRatchetStats> {
-    const now = Date.now();
-    const last = new Date(now - 1000 * 60 * 60 * Math.random() * 24);
-    const next = new Date(now + 1000 * 60 * 60 * Math.random() * 24);
-    return {
-      currentEpoch: Math.floor(Math.random() * 30) + 1,
-      messagesInCurrentEpoch: Math.floor(Math.random() * 200),
-      lastRotation: last,
-      nextScheduledRotation: next
-    };
-  }
-
-	async updateGroupMembers(
-		chatId: string,
-		addUsers: string[],
-		removeUsers: string[],
-		allowHistoryForNew: boolean
-	): Promise<boolean> {
+	async getDerivedPublicKey(
+		actor: ActorSubclass<_SERVICE>,
+		chatId: ChatId,
+		vetKeyEpoch: bigint,
+		transportKey: TransportSecretKey
+	): Promise<DerivedPublicKey> {
+		const bytes = await actor.chat_public_key(chatId, vetKeyEpoch);
 		console.log(
-			`Group ${chatId} updated: +${addUsers.length}, -${removeUsers.length}, history: ${allowHistoryForNew}`
+			`getDerivedPublicKey: ${stringifyBigInt(chatId)} with result ${stringifyBigInt(bytes)}`
+		);
+		return DerivedPublicKey.deserialize(Uint8Array.from(bytes));
+	}
+
+	async getVetKey(
+		actor: ActorSubclass<_SERVICE>,
+		chatId: ChatId,
+		vetKeyEpoch: bigint
+	): Promise<VetKey> {
+		const tsk = TransportSecretKey.random();
+		const result = await actor.derive_chat_vetkey(chatId, [vetKeyEpoch], tsk.publicKeyBytes());
+		console.log(`getVetKey: ${stringifyBigInt(chatId)} with result ${stringifyBigInt(result)}`);
+		if ('Ok' in result) {
+			const encryptedVetKey = EncryptedVetKey.deserialize(Uint8Array.from(result.Ok));
+			const derivedPublicKey = await this.getDerivedPublicKey(actor, chatId, vetKeyEpoch, tsk);
+			const vetKey = encryptedVetKey.decryptAndVerify(tsk, derivedPublicKey, new Uint8Array());
+			return vetKey;
+		} else {
+			throw new Error(result.Err);
+		}
+	}
+
+	getRatchetStats(): SymmetricRatchetStats {
+		const now = Date.now();
+		const last = new Date(now - 1000 * 60 * 60 * Math.random() * 24);
+		const next = new Date(now + 1000 * 60 * 60 * Math.random() * 24);
+		return {
+			currentEpoch: Math.floor(Math.random() * 30) + 1,
+			messagesInCurrentEpoch: Math.floor(Math.random() * 200),
+			lastRotation: last,
+			nextScheduledRotation: next
+		};
+	}
+
+	updateGroupMembers(
+		chatId: ChatId,
+		addUsers: Principal[],
+		removeUsers: Principal[],
+		allowHistoryForNew: boolean
+	): boolean {
+		console.log(
+			`Group ${chatIdToString(chatId)} updated: +${addUsers.length}, -${removeUsers.length}, history: ${allowHistoryForNew}`
 		);
 		return true;
 	}
@@ -127,11 +173,15 @@ export class ChatAPI {
 		startId: bigint,
 		limit: bigint | undefined
 	): Promise<EncryptedMessage[]> {
-		return await actor.get_some_messages_for_chat_starting_from(
+		const result = await actor.get_some_messages_for_chat_starting_from(
 			chatId,
 			startId,
 			limit ? [Number(limit)] : []
 		);
+		console.log(
+			`fetchEncryptedMessages: ${stringifyBigInt(chatId)} from ${startId.toString()} with limit ${limit} with result ${stringifyBigInt(result)}`
+		);
+		return result;
 	}
 }
 

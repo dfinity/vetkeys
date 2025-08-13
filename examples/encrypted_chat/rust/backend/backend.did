@@ -12,6 +12,7 @@ type EncryptedMessageMetadata = record {
   symmetric_key_epoch : nat64;
   chat_message_id : nat64;
   timestamp : nat64;
+  sender_message_id : nat64;
 };
 type GroupChatMetadata = record { creation_timestamp : nat64; chat_id : nat64 };
 type GroupModification = record {

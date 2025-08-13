@@ -392,6 +392,7 @@ fn send_direct_message(user_message: UserMessage, receiver: Principal) -> Result
             vetkey_epoch: user_message.vetkey_epoch,
             symmetric_key_epoch: user_message.symmetric_key_epoch,
             chat_message_id,
+            sender_message_id: user_message.message_id,
         },
     };
 
@@ -453,6 +454,7 @@ fn send_group_message(
             vetkey_epoch: user_message.vetkey_epoch,
             symmetric_key_epoch: user_message.symmetric_key_epoch,
             chat_message_id,
+            sender_message_id: user_message.message_id,
         },
     };
 

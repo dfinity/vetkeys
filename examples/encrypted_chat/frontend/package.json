@@ -5,7 +5,7 @@
 	"type": "module",
 	"scripts": {
 		"build": "npm run build:bindings && vite build",
-		"dev": "npm run build:bindings && vite dev",
+		"dev": "npm run build:bindings && vite dev --host",
 		"build:bindings": "cd scripts && ./gen_bindings.sh",
 		"preview": "vite preview",
 		"prepare": "svelte-kit sync || echo ''",

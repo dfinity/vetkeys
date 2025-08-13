@@ -1,5 +1,8 @@
+import type { ChatId } from '../../declarations/encrypted_chat/encrypted_chat.did';
+import type { Principal } from '@dfinity/principal';
+
 export interface User {
-	id: string;
+	id: Principal;
 	name: string;
 	avatar?: string;
 	isOnline: boolean;
@@ -20,15 +23,16 @@ export interface Message {
 		data: ArrayBuffer;
 	};
 	isEncrypted: boolean;
-	ratchetEpoch: number;
+	vetkeyEpoch: number;
+	symmetricRatchetEpoch: number;
 }
 
 export interface Chat {
-	id: string;
+	id: ChatId;
 	name: string;
 	type: 'direct' | 'group';
-  // Participants are required by UI components like ChatHeader/ChatListItem
-  participants: User[];
+	// Participants are required by UI components like ChatHeader/ChatListItem
+	participants: User[];
 	lastMessage?: Message;
 	lastActivity: Date;
 	isReady: boolean;
@@ -37,8 +41,8 @@ export interface Chat {
 	keyRotationStatus: VetKeyRotationStatus;
 	vetKeyEpoch: number;
 	symmetricRatchetEpoch: number;
-  // Some components read ratchetEpoch directly
-  ratchetEpoch: number;
+	// Some components read ratchetEpoch directly
+	ratchetEpoch: number;
 	unreadCount: number;
 	avatar?: string;
 }
@@ -51,7 +55,7 @@ export interface DirectChat extends Chat {
 export interface GroupChat extends Chat {
 	type: 'group';
 	otherParticipants: User[];
-  adminId?: string;
+	adminId?: string;
 }
 
 export interface VetKeyRotationStatus {
@@ -62,10 +66,10 @@ export interface VetKeyRotationStatus {
 }
 
 export interface SymmetricRatchetStats {
-  currentEpoch: number;
-  messagesInCurrentEpoch: number;
-  lastRotation: Date;
-  nextScheduledRotation: Date;
+	currentEpoch: number;
+	messagesInCurrentEpoch: number;
+	lastRotation: Date;
+	nextScheduledRotation: Date;
 }
 
 export interface UserConfig {

@@ -1,17 +1,18 @@
 import { get, set, del, clear, keys } from 'idb-keyval';
 import type { Message, Chat, UserConfig } from '../types';
+import { chatIdToString } from '$lib/stores/chat.svelte';
 
 // IndexedDB storage service for persistent chat data
 export class StorageService {
-	private readonly MESSAGE_PREFIX = 'msg_';
-	private readonly CHAT_PREFIX = 'chat_';
+	private readonly MESSAGE_PREFIX = 'messages';
+	private readonly VETKEY_EPOCH_KEY_PREFIX = 'vetkey_epoch_key';
 	private readonly CONFIG_KEY = 'user_config';
 	private readonly DISCLAIMER_KEY = 'disclaimer_dismissed';
+	private readonly CHAT_PREFIX = 'chat_';
 
 	// Message storage
 	async saveMessage(message: Message): Promise<void> {
-		const key = `${this.MESSAGE_PREFIX}${message.chatId}_${message.id}`;
-		await set(key, message);
+		await set([this.MESSAGE_PREFIX, message.chatId, message.id], message);
 	}
 
 	async getMessages(chatId: string): Promise<Message[]> {
@@ -22,7 +23,7 @@ export class StorageService {
 
 		const messages: Message[] = [];
 		for (const key of chatMessageKeys) {
-			const message = await get(key);
+			const message = (await get(key)) as Message;
 			if (message) {
 				// Ensure timestamp is a Date object
 				if (typeof message.timestamp === 'string') {
@@ -41,23 +42,9 @@ export class StorageService {
 		await del(key);
 	}
 
-	// Clean up old messages based on disappearing messages setting
-	async cleanupOldMessages(chatId: string, retentionDays: number): Promise<void> {
-		if (retentionDays === 0) return; // Never delete if 0
-
-		const cutoffDate = new Date(Date.now() - retentionDays * 24 * 60 * 60 * 1000);
-		const messages = await this.getMessages(chatId);
-
-		for (const message of messages) {
-			if (message.timestamp < cutoffDate) {
-				await this.deleteMessage(chatId, message.id);
-			}
-		}
-	}
-
 	// Chat metadata storage
 	async saveChat(chat: Chat): Promise<void> {
-		const key = `${this.CHAT_PREFIX}${chat.id}`;
+		const key = `${this.CHAT_PREFIX}${chatIdToString(chat.id)}`;
 		await set(key, chat);
 	}
 
@@ -74,7 +61,7 @@ export class StorageService {
 
 		const chats: Chat[] = [];
 		for (const key of chatKeys) {
-			const chat = await get(key);
+			const chat = (await get(key)) as Chat;
 			if (chat) {
 				chats.push(chat);
 			}
@@ -92,10 +79,10 @@ export class StorageService {
 		return (await get(this.CONFIG_KEY)) || null;
 	}
 
-	async getDefaultUserConfig(): Promise<UserConfig> {
+	getMyUserConfig(): UserConfig {
 		return {
 			cacheRetentionDays: 7,
-			userId: 'current-user',
+			userId: 'Me',
 			userName: 'You',
 			userAvatar: '👤'
 		};
@@ -118,7 +105,7 @@ export class StorageService {
 		// Clean up old message keys
 		for (const key of allKeys) {
 			if (typeof key === 'string' && key.startsWith(this.MESSAGE_PREFIX)) {
-				const message = await get(key);
+				const message = (await get(key)) as Message;
 				if (message && new Date(message.timestamp) < cutoffDate) {
 					await del(key);
 				}

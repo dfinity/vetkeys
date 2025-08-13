@@ -59,6 +59,7 @@ pub struct EncryptedMessageMetadata {
     pub vetkey_epoch: VetKeyEpochId,
     pub symmetric_key_epoch: SymmetricKeyEpochId,
     pub chat_message_id: ChatMessageId,
+    pub sender_message_id: SenderMessageId,
 }
 
 impl Storable for EncryptedMessageMetadata {
@@ -69,6 +70,7 @@ impl Storable for EncryptedMessageMetadata {
         bytes.extend_from_slice(&self.vetkey_epoch.0.to_le_bytes());
         bytes.extend_from_slice(&self.symmetric_key_epoch.0.to_le_bytes());
         bytes.extend_from_slice(&self.chat_message_id.0.to_le_bytes());
+        bytes.extend_from_slice(&self.sender_message_id.0.to_le_bytes());
         Cow::Owned(bytes)
     }
 
@@ -88,13 +90,18 @@ impl Storable for EncryptedMessageMetadata {
         let vetkey_epoch =
             VetKeyEpochId(u64::from_le_bytes(vetkey_epoch_bytes.try_into().unwrap()));
 
-        let (symmetric_key_epoch_bytes, chat_message_id_bytes) = rest.split_at(8);
+        let (symmetric_key_epoch_bytes, rest) = rest.split_at(8);
         let symmetric_key_epoch = SymmetricKeyEpochId(u64::from_le_bytes(
             symmetric_key_epoch_bytes.try_into().unwrap(),
         ));
 
+        let (chat_message_id_bytes, sender_message_id_bytes) = rest.split_at(8);
         let chat_message_id = ChatMessageId(u64::from_le_bytes(
             chat_message_id_bytes.try_into().unwrap(),
+        ));
+
+        let sender_message_id = SenderMessageId(u64::from_le_bytes(
+            sender_message_id_bytes.try_into().unwrap(),
         ));
 
         Self {
@@ -103,11 +110,12 @@ impl Storable for EncryptedMessageMetadata {
             vetkey_epoch,
             symmetric_key_epoch,
             chat_message_id,
+            sender_message_id,
         }
     }
 
     const BOUND: Bound = Bound::Bounded {
-        max_size: Principal::MAX_LENGTH_IN_BYTES as u32 + 3 * 8,
+        max_size: Principal::MAX_LENGTH_IN_BYTES as u32 + 4 * 8,
         is_fixed_size: false,
     };
 }

@@ -2,6 +2,7 @@
 	import { createEventDispatcher } from 'svelte';
 	import { Clock, Users, User, Loader2, AlertCircle, CheckCircle } from 'lucide-svelte';
 	import type { Chat } from '../types';
+	import { chatIdToString } from '$lib/stores/chat.svelte';
 
 	export let chat: Chat;
 	export let isSelected = false;
@@ -11,7 +12,7 @@
 	}>();
 
 	function handleClick() {
-		dispatch('select', chat.id);
+		dispatch('select', chatIdToString(chat.id));
 	}
 
 	function formatTime(date: Date): string {
@@ -29,17 +30,7 @@
 	}
 
 	function getDisplayName(): string {
-		if (chat.type === 'direct') {
-			return chat.participants.find((p) => p.id !== 'current-user')?.name || 'Unknown';
-		}
 		return chat.name;
-	}
-
-	function getDisplayAvatar(): string {
-		if (chat.type === 'direct') {
-			return chat.participants.find((p) => p.id !== 'current-user')?.avatar || '👤';
-		}
-		return chat.avatar || '👥';
 	}
 
 	function getStatusColor(): string {
@@ -67,7 +58,7 @@
 			<div
 				class="avatar from-primary-500 to-primary-600 flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br text-lg text-white shadow-sm"
 			>
-				{getDisplayAvatar()}
+				?????
 			</div>
 			<!-- Status indicator -->
 			<div class="absolute -right-1 -bottom-1">
@@ -91,9 +82,6 @@
 					{:else}
 						<User class="text-surface-500-400-token h-3 w-3" />
 					{/if}
-					<span class="text-surface-500-400-token text-xs">
-						{formatTime(chat.lastActivity)}
-					</span>
 				</div>
 			</div>
 

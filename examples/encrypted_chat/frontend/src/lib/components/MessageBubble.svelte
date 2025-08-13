@@ -3,10 +3,21 @@
 	import Button from './ui/Button.svelte';
 	import type { Message, User } from '../types';
 
-	/** @type {{ message: Message }}
-	 *  @type {{ sender: User | null }}
-	 */
-	let { message, sender = null, isOwnMessage = false, showAvatar = true, showTimestamp = true, isGroupChat = false } = $props();
+	let {
+		message,
+		sender = null,
+		isOwnMessage = false,
+		showAvatar = true,
+		showTimestamp = true,
+		isGroupChat = false
+	}: {
+		message: Message;
+		sender: User | null;
+		isOwnMessage: boolean;
+		showAvatar: boolean;
+		showTimestamp: boolean;
+		isGroupChat: boolean;
+	} = $props();
 
 	function formatTime(date: Date): string {
 		return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -188,7 +199,10 @@
 				{#if message.isEncrypted}
 					<span class="ml-1">🔒</span>
 				{/if}
-				<span class="ml-1 opacity-70">Epoch {message.ratchetEpoch}</span>
+				<span class="ml-1 opacity-70"
+					>vetKeyEpoch
+					{message.vetkeyEpoch} SymmRatchetEpoch {message.symmetricRatchetEpoch}</span
+				>
 			</div>
 		{/if}
 	</div>
