@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { createEventDispatcher } from 'svelte';
-	import { UserPlus, UserMinus, X, Save, Users } from 'lucide-svelte';
+	import { UserMinus, X, Save, Users } from 'lucide-svelte';
 	import type { GroupChat, User } from '../types';
 	import { getMyPrincipal } from '$lib/stores/auth.svelte';
 	import { Principal } from '@dfinity/principal';
@@ -19,7 +19,6 @@
 	let selectedToAdd: string[] = [];
 	let selectedToRemove: string[] = [];
 	let allowHistoryForNew = true;
-	let usersToShow: User[] = [];
 
 	// Text input for adding multiple principals
 	let principalsInput = '';
@@ -40,7 +39,7 @@
 				// Validate deserialization. Keep original string for dispatching.
 				Principal.fromText(token);
 				nextValid.push(token);
-			} catch (_) {
+			} catch {
 				nextInvalid.push(token);
 			}
 		}
@@ -52,14 +51,6 @@
 	$: totalAddCount = selectedToAdd.length + validPrincipalStrings.length;
 	$: canSave =
 		(totalAddCount > 0 || selectedToRemove.length > 0) && invalidPrincipalTokens.length === 0;
-
-	function toggleAddUser(userId: string) {
-		if (selectedToAdd.includes(userId)) {
-			selectedToAdd = selectedToAdd.filter((id) => id !== userId);
-		} else {
-			selectedToAdd = [...selectedToAdd, userId];
-		}
-	}
 
 	function toggleRemoveUser(userId: string) {
 		if (selectedToRemove.includes(userId)) {

@@ -18,7 +18,8 @@ import type {
 	ChatId,
 	EncryptedMessage,
 	VetKeyEpochMetadata,
-	UserMessage
+	UserMessage,
+	GroupModification
 } from '../../declarations/encrypted_chat/encrypted_chat.did';
 import { Principal } from '@dfinity/principal';
 import { SvelteMap } from 'svelte/reactivity';
@@ -33,8 +34,8 @@ import {
 	EncryptedVetKey
 } from '@dfinity/vetkeys';
 import {
-	chatIdFromString,
 	chatIdToString,
+	chatIdVetKeyEpochFromString,
 	chatIdVetKeyEpochToString,
 	sizePrefixedBytesFromString,
 	stringifyBigInt,
@@ -63,7 +64,10 @@ type VetKeyEpochMetadataState =
 	| { status: 'error'; error: string };
 
 // Keep a mapping from string chat id to the actor ChatId
-const chatIdStringToVetKeyEpochMetadata = new SvelteMap<string, VetKeyEpochMetadataState>();
+const chatIdVetKeyEpochStringToVetKeyEpochMetadata = new SvelteMap<
+	string,
+	VetKeyEpochMetadataState
+>();
 
 type KeyState =
 	| { status: 'missing' }
@@ -92,24 +96,33 @@ export function initVetKeyReactions() {
 			if (auth.state.label !== 'initialized') return;
 
 			for (const chat of chats.state) {
-				if (chatIdStringToVetKeyEpochMetadata.has(chatIdToString(chat.id))) {
+				const chatIdVetKeyEpochStr = chatIdVetKeyEpochToString(chat.id, BigInt(chat.vetKeyEpoch));
+				const meta = chatIdVetKeyEpochStringToVetKeyEpochMetadata.get(chatIdVetKeyEpochStr);
+				if (meta?.status === 'ready' || meta?.status === 'loading') {
 					console.log(
-						'chatIdStringToVetKeyEpochMetadata already has ',
-						chatIdToString(chat.id),
+						'chatIdVetKeyEpochStringToVetKeyEpochMetadata already has or loading ',
+						chatIdVetKeyEpochStr,
 						' -- skipping'
 					);
 					continue;
 				}
 				const actor = getActor();
 				if (!actor) throw new Error('Not authenticated');
-				chatIdStringToVetKeyEpochMetadata.set(chatIdToString(chat.id), {
-					status: 'loading',
-					promise: chatAPI.getLatestVetKeyEpochMetadata(actor, chat.id)
-				});
-				console.log('chatIdStringToVetKeyEpochMetadata loading ', chatIdToString(chat.id));
-				ensureVetKeyEpochMetadata(actor, chat.id).catch((error) => {
+
+				if (meta?.status === 'missing') {
+					chatIdVetKeyEpochStringToVetKeyEpochMetadata.set(chatIdVetKeyEpochStr, {
+						status: 'loading',
+						promise: chatAPI.getLatestVetKeyEpochMetadata(actor, chat.id)
+					});
+				}
+
+				console.log(
+					'chatIdVetKeyEpochStringToVetKeyEpochMetadata loading ',
+					chatIdVetKeyEpochToString(chat.id, BigInt(chat.vetKeyEpoch))
+				);
+				ensureVetKeyEpochMetadata(actor, chat.id, BigInt(chat.vetKeyEpoch)).catch((error) => {
 					console.error(
-						`Failed to get vetkey epoch metadata for chat ${chatIdToString(chat.id)}: `,
+						`Failed to get vetkey epoch metadata for chat ${chatIdVetKeyEpochToString(chat.id, BigInt(chat.vetKeyEpoch))}: `,
 						error
 					);
 				});
@@ -119,13 +132,15 @@ export function initVetKeyReactions() {
 		$effect(() => {
 			if (auth.state.label !== 'initialized') return;
 
-			for (const [chatIdStr, meta] of chatIdStringToVetKeyEpochMetadata.entries()) {
+			for (const [
+				chatIdStrVetKeyEpoch,
+				meta
+			] of chatIdVetKeyEpochStringToVetKeyEpochMetadata.entries()) {
 				if (meta.status !== 'ready') continue;
-				const key = `${chatIdStr}/${meta.metadata.epoch_id.toString()}`;
-				if (chatIdStringToEpochKeyState.has(key)) {
+				if (chatIdStringToEpochKeyState.has(chatIdStrVetKeyEpoch)) {
 					console.log(
 						'chatIdStringToEpochKeyState already has ',
-						key,
+						chatIdStrVetKeyEpoch,
 						meta.metadata.epoch_id.toString(),
 						' -- skipping'
 					);
@@ -133,7 +148,7 @@ export function initVetKeyReactions() {
 				}
 				const actor = getActor();
 				if (!actor) throw new Error('Not authenticated');
-				const chatId = chatIdFromString(chatIdStr);
+				const { chatId, vetKeyEpoch } = chatIdVetKeyEpochFromString(chatIdStrVetKeyEpoch);
 
 				const vetKeyEncryptedCacheManager = new VetKeyEncryptedCacheManager(
 					getMyPrincipal(),
@@ -143,7 +158,10 @@ export function initVetKeyReactions() {
 					.fetchAndDecryptFor(chatId, meta.metadata.epoch_id)
 
 					.catch((error) => {
-						console.info(`User doesn't have key cache for chat ${chatIdStr}: `, error);
+						console.info(
+							`User doesn't have key cache for chat ${chatIdToString(chatId)} and vetKey epoch ${vetKeyEpoch.toString()}: `,
+							error
+						);
 
 						return fetchResharedIbeEncryptedVetKeys(
 							actor,
@@ -205,13 +223,20 @@ export function initVetKeyReactions() {
 					}
 				);
 
-				chatIdStringToEpochKeyState.set(key, {
+				chatIdStringToEpochKeyState.set(chatIdStrVetKeyEpoch, {
 					status: 'loading',
 					promise: cryptoKeyPromise
 				});
-				console.log('chatIdStringToEpochKeyState loading ', key, meta.metadata.epoch_id.toString());
+				console.log(
+					'chatIdStringToEpochKeyState loading ',
+					chatIdStrVetKeyEpoch,
+					meta.metadata.epoch_id.toString()
+				);
 				ensureRootKey(actor, chatId, meta.metadata.epoch_id).catch((error) => {
-					console.error(`Failed to get vetkey epoch metadata for chat ${chatIdStr}: `, error);
+					console.error(
+						`Failed to get root key for chat ${chatIdToString(chatId)} and vetKey epoch ${vetKeyEpoch.toString()}: `,
+						error
+					);
 				});
 			}
 		});
@@ -280,21 +305,29 @@ export const chatActions = {
 			}, '');
 			console.log('fetched ' + chatIds.length + ' chats: ' + summary);
 			for (const [chatId] of chatIds) {
-				if (!chatIdStringToVetKeyEpochMetadata.has(chatIdToString(chatId))) {
-					const result = await actor.get_latest_chat_vetkey_epoch_metadata(chatId);
-					if ('Ok' in result) {
-						chatIdStringToVetKeyEpochMetadata.set(chatIdToString(chatId), {
+				const chatIdStr = chatIdToString(chatId);
+				const vetKeyEpochStr = chatIdVetKeyEpochToString(
+					chatId,
+					BigInt(chats.state.find((c) => chatIdToString(c.id) === chatIdStr)?.vetKeyEpoch ?? 0n)
+				);
+				if (!chatIdVetKeyEpochStringToVetKeyEpochMetadata.has(vetKeyEpochStr)) {
+					const result = await chatAPI.getLatestVetKeyEpochMetadata(actor, chatId);
+					chatIdVetKeyEpochStringToVetKeyEpochMetadata.set(
+						chatIdVetKeyEpochToString(chatId, result.epoch_id),
+						{
 							status: 'ready',
-							metadata: result.Ok
-						});
-					} else {
-						console.error('Failed to get vetkey epoch metadata:', result.Err);
-					}
+							metadata: result
+						}
+					);
 				}
 			}
 
-			for (const [chatIdStr, meta] of chatIdStringToVetKeyEpochMetadata.entries()) {
-				const chatId = chatIdFromString(chatIdStr);
+			for (const [
+				chatIdStrVetKeyEpoch,
+				meta
+			] of chatIdVetKeyEpochStringToVetKeyEpochMetadata.entries()) {
+				const { chatId } = chatIdVetKeyEpochFromString(chatIdStrVetKeyEpoch);
+				const chatIdStr = chatIdToString(chatId);
 
 				const participants = meta.status === 'ready' ? meta.metadata.participants : [];
 				if (!participants) {
@@ -382,7 +415,7 @@ export const chatActions = {
 			const lastMessageId = numMessagesIs ? numMessagesIs : 0n;
 			const actor = getActor();
 			if (!actor) return;
-			const meta = chatIdStringToVetKeyEpochMetadata.get(chatIdStr);
+			const meta = chatIdVetKeyEpochStringToVetKeyEpochMetadata.get(chatIdStr);
 			if (!meta) {
 				console.error('loadChatMessages: Failed to get vetkey epoch metadata for chat:', chatIdStr);
 				return;
@@ -448,7 +481,11 @@ export const chatActions = {
 		const actor = getActor();
 		if (!actor) throw new Error('Not authenticated');
 
-		const chatIdStr = chatIdToString(chatId);
+		// get the latest vetkey epoch metadata from chats
+		const vetKeyEpoch =
+			chats.state.find((c) => chatIdToString(c.id) === chatIdToString(chatId))?.vetKeyEpoch ?? 0n;
+
+		const chatIdVetKeyEpochStr = chatIdVetKeyEpochToString(chatId, BigInt(vetKeyEpoch));
 
 		let repetitions = 0;
 		const MAX_REPETITIONS = 10;
@@ -461,7 +498,8 @@ export const chatActions = {
 			const myPrincipal = auth.state.client.getIdentity().getPrincipal();
 
 			try {
-				const vetKeyEpochMeta = chatIdStringToVetKeyEpochMetadata.get(chatIdStr);
+				const vetKeyEpochMeta =
+					chatIdVetKeyEpochStringToVetKeyEpochMetadata.get(chatIdVetKeyEpochStr);
 				if (vetKeyEpochMeta?.status !== 'ready') {
 					console.error('Failed to get vetkey epoch metadata for chat:', chatId);
 					return;
@@ -505,14 +543,25 @@ export const chatActions = {
 				}
 				break;
 			} catch (error) {
-				if (
-					error instanceof Error &&
-					(error.message.startsWith('Wrong vetkey epoch') ||
-						error.message.startsWith('Wrong symmetric key epoch'))
-				) {
+				if (error instanceof Error && error.message.startsWith('Wrong symmetric key epoch')) {
 					console.info(
-						`Failed to send message - wrong vetkey or symmetric key epoch in message: ${error.message}`
+						`Failed to send message - wrong symmetric key epoch in message: ${error.message}`
 					);
+					await new Promise((resolve) => setTimeout(resolve, 1000));
+					repetitions++;
+					continue;
+				} else if (error instanceof Error && error.message.startsWith('Wrong vetKey epoch')) {
+					console.info(
+						`Failed to send message - wrong symmetric key epoch in message: ${error.message}`
+					);
+
+					const result = await chatAPI.getLatestVetKeyEpochMetadata(actor, chatId);
+					const chatIdVetKeyEpochStr = chatIdVetKeyEpochToString(chatId, BigInt(result.epoch_id));
+					if (!chatIdVetKeyEpochStringToVetKeyEpochMetadata.has(chatIdVetKeyEpochStr)) {
+						chatIdVetKeyEpochStringToVetKeyEpochMetadata.set(chatIdVetKeyEpochStr, {
+							status: 'missing'
+						});
+					}
 					await new Promise((resolve) => setTimeout(resolve, 1000));
 					repetitions++;
 					continue;
@@ -678,6 +727,33 @@ export const chatActions = {
 				isDismissible: true
 			});
 		}
+	},
+
+	async updateGroupMembers(
+		chatId: ChatId,
+		addUsers: Principal[],
+		removeUsers: Principal[],
+		// TODO: implement this
+		// eslint-disable-next-line @typescript-eslint/no-unused-vars
+		allowHistoryForNew: boolean
+	) {
+		if ('Direct' in chatId) {
+			throw new Error('updateGroupMembers: chatId is a direct chat');
+		}
+		const actor = getActor();
+		if (!actor) throw new Error('Not authenticated');
+		const modification: GroupModification = {
+			remove_participants: removeUsers,
+			add_participants: addUsers
+		};
+		const result = await actor.modify_group_chat_participants(chatId.Group, modification);
+		if ('Ok' in result) {
+			console.log(
+				`Group ${chatIdToString(chatId)} updated: +${addUsers.length}, -${removeUsers.length}, history: ${allowHistoryForNew}`
+			);
+		} else {
+			throw new Error(result.Err);
+		}
 	}
 };
 
@@ -741,10 +817,14 @@ function toUiMessage(chatIdStr: string, m: EncryptedMessage): Message {
 	};
 }
 
-async function ensureVetKeyEpochMetadata(actor: ActorSubclass<_SERVICE>, chatId: ChatId) {
-	const chatIdStr = chatIdToString(chatId);
-	console.log('ensureVetKeyEpochMetadata', chatIdStr);
-	const cur = chatIdStringToVetKeyEpochMetadata.get(chatIdStr);
+async function ensureVetKeyEpochMetadata(
+	actor: ActorSubclass<_SERVICE>,
+	chatId: ChatId,
+	vetKeyEpoch: bigint
+) {
+	const chatIdVetKeyEpochStr = chatIdVetKeyEpochToString(chatId, vetKeyEpoch);
+	console.log('ensureVetKeyEpochMetadata', chatIdVetKeyEpochStr);
+	const cur = chatIdVetKeyEpochStringToVetKeyEpochMetadata.get(chatIdVetKeyEpochStr);
 
 	if (cur?.status === 'loading') {
 		if (!actor) throw new Error('Not authenticated');
@@ -752,19 +832,24 @@ async function ensureVetKeyEpochMetadata(actor: ActorSubclass<_SERVICE>, chatId:
 		await cur.promise
 			.then((metadata) => {
 				// transition to ready when it resolves
-				chatIdStringToVetKeyEpochMetadata.set(chatIdStr, { status: 'ready', metadata });
-				console.log('ensureVetKeyEpochMetadata ready', chatIdStr);
+				chatIdVetKeyEpochStringToVetKeyEpochMetadata.set(chatIdVetKeyEpochStr, {
+					status: 'ready',
+					metadata
+				});
+				console.log('ensureVetKeyEpochMetadata ready', chatIdVetKeyEpochStr);
 				return metadata;
 			})
 			.catch((error) => {
 				// transition to error so UI can react
-				chatIdStringToVetKeyEpochMetadata.set(chatIdStr, {
+				chatIdVetKeyEpochStringToVetKeyEpochMetadata.set(chatIdVetKeyEpochStr, {
 					status: 'error',
 					error: error instanceof Error ? error.message : 'Unknown error'
 				});
-				console.log('ensureVetKeyEpochMetadata error', chatIdStr);
+				console.log('ensureVetKeyEpochMetadata error', chatIdVetKeyEpochStr);
 				throw error;
 			});
+	} else {
+		console.error('Bug: vetkey epoch metadata is not loading or ready');
 	}
 }
 

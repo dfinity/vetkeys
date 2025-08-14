@@ -60,7 +60,7 @@
 		return date.toLocaleString();
 	}
 
-	function handleGroupManagementSave(
+	async function handleGroupManagementSave(
 		event: CustomEvent<{
 			addUsers: string[];
 			removeUsers: string[];
@@ -73,7 +73,7 @@
 		const removeUsersPrincipal = removeUsers.map((id) => Principal.fromText(id));
 
 		try {
-			chatAPI.updateGroupMembers(
+			await chatActions.updateGroupMembers(
 				chat.id,
 				addUsersPrincipal,
 				removeUsersPrincipal,

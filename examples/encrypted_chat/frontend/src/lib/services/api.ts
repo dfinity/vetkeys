@@ -116,7 +116,6 @@ export class ChatAPI {
 		actor: ActorSubclass<_SERVICE>,
 		chatId: ChatId,
 		vetKeyEpoch: bigint,
-		transportKey: TransportSecretKey
 	): Promise<DerivedPublicKey> {
 		const bytes = await actor.chat_public_key(chatId, vetKeyEpoch);
 		console.log(
@@ -135,7 +134,7 @@ export class ChatAPI {
 		console.log(`getVetKey: ${stringifyBigInt(chatId)} with result ${stringifyBigInt(result)}`);
 		if ('Ok' in result) {
 			const encryptedVetKey = EncryptedVetKey.deserialize(Uint8Array.from(result.Ok));
-			const derivedPublicKey = await this.getDerivedPublicKey(actor, chatId, vetKeyEpoch, tsk);
+			const derivedPublicKey = await this.getDerivedPublicKey(actor, chatId, vetKeyEpoch);
 			const vetKey = encryptedVetKey.decryptAndVerify(tsk, derivedPublicKey, new Uint8Array());
 			return vetKey;
 		} else {
@@ -153,18 +152,6 @@ export class ChatAPI {
 			lastRotation: last,
 			nextScheduledRotation: next
 		};
-	}
-
-	updateGroupMembers(
-		chatId: ChatId,
-		addUsers: Principal[],
-		removeUsers: Principal[],
-		allowHistoryForNew: boolean
-	): boolean {
-		console.log(
-			`Group ${chatIdToString(chatId)} updated: +${addUsers.length}, -${removeUsers.length}, history: ${allowHistoryForNew}`
-		);
-		return true;
 	}
 
 	async fetchEncryptedMessages(
