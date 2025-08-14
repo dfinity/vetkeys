@@ -4,7 +4,7 @@ import {
 	type UserConfig,
 	type Notification,
 	type SymmetricRatchetStats,
-	VetKeyEncryptedCache
+	VetKeyEncryptedCache as VetKeyEncryptedCacheManager
 } from '../types';
 import { chatAPI } from '../services/api';
 import { storageService } from '../services/storage';
@@ -22,7 +22,16 @@ import type {
 } from '../../declarations/encrypted_chat/encrypted_chat.did';
 import { Principal } from '@dfinity/principal';
 import { SvelteMap } from 'svelte/reactivity';
-import { DerivedKeyMaterial, deriveSymmetricKey } from '@dfinity/vetkeys';
+import {
+	DerivedKeyMaterial,
+	deriveSymmetricKey,
+	DerivedPublicKey,
+	IbeCiphertext,
+	IbeIdentity,
+	IbeSeed,
+	TransportSecretKey,
+	EncryptedVetKey
+} from '@dfinity/vetkeys';
 import {
 	chatIdFromString,
 	chatIdToString,
@@ -126,47 +135,79 @@ export function initVetKeyReactions() {
 				if (!actor) throw new Error('Not authenticated');
 				const chatId = chatIdFromString(chatIdStr);
 
-				const vetKeyEncryptedCache = new VetKeyEncryptedCache(getMyPrincipal(), actor);
-				const rootKeyPromise = vetKeyEncryptedCache
+				const vetKeyEncryptedCacheManager = new VetKeyEncryptedCacheManager(
+					getMyPrincipal(),
+					actor
+				);
+				const rootKeyPromise = vetKeyEncryptedCacheManager
 					.fetchAndDecryptFor(chatId, meta.metadata.epoch_id)
 
 					.catch((error) => {
 						console.info(`User doesn't have key cache for chat ${chatIdStr}: `, error);
-						return Promise.resolve(chatAPI.getVetKey(actor, chatId, meta.metadata.epoch_id)).then(
-							(vetKey) => {
-								const rootKey = deriveSymmetricKey(
-									vetKey.signatureBytes(),
-									DOMAIN_RATCHET_INIT,
-									32
-								);
-								console.log(
-									`Computed rootKey=${stringifyBigInt(rootKey)} from vetKey=${stringifyBigInt(vetKey.signatureBytes())}`
-								);
-								console.log('starting to store the root key in cache: ', rootKey);
-								const vetKeyEncryptedCache = new VetKeyEncryptedCache(getMyPrincipal(), actor);
-								const keyState = { keyBytes: rootKey, symmetricKeyEpoch: 0n };
-								// await this future in background
-								vetKeyEncryptedCache.encryptAndStoreFor(chatId, meta.metadata.epoch_id, keyState);
 
-								return keyState;
-							}
-						);
+						return fetchResharedIbeEncryptedVetKeys(
+							actor,
+							chatId,
+							meta.metadata.epoch_id,
+							getMyPrincipal()
+						)
+							.then((resharedVetKey) => {
+								console.log('successfully fetched reshared IBE encrypted vetkey: ', resharedVetKey);
+								return deriveRootKeyAndDispatchCaching(
+									actor,
+									chatId,
+									meta.metadata.epoch_id,
+									resharedVetKey
+								);
+							})
+							.catch((error) => {
+								console.error('Failed to fetch reshared IBE encrypted vetkey: ', error);
+								return Promise.resolve(
+									chatAPI.getVetKey(actor, chatId, meta.metadata.epoch_id)
+								).then((vetKey) => {
+									const otherParticipants = meta.metadata.participants.filter(
+										(p) => p.toString() !== getMyPrincipal().toString()
+									);
+
+									reshareIbeEncryptedVetKeys(
+										actor,
+										chatId,
+										meta.metadata.epoch_id,
+										otherParticipants,
+										vetKey.signatureBytes()
+									).catch((error) => {
+										console.error(
+											`Failed to reshare IBE encrypted vetkeys for chat ${chatIdToString(chatId)} vetkeyEpoch ${meta.metadata.epoch_id.toString()}: `,
+											error
+										);
+									});
+
+									return deriveRootKeyAndDispatchCaching(
+										actor,
+										chatId,
+										meta.metadata.epoch_id,
+										vetKey.signatureBytes()
+									);
+								});
+							});
 					});
-				const p2 = Promise.resolve(rootKeyPromise).then(async ({ keyBytes, symmetricKeyEpoch }) => {
-					const exportable = false;
-					const key = await globalThis.crypto.subtle.importKey(
-						'raw',
-						new Uint8Array(keyBytes),
-						'HKDF',
-						exportable,
-						['deriveKey', 'deriveBits']
-					);
-					return { key, symmetricKeyEpoch };
-				});
+				const cryptoKeyPromise = Promise.resolve(rootKeyPromise).then(
+					async ({ keyBytes, symmetricKeyEpoch }) => {
+						const exportable = false;
+						const key = await globalThis.crypto.subtle.importKey(
+							'raw',
+							new Uint8Array(keyBytes),
+							'HKDF',
+							exportable,
+							['deriveKey', 'deriveBits']
+						);
+						return { key, symmetricKeyEpoch };
+					}
+				);
 
 				chatIdStringToEpochKeyState.set(key, {
 					status: 'loading',
-					promise: p2
+					promise: cryptoKeyPromise
 				});
 				console.log('chatIdStringToEpochKeyState loading ', key, meta.metadata.epoch_id.toString());
 				ensureRootKey(actor, chatId, meta.metadata.epoch_id).catch((error) => {
@@ -729,10 +770,10 @@ async function ensureVetKeyEpochMetadata(actor: ActorSubclass<_SERVICE>, chatId:
 
 async function fastForwardSymmetricRatchetWithoutSavingUntil(
 	chatId: ChatId,
-	vetkeyEpoch: bigint,
-	symmetricKeyEpoch: bigint
+	currentVetkeyEpoch: bigint,
+	neededSymmetricKeyEpoch: bigint
 ): Promise<DerivedKeyMaterial> {
-	const mapKey = chatIdVetKeyEpochToString(chatId, vetkeyEpoch);
+	const mapKey = chatIdVetKeyEpochToString(chatId, currentVetkeyEpoch);
 	const cur = chatIdStringToEpochKeyState.get(mapKey);
 	if (!cur) {
 		throw new Error('Bug: failed to get epoch key');
@@ -741,12 +782,12 @@ async function fastForwardSymmetricRatchetWithoutSavingUntil(
 		throw new Error('Bug: epoch key is not ready for symmetric ratchet');
 	}
 	const { key, symmetricKeyEpoch: currentSymmetricKeyEpoch } = cur;
-	if (currentSymmetricKeyEpoch >= symmetricKeyEpoch) {
+	if (currentSymmetricKeyEpoch >= neededSymmetricKeyEpoch) {
 		return DerivedKeyMaterial.fromCryptoKey(key);
 	}
 
 	let derivedKeyState = { epochKey: key, symmetricKeyEpoch: currentSymmetricKeyEpoch };
-	while (derivedKeyState.symmetricKeyEpoch < symmetricKeyEpoch) {
+	while (derivedKeyState.symmetricKeyEpoch < neededSymmetricKeyEpoch) {
 		derivedKeyState = {
 			epochKey: await deriveNextEpochKey(
 				derivedKeyState.epochKey,
@@ -954,7 +995,13 @@ async function decryptMessageContent(
 	}
 	const epochKey = await getSymmetricEpochKey(chatId, vetkeyEpoch, symmetricKeyEpoch);
 	const domainSeparator = messageEncryptionDomainSeparator(sender, userMessageId);
-	return await epochKey.decryptMessage(encryptedMessageContent, domainSeparator);
+	return await epochKey.decryptMessage(encryptedMessageContent, domainSeparator).catch((error) => {
+		console.error(
+			`decryptMessageContent: failed to decrypt message in chat ${chatIdToString(chatId)} for vetkeyEpoch ${vetkeyEpoch.toString()} and symmetricKeyEpoch: ${symmetricKeyEpoch.toString()} from sender ${sender.toText()} with userMessageId ${userMessageId.toString()}`,
+			error
+		);
+		return new TextEncoder().encode('<decryption failed>');
+	});
 }
 
 export function messageEncryptionDomainSeparator(sender: Principal, messageId: bigint): Uint8Array {
@@ -963,4 +1010,119 @@ export function messageEncryptionDomainSeparator(sender: Principal, messageId: b
 		...sender.toUint8Array(),
 		...uBigIntTo8ByteUint8ArrayBigEndian(messageId)
 	]);
+}
+
+async function reshareIbeEncryptedVetKeys(
+	actor: ActorSubclass<_SERVICE>,
+	chatId: ChatId,
+	vetkeyEpoch: bigint,
+	otherParticipants: Principal[],
+	vetKeyBytes: Uint8Array
+): Promise<void> {
+	if (otherParticipants.length > 0) {
+		console.log(
+			'reshareIbeEncryptedVetkeys: ',
+			chatId,
+			vetkeyEpoch,
+			otherParticipants,
+			vetKeyBytes
+		);
+		// try to reshare with other participants
+		return await Promise.all(
+			otherParticipants.map(async (p) => {
+				const ibePublicKey = DerivedPublicKey.deserialize(
+					new Uint8Array(await actor.get_vetkey_resharing_ibe_encryption_key(p))
+				);
+				const ibeIdentity = IbeIdentity.fromBytes(new Uint8Array());
+				const ibeSeed = IbeSeed.random();
+				const ibeCiphertext = IbeCiphertext.encrypt(
+					ibePublicKey,
+					ibeIdentity,
+					vetKeyBytes,
+					ibeSeed
+				);
+				const ibeCiphertextBytes = ibeCiphertext.serialize();
+				const result: [Principal, Uint8Array<ArrayBufferLike>] = [p, ibeCiphertextBytes];
+				return result;
+			})
+		).then(async (ibeEncryptedVetKeysPromise) => {
+			await actor
+				.reshare_ibe_encrypted_vetkeys(chatId, vetkeyEpoch, ibeEncryptedVetKeysPromise)
+				.then((result) => {
+					if ('Ok' in result) {
+						console.log(
+							`Successfully resharded IBE encrypted vetkeys for chat ${chatIdToString(chatId)} vetkeyEpoch ${vetkeyEpoch.toString()}`
+						);
+					} else {
+						console.info(
+							`Failed to reshare IBE encrypted vetkeys for chat ${chatIdToString(chatId)} vetkeyEpoch ${vetkeyEpoch.toString()}: `,
+							result.Err
+						);
+					}
+				});
+		});
+	} else {
+		console.log('no other participants to reshare vetKey with');
+	}
+}
+
+async function fetchResharedIbeEncryptedVetKeys(
+	actor: ActorSubclass<_SERVICE>,
+	chatId: ChatId,
+	vetkeyEpoch: bigint,
+	myPrincipal: Principal
+): Promise<Uint8Array> {
+	console.log('fetchResharedIbeEncryptedVetKeys: ', chatId, vetkeyEpoch, myPrincipal);
+	const tsk = TransportSecretKey.random();
+	const myResharedIbeEncryptedVetkey = await actor.get_my_reshared_ibe_encrypted_vetkey(
+		chatId,
+		vetkeyEpoch
+	);
+	if ('Err' in myResharedIbeEncryptedVetkey) {
+		throw new Error(
+			'Failed to get my reshared IBE encrypted vetkey: ' + myResharedIbeEncryptedVetkey.Err
+		);
+	} else if (myResharedIbeEncryptedVetkey.Ok.length === 0) {
+		throw new Error('Failed to get my reshared IBE encrypted vetkey: no reshared vetkey');
+	}
+	const ibeCiphertext = IbeCiphertext.deserialize(
+		new Uint8Array(myResharedIbeEncryptedVetkey.Ok[0])
+	);
+
+	const publicIbeKeyBytes = await actor.get_vetkey_resharing_ibe_encryption_key(myPrincipal);
+	const publicIbeKey = DerivedPublicKey.deserialize(new Uint8Array(publicIbeKeyBytes));
+
+	// TODO:cache this key
+	const privateEncryptedIbeKeyBytes = await actor.get_vetkey_resharing_ibe_decryption_key(
+		tsk.publicKeyBytes()
+	);
+	const encryptedVetKey = EncryptedVetKey.deserialize(new Uint8Array(privateEncryptedIbeKeyBytes));
+	const privateIbeKey = encryptedVetKey.decryptAndVerify(tsk, publicIbeKey, new Uint8Array());
+
+	const ibePlaintext = ibeCiphertext.decrypt(privateIbeKey);
+	return ibePlaintext;
+}
+
+function deriveRootKeyAndDispatchCaching(
+	actor: ActorSubclass<_SERVICE>,
+	chatId: ChatId,
+	vetKeyEpoch: bigint,
+	vetKeyBytes: Uint8Array
+): { keyBytes: Uint8Array; symmetricKeyEpoch: bigint } {
+	const rootKey = deriveSymmetricKey(vetKeyBytes, DOMAIN_RATCHET_INIT, 32);
+	console.log(
+		`Computed rootKey=${stringifyBigInt(rootKey)} from vetKey=${stringifyBigInt(vetKeyBytes)}`
+	);
+
+	console.log('starting to store the root key in cache: ', rootKey);
+	const vetKeyEncryptedCache = new VetKeyEncryptedCacheManager(getMyPrincipal(), actor);
+	const keyState = { keyBytes: rootKey, symmetricKeyEpoch: 0n };
+	// await this future in background
+	vetKeyEncryptedCache.encryptAndStoreFor(chatId, vetKeyEpoch, keyState).catch((error) => {
+		console.error(
+			`Failed to store root key in cache for chat ${chatIdToString(chatId)} vetkeyEpoch ${vetKeyEpoch.toString()}: `,
+			error
+		);
+	});
+	return keyState;
 }

@@ -776,11 +776,10 @@ async fn get_vetkey_resharing_ibe_decryption_key(
 }
 
 #[ic_cdk::update]
-async fn get_vetkey_resharing_ibe_encryption_key() -> serde_bytes::ByteBuf {
-    let caller = ic_cdk::api::msg_caller();
+async fn get_vetkey_resharing_ibe_encryption_key(user: Principal) -> serde_bytes::ByteBuf {
     let args = ic_cdk::management_canister::VetKDPublicKeyArgs {
         canister_id: None,
-        context: resharing_context(caller),
+        context: resharing_context(user),
         key_id: key_id(),
     };
     let result = ic_cdk::management_canister::vetkd_public_key(&args)

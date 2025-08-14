@@ -72,7 +72,7 @@ service : (text) -> {
       vec EncryptedMessage,
     ) query;
   get_vetkey_resharing_ibe_decryption_key : (blob) -> (blob);
-  get_vetkey_resharing_ibe_encryption_key : () -> (blob);
+  get_vetkey_resharing_ibe_encryption_key : (principal) -> (blob);
   get_vetkey_verification_key_for_my_cache_storage : () -> (blob);
   modify_group_chat_participants : (nat64, GroupModification) -> (Result);
   reshare_ibe_encrypted_vetkeys : (
