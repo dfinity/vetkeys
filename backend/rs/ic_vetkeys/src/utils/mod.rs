@@ -374,6 +374,12 @@ impl VetKey {
 }
 
 /// Key material derived from a VetKey
+///
+/// This struct allows deriving further keys from the VetKey without
+/// allowing direct access to the VetKey secret key, preventing it
+/// from being reused inappropriately.
+///
+/// As a convenience this struct also offers AES-GCM encryption/decryption
 #[derive(Clone, Zeroize, ZeroizeOnDrop)]
 pub struct DerivedKeyMaterial {
     key: Vec<u8>,
@@ -381,14 +387,14 @@ pub struct DerivedKeyMaterial {
 
 #[derive(Copy, Clone, Eq, PartialEq, Debug)]
 /// An error while encrypting
-pub enum EncryptionFailed {
+pub enum EncryptionError {
     /// The provided message was too long to be encrypted
     PlaintextTooLong,
 }
 
 #[derive(Copy, Clone, Eq, PartialEq, Debug)]
 /// An error while decrypting
-pub enum DecryptionFailed {
+pub enum DecryptionError {
     /// The ciphertext was too short to possibly be valid
     MessageTooShort,
     /// The GCM tag did not validate
@@ -396,6 +402,10 @@ pub enum DecryptionFailed {
 }
 
 impl DerivedKeyMaterial {
+    const GCM_KEY_SIZE: usize = 32;
+    const GCM_TAG_SIZE: usize = 16;
+    const GCM_NONCE_SIZE: usize = 12;
+
     /// Create a new DerivedKeyMaterial
     pub fn new(vetkey: &VetKey) -> Self {
         Self {
@@ -404,20 +414,25 @@ impl DerivedKeyMaterial {
     }
 
     fn derive_aes_gcm_key(&self, domain_sep: &str) -> Vec<u8> {
-        derive_symmetric_key(&self.key, domain_sep, 32)
+        derive_symmetric_key(&self.key, domain_sep, Self::GCM_KEY_SIZE)
     }
 
     /// Encrypt a message
+    ///
+    /// The decryption used here is interoperable with the TypeScript
+    /// library ic_vetkeys function `DerivedKeyMaterial.decryptMessage`
     pub fn encrypt_message<R: rand::RngCore + rand::CryptoRng>(
         &self,
         message: &[u8],
         domain_sep: &str,
         rng: &mut R,
-    ) -> Result<Vec<u8>, EncryptionFailed> {
+    ) -> Result<Vec<u8>, EncryptionError> {
         use aes_gcm::{aead::Aead, aead::AeadCore, Aes256Gcm, Key, KeyInit};
         let key = self.derive_aes_gcm_key(domain_sep);
         let key = Key::<Aes256Gcm>::from_slice(&key);
+        // aes_gcm::Aes256Gcm only supports/uses 12 byte nonces
         let nonce = Aes256Gcm::generate_nonce(rng);
+        assert_eq!(nonce.len(), Self::GCM_NONCE_SIZE);
         let gcm = Aes256Gcm::new(key);
 
         // The function returns an opaque `Error` with no details, but upon
@@ -425,7 +440,7 @@ impl DerivedKeyMaterial {
         // than GCM's maximum input length of 2^36 bytes.
         let ctext = gcm
             .encrypt(&nonce, message)
-            .map_err(|_| EncryptionFailed::PlaintextTooLong)?;
+            .map_err(|_| EncryptionError::PlaintextTooLong)?;
 
         let mut res = vec![];
         res.extend_from_slice(nonce.as_slice());
@@ -434,25 +449,28 @@ impl DerivedKeyMaterial {
     }
 
     /// Decrypt a message
+    ///
+    /// The decryption used here is interoperable with the TypeScript
+    /// library ic_vetkeys function `DerivedKeyMaterial.encryptMessage`
     pub fn decrypt_message(
         &self,
         ctext: &[u8],
         domain_sep: &str,
-    ) -> Result<Vec<u8>, DecryptionFailed> {
+    ) -> Result<Vec<u8>, DecryptionError> {
         use aes_gcm::{aead::Aead, Aes256Gcm, Key, KeyInit};
         let key = self.derive_aes_gcm_key(domain_sep);
         let key = Key::<Aes256Gcm>::from_slice(&key);
 
         // Minimum possible length 12 bytes nonce plus 16 bytes GCM tag
-        if ctext.len() < 12 + 16 {
-            return Err(DecryptionFailed::MessageTooShort);
+        if ctext.len() < Self::GCM_NONCE_SIZE + Self::GCM_TAG_SIZE {
+            return Err(DecryptionError::MessageTooShort);
         }
-        let nonce = aes_gcm::Nonce::from_slice(&ctext[0..12]);
+        let nonce = aes_gcm::Nonce::from_slice(&ctext[0..Self::GCM_NONCE_SIZE]);
         let gcm = Aes256Gcm::new(key);
 
         let ptext = gcm
-            .decrypt(nonce, &ctext[12..])
-            .map_err(|_| DecryptionFailed::InvalidCiphertext)?;
+            .decrypt(nonce, &ctext[Self::GCM_NONCE_SIZE..])
+            .map_err(|_| DecryptionError::InvalidCiphertext)?;
 
         Ok(ptext.as_slice().to_vec())
     }
