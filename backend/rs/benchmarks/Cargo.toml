@@ -13,4 +13,5 @@ candid = "0.10.0"
 getrandom = { version = "0.2", features = ["custom"] }
 hex = { workspace = true }
 ic-cdk = "0.18.5"
-ic-vetkeys = "0.3.0"
+ic-vetkeys = { path = "../ic_vetkeys" }
+
