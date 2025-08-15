@@ -288,7 +288,7 @@ fn vrf_from_prod_can_be_verified() {
 
 #[test]
 fn aes_gcm_encryption() {
-    let dkm = DerivedKeyMaterial::new(&VetKey::deserialize(&hex!("ad19676dd92f116db11f326ff0822f295d87cc00cf65d9f132b5a618bb7381e5b0c3cb814f15e4a0f015359dcfa8a1da")).unwrap());
+    let dkm = VetKey::deserialize(&hex!("ad19676dd92f116db11f326ff0822f295d87cc00cf65d9f132b5a618bb7381e5b0c3cb814f15e4a0f015359dcfa8a1da")).unwrap().as_derived_key_material();
 
     let test_message = b"stay calm, this is only a test";
     let domain_sep = "ic-test-domain-sep";

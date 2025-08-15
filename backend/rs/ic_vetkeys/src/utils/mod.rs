@@ -530,6 +530,16 @@ impl VetKey {
     }
 
     /**
+     * Return a DerivedKeyMaterial
+     *
+     * This class allows further key derivation and encryption but the underlying
+     * secret key cannot be extracted.
+     */
+    pub fn as_derived_key_material(&self) -> DerivedKeyMaterial {
+        DerivedKeyMaterial::new(self)
+    }
+
+    /**
      * Deserialize a VetKey from the byte encoding
      *
      * Typically this would have been created using [`VetKey::signature_bytes`]
@@ -581,7 +591,7 @@ impl DerivedKeyMaterial {
     const GCM_NONCE_SIZE: usize = 12;
 
     /// Create a new DerivedKeyMaterial
-    pub fn new(vetkey: &VetKey) -> Self {
+    fn new(vetkey: &VetKey) -> Self {
         Self {
             key: vetkey.serialize().to_vec(),
         }
