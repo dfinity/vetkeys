@@ -24,6 +24,7 @@ readme = "README.md"
 crate-type = ["lib"]
 
 [dependencies]
+aes-gcm = "0.10"
 anyhow = { workspace = true }
 candid = { workspace = true }
 ic_bls12_381 = { version = "0.10.1", default-features = false, features = [

@@ -285,3 +285,72 @@ fn vrf_from_prod_can_be_verified() {
         "a484fc1e8a2b0dca99beb6f4409370f5c6932a931e47a7625c3bfe9e1f9af37f"
     );
 }
+
+#[test]
+fn aes_gcm_encryption() {
+    let dkm = VetKey::deserialize(&hex!("ad19676dd92f116db11f326ff0822f295d87cc00cf65d9f132b5a618bb7381e5b0c3cb814f15e4a0f015359dcfa8a1da")).unwrap().as_derived_key_material();
+
+    let test_message = b"stay calm, this is only a test";
+    let domain_sep = "ic-test-domain-sep";
+
+    // Test string encryption path, then decryption
+
+    let mut rng = reproducible_rng();
+
+    let ctext = dkm
+        .encrypt_message(test_message, domain_sep, &mut rng)
+        .unwrap();
+    assert_eq!(
+        dkm.decrypt_message(&ctext, domain_sep).unwrap(),
+        test_message,
+    );
+
+    // Test decryption of known ciphertext encrypted with the derived key
+    let fixed_ctext = hex!("476f440e30bb95fff1420ce41ba6a07e03c3fcc0a751cfb23e64a8dcb0fc2b1eb74e2d4768f5c4dccbf2526609156664046ad27a6e78bd93bb8b");
+
+    assert_eq!(
+        dkm.decrypt_message(&fixed_ctext, domain_sep).unwrap(),
+        test_message,
+    );
+
+    // Test decryption of various mutated or truncated ciphertexts: all should fail
+
+    // Test sequentially flipping each bit
+
+    for i in 0..ctext.len() * 8 {
+        let mod_ctext = {
+            let mut m = ctext.clone();
+            m[i / 8] ^= 0x80 >> i % 8;
+            m
+        };
+
+        assert!(dkm.decrypt_message(&mod_ctext, domain_sep).is_err());
+    }
+
+    // Test truncating
+
+    for i in 0..ctext.len() - 1 {
+        let mod_ctext = {
+            let mut m = ctext.clone();
+            m.truncate(i);
+            m
+        };
+
+        assert!(dkm.decrypt_message(&mod_ctext, domain_sep).is_err());
+    }
+
+    // Test appending random bytes
+
+    for i in 1..32 {
+        let mod_ctext = {
+            use rand::RngCore;
+            let mut m = ctext.clone();
+            let mut extra = vec![0u8; i];
+            rng.fill_bytes(&mut extra);
+            m.extend_from_slice(&extra);
+            m
+        };
+
+        assert!(dkm.decrypt_message(&mod_ctext, domain_sep).is_err());
+    }
+}
