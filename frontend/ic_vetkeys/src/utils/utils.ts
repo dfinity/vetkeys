@@ -643,11 +643,11 @@ export class DerivedKeyMaterial {
         message: Uint8Array,
         domainSep: Uint8Array | string,
     ): Promise<Uint8Array> {
-        const IBE_TAG_LENGTH = 16;
+        const GCM_TAG_LENGTH = 16;
 
         if (
             message.length <
-            DERIVED_KEY_MATERIAL_NONCE_LENGTH + IBE_TAG_LENGTH
+            DERIVED_KEY_MATERIAL_NONCE_LENGTH + GCM_TAG_LENGTH
         ) {
             throw new Error(
                 "Invalid ciphertext, too short to possibly be valid",
