@@ -83,7 +83,7 @@
 					</label>
 					<div class="grid grid-cols-2 gap-3">
 						<label class="block text-sm">
-							<span class="mb-1 block font-medium">Symmetric Key Rotation (min)</span>
+							<span class="mb-1 block font-medium">Symmetric Key Ratchet (min)</span>
 							<input
 								type="number"
 								min="0"
@@ -121,7 +121,7 @@
 					</label>
 					<div class="grid grid-cols-2 gap-3">
 						<label class="block text-sm">
-							<span class="mb-1 block font-medium">Rotation (min)</span>
+							<span class="mb-1 block font-medium">Symmetric Key Ratchet (min)</span>
 							<input
 								type="number"
 								min="0"
@@ -130,7 +130,7 @@
 							/>
 						</label>
 						<label class="block text-sm">
-							<span class="mb-1 block font-medium">Expiration (min)</span>
+							<span class="mb-1 block font-medium">Message Expiration (min)</span>
 							<input
 								type="number"
 								min="0"
