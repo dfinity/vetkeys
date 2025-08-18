@@ -183,19 +183,6 @@ class EncryptedMapsClientForEncryptedCache implements EncryptedMapsClient {
 		const result: { Ok: ByteBuf } | { Err: string } = {
 			Ok: { inner: data }
 		};
-		if (data.length !== 192) {
-			console.error(`get_encrypted_value: invalid data length: expected 192, got ${data.length}`);
-		}
-		if (result.Ok.inner.length !== 192) {
-			console.error(
-				`get_encrypted_value: invalid data length: expected 192, got ${result.Ok.inner.length}`
-			);
-		}
-		if ('Ok' in result) {
-			console.log(
-				`get_encrypted_vetkey: size=${result.Ok.inner.length}, value=${JSON.stringify(result.Ok.inner)}`
-			);
-		}
 		return Promise.resolve(result);
 	}
 
