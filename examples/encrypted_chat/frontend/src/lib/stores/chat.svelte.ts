@@ -4,10 +4,10 @@ import {
 	type UserConfig,
 	type Notification,
 	type SymmetricRatchetStats,
-	VetKeyEncryptedCache as VetKeyEncryptedCacheManager
+	EncryptedCacheManager as EncryptedCacheManager
 } from '../types';
 import { chatAPI } from '../services/api';
-import { storageService } from '../services/storage';
+import { storageService } from '../services/messageStorage';
 import { SvelteDate } from 'svelte/reactivity';
 import { auth, getMyPrincipal } from '$lib/stores/auth.svelte';
 import { createActor } from '../../declarations/encrypted_chat';
@@ -24,29 +24,20 @@ import type {
 import { Principal } from '@dfinity/principal';
 import { SvelteMap } from 'svelte/reactivity';
 import {
-	DerivedKeyMaterial,
-	deriveSymmetricKey,
-	DerivedPublicKey,
-	IbeCiphertext,
-	IbeIdentity,
-	IbeSeed,
-	TransportSecretKey,
-	EncryptedVetKey
-} from '@dfinity/vetkeys';
-import {
 	chatIdToString,
 	chatIdVetKeyEpochFromString,
 	chatIdVetKeyEpochToString,
-	sizePrefixedBytesFromString,
-	stringifyBigInt,
-	uBigIntTo8ByteUint8ArrayBigEndian
+	stringifyBigInt
 } from '$lib/utils';
-
-const DOMAIN_RATCHET_INIT = sizePrefixedBytesFromString('ic-vetkeys-chat-example-ratchet-init');
-const DOMAIN_RATCHET_STEP = sizePrefixedBytesFromString('ic-vetkeys-chat-example-ratchet-step');
-const DOMAIN_MESSAGE_ENCRYPTION = sizePrefixedBytesFromString(
-	'ic-vetkeys-chat-example-message-encryption'
-);
+import {
+	encryptMessageContent,
+	decryptMessageContent,
+	fetchResharedIbeEncryptedVetKeys,
+	chatIdStringToEpochKeyState,
+	deriveRootKeyAndDispatchCaching,
+	ensureRootKey,
+	reshareIbeEncryptedVetKeys
+} from './crypto.svelte';
 
 export const chats = $state<{ state: Chat[] }>({ state: [] });
 export const selectedChatId = $state<{ state: ChatId | null }>({ state: null });
@@ -63,19 +54,10 @@ type VetKeyEpochMetadataState =
 	| { status: 'ready'; metadata: VetKeyEpochMetadata }
 	| { status: 'error'; error: string };
 
-// Keep a mapping from string chat id to the actor ChatId
 const chatIdVetKeyEpochStringToVetKeyEpochMetadata = new SvelteMap<
 	string,
 	VetKeyEpochMetadataState
 >();
-
-type KeyState =
-	| { status: 'missing' }
-	| { status: 'loading'; promise: Promise<{ key: CryptoKey; symmetricKeyEpoch: bigint }> }
-	| { status: 'ready'; symmetricKeyEpoch: bigint; key: CryptoKey }
-	| { status: 'error'; error: string };
-
-export const chatIdStringToEpochKeyState = new SvelteMap<string, KeyState>();
 
 // eslint-disable-next-line svelte/prefer-svelte-reactivity
 const chatIdStringToNumberOfMessagesIs = new Map<string, bigint>();
@@ -93,6 +75,7 @@ export function getChatIds(): ChatId[] {
 export function initVetKeyReactions() {
 	$effect.root(() => {
 		$effect(() => {
+			console.log('Running vetKey loader $effect...');
 			if (auth.state.label !== 'initialized') return;
 
 			for (const chat of chats.state) {
@@ -110,6 +93,11 @@ export function initVetKeyReactions() {
 				if (!actor) throw new Error('Not authenticated');
 
 				if (meta?.status === 'missing') {
+					console.log(
+						'chatIdVetKeyEpochStringToVetKeyEpochMetadata missing ',
+						chatIdVetKeyEpochStr,
+						' -- adding a promise to fetch it'
+					);
 					chatIdVetKeyEpochStringToVetKeyEpochMetadata.set(chatIdVetKeyEpochStr, {
 						status: 'loading',
 						promise: chatAPI.getLatestVetKeyEpochMetadata(actor, chat.id)
@@ -122,7 +110,7 @@ export function initVetKeyReactions() {
 				);
 				ensureVetKeyEpochMetadata(actor, chat.id, BigInt(chat.vetKeyEpoch)).catch((error) => {
 					console.error(
-						`Failed to get vetkey epoch metadata for chat ${chatIdVetKeyEpochToString(chat.id, BigInt(chat.vetKeyEpoch))}: `,
+						`Failed to get vetkey epoch metadata for chat ${chatIdToString(chat.id)} and vetkey epoch ${chat.vetKeyEpoch}: `,
 						error
 					);
 				});
@@ -130,83 +118,103 @@ export function initVetKeyReactions() {
 		});
 
 		$effect(() => {
+			console.log('Running metadata to key state $effect...');
 			if (auth.state.label !== 'initialized') return;
 
-			for (const [
-				chatIdStrVetKeyEpoch,
-				meta
-			] of chatIdVetKeyEpochStringToVetKeyEpochMetadata.entries()) {
-				if (meta.status !== 'ready') continue;
+			for (const chatIdStrVetKeyEpoch of chatIdVetKeyEpochStringToVetKeyEpochMetadata.keys()) {
 				if (chatIdStringToEpochKeyState.has(chatIdStrVetKeyEpoch)) {
 					console.log(
 						'chatIdStringToEpochKeyState already has ',
 						chatIdStrVetKeyEpoch,
-						meta.metadata.epoch_id.toString(),
+						' -- skipping'
+					);
+				} else {
+					console.log(
+						'chatIdStringToEpochKeyState has no entry for ',
+						chatIdStrVetKeyEpoch,
+						' -- adding a missing entry'
+					);
+					chatIdStringToEpochKeyState.set(chatIdStrVetKeyEpoch, {
+						status: 'missing'
+					});
+				}
+			}
+		});
+
+		$effect(() => {
+			console.log('Running ensureEpochKey $effect...');
+			if (auth.state.label !== 'initialized') return;
+			const actor = getActor();
+			if (!actor) throw new Error('Not authenticated');
+
+			// eslint-disable-next-line @typescript-eslint/no-unused-vars
+			for (const [chatIdStrVetKeyEpoch, state] of chatIdStringToEpochKeyState.entries()) {
+				if (state.status !== 'missing') {
+					console.log(
+						'chatIdStringToEpochKeyState already has ',
+						chatIdStrVetKeyEpoch,
+						'with status',
+						state.status,
 						' -- skipping'
 					);
 					continue;
 				}
-				const actor = getActor();
-				if (!actor) throw new Error('Not authenticated');
+				console.log(
+					'Running ensureEpochKey $effect for chatIdStrVetKeyEpoch: ',
+					chatIdStrVetKeyEpoch
+				);
 				const { chatId, vetKeyEpoch } = chatIdVetKeyEpochFromString(chatIdStrVetKeyEpoch);
 
-				const vetKeyEncryptedCacheManager = new VetKeyEncryptedCacheManager(
-					getMyPrincipal(),
-					actor
-				);
+				const vetKeyEncryptedCacheManager = new EncryptedCacheManager(getMyPrincipal(), actor);
 				const rootKeyPromise = vetKeyEncryptedCacheManager
-					.fetchAndDecryptFor(chatId, meta.metadata.epoch_id)
-
+					.fetchAndDecryptFor(chatId, vetKeyEpoch)
 					.catch((error) => {
 						console.info(
 							`User doesn't have key cache for chat ${chatIdToString(chatId)} and vetKey epoch ${vetKeyEpoch.toString()}: `,
 							error
 						);
 
-						return fetchResharedIbeEncryptedVetKeys(
-							actor,
-							chatId,
-							meta.metadata.epoch_id,
-							getMyPrincipal()
-						)
+						return fetchResharedIbeEncryptedVetKeys(actor, chatId, vetKeyEpoch, getMyPrincipal())
 							.then((resharedVetKey) => {
 								console.log('successfully fetched reshared IBE encrypted vetkey: ', resharedVetKey);
-								return deriveRootKeyAndDispatchCaching(
-									actor,
-									chatId,
-									meta.metadata.epoch_id,
-									resharedVetKey
-								);
+								return deriveRootKeyAndDispatchCaching(actor, chatId, vetKeyEpoch, resharedVetKey);
 							})
 							.catch((error) => {
-								console.error('Failed to fetch reshared IBE encrypted vetkey: ', error);
-								return Promise.resolve(
-									chatAPI.getVetKey(actor, chatId, meta.metadata.epoch_id)
-								).then((vetKey) => {
-									const otherParticipants = meta.metadata.participants.filter(
-										(p) => p.toString() !== getMyPrincipal().toString()
-									);
-
-									reshareIbeEncryptedVetKeys(
-										actor,
-										chatId,
-										meta.metadata.epoch_id,
-										otherParticipants,
-										vetKey.signatureBytes()
-									).catch((error) => {
-										console.error(
-											`Failed to reshare IBE encrypted vetkeys for chat ${chatIdToString(chatId)} vetkeyEpoch ${meta.metadata.epoch_id.toString()}: `,
-											error
+								console.info('Failed to fetch reshared IBE encrypted vetkey: ', error);
+								return Promise.resolve(chatAPI.getVetKey(actor, chatId, vetKeyEpoch)).then(
+									(vetKey) => {
+										const meta =
+											chatIdVetKeyEpochStringToVetKeyEpochMetadata.get(chatIdStrVetKeyEpoch);
+										if (meta?.status !== 'ready') {
+											throw new Error(
+												`No vetKey epoch metadata for chat ${chatIdToString(chatId)} and vetkey epoch ${vetKeyEpoch.toString()}: metadata status ${meta?.status}`
+											);
+										}
+										const otherParticipants = meta.metadata.participants.filter(
+											(p) => p.toString() !== getMyPrincipal().toString()
 										);
-									});
 
-									return deriveRootKeyAndDispatchCaching(
-										actor,
-										chatId,
-										meta.metadata.epoch_id,
-										vetKey.signatureBytes()
-									);
-								});
+										reshareIbeEncryptedVetKeys(
+											actor,
+											chatId,
+											vetKeyEpoch,
+											otherParticipants,
+											vetKey.signatureBytes()
+										).catch((error) => {
+											console.error(
+												`Failed to reshare IBE encrypted vetkeys for chat ${chatIdToString(chatId)} vetkeyEpoch ${meta.metadata.epoch_id.toString()}: `,
+												error
+											);
+										});
+
+										return deriveRootKeyAndDispatchCaching(
+											actor,
+											chatId,
+											vetKeyEpoch,
+											vetKey.signatureBytes()
+										);
+									}
+								);
 							});
 					});
 				const cryptoKeyPromise = Promise.resolve(rootKeyPromise).then(
@@ -227,12 +235,8 @@ export function initVetKeyReactions() {
 					status: 'loading',
 					promise: cryptoKeyPromise
 				});
-				console.log(
-					'chatIdStringToEpochKeyState loading ',
-					chatIdStrVetKeyEpoch,
-					meta.metadata.epoch_id.toString()
-				);
-				ensureRootKey(actor, chatId, meta.metadata.epoch_id).catch((error) => {
+				console.log('chatIdStringToEpochKeyState loading ', chatIdStrVetKeyEpoch, vetKeyEpoch);
+				ensureRootKey(chatId, vetKeyEpoch).catch((error) => {
 					console.error(
 						`Failed to get root key for chat ${chatIdToString(chatId)} and vetKey epoch ${vetKeyEpoch.toString()}: `,
 						error
@@ -279,8 +283,13 @@ export const chatActions = {
 		const actor = getActor();
 		if (actor) {
 			const chatIds = await actor.get_my_chat_ids();
+			// eslint-disable-next-line svelte/prefer-svelte-reactivity
+			const newChatIds = new Set<ChatId>();
 			for (const [chatId, numMessages] of chatIds) {
 				const numMessagesShould = chatIdStringToNumberOfMessagesShould.get(chatIdToString(chatId));
+				if (!numMessagesShould) {
+					newChatIds.add(chatId);
+				}
 				if (!numMessagesShould || numMessagesShould !== numMessages) {
 					console.log(
 						`refreshChats: setting numberOfMessagesShould for chat ${chatIdToString(chatId)} from ${numMessagesShould} to ${numMessages}`
@@ -292,33 +301,37 @@ export const chatActions = {
 				if ('Direct' in chatId) {
 					return (
 						acc +
-						' ' +
+						(acc.length > 0 ? ' | ' : '') +
 						chatId.Direct[0].toText() +
 						' ' +
 						chatId.Direct[1].toText() +
-						' ' +
+						' #' +
 						numMessages.toString()
 					);
 				} else {
-					return acc + ' ' + chatId.Group.toString() + ' ' + numMessages.toString();
+					return (
+						acc +
+						(acc.length > 0 ? ' | ' : '') +
+						chatId.Group.toString() +
+						' #' +
+						numMessages.toString()
+					);
 				}
 			}, '');
 			console.log('fetched ' + chatIds.length + ' chats: ' + summary);
 			for (const [chatId] of chatIds) {
-				const chatIdStr = chatIdToString(chatId);
-				const vetKeyEpochStr = chatIdVetKeyEpochToString(
-					chatId,
-					BigInt(chats.state.find((c) => chatIdToString(c.id) === chatIdStr)?.vetKeyEpoch ?? 0n)
-				);
-				if (!chatIdVetKeyEpochStringToVetKeyEpochMetadata.has(vetKeyEpochStr)) {
-					const result = await chatAPI.getLatestVetKeyEpochMetadata(actor, chatId);
-					chatIdVetKeyEpochStringToVetKeyEpochMetadata.set(
-						chatIdVetKeyEpochToString(chatId, result.epoch_id),
-						{
-							status: 'ready',
-							metadata: result
-						}
-					);
+				if (newChatIds.has(chatId)) {
+					const metadata = await chatAPI.getLatestVetKeyEpochMetadata(actor, chatId);
+					const vetKeyEpochStr = chatIdVetKeyEpochToString(chatId, metadata.epoch_id);
+					if (!chatIdVetKeyEpochStringToVetKeyEpochMetadata.has(vetKeyEpochStr)) {
+						chatIdVetKeyEpochStringToVetKeyEpochMetadata.set(
+							chatIdVetKeyEpochToString(chatId, metadata.epoch_id),
+							{
+								status: 'ready',
+								metadata
+							}
+						);
+					}
 				}
 			}
 
@@ -326,7 +339,7 @@ export const chatActions = {
 				chatIdStrVetKeyEpoch,
 				meta
 			] of chatIdVetKeyEpochStringToVetKeyEpochMetadata.entries()) {
-				const { chatId } = chatIdVetKeyEpochFromString(chatIdStrVetKeyEpoch);
+				const { chatId, vetKeyEpoch } = chatIdVetKeyEpochFromString(chatIdStrVetKeyEpoch);
 				const chatIdStr = chatIdToString(chatId);
 
 				const participants = meta.status === 'ready' ? meta.metadata.participants : [];
@@ -362,7 +375,7 @@ export const chatActions = {
 					isUpdating: false,
 					disappearingMessagesDuration: 0,
 					keyRotationStatus: buildDummyRotationStatus(),
-					vetKeyEpoch: Number(meta.status === 'ready' ? meta.metadata.epoch_id : 0n),
+					vetKeyEpoch: Number(vetKeyEpoch),
 					symmetricRatchetEpoch: 0,
 					ratchetEpoch: 0,
 					unreadCount: 0,
@@ -412,28 +425,59 @@ export const chatActions = {
 				console.error('loadChatMessages: chat not found:', chatIdStr);
 				return;
 			}
+			const vetKeyEpoch = BigInt(chat.vetKeyEpoch);
 			const lastMessageId = numMessagesIs ? numMessagesIs : 0n;
 			const actor = getActor();
 			if (!actor) return;
-			const meta = chatIdVetKeyEpochStringToVetKeyEpochMetadata.get(chatIdStr);
+			const chatIdVetKeyEpochStr = chatIdVetKeyEpochToString(chatId, vetKeyEpoch);
+			const meta = chatIdVetKeyEpochStringToVetKeyEpochMetadata.get(chatIdVetKeyEpochStr);
 			if (!meta) {
-				console.error('loadChatMessages: Failed to get vetkey epoch metadata for chat:', chatIdStr);
+				console.error(
+					'loadChatMessages: Failed to get vetkey epoch metadata for chat and vetkey epoch:',
+					chatIdVetKeyEpochStr
+				);
 				return;
 			}
 			const enc = await chatAPI.fetchEncryptedMessages(actor, chatId, lastMessageId, undefined);
 			const mapped: Message[] = [];
-			for (const m of enc) {
-				const plaintextMessageContent = await decryptMessageContent(
-					chatId,
-					BigInt(m.metadata.vetkey_epoch),
-					BigInt(m.metadata.symmetric_key_epoch),
-					m.metadata.sender,
-					new Uint8Array(m.content),
-					m.metadata.sender_message_id
-				);
-				m.content = plaintextMessageContent;
-				mapped.push(toUiMessage(chatIdToString(chatId), m));
+			for (let i = enc.length - 1; i >= 0; i--) {
+				try {
+					console.log(
+						`decryptMessageContent: ${chatIdToString(chatId)} vetkeyEpoch: ${enc[i].metadata.vetkey_epoch.toString()} symmetricKeyEpoch: ${enc[i].metadata.symmetric_key_epoch.toString()} sender: ${enc[i].metadata.sender.toText()} userMessageId: ${enc[i].metadata.sender_message_id.toString()} messageId: ${enc[i].metadata.chat_message_id.toString()}`
+					);
+					const plaintextMessageContent = await decryptMessageContent(
+						chatId,
+						BigInt(enc[i].metadata.vetkey_epoch),
+						BigInt(enc[i].metadata.symmetric_key_epoch),
+						enc[i].metadata.sender,
+						new Uint8Array(enc[i].content),
+						enc[i].metadata.sender_message_id
+					);
+					enc[i].content = plaintextMessageContent;
+					mapped.push(toUiMessage(chatIdToString(chatId), enc[i]));
+				} catch (error) {
+					if (error instanceof Error && error.message.startsWith('Wrong vetKey epoch')) {
+						console.info(
+							"Can't decrypt messages at or earlier than vetkey epoch ",
+							enc[i].metadata.vetkey_epoch,
+							' for chat ',
+							chatIdStr,
+							': ',
+							error
+						);
+					} else {
+						console.error(
+							'loadChatMessages: Failed to decrypt message ',
+							enc[i].metadata.sender_message_id,
+							' for chat ',
+							chatIdStr,
+							': ',
+							error
+						);
+					}
+				}
 			}
+			mapped.reverse();
 			if (mapped.length !== 0) {
 				console.log('loadChatMessages: mapped:', stringifyBigInt(mapped));
 			} else {
@@ -481,28 +525,28 @@ export const chatActions = {
 		const actor = getActor();
 		if (!actor) throw new Error('Not authenticated');
 
-		// get the latest vetkey epoch metadata from chats
-		const vetKeyEpoch =
-			chats.state.find((c) => chatIdToString(c.id) === chatIdToString(chatId))?.vetKeyEpoch ?? 0n;
-
-		const chatIdVetKeyEpochStr = chatIdVetKeyEpochToString(chatId, BigInt(vetKeyEpoch));
-
 		let repetitions = 0;
-		const MAX_REPETITIONS = 10;
+		const MAX_RETRIES = 10;
 
 		// reencrypt and resend the message if vetkey or symmetric key epoch has changed
-		while (repetitions < MAX_REPETITIONS) {
+		while (repetitions < MAX_RETRIES) {
 			if (auth.state.label !== 'initialized') {
 				throw new Error('Unexpectedly not authenticated');
 			}
 			const myPrincipal = auth.state.client.getIdentity().getPrincipal();
 
 			try {
+				// get the latest vetkey epoch metadata from chats
+				const vetKeyEpoch =
+					chats.state.find((c) => chatIdToString(c.id) === chatIdToString(chatId))?.vetKeyEpoch ??
+					0n;
+
+				const chatIdVetKeyEpochStr = chatIdVetKeyEpochToString(chatId, BigInt(vetKeyEpoch));
+
 				const vetKeyEpochMeta =
 					chatIdVetKeyEpochStringToVetKeyEpochMetadata.get(chatIdVetKeyEpochStr);
 				if (vetKeyEpochMeta?.status !== 'ready') {
-					console.error('Failed to get vetkey epoch metadata for chat:', chatId);
-					return;
+					throw new Error('Failed to get vetkey epoch metadata for chat: ' + chatIdVetKeyEpochStr);
 				}
 				const vetKeyEpochId = vetKeyEpochMeta.metadata.epoch_id;
 				const elapsedSinceVetKeyEpoch =
@@ -545,19 +589,24 @@ export const chatActions = {
 			} catch (error) {
 				if (error instanceof Error && error.message.startsWith('Wrong symmetric key epoch')) {
 					console.info(
-						`Failed to send message - wrong symmetric key epoch in message: ${error.message}`
+						`Retrying failed to send message - wrong symmetric key epoch in message: ${error.message}`
 					);
 					await new Promise((resolve) => setTimeout(resolve, 1000));
 					repetitions++;
 					continue;
 				} else if (error instanceof Error && error.message.startsWith('Wrong vetKey epoch')) {
 					console.info(
-						`Failed to send message - wrong symmetric key epoch in message: ${error.message}`
+						`Retrying failed to send message - wrong vetKey key epoch in message: ${error.message}`
 					);
 
 					const result = await chatAPI.getLatestVetKeyEpochMetadata(actor, chatId);
 					const chatIdVetKeyEpochStr = chatIdVetKeyEpochToString(chatId, BigInt(result.epoch_id));
 					if (!chatIdVetKeyEpochStringToVetKeyEpochMetadata.has(chatIdVetKeyEpochStr)) {
+						console.log(
+							'chatIdVetKeyEpochStringToVetKeyEpochMetadata missing ',
+							chatIdVetKeyEpochStr,
+							' -- adding a promise to fetch it'
+						);
 						chatIdVetKeyEpochStringToVetKeyEpochMetadata.set(chatIdVetKeyEpochStr, {
 							status: 'missing'
 						});
@@ -565,14 +614,20 @@ export const chatActions = {
 					await new Promise((resolve) => setTimeout(resolve, 1000));
 					repetitions++;
 					continue;
-				} else {
-					console.error('Failed to send message:', error);
+				} else if (repetitions >= MAX_RETRIES) {
+					console.error('Failed to send message after ', MAX_RETRIES, ' retries:', error);
 					chatActions.addNotification({
 						type: 'error',
 						title: 'Send Error',
 						message: 'Failed to send message. Please try again.',
 						isDismissible: true
 					});
+					break;
+				} else {
+					console.error('Retrying failed to send message: ', error);
+					await new Promise((resolve) => setTimeout(resolve, 1000));
+					repetitions++;
+					continue;
 				}
 			}
 		}
@@ -853,361 +908,7 @@ async function ensureVetKeyEpochMetadata(
 	}
 }
 
-async function fastForwardSymmetricRatchetWithoutSavingUntil(
-	chatId: ChatId,
-	currentVetkeyEpoch: bigint,
-	neededSymmetricKeyEpoch: bigint
-): Promise<DerivedKeyMaterial> {
-	const mapKey = chatIdVetKeyEpochToString(chatId, currentVetkeyEpoch);
-	const cur = chatIdStringToEpochKeyState.get(mapKey);
-	if (!cur) {
-		throw new Error('Bug: failed to get epoch key');
-	}
-	if (cur.status !== 'ready') {
-		throw new Error('Bug: epoch key is not ready for symmetric ratchet');
-	}
-	const { key, symmetricKeyEpoch: currentSymmetricKeyEpoch } = cur;
-	if (currentSymmetricKeyEpoch >= neededSymmetricKeyEpoch) {
-		return DerivedKeyMaterial.fromCryptoKey(key);
-	}
-
-	let derivedKeyState = { epochKey: key, symmetricKeyEpoch: currentSymmetricKeyEpoch };
-	while (derivedKeyState.symmetricKeyEpoch < neededSymmetricKeyEpoch) {
-		derivedKeyState = {
-			epochKey: await deriveNextEpochKey(
-				derivedKeyState.epochKey,
-				derivedKeyState.symmetricKeyEpoch
-			),
-			symmetricKeyEpoch: derivedKeyState.symmetricKeyEpoch + 1n
-		};
-	}
-	return DerivedKeyMaterial.fromCryptoKey(derivedKeyState.epochKey);
-}
-
-async function ensureRootKey(actor: ActorSubclass<_SERVICE>, chatId: ChatId, epochId: bigint) {
-	const chatIdStr = chatIdToString(chatId);
-	const mapKey = `${chatIdStr}/${epochId.toString()}`;
-	const cur = chatIdStringToEpochKeyState.get(mapKey);
-
-	if (cur?.status === 'loading') {
-		await cur.promise
-			.then(({ key, symmetricKeyEpoch }) => {
-				console.log('ensureRootKey ready', chatIdStr);
-				chatIdStringToEpochKeyState.set(mapKey, {
-					status: 'ready',
-					symmetricKeyEpoch,
-					key
-				});
-			})
-			.catch((error) => {
-				console.log('ensureRootKey error', chatIdStr);
-				chatIdStringToEpochKeyState.set(mapKey, {
-					status: 'error',
-					error: error instanceof Error ? error.message : 'Unknown error'
-				});
-				throw error;
-			});
-	}
-}
-
-async function symmetricRatchetUntil(
-	chatId: ChatId,
-	vetkeyEpoch: bigint,
-	symmetricKeyEpoch: bigint
-) {
-	while ((await getCurrentSymmetricEpoch(chatId, vetkeyEpoch)) < symmetricKeyEpoch) {
-		try {
-			const currentSymmetricEpoch = await getCurrentSymmetricEpoch(chatId, vetkeyEpoch);
-			const mapKey = chatIdVetKeyEpochToString(chatId, vetkeyEpoch);
-			chatIdStringToEpochKeyState.set(mapKey, {
-				status: 'ready',
-				symmetricKeyEpoch: currentSymmetricEpoch + 1n,
-				key: await symmetricRatchet(chatId, vetkeyEpoch, currentSymmetricEpoch)
-			});
-		} catch (error) {
-			console.warn('symmetricRatchetUntil: ', error);
-		}
-	}
-}
-
-async function symmetricRatchet(
-	chatId: ChatId,
-	vetkeyEpoch: bigint,
-	expectedSymmetricKeyEpoch: bigint
-) {
-	const chatIdStr = chatIdToString(chatId);
-	const mapKey = chatIdVetKeyEpochToString(chatId, vetkeyEpoch);
-	const cur = chatIdStringToEpochKeyState.get(mapKey);
-	console.log(
-		`symmetricRatchet: ${chatIdStr} vetkeyEpoch: ${vetkeyEpoch.toString()} expectedSymmetricKeyEpoch: ${expectedSymmetricKeyEpoch.toString()}`
-	);
-	if (!cur) {
-		throw new Error('Bug: failed to get epoch key');
-	}
-	if (cur.status !== 'ready') {
-		throw new Error('Bug: epoch key is not ready for symmetric ratchet');
-	}
-	const { key, symmetricKeyEpoch: currentSymmetricKeyEpoch } = cur;
-	if (currentSymmetricKeyEpoch !== expectedSymmetricKeyEpoch) {
-		throw new Error(
-			`Failed to send message: wrong symmetric key epoch in message: expected ${expectedSymmetricKeyEpoch} but got ${currentSymmetricKeyEpoch}`
-		);
-	}
-
-	return await deriveNextEpochKey(key, currentSymmetricKeyEpoch);
-}
-
-async function deriveNextEpochKey(
-	epochKey: CryptoKey,
-	currentSymmetricKeyEpoch: bigint
-): Promise<CryptoKey> {
-	console.log(`deriveNextEpochKey: ${currentSymmetricKeyEpoch.toString()}`);
-	const exportable = false;
-	const domainSeparator = new Uint8Array([
-		...DOMAIN_RATCHET_STEP,
-		...uBigIntTo8ByteUint8ArrayBigEndian(currentSymmetricKeyEpoch)
-	]);
-	const algorithm = {
-		name: 'HKDF',
-		hash: 'SHA-256',
-		length: 32 * 8,
-		info: domainSeparator,
-		salt: new Uint8Array()
-	};
-
-	const rawKey = await globalThis.crypto.subtle.deriveBits(algorithm, epochKey, 8 * 32);
-
-	return await globalThis.crypto.subtle.importKey('raw', rawKey, algorithm, exportable, [
-		'deriveKey',
-		'deriveBits'
-	]);
-}
-
 // Initialize on module load (browser only)
 if (typeof window !== 'undefined') {
 	void chatActions.initialize();
-}
-
-async function getCurrentSymmetricEpoch(chatId: ChatId, vetkeyEpoch: bigint): Promise<bigint> {
-	const mapKey = chatIdVetKeyEpochToString(chatId, vetkeyEpoch);
-	while (true) {
-		const cur = chatIdStringToEpochKeyState.get(mapKey);
-		if (cur?.status === 'ready') {
-			return cur.symmetricKeyEpoch;
-		}
-		await new Promise((resolve) => setTimeout(resolve, 100));
-	}
-}
-
-async function getSymmetricEpochKey(
-	chatId: ChatId,
-	vetkeyEpoch: bigint,
-	symmetricKeyEpoch: bigint
-): Promise<DerivedKeyMaterial> {
-	const chatIdStr = chatIdToString(chatId);
-	const mapKey = chatIdVetKeyEpochToString(chatId, vetkeyEpoch);
-	let cur: KeyState | undefined = undefined; // wait in a loop with timeout till we get the key
-
-	console.log(
-		`getSymmetricEpochKey: ${chatIdStr} vetkeyEpoch: ${vetkeyEpoch.toString()} symmetricKeyEpoch: ${symmetricKeyEpoch.toString()}`
-	);
-
-	const startTime = Date.now();
-	while (!cur || cur.status !== 'ready') {
-		cur = chatIdStringToEpochKeyState.get(mapKey);
-		if (cur && cur.status === 'error') {
-			throw new Error('Failed to get epoch key: ' + cur.error);
-		}
-		if (!cur || cur.status !== 'ready') {
-			if (Date.now() - startTime > 30000) {
-				chatActions.addNotification({
-					type: 'error',
-					title: 'Load Error',
-					message: 'Failed to load messages for this chat.',
-					isDismissible: true
-				});
-				throw new Error('Failed to send message: failed to get epoch key after 30 seconds');
-			}
-			await new Promise((resolve) => setTimeout(resolve, 100));
-		}
-	}
-	if (!cur) {
-		throw new Error('Bug: failed to get epoch key');
-	}
-
-	const { key, symmetricKeyEpoch: symmetricKeyEpochKeyState } = cur;
-
-	if (symmetricKeyEpochKeyState !== symmetricKeyEpoch) {
-		throw new Error(
-			`Failed to send message: wrong symmetric key epoch in message: expected ${symmetricKeyEpoch} but got ${symmetricKeyEpochKeyState}`
-		);
-	}
-
-	return DerivedKeyMaterial.fromCryptoKey(key);
-}
-
-async function encryptMessageContent(
-	chatId: ChatId,
-	vetkeyEpoch: bigint,
-	symmetricKeyEpoch: bigint,
-	sender: Principal,
-	plaintextMessageContent: Uint8Array,
-	userMessageId: bigint
-): Promise<Uint8Array> {
-	const epochKey = await fastForwardSymmetricRatchetWithoutSavingUntil(
-		chatId,
-		vetkeyEpoch,
-		symmetricKeyEpoch
-	);
-	const domainSeparator = messageEncryptionDomainSeparator(sender, userMessageId);
-	return await epochKey.encryptMessage(plaintextMessageContent, domainSeparator);
-}
-
-async function decryptMessageContent(
-	chatId: ChatId,
-	vetkeyEpoch: bigint,
-	symmetricKeyEpoch: bigint,
-	sender: Principal,
-	encryptedMessageContent: Uint8Array,
-	userMessageId: bigint
-): Promise<Uint8Array> {
-	console.log(
-		`decryptMessageContent: ${chatIdToString(chatId)} vetkeyEpoch: ${vetkeyEpoch.toString()} symmetricKeyEpoch: ${symmetricKeyEpoch.toString()} sender: ${sender.toText()} userMessageId: ${userMessageId.toString()}`
-	);
-	const currentSymmetricEpoch = await getCurrentSymmetricEpoch(chatId, vetkeyEpoch);
-	if (currentSymmetricEpoch < symmetricKeyEpoch) {
-		await symmetricRatchetUntil(chatId, vetkeyEpoch, symmetricKeyEpoch);
-	}
-	const epochKey = await getSymmetricEpochKey(chatId, vetkeyEpoch, symmetricKeyEpoch);
-	const domainSeparator = messageEncryptionDomainSeparator(sender, userMessageId);
-	return await epochKey.decryptMessage(encryptedMessageContent, domainSeparator).catch((error) => {
-		console.error(
-			`decryptMessageContent: failed to decrypt message in chat ${chatIdToString(chatId)} for vetkeyEpoch ${vetkeyEpoch.toString()} and symmetricKeyEpoch: ${symmetricKeyEpoch.toString()} from sender ${sender.toText()} with userMessageId ${userMessageId.toString()}`,
-			error
-		);
-		return new TextEncoder().encode('<decryption failed>');
-	});
-}
-
-export function messageEncryptionDomainSeparator(sender: Principal, messageId: bigint): Uint8Array {
-	return new Uint8Array([
-		...DOMAIN_MESSAGE_ENCRYPTION,
-		...sender.toUint8Array(),
-		...uBigIntTo8ByteUint8ArrayBigEndian(messageId)
-	]);
-}
-
-async function reshareIbeEncryptedVetKeys(
-	actor: ActorSubclass<_SERVICE>,
-	chatId: ChatId,
-	vetkeyEpoch: bigint,
-	otherParticipants: Principal[],
-	vetKeyBytes: Uint8Array
-): Promise<void> {
-	if (otherParticipants.length > 0) {
-		console.log(
-			'reshareIbeEncryptedVetkeys: ',
-			chatId,
-			vetkeyEpoch,
-			otherParticipants,
-			vetKeyBytes
-		);
-		// try to reshare with other participants
-		return await Promise.all(
-			otherParticipants.map(async (p) => {
-				const ibePublicKey = DerivedPublicKey.deserialize(
-					new Uint8Array(await actor.get_vetkey_resharing_ibe_encryption_key(p))
-				);
-				const ibeIdentity = IbeIdentity.fromBytes(new Uint8Array());
-				const ibeSeed = IbeSeed.random();
-				const ibeCiphertext = IbeCiphertext.encrypt(
-					ibePublicKey,
-					ibeIdentity,
-					vetKeyBytes,
-					ibeSeed
-				);
-				const ibeCiphertextBytes = ibeCiphertext.serialize();
-				const result: [Principal, Uint8Array<ArrayBufferLike>] = [p, ibeCiphertextBytes];
-				return result;
-			})
-		).then(async (ibeEncryptedVetKeysPromise) => {
-			await actor
-				.reshare_ibe_encrypted_vetkeys(chatId, vetkeyEpoch, ibeEncryptedVetKeysPromise)
-				.then((result) => {
-					if ('Ok' in result) {
-						console.log(
-							`Successfully resharded IBE encrypted vetkeys for chat ${chatIdToString(chatId)} vetkeyEpoch ${vetkeyEpoch.toString()}`
-						);
-					} else {
-						console.info(
-							`Failed to reshare IBE encrypted vetkeys for chat ${chatIdToString(chatId)} vetkeyEpoch ${vetkeyEpoch.toString()}: `,
-							result.Err
-						);
-					}
-				});
-		});
-	} else {
-		console.log('no other participants to reshare vetKey with');
-	}
-}
-
-async function fetchResharedIbeEncryptedVetKeys(
-	actor: ActorSubclass<_SERVICE>,
-	chatId: ChatId,
-	vetkeyEpoch: bigint,
-	myPrincipal: Principal
-): Promise<Uint8Array> {
-	console.log('fetchResharedIbeEncryptedVetKeys: ', chatId, vetkeyEpoch, myPrincipal);
-	const tsk = TransportSecretKey.random();
-	const myResharedIbeEncryptedVetkey = await actor.get_my_reshared_ibe_encrypted_vetkey(
-		chatId,
-		vetkeyEpoch
-	);
-	if ('Err' in myResharedIbeEncryptedVetkey) {
-		throw new Error(
-			'Failed to get my reshared IBE encrypted vetkey: ' + myResharedIbeEncryptedVetkey.Err
-		);
-	} else if (myResharedIbeEncryptedVetkey.Ok.length === 0) {
-		throw new Error('Failed to get my reshared IBE encrypted vetkey: no reshared vetkey');
-	}
-	const ibeCiphertext = IbeCiphertext.deserialize(
-		new Uint8Array(myResharedIbeEncryptedVetkey.Ok[0])
-	);
-
-	const publicIbeKeyBytes = await actor.get_vetkey_resharing_ibe_encryption_key(myPrincipal);
-	const publicIbeKey = DerivedPublicKey.deserialize(new Uint8Array(publicIbeKeyBytes));
-
-	// TODO:cache this key
-	const privateEncryptedIbeKeyBytes = await actor.get_vetkey_resharing_ibe_decryption_key(
-		tsk.publicKeyBytes()
-	);
-	const encryptedVetKey = EncryptedVetKey.deserialize(new Uint8Array(privateEncryptedIbeKeyBytes));
-	const privateIbeKey = encryptedVetKey.decryptAndVerify(tsk, publicIbeKey, new Uint8Array());
-
-	const ibePlaintext = ibeCiphertext.decrypt(privateIbeKey);
-	return ibePlaintext;
-}
-
-function deriveRootKeyAndDispatchCaching(
-	actor: ActorSubclass<_SERVICE>,
-	chatId: ChatId,
-	vetKeyEpoch: bigint,
-	vetKeyBytes: Uint8Array
-): { keyBytes: Uint8Array; symmetricKeyEpoch: bigint } {
-	const rootKey = deriveSymmetricKey(vetKeyBytes, DOMAIN_RATCHET_INIT, 32);
-	console.log(
-		`Computed rootKey=${stringifyBigInt(rootKey)} from vetKey=${stringifyBigInt(vetKeyBytes)}`
-	);
-
-	console.log('starting to store the root key in cache: ', rootKey);
-	const vetKeyEncryptedCache = new VetKeyEncryptedCacheManager(getMyPrincipal(), actor);
-	const keyState = { keyBytes: rootKey, symmetricKeyEpoch: 0n };
-	// await this future in background
-	vetKeyEncryptedCache.encryptAndStoreFor(chatId, vetKeyEpoch, keyState).catch((error) => {
-		console.error(
-			`Failed to store root key in cache for chat ${chatIdToString(chatId)} vetkeyEpoch ${vetKeyEpoch.toString()}: `,
-			error
-		);
-	});
-	return keyState;
 }

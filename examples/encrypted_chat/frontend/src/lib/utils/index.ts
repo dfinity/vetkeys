@@ -1,0 +1,65 @@
+import type { ChatId } from '../../declarations/encrypted_chat/encrypted_chat.did';
+import { Principal } from '@dfinity/principal';
+
+export function chatIdToString(chatId: ChatId): string {
+	if ('Group' in chatId) return `group/${chatId.Group.toString()}`;
+	const [a, b] = chatId.Direct;
+	return `direct/${a.toString()}/${b.toString()}`;
+}
+
+export function chatIdFromString(str: string): ChatId {
+	if (typeof str !== 'string') throw new Error('chatIdStr is not a string but ' + typeof str);
+	if (str.startsWith('group/')) return { Group: BigInt(str.slice(6)) };
+	const [a, b] = str.split('/').slice(1);
+	return { Direct: [Principal.fromText(a), Principal.fromText(b)] };
+}
+
+export function chatIdVetKeyEpochToString(chatId: ChatId, vetKeyEpoch: bigint): string {
+	return chatIdToString(chatId) + '/' + vetKeyEpoch.toString();
+}
+
+export function chatIdVetKeyEpochFromString(str: string): { chatId: ChatId; vetKeyEpoch: bigint } {
+	const vetKeyEpochStr = str.split('/').pop()!;
+	const chatIdStr = str.slice(0, str.lastIndexOf(`/${vetKeyEpochStr}`));
+	return { chatId: chatIdFromString(chatIdStr), vetKeyEpoch: BigInt(vetKeyEpochStr) };
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function stringifyBigInt(value: any): string {
+	return JSON.stringify(value, (_key, value) => {
+		if (typeof value === 'bigint') {
+			return value.toString();
+		}
+		// eslint-disable-next-line @typescript-eslint/no-unsafe-return
+		return value;
+	});
+}
+
+export function uBigIntTo8ByteUint8ArrayBigEndian(value: bigint): Uint8Array {
+	if (value < 0n) throw new RangeError('Accpts only bigint n >= 0');
+
+	const bytes = new Uint8Array(8);
+	for (let i = 0; i < 8; i++) {
+		bytes[i] = Number((value >> BigInt(i * 8)) & 0xffn);
+	}
+	return bytes;
+}
+
+export function u8ByteUint8ArrayBigEndianToUBigInt(bytes: Uint8Array): bigint {
+	if (bytes.length !== 8) throw new Error('Expected 8 bytes');
+	let value = 0n;
+	for (let i = 0; i < 8; i++) {
+		value += BigInt(bytes[i]) << BigInt(i * 8);
+	}
+	return value;
+}
+
+export function sizePrefixedBytesFromString(text: string): Uint8Array {
+	const bytes = new TextEncoder().encode(text);
+	if (bytes.length > 255) {
+		throw new Error('Text is too long');
+	}
+	const size = new Uint8Array(1);
+	size[0] = bytes.length & 0xff;
+	return new Uint8Array([...size, ...bytes]);
+}

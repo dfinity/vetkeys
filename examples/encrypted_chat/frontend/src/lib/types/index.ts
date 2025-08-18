@@ -298,7 +298,7 @@ function serializeChatId(chatId: ChatId): Uint8Array {
 	}
 }
 
-export class VetKeyEncryptedCache {
+export class EncryptedCacheManager {
 	#encryptedMaps: EncryptedMaps;
 	#myPrincipal: Principal;
 	#actor: ActorSubclass<_SERVICE>;

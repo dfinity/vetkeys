@@ -501,6 +501,8 @@ fn get_my_chat_ids() -> Vec<(ChatId, ChatMessageId)> {
                         ),
                     )
                 })
+                .collect::<std::collections::BTreeSet<_>>()
+                .into_iter()
                 .collect()
         })
     })

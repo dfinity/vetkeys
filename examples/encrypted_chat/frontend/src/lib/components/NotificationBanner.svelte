@@ -3,7 +3,7 @@
 	import { fly } from 'svelte/transition';
 	import { X, AlertTriangle, Info, CheckCircle, XCircle } from 'lucide-svelte';
 	import { notifications, chatActions } from '../stores/chat.svelte';
-	import { storageService } from '../services/storage';
+	import { storageService } from '../services/messageStorage';
 	import type { Notification } from '../types';
 
 	let showDisclaimer = false;
