@@ -536,7 +536,8 @@ impl VetKey {
      * secret key cannot be extracted.
      */
     pub fn as_derived_key_material(&self) -> DerivedKeyMaterial {
-        DerivedKeyMaterial::new(self)
+        let key = self.derive_symmetric_key("ic-vetkd-bls12-381-g2-derived-key-material", 32);
+        DerivedKeyMaterial { key }
     }
 
     /**
@@ -583,6 +584,11 @@ pub enum DecryptionError {
     MessageTooShort,
     /// The GCM tag did not validate
     InvalidCiphertext,
+    /// The expected message header did not appear
+    ///
+    /// Either the ciphertext was invalid, or possibly the decrypting side
+    /// needs to be upgraded to support a new format
+    UnknownHeader,
 }
 
 impl DerivedKeyMaterial {
@@ -590,43 +596,81 @@ impl DerivedKeyMaterial {
     const GCM_TAG_SIZE: usize = 16;
     const GCM_NONCE_SIZE: usize = 12;
 
-    /// Create a new DerivedKeyMaterial
-    fn new(vetkey: &VetKey) -> Self {
-        Self {
-            key: vetkey.serialize().to_vec(),
-        }
-    }
+    const GCM_HEADER_VERSION: u8 = 2;
+    const GCM_HEADER_SIZE: usize = 8;
+    const GCM_HEADER: [u8; Self::GCM_HEADER_SIZE] = *b"IC GCMv2";
 
-    fn derive_aes_gcm_key(&self, domain_sep: &str) -> Vec<u8> {
-        derive_symmetric_key(&self.key, domain_sep, Self::GCM_KEY_SIZE)
+    /// Derive a new key for AES-GCM
+    ///
+    /// Note that the domain separator provided by the user is prefixed
+    /// with `ic-vetkd-bls12-381-g2-aes-gcm-`
+    fn derive_aes_gcm_key(&self, domain_sep: &str, version: u8) -> Vec<u8> {
+        derive_symmetric_key(
+            &self.key,
+            &format!("ic-vetkd-bls12-381-g2-aes-gcm-v{}-{}", version, domain_sep),
+            Self::GCM_KEY_SIZE,
+        )
     }
 
     /// Encrypt a message
     ///
     /// The decryption used here is interoperable with the TypeScript
     /// library ic_vetkeys function `DerivedKeyMaterial.decryptMessage`
+    ///
+    /// The domain separator should be unique for this usage, for example
+    /// by including the identities of the sender and receiver.
+    ///
+    /// The associated data field is information which will be authenticated
+    /// but not included in the ciphertext. This can be useful for binding
+    /// additional contextual data (eg a protocol identifier) or information
+    /// which should be authenticated but does not need to be encrypted.
+    /// If not needed, it can be left empty or an application-specific constant
+    /// value can be used,
+    ///
+    /// The format of the returned message is, in order
+    ///  * 8 byte header
+    ///  * 12 byte nonce
+    ///  * Ciphertext of length equal to the message
+    ///  * 16 byte GCM authentication tag
+    ///
     pub fn encrypt_message<R: rand::RngCore + rand::CryptoRng>(
         &self,
         message: &[u8],
         domain_sep: &str,
+        associated_data: &[u8],
         rng: &mut R,
     ) -> Result<Vec<u8>, EncryptionError> {
         use aes_gcm::{aead::Aead, aead::AeadCore, Aes256Gcm, Key, KeyInit};
-        let key = self.derive_aes_gcm_key(domain_sep);
+        let key = self.derive_aes_gcm_key(domain_sep, Self::GCM_HEADER_VERSION);
         let key = Key::<Aes256Gcm>::from_slice(&key);
         // aes_gcm::Aes256Gcm only supports/uses 12 byte nonces
         let nonce = Aes256Gcm::generate_nonce(rng);
         assert_eq!(nonce.len(), Self::GCM_NONCE_SIZE);
         let gcm = Aes256Gcm::new(key);
 
+        // Unfortunately aes_gcm does not allow a vector of AAD inputs
+        // so we have to allocate a copy. Typically associated data is short
+        let prefixed_aad = {
+            let mut r = Vec::with_capacity(Self::GCM_HEADER.len() + associated_data.len());
+            r.extend_from_slice(&Self::GCM_HEADER); // assumed fixed length
+            r.extend_from_slice(associated_data);
+            r
+        };
+
+        let msg = aes_gcm::aead::Payload {
+            msg: message,
+            aad: &prefixed_aad,
+        };
+
         // The function returns an opaque `Error` with no details, but upon
         // examination, the only way it can fail is if the plaintext is larger
         // than GCM's maximum input length of 2^36 bytes.
         let ctext = gcm
-            .encrypt(&nonce, message)
+            .encrypt(&nonce, msg)
             .map_err(|_| EncryptionError::PlaintextTooLong)?;
 
         let mut res = vec![];
+        res.extend_from_slice(&Self::GCM_HEADER);
         res.extend_from_slice(nonce.as_slice());
         res.extend_from_slice(ctext.as_slice());
         Ok(res)
@@ -640,20 +684,45 @@ impl DerivedKeyMaterial {
         &self,
         ctext: &[u8],
         domain_sep: &str,
+        associated_data: &[u8],
     ) -> Result<Vec<u8>, DecryptionError> {
         use aes_gcm::{aead::Aead, Aes256Gcm, Key, KeyInit};
-        let key = self.derive_aes_gcm_key(domain_sep);
-        let key = Key::<Aes256Gcm>::from_slice(&key);
 
-        // Minimum possible length 12 bytes nonce plus 16 bytes GCM tag
-        if ctext.len() < Self::GCM_NONCE_SIZE + Self::GCM_TAG_SIZE {
+        // Minimum possible length is 8 byte header + 12 bytes nonce + 16 bytes GCM tag
+        if ctext.len() < Self::GCM_HEADER_SIZE + Self::GCM_NONCE_SIZE + Self::GCM_TAG_SIZE {
             return Err(DecryptionError::MessageTooShort);
         }
-        let nonce = aes_gcm::Nonce::from_slice(&ctext[0..Self::GCM_NONCE_SIZE]);
+
+        // If multiple versions are ever supported in the future, and we
+        // must retain backward compatability, then this would need to be
+        // extended to check for multiple different headers and process
+        // the ciphertext accordingly.
+        if ctext[0..Self::GCM_HEADER_SIZE] != Self::GCM_HEADER {
+            return Err(DecryptionError::UnknownHeader);
+        }
+
+        let key = self.derive_aes_gcm_key(domain_sep, Self::GCM_HEADER_VERSION);
+        let key = Key::<Aes256Gcm>::from_slice(&key);
+
+        let nonce = aes_gcm::Nonce::from_slice(
+            &ctext[Self::GCM_HEADER_SIZE..Self::GCM_HEADER_SIZE + Self::GCM_NONCE_SIZE],
+        );
         let gcm = Aes256Gcm::new(key);
 
+        let prefixed_aad = {
+            let mut r = Vec::with_capacity(Self::GCM_HEADER.len() + associated_data.len());
+            r.extend_from_slice(&ctext[0..Self::GCM_HEADER_SIZE]);
+            r.extend_from_slice(associated_data);
+            r
+        };
+
+        let msg = aes_gcm::aead::Payload {
+            msg: &ctext[Self::GCM_HEADER_SIZE + Self::GCM_NONCE_SIZE..],
+            aad: &prefixed_aad,
+        };
+
         let ptext = gcm
-            .decrypt(nonce, &ctext[Self::GCM_NONCE_SIZE..])
+            .decrypt(nonce, msg)
             .map_err(|_| DecryptionError::InvalidCiphertext)?;
 
         Ok(ptext.as_slice().to_vec())
