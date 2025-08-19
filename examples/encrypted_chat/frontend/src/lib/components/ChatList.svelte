@@ -1,0 +1,91 @@
+<script lang="ts">
+	import {
+		chats,
+		selectedChatId,
+		chatActions,
+		getNumberOfMessagesIs,
+		chatIdStringToNumberOfMessagesShould,
+		getChatIds
+	} from '../stores/chat.svelte';
+	import ChatListItem from './ChatListItem.svelte';
+	import UserProfile from './UserProfile.svelte';
+	import Button from './ui/Button.svelte';
+	import NewChatModal from './NewChatModal.svelte';
+	import { chatIdToString, chatIdFromString } from '$lib/utils';
+
+	$effect(() => {
+		console.log(`$effect loadChatMessages`);
+		const numMessagesShoulds = getChatIds().map((chatId) => {
+			const should = chatIdStringToNumberOfMessagesShould.get(chatIdToString(chatId)) ?? 0n;
+			const is = getNumberOfMessagesIs(chatId);
+			return { chatId, should, is };
+		});
+		(async () => {
+			for (const { chatId, should, is } of numMessagesShoulds) {
+				if (!is || is !== should) {
+					await chatActions.loadChatMessages(chatId, is);
+				} else {
+					console.log(
+						`SKIPPING $effect loadChatMessages for ${chatIdToString(chatId)}: is  ${is.toString()}, should ${should.toString()}`
+					);
+				}
+			}
+		})().catch(console.error);
+	});
+
+	let showNewChat = $state(false);
+</script>
+
+<div class="chat-list glass-effect flex h-full flex-col border-r border-white/20 backdrop-blur-xl">
+	<!-- User Profile -->
+	<UserProfile />
+
+	<!-- Chat List Header -->
+	<div class="border-b border-white/10 p-6">
+		<h2
+			class="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-xl font-bold text-transparent"
+		>
+			Chats
+		</h2>
+		<p class="mt-1 text-sm font-medium text-gray-500 dark:text-gray-400">
+			{chats.state.length} conversation{chats.state.length !== 1 ? 's' : ''}
+		</p>
+		<div class="mt-3 flex gap-2">
+			<Button size="sm" variant="filled" onclick={() => (showNewChat = true)}>New Chat</Button>
+		</div>
+	</div>
+
+	<!-- Chat List -->
+	<div class="scrollbar-thin flex-1 overflow-y-auto p-2">
+		{#each chats.state as chat (chat.id)}
+			<ChatListItem
+				{chat}
+				isSelected={selectedChatId.state
+					? chatIdToString(selectedChatId.state) === chatIdToString(chat.id)
+					: false}
+				on:select={(e: CustomEvent<string>) => (selectedChatId.state = chatIdFromString(e.detail))}
+			/>
+		{:else}
+			<div class="p-8 text-center text-surface-600-500">
+				<p class="text-lg mb-2">No chats yet</p>
+				<p class="text-sm">Your conversations will appear here</p>
+			</div>
+		{/each}
+	</div>
+</div>
+
+<NewChatModal bind:show={showNewChat} />
+
+<style>
+	.chat-list {
+		width: 320px;
+		min-width: 280px;
+	}
+
+	@media (max-width: 768px) {
+		.chat-list {
+			width: 50%;
+			min-width: 50%;
+		}
+	}
+</style>
