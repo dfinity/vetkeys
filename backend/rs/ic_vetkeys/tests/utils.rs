@@ -302,7 +302,6 @@ fn aes_gcm_encryption() {
         .encrypt_message(test_message, domain_sep, aad, &mut rng)
         .unwrap();
 
-    println!("{}", hex::encode(&ctext));
     assert_eq!(
         dkm.decrypt_message(&ctext, domain_sep, aad).unwrap(),
         test_message,
