@@ -292,24 +292,26 @@ fn aes_gcm_encryption() {
 
     let test_message = b"stay calm, this is only a test";
     let domain_sep = "ic-test-domain-sep";
+    let aad = b"some additional authenticated data";
 
     // Test string encryption path, then decryption
 
     let mut rng = reproducible_rng();
 
     let ctext = dkm
-        .encrypt_message(test_message, domain_sep, &mut rng)
+        .encrypt_message(test_message, domain_sep, aad, &mut rng)
         .unwrap();
+
     assert_eq!(
-        dkm.decrypt_message(&ctext, domain_sep).unwrap(),
+        dkm.decrypt_message(&ctext, domain_sep, aad).unwrap(),
         test_message,
     );
 
     // Test decryption of known ciphertext encrypted with the derived key
-    let fixed_ctext = hex!("476f440e30bb95fff1420ce41ba6a07e03c3fcc0a751cfb23e64a8dcb0fc2b1eb74e2d4768f5c4dccbf2526609156664046ad27a6e78bd93bb8b");
+    let fixed_ctext = hex!("49432047434d76325dc1b0f5f8deec973adda66ce7cb9dc06118c738fae12027c5bae5b86e69ffd633ddfc0ea66c4df37b6e7e298d9f80170ec3d51c4238be9a63bd");
 
     assert_eq!(
-        dkm.decrypt_message(&fixed_ctext, domain_sep).unwrap(),
+        dkm.decrypt_message(&fixed_ctext, domain_sep, aad).unwrap(),
         test_message,
     );
 
@@ -324,7 +326,7 @@ fn aes_gcm_encryption() {
             m
         };
 
-        assert!(dkm.decrypt_message(&mod_ctext, domain_sep).is_err());
+        assert!(dkm.decrypt_message(&mod_ctext, domain_sep, aad).is_err());
     }
 
     // Test truncating
@@ -336,7 +338,7 @@ fn aes_gcm_encryption() {
             m
         };
 
-        assert!(dkm.decrypt_message(&mod_ctext, domain_sep).is_err());
+        assert!(dkm.decrypt_message(&mod_ctext, domain_sep, aad).is_err());
     }
 
     // Test appending random bytes
@@ -351,6 +353,6 @@ fn aes_gcm_encryption() {
             m
         };
 
-        assert!(dkm.decrypt_message(&mod_ctext, domain_sep).is_err());
+        assert!(dkm.decrypt_message(&mod_ctext, domain_sep, aad).is_err());
     }
 }
