@@ -540,9 +540,8 @@ const DERIVED_KEY_MATERIAL_NONCE_LENGTH = 12;
 
 const DERIVED_KEY_MATERIAL_VERSION = 2;
 
-const DERIVED_KEY_MATERIAL_HEADER_BYTES = new Uint8Array([
-    0x49, 0x43, 0x20, 0x47, 0x43, 0x4D, 0x76, 0x32,
-]);
+const DERIVED_KEY_MATERIAL_HEADER = "IC GCMv2";
+const DERIVED_KEY_MATERIAL_HEADER_BYTES = new TextEncoder().encode(DERIVED_KEY_MATERIAL_HEADER);
 const DERIVED_KEY_MATERIAL_HEADER_LEN = 8;
 
 
@@ -604,13 +603,11 @@ export class DerivedKeyMaterial {
         domainSep: Uint8Array | string,
         version: number,
     ): Promise<CryptoKey> {
-        const exportable = false;
-
         const algorithm = {
             name: "HKDF",
             hash: "SHA-256",
             length: 32 * 8,
-            info: withPrefix("ic-vetkd-bls12-381-g2-aes-gcm-v" + version.toString(), domainSep),
+            info: withPrefix("ic-vetkd-bls12-381-g2-aes-gcm-v" + version.toString() + "-", domainSep),
             salt: new Uint8Array(),
         };
 
@@ -618,6 +615,8 @@ export class DerivedKeyMaterial {
             name: "AES-GCM",
             length: 32 * 8,
         };
+
+        const exportable = false;
 
         return globalThis.crypto.subtle.deriveKey(
             algorithm,
@@ -636,6 +635,7 @@ export class DerivedKeyMaterial {
     async encryptMessage(
         message: Uint8Array | string,
         domainSep: Uint8Array | string,
+        associatedData: Uint8Array | string,
     ): Promise<Uint8Array> {
         const gcmKey = await this.deriveAesGcmCryptoKey(domainSep, DERIVED_KEY_MATERIAL_VERSION);
 
@@ -644,9 +644,11 @@ export class DerivedKeyMaterial {
             new Uint8Array(DERIVED_KEY_MATERIAL_NONCE_LENGTH),
         );
 
+        const aad = withPrefix(DERIVED_KEY_MATERIAL_HEADER, associatedData);
+
         const ciphertext = new Uint8Array(
             await globalThis.crypto.subtle.encrypt(
-                { name: "AES-GCM", iv: nonce },
+                { name: "AES-GCM", iv: nonce, additionalData: aad },
                 gcmKey,
                 asBytes(message),
             ),
@@ -664,6 +666,7 @@ export class DerivedKeyMaterial {
     async decryptMessage(
         message: Uint8Array,
         domainSep: Uint8Array | string,
+        associatedData: Uint8Array | string,
     ): Promise<Uint8Array> {
         const GCM_TAG_LENGTH = 16;
 
@@ -682,18 +685,19 @@ export class DerivedKeyMaterial {
         // the ciphertext accordingly.
         if(!isEqual(header, DERIVED_KEY_MATERIAL_HEADER_BYTES)) {
             throw new Error(
-                "Invalid ciphertext, too short to possibly be valid",
+                "Unknown header for AES-GCM encrypted ciphertext",
             );
         }
 
-        const nonce = message.slice(DERIVED_KEY_MATERIAL_HEADER_LEN, DERIVED_KEY_MATERIAL_NONCE_LENGTH); // next 12 bytes are the nonce
-        const ciphertext = message.slice(DERIVED_KEY_MATERIAL_HEADER_LEN + DERIVED_KEY_MATERIAL_NONCE_LENGTH); // remainder GCM ciphertext
+        const aad = withPrefix(DERIVED_KEY_MATERIAL_HEADER, associatedData);
 
+        const nonce = message.slice(DERIVED_KEY_MATERIAL_HEADER_LEN, DERIVED_KEY_MATERIAL_HEADER_LEN + DERIVED_KEY_MATERIAL_NONCE_LENGTH); // next 12 bytes are the nonce
+        const ciphertext = message.slice(DERIVED_KEY_MATERIAL_HEADER_LEN + DERIVED_KEY_MATERIAL_NONCE_LENGTH); // remainder GCM ciphertext
         const gcmKey = await this.deriveAesGcmCryptoKey(domainSep, DERIVED_KEY_MATERIAL_VERSION);
 
         try {
             const ptext = await globalThis.crypto.subtle.decrypt(
-                { name: "AES-GCM", iv: nonce },
+                { name: "AES-GCM", iv: nonce, additionalData: aad },
                 gcmKey,
                 ciphertext,
             );
