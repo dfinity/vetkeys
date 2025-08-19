@@ -3,19 +3,19 @@
 	import { fly } from 'svelte/transition';
 	import { X, AlertTriangle, Info, CheckCircle, XCircle } from 'lucide-svelte';
 	import { notifications, chatActions } from '../stores/chat.svelte';
-	import { storageService } from '../services/messageStorage';
+	import { chatStorageService } from '../services/chatStorage';
 	import type { Notification } from '../types';
 
 	let showDisclaimer = false;
 
 	onMount(async () => {
-		const dismissed = await storageService.isDisclaimerDismissed();
+		const dismissed = await chatStorageService.isDisclaimerDismissed();
 		showDisclaimer = !dismissed;
 	});
 
 	async function dismissDisclaimer() {
 		showDisclaimer = false;
-		await storageService.setDisclaimerDismissed();
+		await chatStorageService.setDisclaimerDismissed();
 	}
 
 	function getNotificationIcon(type: Notification['type']) {

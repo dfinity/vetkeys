@@ -57,11 +57,11 @@
 
 	<!-- Chat List -->
 	<div class="scrollbar-thin flex-1 overflow-y-auto p-2">
-		{#each chats.state as chat (chat.id)}
+		{#each chats.state as chat (chat.idStr)}
 			<ChatListItem
 				{chat}
 				isSelected={selectedChatId.state
-					? chatIdToString(selectedChatId.state) === chatIdToString(chat.id)
+					? chatIdToString(selectedChatId.state) === chat.idStr
 					: false}
 				on:select={(e: CustomEvent<string>) => (selectedChatId.state = chatIdFromString(e.detail))}
 			/>

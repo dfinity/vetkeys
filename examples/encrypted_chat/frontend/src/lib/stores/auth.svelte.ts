@@ -1,3 +1,4 @@
+import { chatStorageService } from '$lib/services/chatStorage';
 import { AuthClient } from '@dfinity/auth-client';
 import type { Principal } from '@dfinity/principal';
 
@@ -97,6 +98,7 @@ export async function logout() {
 			label: 'anonymous',
 			client: auth.state.client
 		};
+		await chatStorageService.discardCacheCompletely();
 	}
 }
 

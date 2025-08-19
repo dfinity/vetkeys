@@ -1,10 +1,9 @@
 <script lang="ts">
 	import { createEventDispatcher } from 'svelte';
 	import { UserMinus, X, Save, Users } from 'lucide-svelte';
-	import type { GroupChat, User } from '../types';
+	import type { GroupChat } from '../types';
 	import { getMyPrincipal } from '$lib/stores/auth.svelte';
 	import { Principal } from '@dfinity/principal';
-	import type { Principal as PrincipalType } from '@dfinity/principal';
 	import Card from './ui/Card.svelte';
 	import Button from './ui/Button.svelte';
 
@@ -53,6 +52,7 @@
 		(totalAddCount > 0 || selectedToRemove.length > 0) && invalidPrincipalTokens.length === 0;
 
 	function toggleRemoveUser(userId: string) {
+		console.log(`toggleRemoveUser: ${userId}`);
 		if (selectedToRemove.includes(userId)) {
 			selectedToRemove = selectedToRemove.filter((id) => id !== userId);
 		} else {
@@ -85,26 +85,28 @@
 		dispatch('close');
 	}
 
-	function canRemoveUser(userId: PrincipalType): boolean {
+	function canRemoveUser(userId: Principal): boolean {
 		// Can't remove current user or admin
-		return (
-			userId.toString() !== getMyPrincipal().toString() && userId.toString() !== groupChat.adminId
-		);
+		return userId.toText() !== getMyPrincipal().toText();
 	}
 </script>
 
 {#if show}
 	<!-- Backdrop -->
-	<div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+	<div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
 		<!-- Modal -->
-		<Card class="w-full max-w-2xl rounded-xl shadow-2xl ring-1 ring-black/10 dark:ring-white/10 bg-white dark:bg-neutral-900">
+		<Card
+			class="w-full max-w-2xl rounded-xl bg-white shadow-2xl ring-1 ring-black/10 dark:bg-neutral-900 dark:ring-white/10"
+		>
 			<div class="p-6 md:p-8">
 				<!-- Header -->
-				<div class="mb-4 flex items-center justify-between border-b border-black/5 dark:border-white/10 pb-4">
+				<div
+					class="mb-4 flex items-center justify-between border-b border-black/5 pb-4 dark:border-white/10"
+				>
 					<div class="flex items-center gap-3">
 						<Users class="h-6 w-6" />
 						<h2 class="text-lg font-semibold">Manage Group</h2>
-						<span class="text-surface-600-300-token text-sm truncate">{groupChat.name}</span>
+						<span class="text-surface-600-300-token truncate text-sm">{groupChat.name}</span>
 					</div>
 					<button class="variant-ghost-surface btn-icon" onclick={handleClose} aria-label="Close">
 						<X class="h-5 w-5" />
@@ -113,123 +115,122 @@
 
 				<!-- Content -->
 				<div class="max-h-[60vh] space-y-6 overflow-y-auto">
-				<!-- Current Members -->
-				<div>
-					<h3 class="mb-3 font-semibold">Current Members ({groupChat.participants.length})</h3>
-					<div class="space-y-2">
-						{#each groupChat.participants as member (member.id)}
-							<div
-								class="bg-surface-200-700-token flex items-center justify-between rounded-lg p-3"
-							>
-								<div class="flex items-center gap-3">
-									<div
-										class="avatar bg-primary-500 flex h-8 w-8 items-center justify-center rounded-full text-sm"
-									>
-										{member.avatar || '👤'}
-									</div>
-									<div>
-										<p class="text-sm font-medium">{member.name}</p>
-										<div class="text-surface-600-300-token flex items-center gap-2 text-xs">
-											<div
-												class="h-2 w-2 rounded-full {member.isOnline
-													? 'bg-success-500'
-													: 'bg-surface-400'}"
-											></div>
-											{member.isOnline ? 'Online' : 'Offline'}
-											{#if member.id.toString() === groupChat.adminId}
-												<span class="bg-primary-500 rounded px-2 py-0.5 text-xs text-white"
-													>Admin</span
-												>
-											{/if}
-											{#if member.id.toString() === getMyPrincipal().toString()}
-												<span class="bg-surface-400 rounded px-2 py-0.5 text-xs text-white"
-													>You</span
-												>
-											{/if}
+					<!-- Current Members -->
+					<div>
+						<h3 class="mb-3 font-semibold">Current Members ({groupChat.participants.length})</h3>
+						<div class="space-y-2">
+							{#each groupChat.participants as member (member.principal)}
+								<div
+									class="bg-surface-200-700-token flex items-center justify-between rounded-lg p-3"
+								>
+									<div class="flex items-center gap-3">
+										<div
+											class="avatar bg-primary-500 flex h-8 w-8 items-center justify-center rounded-full text-sm"
+										>
+											{member.avatar || '👤'}
+										</div>
+										<div>
+											<p class="text-sm font-medium">{member.name}</p>
+											<div class="text-surface-600-300-token flex items-center gap-2 text-xs">
+												<div
+													class="h-2 w-2 rounded-full {member.isOnline
+														? 'bg-success-500'
+														: 'bg-surface-400'}"
+												></div>
+												{#if member.principal.toText() === getMyPrincipal().toText()}
+													<span class="bg-surface-400 rounded px-2 py-0.5 text-xs text-white"
+														>Me</span
+													>
+												{/if}
+											</div>
 										</div>
 									</div>
+
+									{#if canRemoveUser(member.principal)}
+										<button
+											class="variant-ghost-error btn-icon"
+											onclick={() => toggleRemoveUser(member.principal.toText())}
+											class:variant-filled-error={selectedToRemove.includes(
+												member.principal.toText()
+											)}
+											title="Remove from group"
+										>
+											<UserMinus class="h-4 w-4" />
+										</button>
+									{/if}
 								</div>
-
-								{#if canRemoveUser(member.id)}
-									<button
-										class="variant-ghost-error btn-icon"
-										onclick={() => toggleRemoveUser(member.id.toString())}
-										class:variant-filled-error={selectedToRemove.includes(member.id.toString())}
-										title="Remove from group"
-									>
-										<UserMinus class="h-4 w-4" />
-									</button>
-								{/if}
-							</div>
-						{/each}
+							{/each}
+						</div>
 					</div>
-				</div>
 
-				<!-- Add by Principal Text Input -->
-				<div>
-					<h3 class="mb-3 font-semibold">Add by Principal</h3>
-					<div class="space-y-2">
-						<textarea
-							class="border-surface-300-600-token w-full rounded-lg border p-3 text-sm focus:outline-none"
-							class:border-error-500={invalidPrincipalTokens.length > 0}
-							rows="3"
-							bind:value={principalsInput}
-							placeholder="Enter one or more principals separated by commas or whitespace"
-						></textarea>
-
-						{#if invalidPrincipalTokens.length > 0}
-							<div class="text-error-500 text-xs">
-								Invalid principals:
-								<div class="mt-1 flex flex-wrap gap-1">
-									{#each invalidPrincipalTokens as t}
-										<span class="bg-error-500/10 text-error-600 rounded px-2 py-0.5">{t}</span>
-									{/each}
-								</div>
-							</div>
-						{:else if validPrincipalStrings.length > 0}
-							<div class="text-surface-600-300-token text-xs">
-								Will add {validPrincipalStrings.length} principal{validPrincipalStrings.length !== 1 ? 's' : ''}
-							</div>
-						{/if}
-					</div>
-				</div>
-
-			<!-- Options -->
-			{#if totalAddCount > 0}
+					<!-- Add by Principal Text Input -->
 					<div>
-						<h3 class="mb-3 font-semibold">Options</h3>
-						<label
-							class="bg-surface-200-700-token flex cursor-pointer items-center gap-3 rounded-lg p-3"
-						>
-							<input type="checkbox" bind:checked={allowHistoryForNew} class="checkbox" />
-							<div>
-								<p class="text-sm font-medium">Allow new members to see chat history</p>
-								<p class="text-surface-600-300-token text-xs">
-									New members will be able to see messages sent before they joined
-								</p>
-							</div>
-						</label>
-					</div>
-				{/if}
+						<h3 class="mb-3 font-semibold">Add by Principal</h3>
+						<div class="space-y-2">
+							<textarea
+								class="border-surface-300-600-token w-full rounded-lg border p-3 text-sm focus:outline-none"
+								class:border-error-500={invalidPrincipalTokens.length > 0}
+								rows="3"
+								bind:value={principalsInput}
+								placeholder="Enter one or more principals separated by commas or whitespace"
+							></textarea>
 
-			<!-- Summary -->
-			{#if totalAddCount > 0 || selectedToRemove.length > 0}
-					<div class="border-primary-500/20 bg-primary-500/10 rounded-lg border p-4">
-						<h4 class="mb-2 text-sm font-semibold">Changes Summary</h4>
-						<div class="space-y-1 text-sm">
-						{#if totalAddCount > 0}
-								<p class="text-success-500">
-								+ {totalAddCount} member{totalAddCount !== 1 ? 's' : ''} to add
-								</p>
-							{/if}
-							{#if selectedToRemove.length > 0}
-								<p class="text-error-500">
-									- {selectedToRemove.length} member{selectedToRemove.length !== 1 ? 's' : ''} to remove
-								</p>
+							{#if invalidPrincipalTokens.length > 0}
+								<div class="text-error-500 text-xs">
+									Invalid principals:
+									<div class="mt-1 flex flex-wrap gap-1">
+										{#each invalidPrincipalTokens as t (t)}
+											<span class="bg-error-500/10 text-error-600 rounded px-2 py-0.5">{t}</span>
+										{/each}
+									</div>
+								</div>
+							{:else if validPrincipalStrings.length > 0}
+								<div class="text-surface-600-300-token text-xs">
+									Will add {validPrincipalStrings.length} principal{validPrincipalStrings.length !==
+									1
+										? 's'
+										: ''}
+								</div>
 							{/if}
 						</div>
 					</div>
-				{/if}
+
+					<!-- Options -->
+					{#if totalAddCount > 0}
+						<div>
+							<h3 class="mb-3 font-semibold">Options</h3>
+							<label
+								class="bg-surface-200-700-token flex cursor-pointer items-center gap-3 rounded-lg p-3"
+							>
+								<input type="checkbox" bind:checked={allowHistoryForNew} class="checkbox" />
+								<div>
+									<p class="text-sm font-medium">Allow new members to see chat history</p>
+									<p class="text-surface-600-300-token text-xs">
+										New members will be able to see messages sent before they joined
+									</p>
+								</div>
+							</label>
+						</div>
+					{/if}
+
+					<!-- Summary -->
+					{#if totalAddCount > 0 || selectedToRemove.length > 0}
+						<div class="border-primary-500/20 bg-primary-500/10 rounded-lg border p-4">
+							<h4 class="mb-2 text-sm font-semibold">Changes Summary</h4>
+							<div class="space-y-1 text-sm">
+								{#if totalAddCount > 0}
+									<p class="text-success-500">
+										+ {totalAddCount} member{totalAddCount !== 1 ? 's' : ''} to add
+									</p>
+								{/if}
+								{#if selectedToRemove.length > 0}
+									<p class="text-error-500">
+										- {selectedToRemove.length} member{selectedToRemove.length !== 1 ? 's' : ''} to remove
+									</p>
+								{/if}
+							</div>
+						</div>
+					{/if}
 				</div>
 
 				<!-- Footer -->

@@ -21,6 +21,7 @@ import { SvelteMap } from 'svelte/reactivity';
 import type { ActorSubclass } from '@dfinity/agent';
 import { getMyPrincipal } from './auth.svelte';
 import { EncryptedCacheManager } from '../types';
+import { keyStorageService } from '$lib/services/keyStorage';
 
 const DOMAIN_RATCHET_INIT = sizePrefixedBytesFromString('ic-vetkeys-chat-example-ratchet-init');
 const DOMAIN_RATCHET_STEP = sizePrefixedBytesFromString('ic-vetkeys-chat-example-ratchet-step');
@@ -36,7 +37,7 @@ type KeyState =
 
 export const chatIdStringToEpochKeyState = new SvelteMap<string, KeyState>();
 
-export async function ensureRootKey(chatId: ChatId, epochId: bigint) {
+export async function ensureSymmetricKeyState(chatId: ChatId, epochId: bigint) {
 	const chatIdStr = chatIdToString(chatId);
 	const mapKey = `${chatIdStr}/${epochId.toString()}`;
 	const cur = chatIdStringToEpochKeyState.get(mapKey);
@@ -59,6 +60,13 @@ export async function ensureRootKey(chatId: ChatId, epochId: bigint) {
 				});
 				throw error;
 			});
+	} else {
+		console.error(
+			'Bug: ensureSymmetricKeyState: chatIdStrVetKeyEpoch: ',
+			chatIdStr,
+			' should be loading but instead is ',
+			cur?.status
+		);
 	}
 }
 
@@ -68,6 +76,7 @@ async function getCurrentSymmetricEpoch(chatId: ChatId, vetkeyEpoch: bigint): Pr
 		`getCurrentSymmetricEpoch: ${chatIdToString(chatId)} vetkeyEpoch: ${vetkeyEpoch.toString()}`
 	);
 	while (true) {
+		console.log('getCurrentSymmetricEpoch: waiting for vetKey state in a loop');
 		const cur = chatIdStringToEpochKeyState.get(mapKey);
 		if (cur === undefined) {
 			console.log(
@@ -110,7 +119,7 @@ async function getSymmetricEpochKey(
 		}
 	}
 	if (!cur) {
-		throw new Error('Bug: failed to get epoch key');
+		throw new Error('getSymmetricEpochKey: bug: failed to get epoch key: ' + mapKey);
 	}
 
 	const { key, symmetricKeyEpoch: symmetricKeyEpochKeyState } = cur;
@@ -204,10 +213,25 @@ export async function fetchResharedIbeEncryptedVetKeys(
 	const publicIbeKeyBytes = await actor.get_vetkey_resharing_ibe_encryption_key(myPrincipal);
 	const publicIbeKey = DerivedPublicKey.deserialize(new Uint8Array(publicIbeKeyBytes));
 
+	const maybeIbeDecryptionKeyFromStorage = await keyStorageService.getIbeDecryptionKey();
 	// TODO:cache this key
-	const privateEncryptedIbeKeyBytes = await actor.get_vetkey_resharing_ibe_decryption_key(
-		tsk.publicKeyBytes()
-	);
+	const privateEncryptedIbeKeyBytes =
+		maybeIbeDecryptionKeyFromStorage ??
+		new Uint8Array(await actor.get_vetkey_resharing_ibe_decryption_key(tsk.publicKeyBytes()));
+	if (!maybeIbeDecryptionKeyFromStorage) {
+		console.log(
+			`Saving IBE decryption key for chat ${chatIdToString(chatId)} vetkeyEpoch ${vetkeyEpoch.toString()}`
+		);
+		keyStorageService
+			.saveIbeDecryptionKey(new Uint8Array(privateEncryptedIbeKeyBytes))
+			.catch((error) => {
+				console.error(
+					`Failed to save IBE decryption key for chat ${chatIdToString(chatId)} vetkeyEpoch ${vetkeyEpoch.toString()}: `,
+					error
+				);
+			});
+	}
+
 	const encryptedVetKey = EncryptedVetKey.deserialize(new Uint8Array(privateEncryptedIbeKeyBytes));
 	const privateIbeKey = encryptedVetKey.decryptAndVerify(tsk, publicIbeKey, new Uint8Array());
 
@@ -239,7 +263,7 @@ export function deriveRootKeyAndDispatchCaching(
 	return keyState;
 }
 
-export async function deriveNextEpochKey(
+export async function deriveNextSymmetricRatchetEpochCryptoKey(
 	epochKey: CryptoKey,
 	currentSymmetricKeyEpoch: bigint
 ): Promise<CryptoKey> {
@@ -272,24 +296,32 @@ async function symmetricRatchet(
 ) {
 	const chatIdStr = chatIdToString(chatId);
 	const mapKey = chatIdVetKeyEpochToString(chatId, vetkeyEpoch);
-	const cur = chatIdStringToEpochKeyState.get(mapKey);
 	console.log(
 		`symmetricRatchet: ${chatIdStr} vetkeyEpoch: ${vetkeyEpoch.toString()} expectedSymmetricKeyEpoch: ${expectedSymmetricKeyEpoch.toString()}`
 	);
-	if (!cur) {
-		throw new Error('Bug: failed to get epoch key');
-	}
-	if (cur.status !== 'ready') {
-		throw new Error('Bug: epoch key is not ready for symmetric ratchet');
-	}
-	const { key, symmetricKeyEpoch: currentSymmetricKeyEpoch } = cur;
-	if (currentSymmetricKeyEpoch !== expectedSymmetricKeyEpoch) {
-		throw new Error(
-			`Failed to send message: wrong symmetric key epoch in message: expected ${expectedSymmetricKeyEpoch} but got ${currentSymmetricKeyEpoch}`
-		);
-	}
+	while (true) {
+		console.log('symmetricRatchet: waiting for vetKey state in a loop');
+		const cur = chatIdStringToEpochKeyState.get(mapKey);
+		if (!cur) {
+			throw new Error('Bug: failed to get epoch key');
+		}
+		if (cur.status === 'error') {
+			throw new Error('Failed to get epoch key: ' + cur.error);
+		}
+		if (cur.status !== 'ready') {
+			await new Promise((resolve) => setTimeout(resolve, 100));
+			continue;
+		}
 
-	return await deriveNextEpochKey(key, currentSymmetricKeyEpoch);
+		const { key, symmetricKeyEpoch: currentSymmetricKeyEpoch } = cur;
+		if (currentSymmetricKeyEpoch !== expectedSymmetricKeyEpoch) {
+			throw new Error(
+				`Failed to send message: wrong symmetric key epoch in message: expected ${expectedSymmetricKeyEpoch} but got ${currentSymmetricKeyEpoch}`
+			);
+		}
+
+		return await deriveNextSymmetricRatchetEpochCryptoKey(key, currentSymmetricKeyEpoch);
+	}
 }
 
 async function symmetricRatchetUntil(
@@ -320,10 +352,20 @@ async function fastForwardSymmetricRatchetWithoutSavingUntil(
 	const mapKey = chatIdVetKeyEpochToString(chatId, currentVetkeyEpoch);
 	const cur = chatIdStringToEpochKeyState.get(mapKey);
 	if (!cur) {
-		throw new Error('Bug: failed to get epoch key');
+		chatIdStringToEpochKeyState.set(mapKey, {
+			status: 'missing'
+		});
+		return await fastForwardSymmetricRatchetWithoutSavingUntil(
+			chatId,
+			currentVetkeyEpoch,
+			neededSymmetricKeyEpoch
+		);
+	}
+	if (cur.status === 'error') {
+		throw new Error('Failed to get epoch key: ' + cur.error);
 	}
 	if (cur.status !== 'ready') {
-		throw new Error('Bug: epoch key is not ready for symmetric ratchet');
+		throw new Error('Epoch key is not ready for symmetric ratchet');
 	}
 	const { key, symmetricKeyEpoch: currentSymmetricKeyEpoch } = cur;
 	if (currentSymmetricKeyEpoch >= neededSymmetricKeyEpoch) {
@@ -333,7 +375,7 @@ async function fastForwardSymmetricRatchetWithoutSavingUntil(
 	let derivedKeyState = { epochKey: key, symmetricKeyEpoch: currentSymmetricKeyEpoch };
 	while (derivedKeyState.symmetricKeyEpoch < neededSymmetricKeyEpoch) {
 		derivedKeyState = {
-			epochKey: await deriveNextEpochKey(
+			epochKey: await deriveNextSymmetricRatchetEpochCryptoKey(
 				derivedKeyState.epochKey,
 				derivedKeyState.symmetricKeyEpoch
 			),
@@ -400,4 +442,19 @@ export function messageEncryptionDomainSeparator(sender: Principal, messageId: b
 
 export function deriveRootKeyBytes(vetKeyBytes: Uint8Array): Uint8Array {
 	return deriveSymmetricKey(vetKeyBytes, DOMAIN_RATCHET_INIT, 32);
+}
+
+export async function importKeyFromBytes(params: {
+	keyBytes: Uint8Array;
+	symmetricKeyEpoch: bigint;
+}): Promise<{ key: CryptoKey; symmetricKeyEpoch: bigint }> {
+	const exportable = false;
+	const key = await globalThis.crypto.subtle.importKey(
+		'raw',
+		new Uint8Array(params.keyBytes),
+		'HKDF',
+		exportable,
+		['deriveKey', 'deriveBits']
+	);
+	return { key, symmetricKeyEpoch: params.symmetricKeyEpoch };
 }

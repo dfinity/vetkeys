@@ -251,6 +251,21 @@ fn create_group_chat(
     Ok(group_chat_metadata)
 }
 
+#[ic_cdk::query]
+async fn first_accessible_message_id(group_chat_id: GroupChatId) -> Option<ChatMessageId> {
+    let caller = ic_cdk::api::msg_caller();
+    let chat_id = ChatId::Group(group_chat_id);
+
+    CHAT_TO_VETKEYS_METADATA.with_borrow(|metadata| {
+        metadata
+            .range(&(chat_id, Time(0))..)
+            .take_while(|metadata| metadata.key().0 == chat_id)
+            .filter(|metadata| metadata.value().participants.contains(&caller))
+            .next()
+            .map(|metadata| metadata.value().messages_start_with_id)
+    })
+}
+
 #[ic_cdk::update]
 async fn chat_public_key(chat_id: ChatId, vetkey_epoch_id: VetKeyEpochId) -> serde_bytes::ByteBuf {
     let request = VetKDPublicKeyArgs {
@@ -317,6 +332,32 @@ fn get_latest_chat_vetkey_epoch_metadata(chat_id: ChatId) -> Result<VetKeyEpochM
     ensure_user_has_access_to_chat_at_epoch(caller, chat_id, latest_epoch_metadata.epoch_id)?;
 
     Ok(latest_epoch_metadata)
+}
+
+#[ic_cdk::query]
+fn get_vetkey_epoch_metadata(
+    chat_id: ChatId,
+    vetkey_epoch_id: VetKeyEpochId,
+) -> Result<VetKeyEpochMetadata, String> {
+    let caller = ic_cdk::api::msg_caller();
+
+    ensure_user_has_access_to_chat_at_epoch(caller, chat_id, vetkey_epoch_id)?;
+
+    let epoch_metadata = CHAT_TO_VETKEYS_METADATA
+        .with_borrow(|metadata| {
+            metadata
+                .range(&(chat_id, Time(0))..)
+                .take_while(|metadata| {
+                    metadata.key().0 == chat_id && metadata.value().epoch_id == vetkey_epoch_id
+                })
+                .last()
+                .map(|metadata| metadata.value())
+        })
+        .ok_or(format!(
+            "No vetkey epoch {vetkey_epoch_id:?} found for chat {chat_id:?}"
+        ))?;
+
+    Ok(epoch_metadata)
 }
 
 #[ic_cdk::update]
@@ -623,7 +664,6 @@ fn update_my_symmetric_key_cache(
     let caller = ic_cdk::api::msg_caller();
     ensure_chat_and_vetkey_epoch_exist(chat_id, vetkey_epoch_id)?;
     ensure_user_has_access_to_chat_at_epoch(caller, chat_id, vetkey_epoch_id)?;
-    ensure_vetkey_epoch_did_not_expire(chat_id, vetkey_epoch_id)?;
     ensure_payload_has_reasonable_size_for_key(&user_cache.0)?;
 
     ENCRYPTED_MAPS.with_borrow_mut(|opt_maps| {
@@ -660,7 +700,8 @@ fn get_my_symmetric_key_cache(
     let caller = ic_cdk::api::msg_caller();
     ensure_chat_and_vetkey_epoch_exist(chat_id, vetkey_epoch_id)?;
     ensure_user_has_access_to_chat_at_epoch(caller, chat_id, vetkey_epoch_id)?;
-    ensure_vetkey_epoch_did_not_expire(chat_id, vetkey_epoch_id)?;
+
+    ic_cdk::println!("get_my_symmetric_key_cache: chat_id={:?}, vetkey_epoch_id={:?}", chat_id, vetkey_epoch_id);
 
     ENCRYPTED_MAPS.with_borrow(|opt_maps| {
         let maps = opt_maps
@@ -715,7 +756,6 @@ fn reshare_ibe_encrypted_vetkeys(
     let caller = ic_cdk::api::msg_caller();
     ensure_chat_and_vetkey_epoch_exist(chat_id, vetkey_epoch_id)?;
     ensure_user_has_access_to_chat_at_epoch(caller, chat_id, vetkey_epoch_id)?;
-    ensure_vetkey_epoch_did_not_expire(chat_id, vetkey_epoch_id)?;
 
     users_and_encrypted_vetkeys.iter().map(|(user, _encrypted_vetkey)| {
         ensure_user_has_access_to_chat_at_epoch(*user, chat_id, vetkey_epoch_id)?;
@@ -754,7 +794,6 @@ fn get_my_reshared_ibe_encrypted_vetkey(
     let caller = ic_cdk::api::msg_caller();
 
     ensure_chat_and_vetkey_epoch_exist(chat_id, vetkey_epoch_id)?;
-    ensure_vetkey_epoch_did_not_expire(chat_id, vetkey_epoch_id)?;
 
     Ok(RESHARED_VETKEYS
         .with_borrow(|reshared_vetkeys| reshared_vetkeys.get(&(chat_id, vetkey_epoch_id, caller))))
@@ -1078,36 +1117,6 @@ fn ensure_message_id_is_unique(
             "Message {sender_message_id:?} already exists for sender {caller} chat {chat_id:?}"
         )),
         None => Ok(()),
-    }
-}
-
-fn ensure_vetkey_epoch_did_not_expire(
-    chat_id: ChatId,
-    vetkey_epoch_id: VetKeyEpochId,
-) -> Result<(), String> {
-    let now = ic_cdk::api::time();
-
-    let chat_message_expiry_setting =
-        CHAT_TO_MESSAGE_EXPIRY_SETTING.with_borrow(|expiry_settings| {
-            expiry_settings
-                .get(&chat_id)
-                .expect("bug: expiry should always exist for existing chats")
-        });
-
-    let opt_creation_timestamp = CHAT_TO_VETKEYS_METADATA.with_borrow(|metadata| {
-        metadata
-            .range(&(chat_id, Time(0))..)
-            .take_while(|metadata| metadata.key().0 == chat_id)
-            .filter(|metadata| metadata.value().epoch_id == vetkey_epoch_id)
-            .next()
-            .map(|metadata| metadata.value().creation_timestamp)
-    });
-
-    match opt_creation_timestamp {
-        Some(creation_timestamp) if now < creation_timestamp.0 + chat_message_expiry_setting.0 => {
-            Ok(())
-        }
-        _ => Err(format!("vetKey epoch {vetkey_epoch_id:?} expired",)),
     }
 }
 

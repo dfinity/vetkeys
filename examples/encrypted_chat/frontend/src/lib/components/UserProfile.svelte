@@ -16,7 +16,7 @@
 
 	function getDummyCurrentUser(): User {
 		return {
-			id: getMyPrincipal(),
+			principal: getMyPrincipal(),
 			name: 'You',
 			avatar: '👤',
 			isOnline: true

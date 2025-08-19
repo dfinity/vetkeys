@@ -4,16 +4,14 @@
 	import MessageHistory from './MessageHistory.svelte';
 	import MessageInput from './MessageInput.svelte';
 	import type { FileUpload } from '../types';
-	import { chatIdToString } from '$lib/utils';
-	
+	import { chatIdFromString, chatIdToString } from '$lib/utils';
+
 	let { isMobile, onMobileBack } = $props();
 
 	const selectedChat = $derived(
 		selectedChatId.state
 			? chats.state.find((chat) =>
-					selectedChatId.state
-						? chatIdToString(chat.id) === chatIdToString(selectedChatId.state)
-						: false
+					selectedChatId.state ? chat.idStr === chatIdToString(selectedChatId.state) : false
 				)
 			: null
 	);
@@ -34,7 +32,11 @@
 				data: arrayBuffer
 			};
 		}
-		await chatActions.sendMessage(selectedChat.id, content, fileData);
+		await chatActions.encryptAndSendMessage(
+			chatIdFromString(selectedChat.idStr),
+			content,
+			fileData
+		);
 	}
 </script>
 
@@ -47,7 +49,7 @@
 		<MessageHistory />
 
 		<!-- Message Input (keyed to reset input state per chat without remounting the whole pane) -->
-		{#key selectedChat.id}
+		{#key selectedChat.idStr}
 			<MessageInput
 				disabled={!selectedChat.isReady}
 				placeholder={selectedChat.isReady ? 'Type a message...' : 'Chat is not ready...'}

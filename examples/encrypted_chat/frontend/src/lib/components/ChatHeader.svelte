@@ -3,27 +3,31 @@
 	import Button from './ui/Button.svelte';
 	import Card from './ui/Card.svelte';
 	import type { Chat, SymmetricRatchetStats, GroupChat } from '../types';
-	import { chatAPI } from '../services/api';
+	import { canisterAPI } from '../services/canisteApi';
 	import { chatActions } from '../stores/chat.svelte';
 	import GroupManagementModal from './GroupManagementModal.svelte';
 	import { Principal } from '@dfinity/principal';
+	import { chatIdFromString } from '$lib/utils';
 
-	export let chat: Chat;
-	export let showMobileBackButton = false;
-	export let onMobileBack: (() => void) | undefined = undefined;
+	const {
+		chat,
+		showMobileBackButton,
+		onMobileBack
+	}: { chat: Chat; showMobileBackButton: boolean; onMobileBack: (() => void) | undefined } =
+		$props();
 
-	let showChatInfo = false;
-	let ratchetStats: SymmetricRatchetStats | null = null;
-	let loadingRatchetStats = false;
-	let showGroupManagement = false;
+	let showChatInfo = $state(false);
+	let ratchetStats: SymmetricRatchetStats | null = $state(null);
+	let loadingRatchetStats = $state(false);
+	let showGroupManagement = $state(false);
 
 	// Reset state when chat changes
-	$: if (chat) {
+	$effect(() => {
 		showChatInfo = false;
 		ratchetStats = null;
 		loadingRatchetStats = false;
 		showGroupManagement = false;
-	}
+	});
 
 	function handleChatInfoToggle() {
 		showChatInfo = !showChatInfo;
@@ -37,7 +41,7 @@
 
 		loadingRatchetStats = true;
 		try {
-			ratchetStats = chatAPI.getRatchetStats();
+			ratchetStats = canisterAPI.getRatchetStats();
 		} catch (error) {
 			console.error('Failed to load ratchet stats:', error);
 		} finally {
@@ -68,13 +72,14 @@
 		}>
 	) {
 		const { addUsers, removeUsers, allowHistoryForNew } = event.detail;
+		console.log(`handleGroupManagementSave: ${JSON.stringify(event.detail)}`);
 
 		const addUsersPrincipal = addUsers.map((id) => Principal.fromText(id));
 		const removeUsersPrincipal = removeUsers.map((id) => Principal.fromText(id));
 
 		try {
 			await chatActions.updateGroupMembers(
-				chat.id,
+				chatIdFromString(chat.idStr),
 				addUsersPrincipal,
 				removeUsersPrincipal,
 				allowHistoryForNew
@@ -194,24 +199,8 @@
 					<h4 class="mb-2 font-medium">Encryption</h4>
 					<div class="space-y-2 text-sm">
 						<div class="flex justify-between">
-							<span class="text-surface-500-400">Ratchet epoch:</span>
-							<span>{chat.ratchetEpoch}</span>
-						</div>
-						<div class="flex justify-between">
 							<span class="text-surface-500-400">Last key rotation:</span>
 							<span>{formatDate(chat.keyRotationStatus.lastRotation)}</span>
-						</div>
-						<div class="flex justify-between">
-							<span class="text-surface-500-400">Next rotation:</span>
-							<span>{formatDate(chat.keyRotationStatus.nextRotation)}</span>
-						</div>
-						<div class="flex justify-between">
-							<span class="text-surface-500-400">Rotation needed:</span>
-							<span
-								class="text-{chat.keyRotationStatus.isRotationNeeded ? 'warning' : 'success'}-500"
-							>
-								{chat.keyRotationStatus.isRotationNeeded ? 'Yes' : 'No'}
-							</span>
 						</div>
 					</div>
 				</div>
@@ -253,7 +242,7 @@
 					<div class="col-span-full">
 						<h4 class="mb-2 font-medium">Participants</h4>
 						<div class="space-y-2">
-							{#each chat.participants as participant (participant.id)}
+							{#each chat.participants as participant (participant.principal)}
 								<div class="flex items-center gap-2 text-sm">
 									<div
 										class="avatar bg-primary-500 flex h-6 w-6 items-center justify-center rounded-full text-xs"
@@ -261,16 +250,6 @@
 										{participant.avatar || '👤'}
 									</div>
 									<span class="flex-1">{participant.name}</span>
-									<div class="flex items-center gap-1">
-										<div
-											class="h-2 w-2 rounded-full {participant.isOnline
-												? 'bg-success-500'
-												: 'bg-surface-400'}"
-										></div>
-										<span class="text-surface-500-400">
-											{participant.isOnline ? 'Online' : 'Offline'}
-										</span>
-									</div>
 								</div>
 							{/each}
 						</div>

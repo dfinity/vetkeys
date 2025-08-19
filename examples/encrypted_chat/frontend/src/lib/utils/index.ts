@@ -63,3 +63,35 @@ export function sizePrefixedBytesFromString(text: string): Uint8Array {
 	size[0] = bytes.length & 0xff;
 	return new Uint8Array([...size, ...bytes]);
 }
+
+export function chatIdsNumMessagesToSummary(chatIdsNumMessages: [ChatId, bigint][]): string {
+	return chatIdsNumMessages.reduce((acc, [chatId, numMessages]) => {
+		if ('Direct' in chatId) {
+			return (
+				acc +
+				(acc.length > 0 ? ' | ' : '') +
+				chatId.Direct[0].toText() +
+				' ' +
+				chatId.Direct[1].toText() +
+				' #' +
+				numMessages.toString()
+			);
+		} else {
+			return (
+				acc +
+				(acc.length > 0 ? ' | ' : '') +
+				chatId.Group.toString() +
+				' #' +
+				numMessages.toString()
+			);
+		}
+	}, '');
+}
+
+export function randomSenderMessageId(): bigint {
+	const buf = new Uint8Array(8);
+	globalThis.crypto.getRandomValues(buf);
+	let senderMessageId = 0n;
+	for (const b of buf) senderMessageId = (senderMessageId << 8n) | BigInt(b);
+	return senderMessageId;
+}

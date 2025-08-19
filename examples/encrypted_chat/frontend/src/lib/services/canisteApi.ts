@@ -15,7 +15,7 @@ import { TransportSecretKey, EncryptedVetKey, DerivedPublicKey, VetKey } from '@
 // Dummy API service that simulates backend calls
 // In real implementation, these would make actual API calls to the backend
 
-export class ChatAPI {
+export class CanisterAPI {
 	async createDirectChat(
 		actor: ActorSubclass<_SERVICE>,
 		receiver: Principal,
@@ -112,10 +112,26 @@ export class ChatAPI {
 		}
 	}
 
+	async getVetKeyEpochMetadata(
+		actor: ActorSubclass<_SERVICE>,
+		chatId: ChatId,
+		vetKeyEpoch: bigint
+	): Promise<VetKeyEpochMetadata> {
+		const metadata = await actor.get_vetkey_epoch_metadata(chatId, vetKeyEpoch);
+		console.log(
+			`getLatestVetKeyEpochMetadata: ${stringifyBigInt(chatId)} with result ${stringifyBigInt(metadata)}`
+		);
+		if ('Ok' in metadata) {
+			return metadata.Ok;
+		} else {
+			throw new Error(metadata.Err);
+		}
+	}
+
 	async getDerivedPublicKey(
 		actor: ActorSubclass<_SERVICE>,
 		chatId: ChatId,
-		vetKeyEpoch: bigint,
+		vetKeyEpoch: bigint
 	): Promise<DerivedPublicKey> {
 		const bytes = await actor.chat_public_key(chatId, vetKeyEpoch);
 		console.log(
@@ -170,6 +186,18 @@ export class ChatAPI {
 		);
 		return result;
 	}
+
+	async firstAccessibleMessageId(
+		actor: ActorSubclass<_SERVICE>,
+		groupChatId: bigint
+	): Promise<bigint | undefined> {
+		const result = await actor.first_accessible_message_id(groupChatId);
+		if (result.length === 0) {
+			return undefined;
+		} else {
+			return result[0];
+		}
+	}
 }
 
-export const chatAPI = new ChatAPI();
+export const canisterAPI = new CanisterAPI();

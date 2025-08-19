@@ -2,7 +2,6 @@
 	import { createEventDispatcher } from 'svelte';
 	import { Clock, Users, User, Loader2, AlertCircle, CheckCircle } from 'lucide-svelte';
 	import type { Chat } from '../types';
-	import { chatIdToString } from '$lib/utils';
 
 	export let chat: Chat;
 	export let isSelected = false;
@@ -12,21 +11,7 @@
 	}>();
 
 	function handleClick() {
-		dispatch('select', chatIdToString(chat.id));
-	}
-
-	function formatTime(date: Date): string {
-		const now = new Date();
-		const diff = now.getTime() - date.getTime();
-		const minutes = Math.floor(diff / (1000 * 60));
-		const hours = Math.floor(diff / (1000 * 60 * 60));
-		const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-
-		if (minutes < 1) return 'now';
-		if (minutes < 60) return `${minutes}m`;
-		if (hours < 24) return `${hours}h`;
-		if (days < 7) return `${days}d`;
-		return date.toLocaleDateString();
+		dispatch('select', chat.idStr);
 	}
 
 	function getDisplayName(): string {
@@ -61,7 +46,7 @@
 				?????
 			</div>
 			<!-- Status indicator -->
-			<div class="absolute -right-1 -bottom-1">
+			<div class="absolute -bottom-1 -right-1">
 				<div
 					class="h-4 w-4 rounded-full {getStatusColor()} flex items-center justify-center shadow-sm"
 				>

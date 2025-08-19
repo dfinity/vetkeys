@@ -5,14 +5,15 @@
 	import { SvelteDate } from 'svelte/reactivity';
 	import { auth, getMyPrincipal } from '$lib/stores/auth.svelte';
 	import { chatIdToString } from '$lib/utils';
-	
+
 	let messagesContainer: HTMLDivElement | undefined = $state(undefined);
 	let autoScroll = $state(true);
 
 	const selectedChat = $derived(
 		selectedChatId.state
-			? (chats.state.find((chat) => selectedChatId.state && chatIdToString(chat.id) === chatIdToString(selectedChatId.state)) ??
-				null)
+			? (chats.state.find(
+					(chat) => selectedChatId.state && chat.idStr === chatIdToString(selectedChatId.state)
+				) ?? null)
 			: null
 	);
 
@@ -22,7 +23,6 @@
 
 	// Scroll to bottom when new messages arrive (after DOM updates)
 	$effect(() => {
-		const messageCount = selectedChatMessages.length;
 		if (autoScroll && messagesContainer) {
 			requestAnimationFrame(() => {
 				if (!messagesContainer) return;
@@ -53,12 +53,19 @@
 	function getSender(message: Message): User | null {
 		if (!selectedChat) return null;
 
-		return selectedChat.participants.find((p) => p.id.toString() === message.senderId) || null;
+		console.log(
+			`getSender: message.senderId=${message.senderId} selectedChat.participants=${JSON.stringify(
+				selectedChat.participants
+			)}`
+		);
+
+		return (
+			selectedChat.participants.find((p) => p.principal.toString() === message.senderId) || null
+		);
 	}
 
 	function isOwnMessage(message: Message): boolean {
 		if (auth.state.label !== 'initialized') throw new Error('Unexpectedly not authenticated');
-		console.log('isOwnMessage', message.senderId, getMyPrincipal().toString());
 		return message.senderId === getMyPrincipal().toString();
 	}
 
@@ -113,7 +120,7 @@
 
 		if (selectedChat.type === 'direct') {
 			const otherUser = selectedChat.participants.find(
-				(p) => p.id.toString() !== myPrincipal.toString()
+				(p) => p.principal.toString() !== myPrincipal.toString()
 			);
 			return otherUser ? `This is the beginning of your conversation with ${otherUser.name}` : '';
 		}
@@ -139,7 +146,7 @@
 					>
 						{#if selectedChat.type === 'direct'}
 							{selectedChat.participants.find(
-								(p) => p.id.toString() !== getMyPrincipal().toString()
+								(p) => p.principal.toString() !== getMyPrincipal().toString()
 							)?.avatar || '👤'}
 						{:else}
 							{selectedChat.avatar || '👥'}
@@ -148,7 +155,7 @@
 					<h3 class="mb-2 text-lg font-semibold">
 						{#if selectedChat.type === 'direct'}
 							{selectedChat.participants.find(
-								(p) => p.id.toString() !== getMyPrincipal().toString()
+								(p) => p.principal.toString() !== getMyPrincipal().toString()
 							)?.name || 'Me'}
 						{:else}
 							{selectedChat.name}
@@ -171,7 +178,7 @@
 			{:else}
 				<!-- Messages -->
 				<div class="messages-list py-4">
-					{#each selectedChatMessages as message, index (message.id)}
+					{#each selectedChatMessages as message, index (message.chatMessageId)}
 						<!-- Date separator -->
 						{#if shouldShowDateSeparator(message, index)}
 							<div class="date-separator flex items-center justify-center py-4">
@@ -201,7 +208,7 @@
 
 		<!-- Scroll to bottom button -->
 		{#if !autoScroll}
-			<div class="scroll-to-bottom absolute right-4 bottom-20">
+			<div class="scroll-to-bottom absolute bottom-20 right-4">
 				<button
 					class="variant-filled-primary btn rounded-full"
 					onclick={scrollToBottom}

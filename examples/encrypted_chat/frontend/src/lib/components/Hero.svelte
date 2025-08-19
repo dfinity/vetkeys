@@ -27,7 +27,7 @@
 				<div class="mt-8 text-lg font-semibold">An error occurred.</div>
 			{/if}
 
-			<div class="mt-8 mb-12 text-xs opacity-75 sm:mt-12 sm:mb-32">
+			<div class="mb-12 mt-8 text-xs opacity-75 sm:mb-32 sm:mt-12">
 				<DisclaimerCopy />
 			</div>
 		</div>

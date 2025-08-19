@@ -16,7 +16,7 @@ import {
 } from '$lib/utils';
 
 export interface User {
-	id: Principal;
+	principal: Principal;
 	name: string;
 	avatar?: string;
 	isOnline: boolean;
@@ -24,7 +24,7 @@ export interface User {
 }
 
 export interface Message {
-	id: string;
+	chatMessageId: string;
 	chatId: string;
 	senderId: string;
 	content: string;
@@ -42,7 +42,7 @@ export interface Message {
 }
 
 export interface Chat {
-	id: ChatId;
+	idStr: string;
 	name: string;
 	type: 'direct' | 'group';
 	// Participants are required by UI components like ChatHeader/ChatListItem
@@ -55,10 +55,9 @@ export interface Chat {
 	keyRotationStatus: VetKeyRotationStatus;
 	vetKeyEpoch: number;
 	symmetricRatchetEpoch: number;
-	// Some components read ratchetEpoch directly
-	ratchetEpoch: number;
 	unreadCount: number;
 	avatar?: string;
+	firstAccessibleMessageId: number;
 }
 
 export interface DirectChat extends Chat {
@@ -69,13 +68,10 @@ export interface DirectChat extends Chat {
 export interface GroupChat extends Chat {
 	type: 'group';
 	otherParticipants: User[];
-	adminId?: string;
 }
 
 export interface VetKeyRotationStatus {
 	lastRotation: Date;
-	nextRotation: Date;
-	isRotationNeeded: boolean;
 	currentEpoch: number;
 }
 
@@ -300,6 +296,9 @@ export class EncryptedCacheManager {
 		chatId: ChatId,
 		vetKeyEpoch: bigint
 	): Promise<{ keyBytes: Uint8Array; symmetricKeyEpoch: bigint }> {
+		console.log(
+			`get_my_symmetric_key_cache: chatId=${chatIdToString(chatId)} vetKeyEpoch=${vetKeyEpoch.toString()}`
+		);
 		const keyCacheBytes = await this.#actor.get_my_symmetric_key_cache(chatId, vetKeyEpoch);
 		if ('Err' in keyCacheBytes) {
 			throw new Error('Failed to get key cache bytes: ' + keyCacheBytes.Err);
@@ -361,3 +360,15 @@ function deserializeCache(data: Uint8Array): { keyBytes: Uint8Array; symmetricKe
 		symmetricKeyEpoch: u8ByteUint8ArrayBigEndianToUBigInt(data.slice(32))
 	};
 }
+
+export class StoragePrefixesClass {
+	public readonly MESSAGE_PREFIX: string = 'messages';
+	public readonly CONFIG_KEY: string = 'user_config';
+	public readonly DISCLAIMER_KEY: string = 'disclaimer_dismissed';
+	public readonly CHAT_PREFIX: string = 'chat';
+
+	public readonly CHAT_EPOCH_KEY_PREFIX: string = 'chat_epoch_keys';
+	public readonly CHAT_IBE_DECRYPTION_KEY_PREFIX: string = 'chat_ibe_decryption_key';
+}
+
+export const storagePrefixes = new StoragePrefixesClass();

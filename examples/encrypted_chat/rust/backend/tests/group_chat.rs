@@ -1,4 +1,4 @@
-use candid::{ encode_args, Principal};
+use candid::{encode_args, Principal};
 use ic_vetkeys_example_encrypted_chat_backend::types::{
     ChatId, ChatMessageId, EncryptedMessage, EncryptedMessageMetadata,
     EncryptedSymmetricKeyEpochCache, GroupChatId, GroupChatMetadata, GroupModification,
