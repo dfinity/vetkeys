@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { chatActions, chats, selectedChatId } from '../stores/chat.svelte';
+	import { chatUIActions, chats, selectedChatId } from '../stores/chat.svelte';
 	import ChatHeader from './ChatHeader.svelte';
 	import MessageHistory from './MessageHistory.svelte';
 	import MessageInput from './MessageInput.svelte';
@@ -32,7 +32,7 @@
 				data: arrayBuffer
 			};
 		}
-		await chatActions.encryptAndSendMessage(
+		await chatUIActions.enqueueEncryptAndSendMessage(
 			chatIdFromString(selectedChat.idStr),
 			content,
 			fileData

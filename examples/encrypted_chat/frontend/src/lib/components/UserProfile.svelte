@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { Settings, X, Check, LogOut } from 'lucide-svelte';
-	import { userConfig, chatActions } from '../stores/chat.svelte';
+	import { userConfig, chatUIActions } from '../stores/chat.svelte';
 	import { auth, getMyPrincipal, logout } from '$lib/stores/auth.svelte';
 	import type { User } from '$lib/types';
 
@@ -39,7 +39,7 @@
 	}
 
 	async function saveConfig() {
-		await chatActions.updateUserConfig(configForm);
+		await chatUIActions.updateUserConfig(configForm);
 		showConfig = false;
 	}
 
@@ -62,7 +62,7 @@
 				<h3 class="text-sm font-semibold">Name: ---<br /></h3>
 				<h4 class="text-xs font-semibold">{currentUser.state?.name}</h4>
 			</div>
-	</div>
+		</div>
 		<div class="flex items-center gap-2">
 			<button class="variant-ghost-surface btn-icon" onclick={logout} aria-label="Logout">
 				<LogOut class="h-5 w-5" />
@@ -119,7 +119,7 @@
 						min="1"
 						max="365"
 						bind:value={configForm.cacheRetentionDays}
-						class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-gray-900 transition-all outline-none focus:border-transparent focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
+						class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-gray-900 outline-none transition-all focus:border-transparent focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
 						placeholder="7"
 					/>
 					<p class="mt-1 text-xs text-gray-500 dark:text-gray-400">

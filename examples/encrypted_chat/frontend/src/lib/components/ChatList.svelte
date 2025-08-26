@@ -1,37 +1,10 @@
 <script lang="ts">
-	import {
-		chats,
-		selectedChatId,
-		chatActions,
-		getNumberOfMessagesIs,
-		chatIdStringToNumberOfMessagesShould,
-		getChatIds
-	} from '../stores/chat.svelte';
+	import { chats, selectedChatId } from '../stores/chat.svelte';
 	import ChatListItem from './ChatListItem.svelte';
 	import UserProfile from './UserProfile.svelte';
 	import Button from './ui/Button.svelte';
 	import NewChatModal from './NewChatModal.svelte';
 	import { chatIdToString, chatIdFromString } from '$lib/utils';
-
-	$effect(() => {
-		console.log(`$effect loadChatMessages`);
-		const numMessagesShoulds = getChatIds().map((chatId) => {
-			const should = chatIdStringToNumberOfMessagesShould.get(chatIdToString(chatId)) ?? 0n;
-			const is = getNumberOfMessagesIs(chatId);
-			return { chatId, should, is };
-		});
-		(async () => {
-			for (const { chatId, should, is } of numMessagesShoulds) {
-				if (!is || is !== should) {
-					await chatActions.loadChatMessages(chatId, is);
-				} else {
-					console.log(
-						`SKIPPING $effect loadChatMessages for ${chatIdToString(chatId)}: is  ${is.toString()}, should ${should.toString()}`
-					);
-				}
-			}
-		})().catch(console.error);
-	});
 
 	let showNewChat = $state(false);
 </script>

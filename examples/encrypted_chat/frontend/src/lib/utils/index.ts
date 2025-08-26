@@ -64,12 +64,11 @@ export function sizePrefixedBytesFromString(text: string): Uint8Array {
 	return new Uint8Array([...size, ...bytes]);
 }
 
-export function chatIdsNumMessagesToSummary(chatIdsNumMessages: [ChatId, bigint][]): string {
-	return chatIdsNumMessages.reduce((acc, [chatId, numMessages]) => {
+export function chatIdsNumMessagesToSummary(args: { chatId: ChatId; numMessages: bigint }[]): string {
+	return args.reduce((acc, { chatId, numMessages }) => {
 		if ('Direct' in chatId) {
 			return (
 				acc +
-				(acc.length > 0 ? ' | ' : '') +
 				chatId.Direct[0].toText() +
 				' ' +
 				chatId.Direct[1].toText() +

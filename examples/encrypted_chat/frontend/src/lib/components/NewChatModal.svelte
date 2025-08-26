@@ -2,8 +2,7 @@
 	import { X, Plus, Users, User } from 'lucide-svelte';
 	import Card from './ui/Card.svelte';
 	import Button from './ui/Button.svelte';
-	import { chatActions } from '$lib/stores/chat.svelte';
-
+	import { chatUIActions } from '$lib/stores/chat.svelte';
 	/** @type {{ show: boolean }} */
 	let { show = $bindable(false) } = $props();
 
@@ -24,7 +23,7 @@
 	}
 
 	async function createDirect() {
-		await chatActions.createDirectChat(
+		await chatUIActions.createDirectChat(
 			directPrincipal,
 			directRotationMinutes,
 			directExpirationMinutes
@@ -34,20 +33,24 @@
 
 	async function createGroup() {
 		const principals = groupPrincipalsText.split(/[\s,]+/).filter(Boolean);
-		await chatActions.createGroupChat(principals, groupRotationMinutes, groupExpirationMinutes);
+		await chatUIActions.createGroupChat(principals, groupRotationMinutes, groupExpirationMinutes);
 		close();
 	}
 </script>
 
 {#if show}
 	<div
-		class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
+		class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm"
 		role="dialog"
 		aria-modal="true"
 	>
-		<Card class="w-full max-w-lg rounded-xl shadow-2xl ring-1 ring-black/10 dark:ring-white/10 bg-white dark:bg-neutral-900">
+		<Card
+			class="w-full max-w-lg rounded-xl bg-white shadow-2xl ring-1 ring-black/10 dark:bg-neutral-900 dark:ring-white/10"
+		>
 			<div class="p-6 md:p-8">
-				<div class="mb-4 flex items-center justify-between border-b border-black/5 dark:border-white/10 pb-4">
+				<div
+					class="mb-4 flex items-center justify-between border-b border-black/5 pb-4 dark:border-white/10"
+				>
 					<h3 class="text-lg font-semibold">Create Chat</h3>
 					<button class="variant-ghost-surface btn-icon" onclick={close} aria-label="Close">
 						<X class="h-5 w-5" />
@@ -55,96 +58,96 @@
 				</div>
 
 				<div class="mb-4 flex gap-2">
-				<button
-					class="btn {tab === 'direct' ? 'variant-filled-primary' : 'variant-ghost-surface'}"
-					onclick={() => (tab = 'direct')}
-				>
-					<User class="h-4 w-4" />
-					<span class="ml-1">Direct</span>
-				</button>
-				<button
-					class="btn {tab === 'group' ? 'variant-filled-primary' : 'variant-ghost-surface'}"
-					onclick={() => (tab = 'group')}
-				>
-					<Users class="h-4 w-4" />
-					<span class="ml-1">Group</span>
-				</button>
+					<button
+						class="btn {tab === 'direct' ? 'variant-filled-primary' : 'variant-ghost-surface'}"
+						onclick={() => (tab = 'direct')}
+					>
+						<User class="h-4 w-4" />
+						<span class="ml-1">Direct</span>
+					</button>
+					<button
+						class="btn {tab === 'group' ? 'variant-filled-primary' : 'variant-ghost-surface'}"
+						onclick={() => (tab = 'group')}
+					>
+						<Users class="h-4 w-4" />
+						<span class="ml-1">Group</span>
+					</button>
 				</div>
 
 				{#if tab === 'direct'}
 					<div class="space-y-3">
-					<label class="block text-sm">
-						<span class="mb-1 block font-medium">Receiver Principal</span>
-						<input
-							class="w-full rounded-md border px-3 py-2 bg-white dark:bg-neutral-800"
-							bind:value={directPrincipal}
-							placeholder="aaaaa-aa"
-						/>
-					</label>
-					<div class="grid grid-cols-2 gap-3">
 						<label class="block text-sm">
-							<span class="mb-1 block font-medium">Symmetric Key Ratchet (min)</span>
+							<span class="mb-1 block font-medium">Receiver Principal</span>
 							<input
-								type="number"
-								min="0"
-								class="w-full rounded-md border px-3 py-2 bg-white dark:bg-neutral-800"
-								bind:value={directRotationMinutes}
+								class="w-full rounded-md border bg-white px-3 py-2 dark:bg-neutral-800"
+								bind:value={directPrincipal}
+								placeholder="aaaaa-aa"
 							/>
 						</label>
-						<label class="block text-sm">
-							<span class="mb-1 block font-medium">Message Expiration (min)</span>
-							<input
-								type="number"
-								min="0"
-								class="w-full rounded-md border px-3 py-2 bg-white dark:bg-neutral-800"
-								bind:value={directExpirationMinutes}
-							/>
-						</label>
-					</div>
-					<div class="flex justify-end gap-2">
-						<Button onclick={createDirect} disabled={!directPrincipal.trim()}>
-							<Plus class="h-4 w-4" />
-							<span class="ml-1">Create</span>
-						</Button>
-					</div>
+						<div class="grid grid-cols-2 gap-3">
+							<label class="block text-sm">
+								<span class="mb-1 block font-medium">Symmetric Key Ratchet (min)</span>
+								<input
+									type="number"
+									min="0"
+									class="w-full rounded-md border bg-white px-3 py-2 dark:bg-neutral-800"
+									bind:value={directRotationMinutes}
+								/>
+							</label>
+							<label class="block text-sm">
+								<span class="mb-1 block font-medium">Message Expiration (min)</span>
+								<input
+									type="number"
+									min="0"
+									class="w-full rounded-md border bg-white px-3 py-2 dark:bg-neutral-800"
+									bind:value={directExpirationMinutes}
+								/>
+							</label>
+						</div>
+						<div class="flex justify-end gap-2">
+							<Button onclick={createDirect} disabled={!directPrincipal.trim()}>
+								<Plus class="h-4 w-4" />
+								<span class="ml-1">Create</span>
+							</Button>
+						</div>
 					</div>
 				{:else}
 					<div class="space-y-3">
-					<label class="block text-sm">
-						<span class="mb-1 block font-medium">Participant Principals</span>
-						<textarea
-							rows="3"
-							class="w-full rounded-md border px-3 py-2 bg-white dark:bg-neutral-800"
-							bind:value={groupPrincipalsText}
-							placeholder="comma or space separated principals"
-						></textarea>
-					</label>
-					<div class="grid grid-cols-2 gap-3">
 						<label class="block text-sm">
-							<span class="mb-1 block font-medium">Symmetric Key Ratchet (min)</span>
-							<input
-								type="number"
-								min="0"
-								class="w-full rounded-md border px-3 py-2 bg-white dark:bg-neutral-800"
-								bind:value={groupRotationMinutes}
-							/>
+							<span class="mb-1 block font-medium">Participant Principals</span>
+							<textarea
+								rows="3"
+								class="w-full rounded-md border bg-white px-3 py-2 dark:bg-neutral-800"
+								bind:value={groupPrincipalsText}
+								placeholder="comma or space separated principals"
+							></textarea>
 						</label>
-						<label class="block text-sm">
-							<span class="mb-1 block font-medium">Message Expiration (min)</span>
-							<input
-								type="number"
-								min="0"
-								class="w-full rounded-md border px-3 py-2 bg-white dark:bg-neutral-800"
-								bind:value={groupExpirationMinutes}
-							/>
-						</label>
-					</div>
-					<div class="flex justify-end gap-2">
-						<Button onclick={createGroup} disabled={!groupPrincipalsText.trim()}>
-							<Plus class="h-4 w-4" />
-							<span class="ml-1">Create Group</span>
-						</Button>
-					</div>
+						<div class="grid grid-cols-2 gap-3">
+							<label class="block text-sm">
+								<span class="mb-1 block font-medium">Symmetric Key Ratchet (min)</span>
+								<input
+									type="number"
+									min="0"
+									class="w-full rounded-md border bg-white px-3 py-2 dark:bg-neutral-800"
+									bind:value={groupRotationMinutes}
+								/>
+							</label>
+							<label class="block text-sm">
+								<span class="mb-1 block font-medium">Message Expiration (min)</span>
+								<input
+									type="number"
+									min="0"
+									class="w-full rounded-md border bg-white px-3 py-2 dark:bg-neutral-800"
+									bind:value={groupExpirationMinutes}
+								/>
+							</label>
+						</div>
+						<div class="flex justify-end gap-2">
+							<Button onclick={createGroup} disabled={!groupPrincipalsText.trim()}>
+								<Plus class="h-4 w-4" />
+								<span class="ml-1">Create Group</span>
+							</Button>
+						</div>
 					</div>
 				{/if}
 			</div>

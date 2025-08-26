@@ -128,7 +128,7 @@ fn create_direct_chat(
         symmetric_key_rotation_duration_minutes
             .0
             .checked_mul(NANOSECONDS_IN_MINUTE)
-            .ok_or(format!("Overflow: too symmetric key rotation time"))?,
+            .ok_or("Overflow: too symmetric key rotation time".to_string())?,
     );
 
     let todo_remove_1 = CHAT_TO_VETKEYS_METADATA.with_borrow_mut(|metadata| {
@@ -160,7 +160,7 @@ fn create_direct_chat(
         message_expiry_time_minutes
             .0
             .checked_mul(NANOSECONDS_IN_MINUTE)
-            .ok_or(format!("Overflow: too large expiry time"))?,
+            .ok_or("Overflow: too large expiry time".to_string())?,
     );
 
     let todo_remove = CHAT_TO_MESSAGE_EXPIRY_SETTING
@@ -196,10 +196,7 @@ fn create_group_chat(
 
     let chat_id = ChatId::Group(group_chat_id);
 
-    let mut participants: Vec<_> = [caller]
-        .into_iter()
-        .chain(other_participants.into_iter())
-        .collect();
+    let mut participants: Vec<_> = [caller].into_iter().chain(other_participants).collect();
 
     participants.sort();
 
@@ -210,7 +207,7 @@ fn create_group_chat(
         symmetric_key_rotation_duration_minutes
             .0
             .checked_mul(NANOSECONDS_IN_MINUTE)
-            .ok_or(format!("Overflow: too symmetric key rotation time"))?,
+            .ok_or("Overflow: too symmetric key rotation time".to_string())?,
     );
 
     let todo_remove_1 = CHAT_TO_VETKEYS_METADATA.with_borrow_mut(|metadata| {
@@ -240,7 +237,7 @@ fn create_group_chat(
         message_expiry_time_minutes
             .0
             .checked_mul(NANOSECONDS_IN_MINUTE)
-            .ok_or(format!("Overflow: too large expiry time"))?,
+            .ok_or("Overflow: too large expiry time".to_string())?,
     );
 
     let todo_remove = CHAT_TO_MESSAGE_EXPIRY_SETTING
@@ -260,8 +257,7 @@ async fn first_accessible_message_id(group_chat_id: GroupChatId) -> Option<ChatM
         metadata
             .range(&(chat_id, Time(0))..)
             .take_while(|metadata| metadata.key().0 == chat_id)
-            .filter(|metadata| metadata.value().participants.contains(&caller))
-            .next()
+            .find(|metadata| metadata.value().participants.contains(&caller))
             .map(|metadata| metadata.value().messages_start_with_id)
     })
 }
@@ -347,9 +343,8 @@ fn get_vetkey_epoch_metadata(
         .with_borrow(|metadata| {
             metadata
                 .range(&(chat_id, Time(0))..)
-                .take_while(|metadata| {
-                    metadata.key().0 == chat_id && metadata.value().epoch_id == vetkey_epoch_id
-                })
+                .take_while(|metadata| metadata.key().0 == chat_id)
+                .filter(|metadata| metadata.value().epoch_id == vetkey_epoch_id)
                 .last()
                 .map(|metadata| metadata.value())
         })
@@ -701,8 +696,6 @@ fn get_my_symmetric_key_cache(
     ensure_chat_and_vetkey_epoch_exist(chat_id, vetkey_epoch_id)?;
     ensure_user_has_access_to_chat_at_epoch(caller, chat_id, vetkey_epoch_id)?;
 
-    ic_cdk::println!("get_my_symmetric_key_cache: chat_id={:?}, vetkey_epoch_id={:?}", chat_id, vetkey_epoch_id);
-
     ENCRYPTED_MAPS.with_borrow(|opt_maps| {
         let maps = opt_maps
             .as_ref()
@@ -849,25 +842,16 @@ fn modify_group_chat_participants(
         latest_vetkey_epoch_metadata(chat_id).ok_or(format!("No chat {chat_id:?} found"))?;
     ensure_user_has_access_to_chat_at_epoch(caller, chat_id, latest_epoch_metadata.epoch_id)?;
 
-    let vetkey_epoch_id = latest_epoch_metadata.epoch_id;
-
-    if vetkey_epoch_id != latest_epoch_metadata.epoch_id {
-        return Err(format!(
-            "Wrong vetKey epoch: expected {:?} but got {:?}",
-            latest_epoch_metadata.epoch_id, vetkey_epoch_id
-        ));
-    }
-
-    for participant in group_modification.add_participants.iter().copied() {
-        if latest_epoch_metadata.participants.contains(&participant) {
+    for participant in group_modification.add_participants.iter() {
+        if latest_epoch_metadata.participants.contains(participant) {
             return Err(format!(
                 "Participant {participant} is already a member of the group chat and cannot be added"
             ));
         }
     }
 
-    for participant in group_modification.remove_participants.iter().copied() {
-        if !latest_epoch_metadata.participants.contains(&participant) {
+    for participant in group_modification.remove_participants.iter() {
+        if !latest_epoch_metadata.participants.contains(participant) {
             return Err(format!(
                 "Participant {participant} is not a member of the group chat and cannot be removed"
             ));
@@ -905,7 +889,8 @@ fn modify_group_chat_participants(
 
         for participant in group_modification.remove_participants.iter().copied() {
             USER_TO_CHAT_MAP.with_borrow_mut(|map| {
-                let todo_remove = map.remove(&(participant, chat_id, vetkey_epoch_id));
+                let todo_remove =
+                    map.remove(&(participant, chat_id, latest_epoch_metadata.epoch_id));
                 assert!(todo_remove.is_some());
             });
         }
@@ -1095,8 +1080,7 @@ fn ensure_chat_and_vetkey_epoch_exist(
         metadata
             .range(&(chat_id, Time(0))..)
             .take_while(|metadata| metadata.key().0 == chat_id)
-            .filter(|metadata| metadata.value().epoch_id == vetkey_epoch_id)
-            .next()
+            .find(|metadata| metadata.value().epoch_id == vetkey_epoch_id)
             .map(|_| ())
             .ok_or(format!(
                 "vetKey epoch {vetkey_epoch_id:?} not found for chat {chat_id:?}"
@@ -1189,7 +1173,7 @@ pub fn ratchet_context(chat_id: ChatId, vetkey_epoch_id: VetKeyEpochId) -> Vec<u
     let chat_id_bytes = chat_id.to_bytes();
     let mut context = vec![];
 
-    context.extend_from_slice(&[DOMAIN_SEPARATOR_VETKEY_ROTATION.as_bytes().len() as u8]);
+    context.extend_from_slice(&[DOMAIN_SEPARATOR_VETKEY_ROTATION.len() as u8]);
     context.extend_from_slice(DOMAIN_SEPARATOR_VETKEY_ROTATION.as_bytes());
 
     context.extend_from_slice(&[chat_id_bytes.len() as u8]);
@@ -1203,10 +1187,10 @@ pub fn ratchet_context(chat_id: ChatId, vetkey_epoch_id: VetKeyEpochId) -> Vec<u
 pub fn resharing_context(caller: Principal) -> Vec<u8> {
     let mut context = vec![];
 
-    context.extend_from_slice(&[DOMAIN_SEPARATOR_VETKEY_RESHARING.as_bytes().len() as u8]);
+    context.extend_from_slice(&[DOMAIN_SEPARATOR_VETKEY_RESHARING.len() as u8]);
     context.extend_from_slice(DOMAIN_SEPARATOR_VETKEY_ROTATION.as_bytes());
 
-    context.extend_from_slice(&caller.as_slice());
+    context.extend_from_slice(caller.as_slice());
 
     context
 }

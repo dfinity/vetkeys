@@ -2,7 +2,7 @@
 	import { onMount } from 'svelte';
 	import { fly } from 'svelte/transition';
 	import { X, AlertTriangle, Info, CheckCircle, XCircle } from 'lucide-svelte';
-	import { notifications, chatActions } from '../stores/chat.svelte';
+	import { notifications, chatUIActions } from '../stores/chat.svelte';
 	import { chatStorageService } from '../services/chatStorage';
 	import type { Notification } from '../types';
 
@@ -48,7 +48,7 @@
 <!-- Disclaimer Banner - Bottom Overlay -->
 {#if showDisclaimer}
 	<div
-		class="fixed right-0 bottom-0 left-0 z-50 border-t-2 border-orange-400 bg-orange-100 shadow-lg"
+		class="fixed bottom-0 left-0 right-0 z-50 border-t-2 border-orange-400 bg-orange-100 shadow-lg"
 		transition:fly={{ y: 100, duration: 300 }}
 	>
 		<div class="flex items-center gap-3 p-3">
@@ -71,7 +71,7 @@
 {/if}
 
 <!-- Notification Stack -->
-<div class="fixed top-4 right-4 z-40 max-w-sm space-y-2">
+<div class="fixed right-4 top-4 z-40 max-w-sm space-y-2">
 	{#each notifications.state as notification (notification.id)}
 		<div
 			class="alert {getNotificationColor(notification.type)} shadow-lg"
@@ -86,7 +86,7 @@
 				<div class="alert-actions">
 					<button
 						class="variant-soft btn-icon"
-						onclick={() => chatActions.dismissNotification(notification.id)}
+						onclick={() => chatUIActions.dismissNotification(notification.id)}
 						aria-label="Dismiss notification"
 					>
 						<X class="h-4 w-4" />

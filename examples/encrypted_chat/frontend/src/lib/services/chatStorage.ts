@@ -54,6 +54,10 @@ export class ChatStorageService {
 		await set([storagePrefixes.CHAT_PREFIX, chat.idStr], value);
 	}
 
+	async deleteChat(chatId: string): Promise<void> {
+		await del([storagePrefixes.CHAT_PREFIX, chatId]);
+	}
+
 	async getAllChats(): Promise<Chat[]> {
 		const allKeys = await keys();
 		const chatKeys = allKeys.filter((key) => {

@@ -1,36 +1,27 @@
-import { chatIdToString } from '$lib/utils';
-import type { ChatId } from '../../declarations/encrypted_chat/encrypted_chat.did';
 import { storagePrefixes } from '../types';
 import { get, set } from 'idb-keyval';
 
 // IndexedDB storage service for persistent key data
 export class KeyStorageService {
 	async getSymmetricKeyState(
-		chat: ChatId,
-		vetKeyEpoch: bigint
+		chatIdStr: string,
+		vetKeyEpochStr: string
 	): Promise<{ key: CryptoKey; symmetricKeyEpoch: bigint } | undefined> {
 		console.log(
-			`KeyStorageService: Getting key state for chat ${chatIdToString(chat)} vetkeyEpoch ${vetKeyEpoch.toString()}`
+			`KeyStorageService: Getting key state for chat ${chatIdStr} vetkeyEpoch ${vetKeyEpochStr}`
 		);
-		return await get([
-			storagePrefixes.CHAT_EPOCH_KEY_PREFIX,
-			chatIdToString(chat),
-			vetKeyEpoch.toString()
-		]);
+		return await get([storagePrefixes.CHAT_EPOCH_KEY_PREFIX, chatIdStr, vetKeyEpochStr]);
 	}
 
 	async saveSymmetricKeyState(
-		chat: ChatId,
-		vetKeyEpoch: bigint,
+		chatIdStr: string,
+		vetKeyEpochStr: string,
 		keyState: { key: CryptoKey; symmetricKeyEpoch: bigint }
 	) {
 		console.log(
-			`KeyStorageService: Saving key state for chat ${chatIdToString(chat)} vetkeyEpoch ${vetKeyEpoch.toString()}`
+			`KeyStorageService: Saving key state for chat ${chatIdStr} vetkeyEpoch ${vetKeyEpochStr}`
 		);
-		await set(
-			[storagePrefixes.CHAT_EPOCH_KEY_PREFIX, chatIdToString(chat), vetKeyEpoch.toString()],
-			keyState
-		);
+		await set([storagePrefixes.CHAT_EPOCH_KEY_PREFIX, chatIdStr, vetKeyEpochStr], keyState);
 	}
 
 	async saveIbeDecryptionKey(keyBytes: Uint8Array) {

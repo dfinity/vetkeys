@@ -1,6 +1,9 @@
 import { chatStorageService } from '$lib/services/chatStorage';
+import { HttpAgent, type ActorSubclass } from '@dfinity/agent';
 import { AuthClient } from '@dfinity/auth-client';
 import type { Principal } from '@dfinity/principal';
+import type { _SERVICE } from '../../declarations/encrypted_chat/encrypted_chat.did';
+import { createActor } from '../../declarations/encrypted_chat';
 
 if (import.meta.env.SSR || typeof window === 'undefined') {
 	const {
@@ -42,11 +45,7 @@ export type AuthState =
 			error: string;
 	  };
 
-export type AuthStateWrapper = {
-	state: AuthState;
-};
-
-export const auth = $state<AuthStateWrapper>({
+export const auth = $state<{ state: AuthState }>({
 	state: { label: 'initializing-auth' }
 });
 
@@ -105,4 +104,23 @@ export async function logout() {
 export function getMyPrincipal(): Principal {
 	if (auth.state.label !== 'initialized') throw new Error('Unexpectedly not authenticated');
 	return auth.state.client.getIdentity().getPrincipal();
+}
+
+export function getActor(): ActorSubclass<_SERVICE> {
+	if (auth.state.label === 'initialized') {
+		const host = process.env.DFX_NETWORK === 'ic' ? 'https://icp-api.io' : 'http://localhost:8000';
+		const shouldFetchRootKey = process.env.DFX_NETWORK !== 'ic';
+		const agent = HttpAgent.createSync({
+			identity: auth.state.client.getIdentity(),
+			fetch,
+			host,
+			shouldFetchRootKey
+		});
+		if (!process.env.CANISTER_ID_ENCRYPTED_CHAT) {
+			throw new Error('CANISTER_ID_ENCRYPTED_CHAT is not set');
+		}
+		return createActor(process.env.CANISTER_ID_ENCRYPTED_CHAT, { agent });
+	} else {
+		throw new Error('Not authenticated');
+	}
 }

@@ -4,7 +4,7 @@
 	import Card from './ui/Card.svelte';
 	import type { Chat, SymmetricRatchetStats, GroupChat } from '../types';
 	import { canisterAPI } from '../services/canisteApi';
-	import { chatActions } from '../stores/chat.svelte';
+	import { chatUIActions } from '../stores/chat.svelte';
 	import GroupManagementModal from './GroupManagementModal.svelte';
 	import { Principal } from '@dfinity/principal';
 	import { chatIdFromString } from '$lib/utils';
@@ -78,26 +78,25 @@
 		const removeUsersPrincipal = removeUsers.map((id) => Principal.fromText(id));
 
 		try {
-			await chatActions.updateGroupMembers(
+			await chatUIActions.updateGroupMembers(
 				chatIdFromString(chat.idStr),
 				addUsersPrincipal,
 				removeUsersPrincipal,
 				allowHistoryForNew
 			);
 
-			chatActions.addNotification({
+			chatUIActions.addNotification({
 				type: 'success',
 				title: 'Group Updated',
 				message: `Successfully updated group membership.`,
 				isDismissible: true,
 				duration: 3000
 			});
-
 			// Here you would typically reload the chat data
 			// For now, we'll just show a success message
 		} catch (error) {
 			console.error('Failed to update group:', error);
-			chatActions.addNotification({
+			chatUIActions.addNotification({
 				type: 'error',
 				title: 'Update Failed',
 				message: 'Failed to update group membership. Please try again.',

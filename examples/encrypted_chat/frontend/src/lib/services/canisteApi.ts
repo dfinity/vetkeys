@@ -9,7 +9,7 @@ import type {
 	VetKeyEpochMetadata
 } from '../../declarations/encrypted_chat/encrypted_chat.did';
 import { Principal } from '@dfinity/principal';
-import { chatIdToString, stringifyBigInt } from '$lib/utils';
+import { stringifyBigInt } from '$lib/utils';
 import { TransportSecretKey, EncryptedVetKey, DerivedPublicKey, VetKey } from '@dfinity/vetkeys';
 
 // Dummy API service that simulates backend calls
@@ -88,10 +88,6 @@ export class CanisterAPI {
 		actor: ActorSubclass<_SERVICE>
 	): Promise<{ chatId: ChatId; numMessages: bigint }[]> {
 		const chatIds = await actor.get_my_chat_ids();
-		const summary: string = chatIds.reduce((acc, [chatId, numMessages]) => {
-			return acc + ' ' + chatIdToString(chatId) + ' ' + numMessages.toString();
-		}, '');
-		console.log('getChatIdsAndCurrentNumbersOfMessages: ' + summary);
 		return chatIds.map(([chatId, numMessages]) => {
 			return { chatId, numMessages };
 		});

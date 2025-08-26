@@ -5,7 +5,7 @@
 	import {
 		isLoading,
 		selectedChatId,
-		chatActions,
+		chatUIActions,
 		initVetKeyReactions
 	} from '$lib/stores/chat.svelte';
 	import Hero from '$lib/components/Hero.svelte';
@@ -32,10 +32,11 @@
 		const interval = setInterval(() => {
 			(async () => {
 				if (auth.state.label === 'initialized') {
-					await chatActions.refreshChats();
+					await chatUIActions.refreshChats();
+					await chatUIActions.loadChatMessages();
 				}
 			})().catch(console.error);
-		}, 1000);
+		}, 500);
 
 		return () => clearInterval(interval);
 	});
