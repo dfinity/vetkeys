@@ -195,6 +195,7 @@ export const chatUIActions = {
 
 	selectChat(chatId: ChatId) {
 		selectedChatId.state = chatId;
+		console.log('selectChat: selected chat ', chatIdToString(chatId));
 
 		// Mark as read
 		chats.state = chats.state.map((chat) =>
@@ -222,6 +223,16 @@ export const chatUIActions = {
 				...messages.state,
 				[chatIdStr]: [...messages.state[chatIdStr], ...messagesArray]
 			};
+
+			chats.state = chats.state.map((c) =>
+				c.idStr === chatIdStr
+					? {
+							...c,
+							unreadCount: c.unreadCount + messagesArray.length,
+							lastMessage: messagesArray[messagesArray.length - 1]
+						}
+					: c
+			);
 		}
 	},
 

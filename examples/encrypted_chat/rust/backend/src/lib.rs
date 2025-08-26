@@ -887,11 +887,18 @@ fn modify_group_chat_participants(
             });
         }
 
-        for participant in group_modification.remove_participants.iter().copied() {
+        for participant in group_modification.remove_participants.iter() {
             USER_TO_CHAT_MAP.with_borrow_mut(|map| {
-                let todo_remove =
-                    map.remove(&(participant, chat_id, latest_epoch_metadata.epoch_id));
-                assert!(todo_remove.is_some());
+                let keys_to_remove = map
+                    .keys_range((caller, chat_id, VetKeyEpochId(0))..)
+                    .take_while(|(user, this_chat_id, _)| {
+                        user == participant && *this_chat_id == chat_id
+                    })
+                    .collect::<Vec<_>>();
+                for key_to_remove in keys_to_remove {
+                    let todo_remove = map.remove(&key_to_remove);
+                    assert!(todo_remove.is_some());
+                }
             });
         }
 
