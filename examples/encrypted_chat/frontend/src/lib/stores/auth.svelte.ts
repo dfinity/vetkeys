@@ -4,6 +4,7 @@ import { AuthClient } from '@dfinity/auth-client';
 import type { Principal } from '@dfinity/principal';
 import type { _SERVICE } from '../../declarations/encrypted_chat/encrypted_chat.did';
 import { createActor } from '../../declarations/encrypted_chat';
+import fetch from 'isomorphic-fetch';
 
 if (import.meta.env.SSR || typeof window === 'undefined') {
 	const {
@@ -74,7 +75,7 @@ export async function login() {
 			identityProvider:
 				globalThis.process.env.DFX_NETWORK === 'ic'
 					? 'https://identity.ic0.app/#authorize'
-					: `http://rdmx6-jaaaa-aaaaa-aaadq-cai.localhost:8000/#authorize`,
+					: `http://rdmx6-jaaaa-aaaaa-aaadq-cai.localhost:4943/#authorize`,
 			onSuccess: () => {
 				authenticate(client);
 			},
@@ -108,11 +109,11 @@ export function getMyPrincipal(): Principal {
 
 export function getActor(): ActorSubclass<_SERVICE> {
 	if (auth.state.label === 'initialized') {
-		const host = process.env.DFX_NETWORK === 'ic' ? 'https://icp-api.io' : 'http://localhost:8000';
+		const host = process.env.DFX_NETWORK === 'ic' ? 'https://icp0.app' : 'http://localhost:4943';
 		const shouldFetchRootKey = process.env.DFX_NETWORK !== 'ic';
 		const agent = HttpAgent.createSync({
 			identity: auth.state.client.getIdentity(),
-			fetch,
+			fetch: fetch,
 			host,
 			shouldFetchRootKey
 		});

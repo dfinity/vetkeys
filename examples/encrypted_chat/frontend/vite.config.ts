@@ -11,5 +11,13 @@ export default defineConfig({
 		sveltekit(),
 		environment('all', { prefix: 'CANISTER_' }),
 		environment('all', { prefix: 'DFX_' })
-	]
+	],
+	server: {
+		proxy: {
+			'/api': {
+				target: 'http://localhost:4943',
+				changeOrigin: true
+			}
+		}
+	}
 });
