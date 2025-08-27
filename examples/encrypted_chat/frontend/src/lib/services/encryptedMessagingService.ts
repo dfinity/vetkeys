@@ -7,7 +7,7 @@ import type {
 	EncryptedMessageMetadata
 } from '../../declarations/encrypted_chat/encrypted_chat.did';
 import { KeyManager } from '$lib/crypto/keyManager';
-import { RatchetInitializationService } from './RatchetInitializationService';
+import { RatchetInitializationService } from './ratchetInitializationService';
 import { SymmetricRatchetEpochError, VetKeyEpochError, type Message } from '$lib/types';
 import { canisterAPI } from './canisteApi';
 import {
