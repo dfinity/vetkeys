@@ -1,5 +1,9 @@
 # Change Log
 
+## [0.4.1] - Unreleased
+
+- Make `deriveSymmetricKey` non-`@internal`.
+
 ## [0.4.0] - 2025-08-04
 
 ### Added
