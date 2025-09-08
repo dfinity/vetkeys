@@ -1,6 +1,20 @@
 # Change Log
 
-## [0.4.0] - 2025-08-04
+## [0.5.0] - 2025-09-08
+
+### Added
+
+- Add AES-GCM encryption helpers ([#220](https://github.com/dfinity/vetkeys/pull/220)). The helpers are available in a `DerivedKeyMaterial` struct, which can be created using `VetKey::as_derived_key_material`. Encryption/decryption is done with `DerivedKeyMaterial::encrypt_message` and `DerivedKeyMaterial::decrypt_message`.
+
+### Changed
+
+- Use optimized G2 generator point multiplication ([#219](https://github.com/dfinity/vetkeys/pull/219)). This improves the performance of public key derivation (`MasterPublicKey::derive_canister_key` and `DerivedPublicKey::derive_sub_key`) and IBE encryption/decryption (`IbeCiphertext::encrypt` and `IbeCiphertext::decrypt`).
+
+### Fixed
+
+- Removes the modified appendix from the LICENSE file to ensure full compliance with the Apache 2.0 license, which should remain in its original, unmodified form ([#225](https://github.com/dfinity/vetkeys/pull/225)).
+
+## [0.4.0] - 2025-08-05
 
 ### Breaking changes
 
