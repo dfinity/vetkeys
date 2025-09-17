@@ -226,32 +226,12 @@ async function displayMessages(inbox: Inbox) {
                     if ("Err" in result) {
                         alert("Error deleting message: " + result.Err);
                     } else {
-                        // Remove the message element from the DOM
-                        const messageElement = target.closest(".message");
-                        if (messageElement) {
-                            messageElement.remove();
-
-                            // If this was the last message, show the "no messages" message
-                            const messagesDiv =
-                                document.getElementById("messages")!;
-                            if (messagesDiv.children.length === 0) {
-                                const noMessagesDiv =
-                                    document.createElement("div");
-                                noMessagesDiv.className = "no-messages";
-                                noMessagesDiv.textContent =
-                                    "No messages in the inbox.";
-                                messagesDiv.appendChild(noMessagesDiv);
-                            }
-                        }
+                        // Re-load all messages to refresh message indices
+                        await showMessages();
                     }
                 } catch (error) {
                     alert(
                         "Error deleting message: " + (error as Error).message,
-                    );
-                } finally {
-                    // Re-enable all delete buttons
-                    deleteButtons.forEach(
-                        (btn) => ((btn as HTMLButtonElement).disabled = false),
                     );
                 }
             })();
