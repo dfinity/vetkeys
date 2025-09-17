@@ -1,19 +1,18 @@
-import Principal "mo:base/Principal";
-import Text "mo:base/Text";
-import Blob "mo:base/Blob";
-import Nat64 "mo:base/Nat64";
-import Time "mo:base/Time";
-import HashMap "mo:base/HashMap";
-import Array "mo:base/Array";
-import Buffer "mo:base/Buffer";
-import Nat8 "mo:base/Nat8";
-import Nat32 "mo:base/Nat32";
-import Debug "mo:base/Debug";
-import Nat "mo:base/Nat";
+import Principal "mo:core/Principal";
+import Text "mo:core/Text";
+import Blob "mo:core/Blob";
+import Nat64 "mo:core/Nat64";
+import Time "mo:core/Time";
+import Map "mo:core/Map";
+import Array "mo:core/Array";
+import List "mo:core/List";
+import Nat8 "mo:core/Nat8";
+import Runtime "mo:core/Runtime";
+import Nat "mo:core/Nat";
 import VetKeys "mo:ic-vetkeys";
-import Sha256 "mo:sha2/Sha256";
+import Order "mo:core/Order";
 
-shared actor class (keyName : Text) = {
+shared persistent actor class (keyName : Text) = {
     // Types
     type Signature = {
         message : Text;
@@ -31,43 +30,16 @@ shared actor class (keyName : Text) = {
         name : Text;
     };
 
-    // Hash and equality functions for SignatureKey
-    private func signatureKeyEqual(a : SignatureKey, b : SignatureKey) : Bool {
-        Principal.equal(a.signer, b.signer) and a.timestamp == b.timestamp
-    };
-
-    private func signatureKeyHash(key : SignatureKey) : Nat32 {
-        let signerBytes = Blob.toArray(Principal.toBlob(key.signer));
-        let timestampBytes = nat64ToBytes(key.timestamp);
-        let bytes = Array.append<Nat8>(signerBytes, timestampBytes);
-        let hashBlob = Sha256.fromArray(#sha256, bytes);
-        blobToNat32(hashBlob);
-    };
-
-    func nat64ToBytes(n : Nat64) : [Nat8] {
-        let byteMask : Nat64 = 0xff;
-        func byte(x : Nat64) : Nat8 {
-            Nat8.fromNat(Nat64.toNat(x));
-        };
-        [
-            byte(((byteMask << 56) & n) >> 56),
-            byte(((byteMask << 48) & n) >> 48),
-            byte(((byteMask << 40) & n) >> 40),
-            byte(((byteMask << 32) & n) >> 32),
-            byte(((byteMask << 24) & n) >> 24),
-            byte(((byteMask << 16) & n) >> 16),
-            byte(((byteMask << 8) & n) >> 8),
-            byte(((byteMask << 0) & n) >> 0),
-        ];
-    };
-
-    private func blobToNat32(blob : Blob) : Nat32 {
-        let bytes = Blob.toArray(blob);
-        (Nat32.fromNat(Nat8.toNat(bytes[0])) << 24) + (Nat32.fromNat(Nat8.toNat(bytes[1])) << 16) + (Nat32.fromNat(Nat8.toNat(bytes[2])) << 8) + Nat32.fromNat(Nat8.toNat(bytes[3]));
+    // Compare function for SignatureKey
+    private func signatureKeyCompare(a : SignatureKey, b : SignatureKey) : Order.Order {
+        switch (Principal.compare(a.signer, b.signer)) {
+            case (#equal) { Nat64.compare(a.timestamp, b.timestamp) };
+            case (other) { other };
+        }
     };
 
     // Stable storage for signatures
-    private var signatures : HashMap.HashMap<SignatureKey, Signature> = HashMap.HashMap(0, signatureKeyEqual, signatureKeyHash);
+    private var signatures = Map.empty<SignatureKey, Signature>();
 
     // Helper function to get current timestamp
     private func getTimestamp() : Nat64 {
@@ -84,8 +56,8 @@ shared actor class (keyName : Text) = {
         let signerBytes = Principal.toBlob(signer);
         let signerArray = Blob.toArray(signerBytes);
 
-        let contextArray = Array.append<Nat8>(
-            Array.append<Nat8>(domainSeparatorLength, domainSeparator),
+        let contextArray = Array.concat<Nat8>(
+            Array.concat<Nat8>(domainSeparatorLength, domainSeparator),
             signerArray,
         );
 
@@ -113,10 +85,10 @@ shared actor class (keyName : Text) = {
         let SIGNATURE_SIZE : Nat = 48;
 
         if (bytes.size() != BYTES_SIZE) {
-            Debug.trap("Expected " # Nat.toText(BYTES_SIZE) # " signature bytes, but got " # Nat.toText(bytes.size()));
+            Runtime.trap("Expected " # Nat.toText(BYTES_SIZE) # " signature bytes, but got " # Nat.toText(bytes.size()));
         };
 
-        let signatureBytes = Blob.fromArray(Array.subArray<Nat8>(Blob.toArray(bytes), BYTES_SIZE - SIGNATURE_SIZE, SIGNATURE_SIZE));
+        let signatureBytes = Blob.fromArray(Array.sliceToArray<Nat8>(Blob.toArray(bytes), BYTES_SIZE - SIGNATURE_SIZE, BYTES_SIZE));
 
         let timestamp = getTimestamp();
         let signature : Signature = {
@@ -127,26 +99,26 @@ shared actor class (keyName : Text) = {
 
         // Handle potential timestamp collisions by incrementing until we find a free slot
         var timestampForMapKey = timestamp;
-        while (signatures.get({ signer = caller; timestamp = timestampForMapKey }) != null) {
+        while (Map.get(signatures, signatureKeyCompare, { signer = caller; timestamp = timestampForMapKey }) != null) {
             timestampForMapKey += 1;
         };
 
-        signatures.put({ signer = caller; timestamp = timestampForMapKey }, signature);
+        ignore Map.insert(signatures, signatureKeyCompare, { signer = caller; timestamp = timestampForMapKey }, signature);
 
         signatureBytes;
     };
 
     // Get all signatures for the current caller
     public shared query ({ caller }) func get_my_signatures() : async [Signature] {
-        let callerSignatures = Buffer.Buffer<Signature>(0);
+        var callerSignatures = List.empty<Signature>();
 
-        for ((key, value) in signatures.entries()) {
+        for ((key, value) in Map.entries(signatures)) {
             if (Principal.equal(key.signer, caller)) {
-                callerSignatures.add(value);
+                List.add(callerSignatures, value);
             };
         };
 
-        Buffer.toArray(callerSignatures);
+        List.toArray(callerSignatures);
     };
 
     // Get verification key for the current caller
