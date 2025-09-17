@@ -16,7 +16,7 @@ import Hex "./utils/Hex";
 
 // Declare a shared actor class
 // Bind the caller and the initializer
-shared ({ caller = initializer }) actor class (keyName: Text) {
+shared ({ caller = initializer }) persistent actor class (keyName: Text) {
 
     // Currently, a single canister smart contract is limited to 4 GB of heap size.
     // For the current limits see https://internetcomputer.org/docs/current/developer-docs/production/resource-limits.
@@ -27,10 +27,10 @@ shared ({ caller = initializer }) actor class (keyName: Text) {
     // memory usage must be calculated or monitored and the various restrictions adapted accordingly.
 
     // Define dapp limits - important for security assurance
-    private let MAX_USERS = 500;
-    private let MAX_NOTES_PER_USER = 200;
-    private let MAX_NOTE_CHARS = 1000;
-    private let MAX_SHARES_PER_NOTE = 50;
+    private transient let MAX_USERS = 500;
+    private transient let MAX_NOTES_PER_USER = 200;
+    private transient let MAX_NOTE_CHARS = 1000;
+    private transient let MAX_SHARES_PER_NOTE = 50;
 
     private type PrincipalName = Text;
     private type NoteId = Nat;
@@ -58,23 +58,23 @@ shared ({ caller = initializer }) actor class (keyName: Text) {
     // The keyword `stable` makes this (scalar) variable keep its value across canister upgrades.
     //
     // See https://internetcomputer.org/docs/current/developer-docs/setup/manage-canisters#upgrade-a-canister
-    private stable var nextNoteId : Nat = 1;
+    private var nextNoteId : Nat = 1;
 
     // Store notes by their ID, so that note-specific encryption keys can be derived.
-    private var notesById = Map.HashMap<NoteId, EncryptedNote>(0, Nat.equal, Hash.hash);
+    private transient var notesById = Map.HashMap<NoteId, EncryptedNote>(0, Nat.equal, Hash.hash);
     // Store which note IDs are owned by a particular principal
-    private var noteIdsByOwner = Map.HashMap<PrincipalName, List.List<NoteId>>(0, Text.equal, Text.hash);
+    private transient var noteIdsByOwner = Map.HashMap<PrincipalName, List.List<NoteId>>(0, Text.equal, Text.hash);
     // Store which notes are shared with a particular principal. Does not include the owner, as this is tracked by `noteIdsByOwner`.
-    private var noteIdsByUser = Map.HashMap<PrincipalName, List.List<NoteId>>(0, Text.equal, Text.hash);
+    private transient var noteIdsByUser = Map.HashMap<PrincipalName, List.List<NoteId>>(0, Text.equal, Text.hash);
 
     // While accessing _heap_ data is more efficient, we use the following _stable memory_
     // as a buffer to preserve data across canister upgrades.
     // Stable memory is currently 96GB. For the current limits see
     // https://internetcomputer.org/docs/current/developer-docs/production/resource-limits.
     // See also: [preupgrade], [postupgrade]
-    private stable var stable_notesById : [(NoteId, EncryptedNote)] = [];
-    private stable var stable_noteIdsByOwner : [(PrincipalName, List.List<NoteId>)] = [];
-    private stable var stable_noteIdsByUser : [(PrincipalName, List.List<NoteId>)] = [];
+    private var stable_notesById : [(NoteId, EncryptedNote)] = [];
+    private var stable_noteIdsByOwner : [(PrincipalName, List.List<NoteId>)] = [];
+    private var stable_noteIdsByUser : [(PrincipalName, List.List<NoteId>)] = [];
 
     // Utility function that helps writing assertion-driven code more concisely.
     private func expect<T>(opt : ?T, violation_msg : Text) : T {
@@ -322,7 +322,7 @@ shared ({ caller = initializer }) actor class (keyName: Text) {
         }) -> async ({ encrypted_key : Blob });
     };
 
-    let management_canister : VETKD_API = actor ("aaaaa-aa");
+    transient let management_canister : VETKD_API = actor ("aaaaa-aa");
 
     public shared func symmetric_key_verification_key_for_note() : async Text {
         let { public_key } = await management_canister.vetkd_public_key({

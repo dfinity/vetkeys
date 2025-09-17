@@ -12,6 +12,8 @@ on:
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
+env:
+  DFX_VERSION: 0.29.1
 jobs:
   examples-encrypted-notes-dapp-rust-darwin:
     runs-on: macos-15
