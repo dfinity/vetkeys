@@ -337,7 +337,7 @@ function asBytes(input: Uint8Array | string): Uint8Array {
 }
 
 /**
- * Derive a symmetric key from the provided input
+ * Derive a symmetric key from the provided input using HKDF-SHA256.
  *
  * The `input` parameter should be a sufficiently long random input generated
  * in a secure way. 256 bits (32 bytes) or longer is preferable.
