@@ -32,6 +32,180 @@ lazy_static::lazy_static! {
 const G1AFFINE_BYTES: usize = 48; // Size of compressed form
 const G2AFFINE_BYTES: usize = 96; // Size of compressed form
 
+struct G2PrecomputedTable {
+    tbl: Vec<G2Affine>,
+}
+
+impl G2PrecomputedTable {
+    /// The size of the windows
+    ///
+    /// This algorithm uses just `SUBGROUP_BITS/WINDOW_BITS` additions in
+    /// the online phase, at the cost of storing a table of size
+    /// `(SUBGROUP_BITS + WINDOW_BITS - 1)/WINDOW_BITS * (1 << WINDOW_BITS - 1)`
+    ///
+    /// This constant is configurable and can take values between 1 and 7
+    /// (inclusive)
+    ///
+    /// | WINDOW_BITS | TABLE_SIZE | online additions |
+    /// | ----------- | ---------- | ---------------- |
+    /// |           1 |       255  |              255 |
+    /// |           2 |       384  |              128 |
+    /// |           3 |       595  |               85 |
+    /// |           4 |       960  |               64 |
+    /// |           5 |      1581  |               51 |
+    /// |           6 |      2709  |               43 |
+    /// |           7 |      4699  |               37 |
+    ///
+    const WINDOW_BITS: usize = 4;
+
+    /// The bit length of the BLS12-381 subgroup
+    const SUBGROUP_BITS: usize = 255;
+
+    // A bitmask of all 1s that is WINDOW_BITS long
+    const WINDOW_MASK: u8 = (1 << Self::WINDOW_BITS) - 1;
+
+    // The total number of windows in a scalar
+    const WINDOWS: usize = Self::SUBGROUP_BITS.div_ceil(Self::WINDOW_BITS);
+
+    // We must select from 2^WINDOW_BITS elements in each table
+    // group. However one element of the table group is always the
+    // identity, and so can be omitted, which is the reason for the
+    // subtraction by 1 here.
+    const WINDOW_ELEMENTS: usize = (1 << Self::WINDOW_BITS) - 1;
+
+    // The total size of the table we will use
+    const TABLE_SIZE: usize = Self::WINDOW_ELEMENTS * Self::WINDOWS;
+
+    /// Precompute a table for fast multiplication
+    fn new(pt: &G2Affine) -> Self {
+        let mut ptbl = vec![ic_bls12_381::G2Projective::identity(); Self::TABLE_SIZE];
+
+        let mut accum = ic_bls12_381::G2Projective::from(pt);
+
+        for i in 0..Self::WINDOWS {
+            let tbl_i = &mut ptbl[Self::WINDOW_ELEMENTS * i..Self::WINDOW_ELEMENTS * (i + 1)];
+
+            tbl_i[0] = accum;
+            for j in 1..Self::WINDOW_ELEMENTS {
+                // Our table indexes are off by one due to the omitted
+                // identity element. So here we are checking if we are
+                // about to compute a point that is a doubling of a point
+                // we have previously computed. If so we can compute it
+                // using a (faster) doubling rather than using addition.
+
+                tbl_i[j] = if j % 2 == 1 {
+                    tbl_i[j / 2].double()
+                } else {
+                    tbl_i[j - 1] + tbl_i[0]
+                };
+            }
+
+            // move on to the next power
+            accum = tbl_i[Self::WINDOW_ELEMENTS / 2].double();
+        }
+
+        // batch convert the table to affine form, so we can use mixed addition
+        // in the online phase.
+        let mut tbl = vec![ic_bls12_381::G2Affine::identity(); Self::TABLE_SIZE];
+        ic_bls12_381::G2Projective::batch_normalize(&ptbl, &mut tbl);
+
+        Self { tbl }
+    }
+
+    /// Perform variable-time scalar multiplication using the precomputed table plus extra addition
+    fn mul_vartime(&self, scalar: &Scalar, extra_add: Option<&G2Affine>) -> ic_bls12_381::G2Affine {
+        let s = {
+            let mut s = scalar.to_bytes();
+            s.reverse(); // zkcrypto/bls12_381 uses little-endian
+            s
+        };
+
+        let mut accum = if let Some(add) = extra_add {
+            ic_bls12_381::G2Projective::from(add)
+        } else {
+            ic_bls12_381::G2Projective::identity()
+        };
+
+        for i in 0..Self::WINDOWS {
+            let tbl_for_i = &self.tbl[Self::WINDOW_ELEMENTS * i..Self::WINDOW_ELEMENTS * (i + 1)];
+
+            let b = Self::get_window(&s, Self::WINDOW_BITS * i);
+            if b > 0 {
+                accum += tbl_for_i[b as usize - 1];
+            }
+        }
+
+        G2Affine::from(accum)
+    }
+
+    /// Perform scalar multiplication using the precomputed table
+    fn mul(&self, scalar: &Scalar) -> ic_bls12_381::G2Affine {
+        let s = {
+            let mut s = scalar.to_bytes();
+            s.reverse(); // zkcrypto/bls12_381 uses little-endian
+            s
+        };
+
+        let mut accum = ic_bls12_381::G2Projective::identity();
+
+        for i in 0..Self::WINDOWS {
+            let tbl_for_i = &self.tbl[Self::WINDOW_ELEMENTS * i..Self::WINDOW_ELEMENTS * (i + 1)];
+
+            let b = Self::get_window(&s, Self::WINDOW_BITS * i);
+            accum += Self::ct_select(tbl_for_i, b as usize);
+        }
+
+        G2Affine::from(accum)
+    }
+
+    // Extract a WINDOW_BITS sized window out of s, depending on offset.
+    #[inline(always)]
+    fn get_window(s: &[u8], offset: usize) -> u8 {
+        const BITS_IN_BYTE: usize = 8;
+
+        let shift = offset % BITS_IN_BYTE;
+        let byte_offset = s.len() - 1 - (offset / BITS_IN_BYTE);
+
+        let w0 = s[byte_offset];
+
+        let single_byte_window = shift <= (BITS_IN_BYTE - Self::WINDOW_BITS) || byte_offset == 0;
+
+        let bits = if single_byte_window {
+            // If we can get the window out of single byte, do so
+            w0 >> shift
+        } else {
+            // Otherwise we must join two bytes and extract the result
+            let w1 = s[byte_offset - 1];
+            (w0 >> shift) | (w1 << (BITS_IN_BYTE - shift))
+        };
+
+        bits & Self::WINDOW_MASK
+    }
+
+    // Constant time table lookup
+    //
+    // This version is specifically adapted to this algorithm. If
+    // index is zero, then it returns the identity element. Otherwise
+    // it returns from[index-1].
+    #[inline(always)]
+    fn ct_select(from: &[ic_bls12_381::G2Affine], index: usize) -> ic_bls12_381::G2Affine {
+        use subtle::{ConditionallySelectable, ConstantTimeEq};
+
+        let mut val = ic_bls12_381::G2Affine::identity();
+
+        let index = index.wrapping_sub(1);
+        for (idx, v) in from.iter().enumerate() {
+            val.conditional_assign(v, usize::ct_eq(&idx, &index));
+        }
+
+        val
+    }
+}
+
+lazy_static::lazy_static! {
+    static ref G2_MUL_TABLE: G2PrecomputedTable = G2PrecomputedTable::new(&G2Affine::generator());
+}
+
 /// Derive a symmetric key using HKDF-SHA256
 fn hkdf(okm: &mut [u8], input: &[u8], domain_sep: &str) {
     let hk = hkdf::Hkdf::<sha2::Sha256>::new(None, input);
@@ -206,7 +380,7 @@ impl MasterPublicKey {
 
         let offset = hash_to_scalar_two_inputs(&self.serialize(), canister_id, dst);
 
-        let derived_key = G2Affine::from(self.point + G2Affine::generator() * offset);
+        let derived_key = G2_MUL_TABLE.mul_vartime(&offset, Some(&self.point));
         DerivedPublicKey { point: derived_key }
     }
 
@@ -290,7 +464,7 @@ impl DerivedPublicKey {
 
         let offset = hash_to_scalar_two_inputs(&self.serialize(), context, dst);
 
-        let derived_key = G2Affine::from(self.point + G2Affine::generator() * offset);
+        let derived_key = G2_MUL_TABLE.mul_vartime(&offset, Some(&self.point));
         Self { point: derived_key }
     }
 
@@ -356,6 +530,16 @@ impl VetKey {
     }
 
     /**
+     * Return a DerivedKeyMaterial
+     *
+     * This class allows further key derivation and encryption but the underlying
+     * secret key cannot be extracted.
+     */
+    pub fn as_derived_key_material(&self) -> DerivedKeyMaterial {
+        DerivedKeyMaterial::new(self)
+    }
+
+    /**
      * Deserialize a VetKey from the byte encoding
      *
      * Typically this would have been created using [`VetKey::signature_bytes`]
@@ -370,6 +554,109 @@ impl VetKey {
         } else {
             Err("Invalid VetKey".to_string())
         }
+    }
+}
+
+/// Key material derived from a VetKey
+///
+/// This struct allows deriving further keys from the VetKey without
+/// allowing direct access to the VetKey secret key, preventing it
+/// from being reused inappropriately.
+///
+/// As a convenience this struct also offers AES-GCM encryption/decryption
+#[derive(Clone, Zeroize, ZeroizeOnDrop)]
+pub struct DerivedKeyMaterial {
+    key: Vec<u8>,
+}
+
+#[derive(Copy, Clone, Eq, PartialEq, Debug)]
+/// An error while encrypting
+pub enum EncryptionError {
+    /// The provided message was too long to be encrypted
+    PlaintextTooLong,
+}
+
+#[derive(Copy, Clone, Eq, PartialEq, Debug)]
+/// An error while decrypting
+pub enum DecryptionError {
+    /// The ciphertext was too short to possibly be valid
+    MessageTooShort,
+    /// The GCM tag did not validate
+    InvalidCiphertext,
+}
+
+impl DerivedKeyMaterial {
+    const GCM_KEY_SIZE: usize = 32;
+    const GCM_TAG_SIZE: usize = 16;
+    const GCM_NONCE_SIZE: usize = 12;
+
+    /// Create a new DerivedKeyMaterial
+    fn new(vetkey: &VetKey) -> Self {
+        Self {
+            key: vetkey.serialize().to_vec(),
+        }
+    }
+
+    fn derive_aes_gcm_key(&self, domain_sep: &str) -> Vec<u8> {
+        derive_symmetric_key(&self.key, domain_sep, Self::GCM_KEY_SIZE)
+    }
+
+    /// Encrypt a message
+    ///
+    /// The decryption used here is interoperable with the TypeScript
+    /// library ic_vetkeys function `DerivedKeyMaterial.decryptMessage`
+    pub fn encrypt_message<R: rand::RngCore + rand::CryptoRng>(
+        &self,
+        message: &[u8],
+        domain_sep: &str,
+        rng: &mut R,
+    ) -> Result<Vec<u8>, EncryptionError> {
+        use aes_gcm::{aead::Aead, aead::AeadCore, Aes256Gcm, Key, KeyInit};
+        let key = self.derive_aes_gcm_key(domain_sep);
+        let key = Key::<Aes256Gcm>::from_slice(&key);
+        // aes_gcm::Aes256Gcm only supports/uses 12 byte nonces
+        let nonce = Aes256Gcm::generate_nonce(rng);
+        assert_eq!(nonce.len(), Self::GCM_NONCE_SIZE);
+        let gcm = Aes256Gcm::new(key);
+
+        // The function returns an opaque `Error` with no details, but upon
+        // examination, the only way it can fail is if the plaintext is larger
+        // than GCM's maximum input length of 2^36 bytes.
+        let ctext = gcm
+            .encrypt(&nonce, message)
+            .map_err(|_| EncryptionError::PlaintextTooLong)?;
+
+        let mut res = vec![];
+        res.extend_from_slice(nonce.as_slice());
+        res.extend_from_slice(ctext.as_slice());
+        Ok(res)
+    }
+
+    /// Decrypt a message
+    ///
+    /// The decryption used here is interoperable with the TypeScript
+    /// library ic_vetkeys function `DerivedKeyMaterial.encryptMessage`
+    pub fn decrypt_message(
+        &self,
+        ctext: &[u8],
+        domain_sep: &str,
+    ) -> Result<Vec<u8>, DecryptionError> {
+        use aes_gcm::{aead::Aead, Aes256Gcm, Key, KeyInit};
+        let key = self.derive_aes_gcm_key(domain_sep);
+        let key = Key::<Aes256Gcm>::from_slice(&key);
+
+        // Minimum possible length 12 bytes nonce plus 16 bytes GCM tag
+        if ctext.len() < Self::GCM_NONCE_SIZE + Self::GCM_TAG_SIZE {
+            return Err(DecryptionError::MessageTooShort);
+        }
+        let nonce = aes_gcm::Nonce::from_slice(&ctext[0..Self::GCM_NONCE_SIZE]);
+        let gcm = Aes256Gcm::new(key);
+
+        let ptext = gcm
+            .decrypt(nonce, &ctext[Self::GCM_NONCE_SIZE..])
+            .map_err(|_| DecryptionError::InvalidCiphertext)?;
+
+        Ok(ptext.as_slice().to_vec())
     }
 }
 
@@ -733,7 +1020,7 @@ impl IbeCiphertext {
 
         let tsig = ic_bls12_381::pairing(&pt, &dpk.point) * t;
 
-        let c1 = G2Affine::from(G2Affine::generator() * t);
+        let c1 = G2_MUL_TABLE.mul(&t);
         let c2 = Self::mask_seed(seed.value(), &tsig);
         let c3 = Self::mask_msg(msg, seed.value());
 
@@ -753,15 +1040,15 @@ impl IbeCiphertext {
     ///
     /// Returns the plaintext, or Err if decryption failed
     pub fn decrypt(&self, vetkey: &VetKey) -> Result<Vec<u8>, String> {
-        let t = ic_bls12_381::pairing(vetkey.point(), &self.c1);
+        let tsig = ic_bls12_381::pairing(vetkey.point(), &self.c1);
 
-        let seed = Self::mask_seed(&self.c2, &t);
+        let seed = Self::mask_seed(&self.c2, &tsig);
 
         let msg = Self::mask_msg(&self.c3, &seed);
 
         let t = Self::hash_to_mask(&self.header, &seed, &msg);
 
-        let g_t = G2Affine::from(G2Affine::generator() * t);
+        let g_t = G2_MUL_TABLE.mul(&t);
 
         if self.c1 == g_t {
             Ok(msg)

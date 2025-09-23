@@ -525,6 +525,17 @@ export class VetKey {
 // The size of the nonce used for encryption by DerivedKeyMaterial
 const DERIVED_KEY_MATERIAL_NONCE_LENGTH = 12;
 
+/*
+ * Derived Key Material
+ *
+ * This type wraps a {@link CryptoKey} whose value is derived from a {@link VetKey}
+ *
+ * The {@link CryptoKey} is not exportable but it is possible to use the value
+ * for further derivation of keys using HKDF.
+ *
+ * As a convenience it is also possible to directly encrypt messages
+ * (using AES in GCM mode) using a key which is first derived using HKDF.
+ */
 export class DerivedKeyMaterial {
     readonly #hkdf: CryptoKey;
 
@@ -632,11 +643,11 @@ export class DerivedKeyMaterial {
         message: Uint8Array,
         domainSep: Uint8Array | string,
     ): Promise<Uint8Array> {
-        const IBE_TAG_LENGTH = 16;
+        const GCM_TAG_LENGTH = 16;
 
         if (
             message.length <
-            DERIVED_KEY_MATERIAL_NONCE_LENGTH + IBE_TAG_LENGTH
+            DERIVED_KEY_MATERIAL_NONCE_LENGTH + GCM_TAG_LENGTH
         ) {
             throw new Error(
                 "Invalid ciphertext, too short to possibly be valid",
