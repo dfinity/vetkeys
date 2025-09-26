@@ -1,8 +1,6 @@
 # vetKey Encrypted Chat
 
-vetKey Encrypted Chat has two main components: the canister backend and user frontend.
-
-## Features
+vetKey Encrypted Chat has two main components: the canister backend and user frontend. It provides the following features:
 
 * Messaging protected with end-to-end encryption.
 
@@ -10,13 +8,50 @@ vetKey Encrypted Chat has two main components: the canister backend and user fro
 
 * Disappearing messages guaranteed by the canister (ICP smart contract) logic.
 
-## Design
+## Encryption Keys and State Recovery
 
-TODO: add information about the symmetric ratchet/vetKey rotation.
+TODO: explain what keys we have.
 
-### State Recovery
+vetKey Rotation:
 
-TODO: explain what this it about and that it works via uploading encrypted user cache and disallowing to obtain the vetKey that was used to initialize the state.
+* Independent key material - provides both forward and backward security, i.e., an adversary obtaining the key material for a vetKey epoch gains no knowledge about the key material in other vetKey epochs.
+
+* More costly than symmetric key ratchet because requires interaction with the backend canister and a [vetKey derivation](https://internetcomputer.org/docs/building-apps/network-features/vetkeys/api).
+
+For each vetKey epoch, we instantiate a Symmetric Key Ratchet State that can be evolved.
+
+Symmetric Key Ratchet:
+
+* Creates a chain of symmetric keys known by the chat participants from an initial key material derived from a vetKey.
+
+* Very efficient local ratchet evolution based on consensus time frames.
+
+* Provides forward securiry but not backward security, i.e., an adversary obtaining the key material for the symmetric ratchet ID `i` can derive any ratchet state for an epoch ID that is larger than `i`.
+
+While vetKey rotation can be performed at arbitry time points, the symmetric ratchet is performed at time frame boundaries.
+The duration of the time frame defines the granularity of the time frame that the user must keep the key material around for in order to be able to decrypt messages.
+This differs from the Signal protocol, where we discard the old key as soon as we evolved it in most cases.
+Keeping some keys around is important if we want to decrypt messages in arbitrary order.
+Consider for example a scenario where we only want to decrypt the newest messages that we want to display to the user and not the whole history, which might be much longer and contain media material that requires a lot of potentially unnecessary communication.
+This requires us to keep around the ratchet state, with which we are able to decrypt the oldest non-expired message.
+
+The duration of the symmetric key ratchet time frame defines the duration of the time frame that we would be able to decrypt messages for that goes beyond what's necessary.
+Consider e.g. a message expiry of duration `t` ns and the symmetric ratchet duration of `t` ns as well.
+In that case, if no vetKey rotations happen in between, the frontend would need to keep around states `i` and `i + 1` at all times, meaning that in the worst case two time windows (`2t` ns) worth of messages would be decryptable instead of one.
+
+If we set the message expiry to `t` ns and symmetric ratchet duration to `r * t`, then we can reduce the amount of time we unnecessarily keep the key material for by a factor of `r`.
+For example, if we set the expiry to one month and the symmetric ratchet duration to one hour, then we would need to keep the key material (and the ability to decrypt all message encrypted with it) for almost one additional hour.
+
+TODO: what if vetKey rotation happens in between?
+
+The downside of this approach is that we need to keep symmetric ratchet states for more ratchet epochs around or compute them on the fly s.t. the messages can be decrypted in any order.
+However, with realistic time frames, keeping around hunderds of keys or just a key that we can generate the other keys from is not a showstopper.
+
+Realistic time frames for symmetric ratchet evolution: between a minute and a few hours/days. Being on a lower side (minutes) makes less sense, since updating the state's keys involves updating the encrypted cache, where every update costs cycles, which would make mass adoption of the chat costly.
+
+TODO: updates to the encrypted cache.
+
+TODO: explain what this is about and that it works via uploading encrypted user cache and disallowing to obtain the vetKey that was used to initialize the state.
 
 ## Components
 
@@ -481,11 +516,13 @@ Once the state is updated, it affects the behavior of [the APIs returning the me
   
   * VetKey epoch metadata for all vetKey epochs that were required for encryption or decryption. Note that the metadata of the vetKey epochs that are not the last vetKey epoch and whose messages have expired are removed from the state.
 
-  * Message expiry data.
+  * Message expiry for each decrypted message.
 
 * Symmetric ratchet states for all vetKey epochs that were required for encryption or decryption. Similarly to vetKey epoch metadata, expired symmetric ratchet states are deleted from the state.
 
 * Decrypted non-expired messages for each chat.
+
+* Latest consensus time.
 
 * Optional optimization: All messages and chats stored in browser storage.
 
@@ -510,9 +547,9 @@ The chat UI uses the EMS in a black-box way to:
 
 Encrypted Messaging Service (EMS) is a component that gives the developer a transparent way to interact with the encrypted chat by reading from a stream of received and decrypted messages and putting user messages to be encrypted and sent into a stream that the EMS will take care of encrypting and sending.
 
-The EMS exposes the following APIs:
-
 TODO: add types `ChatId`, `ChatIdAsString`, `Message`
+
+The EMS exposes the following APIs:
 
 * `enqueueSendMessage(chatId: ChatId, content: Uint8Array)`: adds the message `content` to be encrypted for and sent for adding to the chat with ID `chatId`. This API does not give any guarantees that the message will actually be added to the chat but it makes attempts to recover from recoverable errors (see [Encrypting and Sending Messages in the EMS](#encrypting-and-sending-messages)).
 
@@ -524,43 +561,59 @@ TODO: add types `ChatId`, `ChatIdAsString`, `Message`
 
 * `getCurrentChatIds(): ChatId[]`: returns the chat IDs that are currently accessible to the user. This particular API is mostly an efficiency optimization, since the message retrieval in the EMS anyways requires fetching the information about the currently accessible chats.
 
+* `getCurrentUsersInChat(chatId: ChatId): Principal[]`: takes in a chat ID and returns the current users in the chat. If the EMS does not have data about the chat with `chatId` because either the user does not have access to the chat, or if `chatId` does not exist, or the frontend did not yet manage to synchronize with the backend, this function throws an error.
+
 #### Encrypting and Sending Messages
 
-For message [encryption](#ratchet-message-encryption) and [sending](#incoming-message-validation), the EMS makes use of the following backend canister APIs: [`get_my_chats_and_time` and `get_vetkey_epoch_metadata`](#exposing-metadata-about-chats-and-new-messages).
+For message [encryption](#ratchet-message-encryption) and [sending](#incoming-message-validation), the EMS makes use of the [`send_message`](#incoming-message-validation) backend canister API.
 
-The EMS periodically takes a message from the sending stream that was added via the `enqueueSendMessage` API. If the stream is empty, the EMS retries with a timeout. If the stream is non-empty, the EMS takes it from the stream and performs the following steps:
+The EMS periodically takes a message from the sending stream that was added via the `enqueueSendMessage` API. If the stream is empty, the EMS retries with a timeout. If the stream is non-empty, the EMS takes the oldest message from the stream and performs the following steps:
 
-1. If there is no symmetric ratchet state for the chat, the EMS [initializes](#ratchet-initialization) the symmetric ratchet for the latest vetKey epoch id in the output of [`get_my_chats_and_time`](#exposing-metadata-about-chats-and-new-messages) and calls `get_vetkey_epoch_metadata` to obtain its metadata.
+1. If there is no symmetric ratchet state for the latest vetKey epoch of the chat, the EMS [initializes](#ratchet-initialization) it and calls `get_vetkey_epoch_metadata` to obtain its metadata, which the frontend stores in its state.
 
-2. The EMS encrypts the message using the symmetric ratchet state that corresponds to the latest known vetKey epoch ID (see [Symmetric Ratchet](#symmetric-ratchet)) at the current time. It may happen that the symmetric ratchet epoch of the symmetric ratchet state is smaller than needed for the encryption at the current time. In that case, the state is copied to a temporary state and the temporary state is evolved to encrypt the message. After encryption, the temporary state may be deleted. Note that the encryption does not evolve the symmetric ratchet state because the canister ultimately decides when a symmetric epoch ends. The indication that a symmetric ratchet epoch has ended and the previous epoch is not needed anymore is that the frontend fetches a message that was encrypted with the next symmetric ratchet epoch. The evolution of the state then happens in the process of [decryption](#fetching-and-decrypting-messages) of that message.
+2. The EMS encrypts the message using the symmetric ratchet state that corresponds to the latest known vetKey epoch ID (see [Symmetric Ratchet](#symmetric-ratchet)) for the chat at the current time. It may happen that the symmetric ratchet epoch of the symmetric ratchet state is smaller than needed for the encryption at the current time. In that case, the state is copied to a temporary state and the temporary state is evolved to encrypt the message. After encryption, the temporary state may be deleted. Note that neither encryption nor decryption evolves the symmetric ratchet state and instead the ratchet evolution is performed in a background task (see [Ratchet Evolution](#ratchet-evolution)).
 
-3. The EMS [sends](#incoming-message-validation) the message.
+3. The EMS [sends](#incoming-message-validation) the encrypted message via the `send_message` canister backend API (see [Incoming Message Validation](#incoming-message-validation)).
 
-4. If the canister returns the `WrongSymmetricKeyEpoch` variant of `MessageSendingError`, then the EMS was unlucky and the sent message arrived at the next symmetric key epoch. In this case the EMS goes to step 2.
+4. If the canister returns the `WrongSymmetricKeyEpoch` variant of `MessageSendingError`, then the EMS was unlucky and the sent message arrived at a wrong (normally the next) symmetric key epoch. In this case the EMS goes to step 2.
 
-5. If the canister returns the `WrongVetKeyEpoch` variant of `MessageSendingError`, then either the [manual vetKey epoch rotation](#vetkey-epoch-rotation) or a [group change](#group-changes) took place. In this case, the EMS 
+5. If the canister returns the `WrongVetKeyEpoch` variant of `MessageSendingError`, then either the [manual vetKey epoch rotation](#vetkey-epoch-rotation) or a [group change](#group-changes) took place. In this case, the EMS makes a query call to `get_latest_vetkey_epoch` and updates the latest vetKey epoch ID of the chat in the state, and then goes to step 1.
 
 To avoid infinite loops in case of too strict parameters, bad network connectivity, etc., the maximum number of retries should be capped.
 
-TODO: maybe we should expose `getLatestVetKeyEpochMetadata()` in the EMS to have a central place where this API is queried because in the chat UI we use it to find out the current chat participants. Alternatively, just expose a function that returns the participants.
+> [!NOTE]
+> A useful feature of chat applications is displaying when a user joined or left the chat directly in the chat history. The current spec only makes use of such information in the vetKey epoch metadata, which returns the full list of participants for each vetKey epoch, which is a bit redundant for the purpose. More succinct data can be exposed by proving an additional backend API that returns a vector of `GroupModification`s (see [Group Changes](#group-changes)).
 
 #### Fetching and Decrypting Messages
 
-For message [retrieval](#encrypted-message-retrieval) and [decryption](#ratchet-message-decryption), the EMS makes use of the following backend canister APIs: [`get_my_chats_and_time` and `get_vetkey_epoch_metadata`](#exposing-metadata-about-chats-and-new-messages).
+For message [retrieval](#encrypted-message-retrieval) and [decryption](#ratchet-message-decryption), the EMS makes use of the following backend canister APIs:
 
-Also, the `get_messages` backend canister API is used to retrieve the encrypted messages for the chat. Its behavior is closer described in [Encrypted Message Retrieval](#encrypted-message-retrieval).
+* [`get_my_chats_and_time`](#exposing-metadata-about-chats-and-new-messages) to retrieve the chat IDs and the number of messages to retrieve.
 
-The frontend stores the following in its state: the chat IDs, the first accessible message ID for the user, the last fetched message, and the total number of messages in the chat.
-Let us call this information frontend chat metadata.
+* [`get_messages`](#encrypted-message-retrieval) to retrieve the encrypted messages for the chats accessible to the user.
+
+* Further canister APIs required for [Ratchet Initialization](#ratchet-initialization).
+
+The frontend stores the following data related to this section in its state:
+
+* The chat IDs accessible to the user.
+
+* The first accessible message ID for the user for each chat
+
+* The last fetched message for the chat.
+
+* The total number of messages in the chat.
+
+Let's call this information frontend chat metadata.
 
 Periodically, the EMS queries the `get_my_chats_and_time` backend canister API.
 Its result is compared to the frontend chat metadata in the state.
 If there is a new chat in the result that is not yet in the state, the EMS adds it to the state along with the information that no messages were obtained for this chat yet.
-If one of the chat in the state does not appear in the result of `get_my_chats_and_time` anymore, than this chat is deleted from the state.
+If one of the chats in the state does not appear in the result of `get_my_chats_and_time` anymore, then this chat is deleted from the state.
 
 Also periodically, two separate routines run.
 
-1. Check if there are new messages to be fetched from the canister: if the largest received message ID for the chat plus one is smaller than the total number of messages in the chat. If it is, then `get_messages` is invoked with the first message ID to be fetched that is equal to the largest received message ID for the chat plus one. If an error occurs due to too large messages that don't fit into the response, the query to `get_messages` is retried with a limit of one. A successful result is stored in the received messages queue.
+1. Check if there are new messages to be fetched from the canister: if the largest received message ID for the chat plus one is smaller than the total number of messages in the chat. If it is, then `get_messages` is invoked with the first message ID to be fetched that is equal to the largest received message ID for the chat plus one, or if no messages were received so far for a chat, message ID 0 is used. If an error occurs due to too large messages that don't fit into the canister's response due to the query response limits on the ICP, the query to `get_messages` is retried with a limit of e.g. one. A successful result is stored in the received messages queue.
 
 2. Try to take a message from the received messages queue and decrypt it.
 
@@ -568,21 +621,33 @@ Also periodically, two separate routines run.
     
     b. The EMS [decrypts](#ratchet-message-decryption) the message using the symmetric ratchet state and the vetKey epoch ID stored in the message metadata. A successfully decrypted message is put into the decrypted message queue that is exposed to the chat UI component via the [`takeReceivedMessages` API](#encrypted-messaging-service) of the EMS. If the decryption returns an error, such an error is unrecoverable and instead of a decrypted message, a message of special form is put into the decrypted message queue that indicated that this message could not be decrypted. Note that user-side errors cannot be avoided, since the canister cannot check if the encryption is valid.
 
-TODO: in the above point it may happen that the calculation is incorrect because if some messages expire, the first accessible message ID moves. We should probably just use the last received message ID instead.
-
-TODO: change this to not evolve on decryption. We want to evolve this whenever messages disappear. The ratchet specifies how granular we can make messages disappear and provides forward security for symmetric epochs we already "forgot".
-
 #### vetKey Epoch Rotation
+
+TODO: how often
 
 #### Symmetric Ratchet
 
-A symmetric ratchet state consists of a symmetric ratchet epoch key and a symmetric ratchet epoch id that it corresponds to.
+A symmetric ratchet state consists of a symmetric ratchet epoch key and a symmetric ratchet epoch ID that it corresponds to.
+
+The backend canister APIs required for ratchet initialization are described in a [separate section](#providing-vetkeys-for-symmetric-ratchet-initialization).
+
+A symmetric ratchet state consists of:
+
+* Key material that is used to:
+
+    1. Derive the next ratchet state.
+
+    2. Derive chat participants' message encryption keys.
+
+* Symmetric ratchet epoch ID, which is a non-negative number.
 
 ##### Ratchet Initialization
 
+TODO: describe the args for fetching
+
 The ratchet state is initialized from a vetKey as follows:
 
-1. Fetch, decrypt, and verify the vetKey
+1. Obtain the vetKey for the vetKey epoch of the chat
 
     a. [Generate](https://dfinity.github.io/vetkeys/classes/_dfinity_vetkeys.TransportSecretKey.html#random) a transport key pair.
 
