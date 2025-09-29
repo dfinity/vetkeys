@@ -4,7 +4,7 @@ vetKey Encrypted Chat has two main components: the canister backend and user fro
 
 * Messaging protected with end-to-end encryption.
 
-* High security through symmetric ratchet and key rotation.
+* High security through symmetric ratchet and key rotation via [vetKeys](https://internetcomputer.org/docs/building-apps/network-features/vetkeys/introduction).
 
 * Disappearing messages guaranteed by the canister (ICP smart contract) logic.
 
@@ -18,6 +18,8 @@ vetKey Rotation:
 
 * More costly than symmetric key ratchet because requires interaction with the backend canister and a [vetKey derivation](https://internetcomputer.org/docs/building-apps/network-features/vetkeys/api).
 
+* Can be performed on group changes in a chat or periodically.
+
 For each vetKey epoch, we instantiate a Symmetric Key Ratchet State that can be evolved.
 
 Symmetric Key Ratchet:
@@ -30,32 +32,47 @@ Symmetric Key Ratchet:
 
 While vetKey rotation can be performed at arbitry time points, the symmetric ratchet is performed at time frame boundaries.
 The duration of the time frame defines the granularity of the time frame that the user must keep the key material around for in order to be able to decrypt messages.
-This differs from the Signal protocol, where we discard the old key as soon as we evolved it in most cases.
+This differs from e.g. the Signal protocol, where we discard the old key as soon as we evolved it in most cases.
 Keeping some keys around is important if we want to decrypt messages in arbitrary order.
 Consider for example a scenario where we only want to decrypt the newest messages that we want to display to the user and not the whole history, which might be much longer and contain media material that requires a lot of potentially unnecessary communication.
 This requires us to keep around the ratchet state, with which we are able to decrypt the oldest non-expired message.
 
 The duration of the symmetric key ratchet time frame defines the duration of the time frame that we would be able to decrypt messages for that goes beyond what's necessary.
-Consider e.g. a message expiry of duration `t` ns and the symmetric ratchet duration of `t` ns as well.
-In that case, if no vetKey rotations happen in between, the frontend would need to keep around states `i` and `i + 1` at all times, meaning that in the worst case two time windows (`2t` ns) worth of messages would be decryptable instead of one.
+Consider e.g. a state recovery limit `l` ns and the symmetric ratchet duration of `r` ns as well.
+In that case, if no vetKey rotations happen in between, at a time point `p` that is `l < p < 2r` the frontend would need to keep around both symmetric ratchet states and the ability to decrypt messages received by the canister from `0` ns and `p` ns instead of from `p - l` to `p`.
+If a vetKey rotation happens in-between, this redundant encryption time frame can only become shorter.
 
-If we set the message expiry to `t` ns and symmetric ratchet duration to `r * t`, then we can reduce the amount of time we unnecessarily keep the key material for by a factor of `r`.
-For example, if we set the expiry to one month and the symmetric ratchet duration to one hour, then we would need to keep the key material (and the ability to decrypt all message encrypted with it) for almost one additional hour.
-
-TODO: what if vetKey rotation happens in between?
+If we set the state recovery limit to `l` ns and symmetric ratchet duration to `r * l`, then we can reduce the amount of time we unnecessarily keep the key material for by a factor of `r`.
+For example, if we set the state recovery limit to one month and the symmetric ratchet duration to one hour, then we would need to keep the key material (and the ability to decrypt all message encrypted with it) for almost one additional hour in the worst case.
 
 The downside of this approach is that we need to keep symmetric ratchet states for more ratchet epochs around or compute them on the fly s.t. the messages can be decrypted in any order.
 However, with realistic time frames, keeping around hunderds of keys or just a key that we can generate the other keys from is not a showstopper.
 
 Realistic time frames for symmetric ratchet evolution: between a minute and a few hours/days. Being on a lower side (minutes) makes less sense, since updating the state's keys involves updating the encrypted cache, where every update costs cycles, which would make mass adoption of the chat costly.
 
-TODO: updates to the encrypted cache.
+Since the symmetric ratchet is instantiated from a vetKey, the ability to obtain the vetKey allows to decrypt all messages encrypted using any derived ratchet states.
+Therefore, to allow for a limited state recorve it is important to disallow the frontend to obtain the initial vetKey once a encrypted cache for that vetKey epoch was uploaded by the user.
+Instead, the frontend encrypts its symmetric ratchet states that are required for state recovery and stores them in the canister.
+Then, once a state recovery is required, the frontend fetches the required encrypted ratchet states and decrypts them.
 
-TODO: explain what this is about and that it works via uploading encrypted user cache and disallowing to obtain the vetKey that was used to initialize the state.
+Note that the end of life of a symmetric ratchet state triggers ratchet evolution, which evolves the state and forgets about the previous one, meaning that also the frontend's encrypted cache must be updated.
+This poses another tradeoff in terms of the symmetric ratchet duration, i.e., the shorter the time frame is, the more often the cached state must be updated.
+Therefore, symmetric ratchet state evolution duration in the order of minutes might be too short to be practical in chats with many users, and duration in the order of hours or days could be better in that case.
+
+Note also that only active users can update their encrypted cache in the canister.
+Therefore, forward security can only be guaranteed to active users or users who disable the state recovery.
+
+## Notation
+
+TODO
+
+* Disappearing messages
+
+* State recovery limit
 
 ## Components
 
-vetKey Encrypted Chat consists of a backend canister on the ICP and a user frontend. 
+vetKey Encrypted Chat consists of a backend canister on the ICP and a user frontend.
 
 The backend's responsibilities are:
 
@@ -224,8 +241,6 @@ More specifically, the canister checks that:
 * The caller has access to the chat at the passed `vetkey_epoch_id` or returns a `Custom` variant of `MessageSendingError` if the check fails.
 * `vetkey_epoch_id` attached to the message is the latest for the chat ID or returns the `WrongVetKeyEpoch` variant of `MessageSendingError` if the check fails.
 * `symmetric_key_epoch_id` attached to the message is equal to the [current symmetric key epoch ID](#calculating-current-symmetric-ratchet-epoch-id) corresponding the current consensus time. To check that, the canister calculates the current symmetric ratchet epoch ID for the chat and `vetkey_epoch_id`. If the check fails, the canister returns the `WrongSymmetricKeyEpoch` variant of `MessageSendingError` if the check fails.
-
-TODO: can we use timestamps instead of `symmetric_key_epoch_id`s? Would that improve anything? 
 
 > [!NOTE]
 > This API assumes that the frontend's clock is reasonably synchronized with the ICP to encrypt the messages with the key from the right symmetric ratchet state. This does not pose a significant limitation, since 1) it must already be the case for facilitating reliable communication with the ICP in general and 2) re-encrypting and re-sending in case of failures can be done automatically by the frontend.
@@ -424,9 +439,25 @@ See also [Disappearing Messages](#disappearing-messages).
 
 TODO: give more details about the Encrypted Maps APIs and how they are called.
 
-TODO: describe that as a potential optimization we could fetch all available cached ratchet states to reduce the number of calls.
+As a potential further optimization, it is possible to fetch the available cached ratchet states for all chats at once to reduce the number of calls.
+However, this is mostly helpful for the relatively rare cases of complete state recovery but not in the other cases such as if part of the state is already available in the local state (i.e., opening the chat in the browser after some time when the chat was closed).
 
-TODO: how frequently?
+In the best case, user's ratchet state cache should be synchronized with the frontend's state, i.e., whenever a ratchet state is evolved in the frontend, it should also be updated in the backend.
+However, this only works if the user is online and active.
+If the user is offline, the canister will delete the ratchet states that don't have any messages in canister storage that can be decrypted using those states, except for the very last state in order to be able to evolve it to a later when the user is online.
+
+If keeping an older ratchet state is not desirable by some users, this can be mitigated by setting up a periodic key rotation, where a frontend will not encrypt new messages with a ratchet state from an old vetKey epoch and will instead request a vetKey rotation before the next encryption.
+In that case, the users' encrypted caches associated with the older vetKey epoch will be garbage-collected automatically by the canister once they are not required for state recovery anymore.
+Note though that this happens by a timer job, so despite that the canister APIs will returns correct results for the state recovery, the actual cache deletion from a canister might happen at a later point, e.g., during an hour or a day, depending on the configuration.
+
+Also, if the symmetric ratchet evolution duration is too short or the number of users in a chat is very high, updating the cache may be costly because that would involve many canister calls (one per user per chat).
+To allow for mass adoption of a chat app, one could think of the following strategies to reduce costs:
+
+* Allow only larger time frames for the symmetric ratchet evolution, e.g., in the order of hours or days.
+
+* Instead of updating the caches separately, introduce a batch API for batch updates, which is perfored only once per time frame for all chats.
+
+* Let the privacy-focused users pay for the cost of the more frequent updates in the chats where they want to have the maximally fined-grained privacy gurantees.
 
 ### vetKey Epoch Rotation
 
@@ -547,7 +578,22 @@ The chat UI uses the EMS in a black-box way to:
 
 Encrypted Messaging Service (EMS) is a component that gives the developer a transparent way to interact with the encrypted chat by reading from a stream of received and decrypted messages and putting user messages to be encrypted and sent into a stream that the EMS will take care of encrypting and sending.
 
-TODO: add types `ChatId`, `ChatIdAsString`, `Message`
+Types:
+
+* `type ChatId = variant { Group : nat64; Direct : record { principal; principal }; }`
+
+* `type ChatIdAsString = string`
+
+* `interface Message {
+      nonce: bigint;
+      chatId: ChatId;
+      senderId: Principal;
+      content: string;
+      timestamp: Date;
+      vetkeyEpoch: bigint;
+      symmetricRatchetEpoch: bigint;
+    }
+    `
 
 The EMS exposes the following APIs:
 
@@ -581,7 +627,7 @@ The EMS periodically takes a message from the sending stream that was added via 
 
 To avoid infinite loops in case of too strict parameters, bad network connectivity, etc., the maximum number of retries should be capped.
 
-> [!NOTE]
+> [!TIP]
 > A useful feature of chat applications is displaying when a user joined or left the chat directly in the chat history. The current spec only makes use of such information in the vetKey epoch metadata, which returns the full list of participants for each vetKey epoch, which is a bit redundant for the purpose. More succinct data can be exposed by proving an additional backend API that returns a vector of `GroupModification`s (see [Group Changes](#group-changes)).
 
 #### Fetching and Decrypting Messages
@@ -642,8 +688,6 @@ A symmetric ratchet state consists of:
 * Symmetric ratchet epoch ID, which is a non-negative number.
 
 ##### Ratchet Initialization
-
-TODO: describe the args for fetching
 
 The ratchet state is initialized from a vetKey as follows:
 
@@ -774,7 +818,7 @@ Is something like mixed hash tree possible in a single canister scenario to redu
 
 ### IBE-Encrypted vetKey Resharing
 
-### Group Changes Allowing to See Messsage History
+### Allowing New Users to See Old Messsage History
 
 ## Appendix
 
