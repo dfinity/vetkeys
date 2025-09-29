@@ -1,4 +1,4 @@
-import IcVetkeys "../../../../../backend/mo/ic_vetkeys/src";
+import IcVetkeys "mo:ic-vetkeys";
 import Types "mo:ic-vetkeys/Types";
 import Principal "mo:base/Principal";
 import Text "mo:base/Text";

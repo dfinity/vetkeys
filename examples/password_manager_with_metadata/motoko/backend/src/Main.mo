@@ -9,7 +9,7 @@ import Time "mo:base/Time";
 import Nat64 "mo:base/Nat64";
 import Int "mo:base/Int";
 import Debug "mo:base/Debug";
-import VetKeys "../../../../../backend/mo/ic_vetkeys/src";
+import VetKeys "mo:ic-vetkeys";
 
 persistent actor class (keyName : Text) {
 
