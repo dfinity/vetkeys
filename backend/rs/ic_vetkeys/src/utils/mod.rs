@@ -634,7 +634,7 @@ impl DerivedKeyMaterial {
     /// The format of the returned message is, in order
     ///  * 8 byte header
     ///  * 12 byte nonce
-    ///  * Ciphertext of length equal to the message
+    ///  * Ciphertext of length equal to the message length
     ///  * 16 byte GCM authentication tag
     ///
     pub fn encrypt_message<R: rand::RngCore + rand::CryptoRng>(
