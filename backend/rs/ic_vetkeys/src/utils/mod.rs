@@ -537,7 +537,10 @@ impl VetKey {
      */
     pub fn as_derived_key_material(&self) -> DerivedKeyMaterial {
         let key = self.derive_symmetric_key("ic-vetkd-bls12-381-g2-derived-key-material", 32);
-        DerivedKeyMaterial { key }
+        DerivedKeyMaterial {
+            key,
+            raw_vetkey: self.vetkey.1.to_vec(),
+        }
     }
 
     /**
@@ -568,6 +571,7 @@ impl VetKey {
 #[derive(Clone, Zeroize, ZeroizeOnDrop)]
 pub struct DerivedKeyMaterial {
     key: Vec<u8>,
+    raw_vetkey: Vec<u8>,
 }
 
 #[derive(Copy, Clone, Eq, PartialEq, Debug)]
@@ -698,7 +702,23 @@ impl DerivedKeyMaterial {
         // extended to check for multiple different headers and process
         // the ciphertext accordingly.
         if ctext[0..Self::GCM_HEADER_SIZE] != Self::GCM_HEADER {
-            return Err(DecryptionError::UnknownHeader);
+            if associated_data.is_empty() {
+                // Try decrypting using the old headerless format which did not
+                // support associated data
+
+                let key = derive_symmetric_key(&self.raw_vetkey, domain_sep, Self::GCM_KEY_SIZE);
+
+                let nonce = aes_gcm::Nonce::from_slice(&ctext[0..Self::GCM_NONCE_SIZE]);
+                let gcm = Aes256Gcm::new(Key::<Aes256Gcm>::from_slice(&key));
+
+                let ptext = gcm
+                    .decrypt(nonce, &ctext[Self::GCM_NONCE_SIZE..])
+                    .map_err(|_| DecryptionError::InvalidCiphertext)?;
+
+                return Ok(ptext.as_slice().to_vec());
+            } else {
+                return Err(DecryptionError::UnknownHeader);
+            }
         }
 
         let key = self.derive_aes_gcm_key(domain_sep, Self::GCM_HEADER_VERSION);

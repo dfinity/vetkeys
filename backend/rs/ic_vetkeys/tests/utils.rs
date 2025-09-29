@@ -308,6 +308,17 @@ fn aes_gcm_encryption() {
     );
 
     // Test decryption of known ciphertext encrypted with the derived key
+
+    // This checks the behavior for handling old versions that did not use a header or support AAD
+    let fixed_ctext_old_format = hex!("476f440e30bb95fff1420ce41ba6a07e03c3fcc0a751cfb23e64a8dcb0fc2b1eb74e2d4768f5c4dccbf2526609156664046ad27a6e78bd93bb8b");
+
+    assert_eq!(
+        dkm.decrypt_message(&fixed_ctext_old_format, domain_sep, &[])
+            .unwrap(),
+        test_message,
+    );
+
+    // Test decryption of known ciphertext encrypted with the derived key
     let fixed_ctext = hex!("49432047434d76325dc1b0f5f8deec973adda66ce7cb9dc06118c738fae12027c5bae5b86e69ffd633ddfc0ea66c4df37b6e7e298d9f80170ec3d51c4238be9a63bd");
 
     assert_eq!(
