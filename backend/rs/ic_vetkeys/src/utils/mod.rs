@@ -588,7 +588,7 @@ pub enum DecryptionError {
     MessageTooShort,
     /// The GCM tag did not validate
     InvalidCiphertext,
-    /// The expected message header did not appear
+    /// The expected message header did not appear in the ciphertext
     ///
     /// Either the ciphertext was invalid, or possibly the decrypting side
     /// needs to be upgraded to support a new format
