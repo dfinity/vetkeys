@@ -336,7 +336,7 @@ test("AES-GCM encryption", async () => {
         "476f440e30bb95fff1420ce41ba6a07e03c3fcc0a751cfb23e64a8dcb0fc2b1eb74e2d4768f5c4dccbf2526609156664046ad27a6e78bd93bb8b",
     );
     assertEqual(
-        await keyMaterial.decryptMessage(msgOldFormat, domainSep, []),
+        await keyMaterial.decryptMessage(msgOldFormat, domainSep, ""),
         testMessageBytes,
     );
 
