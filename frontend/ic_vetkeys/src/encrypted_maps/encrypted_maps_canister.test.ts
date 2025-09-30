@@ -52,9 +52,9 @@ test("can get vetkey", async () => {
     expect(
         isEqualArrayThrowing(
             await secondVetkey.decryptMessage(
-                await vetkey.encryptMessage("message", "domain", []),
+                await vetkey.encryptMessage("message", "domain", ""),
                 "domain",
-                []
+                ""
             ),
             new TextEncoder().encode("message"),
         ),
