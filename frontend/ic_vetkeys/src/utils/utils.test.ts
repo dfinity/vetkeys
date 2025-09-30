@@ -267,8 +267,8 @@ test("hkdf using webcrypto", async () => {
 
     const key1 = vetkey.deriveSymmetricKey(domainSep, 32);
     assertEqual(
-        bytesToHex(key1),
         "3b7bd854033cdc119865ba3019dc1e35010fdaf90f8ff5c9cfe9d1d557dddb29",
+        bytesToHex(key1),
     );
 
     const wckey = (await vetkey.asDerivedKeyMaterial()).getCryptoKey();
@@ -298,7 +298,7 @@ test("hkdf using webcrypto", async () => {
     );
     assertEqual(
         bytesToHex(derivedBytes),
-        "2c8b45fe3d89f7c913b61090f0c45a2ddc36e734ea6497e7fd2dfe6a1c801f9a"
+        "3b7bd854033cdc119865ba3019dc1e35010fdaf90f8ff5c9cfe9d1d557dddb29",
     );
 });
 
@@ -328,6 +328,15 @@ test("AES-GCM encryption", async () => {
     const msg2 = await keyMaterial.encryptMessage(testMessageBytes, domainSep, associatedData);
     assertEqual(
         await keyMaterial.decryptMessage(msg2, domainSep, associatedData),
+        testMessageBytes,
+    );
+
+    // Test decryption of old format (headerless) ciphertext
+    const msgOldFormat = hexToBytes(
+        "476f440e30bb95fff1420ce41ba6a07e03c3fcc0a751cfb23e64a8dcb0fc2b1eb74e2d4768f5c4dccbf2526609156664046ad27a6e78bd93bb8b",
+    );
+    assertEqual(
+        await keyMaterial.decryptMessage(msgOldFormat, domainSep, []),
         testMessageBytes,
     );
 

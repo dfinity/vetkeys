@@ -639,7 +639,7 @@ export class EncryptedMaps {
             mapName,
         ]);
         if (cachedRawDerivedKeyMaterial) {
-            return DerivedKeyMaterial.fromCryptoKey(
+            return await DerivedKeyMaterial.fromCryptoKey(
                 cachedRawDerivedKeyMaterial,
             );
         }

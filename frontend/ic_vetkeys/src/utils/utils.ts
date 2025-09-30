@@ -502,7 +502,7 @@ export class VetKey {
      * Return a DerivedKeyMaterial type which is suitable for further key derivation
      */
     async asDerivedKeyMaterial(): Promise<DerivedKeyMaterial> {
-        return DerivedKeyMaterial.setup(this.deriveSymmetricKey("ic-vetkd-bls12-381-g2-derived-key-material", 32));
+        return DerivedKeyMaterial.setup(this.#bytes);
     }
 
     /**
@@ -558,38 +558,61 @@ const DERIVED_KEY_MATERIAL_HEADER_LEN = 8;
  */
 export class DerivedKeyMaterial {
     readonly #hkdf: CryptoKey;
+    readonly #raw: CryptoKey;
 
     /**
      * @internal constructor
      */
-    private constructor(cryptokey: CryptoKey) {
-        this.#hkdf = cryptokey;
+    private constructor(hkdf: CryptoKey, raw: CryptoKey) {
+        this.#hkdf = hkdf;
+        this.#raw = raw;
     }
 
-    static fromCryptoKey(cryptokey: CryptoKey): DerivedKeyMaterial {
-        return new DerivedKeyMaterial(cryptokey);
-    }
+    static async fromCryptoKey(raw: CryptoKey): DerivedKeyMaterial {
+        const derivationParams = {
+            name: "HKDF",
+            hash: "SHA-256",
+            info: new TextEncoder().encode("ic-vetkd-bls12-381-g2-derived-key-material"),
+            salt: new Uint8Array(),
+        };
 
-    /**
-     * @internal constructor
-     */
-    static async setup(bytes: Uint8Array) {
-        const exportable = false;
-        const hkdf = await globalThis.crypto.subtle.importKey(
+        /**
+         * For whatever reason it's not possible in WebCrypto to use HKDF to derive a
+         * new HKDF key. So instead we have to derive the key as an exported value
+         * (using `deriveBits`) and then import it.
+         */
+        const derived = await crypto.subtle.importKey(
             "raw",
-            bytes,
+            new Uint8Array(await crypto.subtle.deriveBits(derivationParams, raw, 256)),
+            { name: "HKDF" },
+            false,
+            ["deriveKey", "deriveBits"]
+        );
+
+        return new DerivedKeyMaterial(derived, raw);
+    }
+
+    /**
+     * @internal constructor
+     */
+    static async setup(vetkey: Uint8Array) {
+        const exportable = false;
+        const raw = await globalThis.crypto.subtle.importKey(
+            "raw",
+            vetkey,
             "HKDF",
             exportable,
-            ["deriveKey"],
+            ["deriveKey", "deriveBits"],
         );
-        return new DerivedKeyMaterial(hkdf);
+
+        return DerivedKeyMaterial.fromCryptoKey(raw);
     }
 
     /**
      * Return the CryptoKey
      */
     getCryptoKey(): CryptoKey {
-        return this.#hkdf;
+        return this.#raw;
     }
 
     /**
@@ -684,9 +707,48 @@ export class DerivedKeyMaterial {
         // extended to check for multiple different headers and process
         // the ciphertext accordingly.
         if(!isEqual(header, DERIVED_KEY_MATERIAL_HEADER_BYTES)) {
-            throw new Error(
-                "Unknown header for AES-GCM encrypted ciphertext",
-            );
+            if(associatedData.length == 0) {
+                // Possibly the old "headerless" format which did not support associated data
+
+                const nonce = message.slice(0, DERIVED_KEY_MATERIAL_NONCE_LENGTH); // first 12 bytes are the nonce
+                const ciphertext = message.slice(DERIVED_KEY_MATERIAL_NONCE_LENGTH); // remainder GCM ciphertext
+
+                const algorithm = {
+                    name: "HKDF",
+                    hash: "SHA-256",
+                    length: 32 * 8,
+                    info: asBytes(domainSep),
+                    salt: new Uint8Array(),
+                };
+
+                const gcmParams = {
+                    name: "AES-GCM",
+                    length: 32 * 8,
+                };
+
+                const gcmKey = await globalThis.crypto.subtle.deriveKey(
+                    algorithm,
+                    this.#raw,
+                    gcmParams,
+                    false,
+                    ["decrypt"],
+                );
+
+                try {
+                    const ptext = await globalThis.crypto.subtle.decrypt(
+                        { name: "AES-GCM", iv: nonce },
+                        gcmKey,
+                        ciphertext,
+                    );
+                    return new Uint8Array(ptext);
+                } catch {
+                    throw new Error("Decryption failed");
+                }
+            } else {
+                throw new Error(
+                    "Unknown header for AES-GCM encrypted ciphertext",
+                );
+            }
         }
 
         const aad = withPrefix(DERIVED_KEY_MATERIAL_HEADER, associatedData);
