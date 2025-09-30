@@ -568,7 +568,7 @@ export class DerivedKeyMaterial {
         this.#raw = raw;
     }
 
-    static async fromCryptoKey(raw: CryptoKey): DerivedKeyMaterial {
+    static async fromCryptoKey(raw: CryptoKey): Promise<DerivedKeyMaterial> {
         const derivationParams = {
             name: "HKDF",
             hash: "SHA-256",
