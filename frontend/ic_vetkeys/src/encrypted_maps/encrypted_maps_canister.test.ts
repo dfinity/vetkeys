@@ -54,7 +54,7 @@ test("can get vetkey", async () => {
             await secondVetkey.decryptMessage(
                 await vetkey.encryptMessage("message", "domain", ""),
                 "domain",
-                ""
+                "",
             ),
             new TextEncoder().encode("message"),
         ),

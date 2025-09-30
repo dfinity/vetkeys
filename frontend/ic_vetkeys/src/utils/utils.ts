@@ -541,9 +541,10 @@ const DERIVED_KEY_MATERIAL_NONCE_LENGTH = 12;
 const DERIVED_KEY_MATERIAL_VERSION = 2;
 
 const DERIVED_KEY_MATERIAL_HEADER = "IC GCMv2";
-const DERIVED_KEY_MATERIAL_HEADER_BYTES = new TextEncoder().encode(DERIVED_KEY_MATERIAL_HEADER);
+const DERIVED_KEY_MATERIAL_HEADER_BYTES = new TextEncoder().encode(
+    DERIVED_KEY_MATERIAL_HEADER,
+);
 const DERIVED_KEY_MATERIAL_HEADER_LEN = 8;
-
 
 /*
  * Derived Key Material
@@ -572,7 +573,9 @@ export class DerivedKeyMaterial {
         const derivationParams = {
             name: "HKDF",
             hash: "SHA-256",
-            info: new TextEncoder().encode("ic-vetkd-bls12-381-g2-derived-key-material"),
+            info: new TextEncoder().encode(
+                "ic-vetkd-bls12-381-g2-derived-key-material",
+            ),
             salt: new Uint8Array(),
         };
 
@@ -583,10 +586,12 @@ export class DerivedKeyMaterial {
          */
         const derived = await crypto.subtle.importKey(
             "raw",
-            new Uint8Array(await crypto.subtle.deriveBits(derivationParams, raw, 256)),
+            new Uint8Array(
+                await crypto.subtle.deriveBits(derivationParams, raw, 256),
+            ),
             { name: "HKDF" },
             false,
-            ["deriveKey", "deriveBits"]
+            ["deriveKey", "deriveBits"],
         );
 
         return new DerivedKeyMaterial(derived, raw);
@@ -630,7 +635,10 @@ export class DerivedKeyMaterial {
             name: "HKDF",
             hash: "SHA-256",
             length: 32 * 8,
-            info: withPrefix("ic-vetkd-bls12-381-g2-aes-gcm-v" + version.toString() + "-", domainSep),
+            info: withPrefix(
+                "ic-vetkd-bls12-381-g2-aes-gcm-v" + version.toString() + "-",
+                domainSep,
+            ),
             salt: new Uint8Array(),
         };
 
@@ -660,7 +668,10 @@ export class DerivedKeyMaterial {
         domainSep: Uint8Array | string,
         associatedData: Uint8Array | string,
     ): Promise<Uint8Array> {
-        const gcmKey = await this.deriveAesGcmCryptoKey(domainSep, DERIVED_KEY_MATERIAL_VERSION);
+        const gcmKey = await this.deriveAesGcmCryptoKey(
+            domainSep,
+            DERIVED_KEY_MATERIAL_VERSION,
+        );
 
         // The nonce must never be reused with a given key
         const nonce = globalThis.crypto.getRandomValues(
@@ -678,7 +689,11 @@ export class DerivedKeyMaterial {
         );
 
         // Concatenate the nonce to the beginning of the ciphertext
-        return new Uint8Array([...DERIVED_KEY_MATERIAL_HEADER_BYTES, ...nonce, ...ciphertext]);
+        return new Uint8Array([
+            ...DERIVED_KEY_MATERIAL_HEADER_BYTES,
+            ...nonce,
+            ...ciphertext,
+        ]);
     }
 
     /**
@@ -693,8 +708,11 @@ export class DerivedKeyMaterial {
     ): Promise<Uint8Array> {
         const GCM_TAG_LENGTH = 16;
 
-        const minLen = DERIVED_KEY_MATERIAL_HEADER_LEN + DERIVED_KEY_MATERIAL_NONCE_LENGTH + GCM_TAG_LENGTH
-        if(message.length < minLen) {
+        const minLen =
+            DERIVED_KEY_MATERIAL_HEADER_LEN +
+            DERIVED_KEY_MATERIAL_NONCE_LENGTH +
+            GCM_TAG_LENGTH;
+        if (message.length < minLen) {
             throw new Error(
                 "Invalid ciphertext, too short to possibly be valid",
             );
@@ -706,12 +724,17 @@ export class DerivedKeyMaterial {
         // must retain backward compatability, then this would need to be
         // extended to check for multiple different headers and process
         // the ciphertext accordingly.
-        if(!isEqual(header, DERIVED_KEY_MATERIAL_HEADER_BYTES)) {
-            if(associatedData.length == 0) {
+        if (!isEqual(header, DERIVED_KEY_MATERIAL_HEADER_BYTES)) {
+            if (associatedData.length == 0) {
                 // Possibly the old "headerless" format which did not support associated data
 
-                const nonce = message.slice(0, DERIVED_KEY_MATERIAL_NONCE_LENGTH); // first 12 bytes are the nonce
-                const ciphertext = message.slice(DERIVED_KEY_MATERIAL_NONCE_LENGTH); // remainder GCM ciphertext
+                const nonce = message.slice(
+                    0,
+                    DERIVED_KEY_MATERIAL_NONCE_LENGTH,
+                ); // first 12 bytes are the nonce
+                const ciphertext = message.slice(
+                    DERIVED_KEY_MATERIAL_NONCE_LENGTH,
+                ); // remainder GCM ciphertext
 
                 const algorithm = {
                     name: "HKDF",
@@ -753,9 +776,17 @@ export class DerivedKeyMaterial {
 
         const aad = withPrefix(DERIVED_KEY_MATERIAL_HEADER, associatedData);
 
-        const nonce = message.slice(DERIVED_KEY_MATERIAL_HEADER_LEN, DERIVED_KEY_MATERIAL_HEADER_LEN + DERIVED_KEY_MATERIAL_NONCE_LENGTH); // next 12 bytes are the nonce
-        const ciphertext = message.slice(DERIVED_KEY_MATERIAL_HEADER_LEN + DERIVED_KEY_MATERIAL_NONCE_LENGTH); // remainder GCM ciphertext
-        const gcmKey = await this.deriveAesGcmCryptoKey(domainSep, DERIVED_KEY_MATERIAL_VERSION);
+        const nonce = message.slice(
+            DERIVED_KEY_MATERIAL_HEADER_LEN,
+            DERIVED_KEY_MATERIAL_HEADER_LEN + DERIVED_KEY_MATERIAL_NONCE_LENGTH,
+        ); // next 12 bytes are the nonce
+        const ciphertext = message.slice(
+            DERIVED_KEY_MATERIAL_HEADER_LEN + DERIVED_KEY_MATERIAL_NONCE_LENGTH,
+        ); // remainder GCM ciphertext
+        const gcmKey = await this.deriveAesGcmCryptoKey(
+            domainSep,
+            DERIVED_KEY_MATERIAL_VERSION,
+        );
 
         try {
             const ptext = await globalThis.crypto.subtle.decrypt(

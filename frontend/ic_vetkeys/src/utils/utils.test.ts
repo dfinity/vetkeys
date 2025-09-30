@@ -318,14 +318,22 @@ test("AES-GCM encryption", async () => {
 
     // Test string encryption path, then decryption
 
-    const msg1 = await keyMaterial.encryptMessage(testMessage, domainSep, associatedData);
+    const msg1 = await keyMaterial.encryptMessage(
+        testMessage,
+        domainSep,
+        associatedData,
+    );
     assertEqual(
         await keyMaterial.decryptMessage(msg1, domainSep, associatedData),
         testMessageBytes,
     );
 
     // Test Uint8Array encryption path, then decryption
-    const msg2 = await keyMaterial.encryptMessage(testMessageBytes, domainSep, associatedData);
+    const msg2 = await keyMaterial.encryptMessage(
+        testMessageBytes,
+        domainSep,
+        associatedData,
+    );
     assertEqual(
         await keyMaterial.decryptMessage(msg2, domainSep, associatedData),
         testMessageBytes,
@@ -342,7 +350,7 @@ test("AES-GCM encryption", async () => {
 
     // Test decryption of known ciphertext encrypted with the derived key
     const msg3 = hexToBytes(
-        "49432047434d76325dc1b0f5f8deec973adda66ce7cb9dc06118c738fae12027c5bae5b86e69ffd633ddfc0ea66c4df37b6e7e298d9f80170ec3d51c4238be9a63bd"
+        "49432047434d76325dc1b0f5f8deec973adda66ce7cb9dc06118c738fae12027c5bae5b86e69ffd633ddfc0ea66c4df37b6e7e298d9f80170ec3d51c4238be9a63bd",
     );
     assertEqual(
         await keyMaterial.decryptMessage(msg3, domainSep, associatedData),
@@ -365,7 +373,11 @@ test("AES-GCM encryption", async () => {
                 : "Decryption failed";
 
         await expect(async () => {
-            return await keyMaterial.decryptMessage(modMsg, domainSep, associatedData);
+            return await keyMaterial.decryptMessage(
+                modMsg,
+                domainSep,
+                associatedData,
+            );
         }).rejects.toThrow(expectedError);
     }
 
@@ -379,7 +391,11 @@ test("AES-GCM encryption", async () => {
                 : "Decryption failed";
 
         await expect(async () => {
-            return await keyMaterial.decryptMessage(modMsg, domainSep, associatedData);
+            return await keyMaterial.decryptMessage(
+                modMsg,
+                domainSep,
+                associatedData,
+            );
         }).rejects.toThrow(expectedError);
     }
 
@@ -391,7 +407,11 @@ test("AES-GCM encryption", async () => {
         const modMsg = new Uint8Array([...msg3, ...extraBytes]);
 
         await expect(async () => {
-            return await keyMaterial.decryptMessage(modMsg, domainSep, associatedData);
+            return await keyMaterial.decryptMessage(
+                modMsg,
+                domainSep,
+                associatedData,
+            );
         }).rejects.toThrow("Decryption failed");
     }
 });
