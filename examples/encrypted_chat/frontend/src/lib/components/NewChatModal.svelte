@@ -11,12 +11,12 @@
 	// Direct chat form
 	let directPrincipal = $state('');
 	let directRotationMinutes = $state(60);
-	let directExpirationMinutes = $state(0);
+	let directExpirationMinutes = $state(1440);
 
 	// Group chat form
 	let groupPrincipalsText = $state('');
 	let groupRotationMinutes = $state(60);
-	let groupExpirationMinutes = $state(0);
+	let groupExpirationMinutes = $state(1440);
 
 	function close() {
 		show = false;

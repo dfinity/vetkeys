@@ -5,6 +5,7 @@ import type { Principal } from '@dfinity/principal';
 import type { _SERVICE } from '../../declarations/encrypted_chat/encrypted_chat.did';
 import { createActor } from '../../declarations/encrypted_chat';
 import fetch from 'isomorphic-fetch';
+import { DFX_NETWORK, CANISTER_ID_ENCRYPTED_CHAT } from '$env/static/public';
 
 if (import.meta.env.SSR || typeof window === 'undefined') {
 	const {
@@ -69,11 +70,11 @@ void initAuth();
 
 export async function login() {
 	if (auth.state.label === 'anonymous') {
-		const client = $state.snapshot(auth.state.client) as AuthClient;
+		const client = auth.state.client;
 		await client.login({
 			maxTimeToLive: BigInt(8 * 3600) * BigInt(1_000_000_000), // 8 hours
 			identityProvider:
-				globalThis.process.env.DFX_NETWORK === 'ic'
+				DFX_NETWORK === 'ic'
 					? 'https://identity.ic0.app/#authorize'
 					: `http://rdmx6-jaaaa-aaaaa-aaadq-cai.localhost:4943/#authorize`,
 			onSuccess: () => {
@@ -109,18 +110,18 @@ export function getMyPrincipal(): Principal {
 
 export function getActor(): ActorSubclass<_SERVICE> {
 	if (auth.state.label === 'initialized') {
-		const host = process.env.DFX_NETWORK === 'ic' ? 'https://icp0.app' : 'http://localhost:4943';
-		const shouldFetchRootKey = process.env.DFX_NETWORK !== 'ic';
+		const host = DFX_NETWORK === 'ic' ? 'https://icp0.app' : 'http://localhost:4943';
+		const shouldFetchRootKey = DFX_NETWORK !== 'ic';
 		const agent = HttpAgent.createSync({
 			identity: auth.state.client.getIdentity(),
 			fetch: fetch,
 			host,
 			shouldFetchRootKey
 		});
-		if (!process.env.CANISTER_ID_ENCRYPTED_CHAT) {
+		if (!CANISTER_ID_ENCRYPTED_CHAT) {
 			throw new Error('CANISTER_ID_ENCRYPTED_CHAT is not set');
-		}
-		return createActor(process.env.CANISTER_ID_ENCRYPTED_CHAT, { agent });
+		} 
+		return createActor(CANISTER_ID_ENCRYPTED_CHAT, { agent });
 	} else {
 		throw new Error('Not authenticated');
 	}

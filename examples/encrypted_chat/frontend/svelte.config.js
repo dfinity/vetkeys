@@ -15,6 +15,9 @@ const config = {
 		},
 		output: {
 			bundleStrategy: 'single'
+		},
+		env: {
+			publicPrefix: ''
 		}
 	},
 	compilerOptions: {

@@ -163,6 +163,14 @@ export class SymmetricRatchetState {
 		);
 		return result;
 	}
+
+	getCurrentEpoch(): bigint {
+		return this.#symmetricRatchetEpoch;
+	}
+
+	getCreationTime(): Date {
+		return this.#creationTime;
+	}
 }
 
 /// Contains a raw key and the symmetric ratchet epoch.

@@ -6,9 +6,9 @@ import { storagePrefixes } from '../types';
 export class ChatStorageService {
 	async saveMessage(message: Message): Promise<void> {
 		console.log(
-			`ChatStorageService: Saving from chat ${message.chatId} message ${message.chatMessageId} to indexedDB`
+			`ChatStorageService: Saving from chat ${message.chatId} message ${message.messageId} to indexedDB`
 		);
-		await set([storagePrefixes.MESSAGE_PREFIX, message.chatId, message.chatMessageId], message);
+		await set([storagePrefixes.MESSAGE_PREFIX, message.chatId, message.messageId], message);
 	}
 
 	async getMessages(chatId: string): Promise<Message[]> {

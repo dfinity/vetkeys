@@ -307,7 +307,7 @@ export class EncryptedMessagingService {
 				const decrypted = await this.#keyManager.decryptAtTimeAndEvolveIfNeeded(
 					chatIdStr,
 					encryptedMessage.metadata.sender,
-					encryptedMessage.metadata.sender_message_id,
+					encryptedMessage.metadata.nonce,
 					encryptedMessage.metadata.vetkey_epoch,
 					new Uint8Array(encryptedMessage.content),
 					new Date(Number(encryptedMessage.metadata.timestamp / 1_000_000n))
@@ -352,12 +352,11 @@ export class EncryptedMessagingService {
 		const json = JSON.parse(new TextDecoder().decode(decrypted)) as MessageContent;
 
 		return {
-			chatMessageId: metadata.chat_message_id.toString(),
+			messageId: metadata.chat_message_id.toString(),
 			chatId: chatIdStr,
 			senderId: metadata.sender.toText(),
 			content: json.textContent,
 			timestamp: new Date(Number(metadata.timestamp / 1_000_000n)),
-			type: 'text',
 			fileData: json.fileData,
 			vetkeyEpoch: Number(metadata.vetkey_epoch),
 			symmetricRatchetEpoch: Number(metadata.symmetric_key_epoch)

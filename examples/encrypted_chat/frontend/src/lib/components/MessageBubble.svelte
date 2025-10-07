@@ -143,10 +143,10 @@
 		<div
 			class="message-bubble {getMessageBubbleClasses()} inline-block max-w-full rounded-2xl px-3 py-2 break-words"
 		>
-			{#if message.type === 'text'}
+			{#if message.fileData === undefined}
 				<!-- eslint-disable-next-line svelte/no-at-html-tags -->
 				<p class="text-sm whitespace-pre-wrap">{@html parseEmojis(message.content)}</p>
-			{:else if message.type === 'file' && message.fileData}
+			{:else if message.fileData !== undefined}
 				<div class="file-message">
 					{#if isImageFile(message.fileData.type)}
 						<div class="image-preview mb-2">
@@ -196,9 +196,7 @@
 					: 'text-left'}"
 			>
 				<span>{formatTime(message.timestamp)}</span>
-				{#if message.isEncrypted}
-					<span class="ml-1">🔒</span>
-				{/if}
+				<span class="ml-1">🔒</span>
 				<span class="ml-1 opacity-70"
 					>vetKeyEpoch
 					{message.vetkeyEpoch} SymmRatchetEpoch {message.symmetricRatchetEpoch}</span

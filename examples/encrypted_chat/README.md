@@ -1,0 +1,1 @@
+https://icp.ninja/editor?g=https://github.com/dfinity/vetkeys/tree/alex/encrypted-chat/examples/encrypted_chat/rust

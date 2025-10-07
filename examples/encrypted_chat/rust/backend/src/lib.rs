@@ -430,7 +430,7 @@ fn send_direct_message(user_message: UserMessage, receiver: Principal) -> Result
             vetkey_epoch: user_message.vetkey_epoch,
             symmetric_key_epoch: user_message.symmetric_key_epoch,
             chat_message_id,
-            sender_message_id: user_message.message_id,
+            nonce: user_message.message_id,
         },
     };
 
@@ -492,7 +492,7 @@ fn send_group_message(
             vetkey_epoch: user_message.vetkey_epoch,
             symmetric_key_epoch: user_message.symmetric_key_epoch,
             chat_message_id,
-            sender_message_id: user_message.message_id,
+            nonce: user_message.message_id,
         },
     };
 
@@ -554,7 +554,7 @@ fn get_my_chat_ids() -> Vec<(ChatId, ChatMessageId)> {
 /// # Notes
 /// * Does not fail if the chat does not exist or the user has no access -- returns empty vector instead.
 #[ic_cdk::query]
-fn get_some_messages_for_chat_starting_from(
+fn get_messages(
     chat_id: ChatId,
     message_id: ChatMessageId,
     limit: Option<u32>,
@@ -1097,15 +1097,15 @@ fn ensure_chat_and_vetkey_epoch_exist(
 
 fn ensure_message_id_is_unique(
     chat_id: ChatId,
-    sender_message_id: SenderMessageId,
+    nonce: SenderMessageId,
 ) -> Result<(), String> {
     let caller = ic_cdk::api::msg_caller();
     let maybe_existing_id = SET_CHAT_AND_SENDER_AND_USER_MESSAGE_ID
-        .with_borrow(|message_ids| message_ids.get(&(chat_id, Sender(caller), sender_message_id)));
+        .with_borrow(|message_ids| message_ids.get(&(chat_id, Sender(caller), nonce)));
 
     match maybe_existing_id {
         Some(_) => Err(format!(
-            "Message {sender_message_id:?} already exists for sender {caller} chat {chat_id:?}"
+            "Message {nonce:?} already exists for sender {caller} chat {chat_id:?}"
         )),
         None => Ok(()),
     }

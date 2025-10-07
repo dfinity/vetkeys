@@ -7,6 +7,11 @@
 	import { chatIdToString, chatIdFromString } from '$lib/utils';
 
 	let showNewChat = $state(false);
+
+	function handleSelect(e: CustomEvent<string>) {
+		const chatId = e.detail;
+		selectedChatId.state = chatIdFromString(chatId);
+	}
 </script>
 
 <div class="chat-list glass-effect flex h-full flex-col border-r border-white/20 backdrop-blur-xl">
@@ -33,10 +38,11 @@
 		{#each chats.state as chat (chat.idStr)}
 			<ChatListItem
 				{chat}
-				isSelected={selectedChatId.state
+				isSelected={
+				selectedChatId.state
 					? chatIdToString(selectedChatId.state) === chat.idStr
 					: false}
-				on:select={(e: CustomEvent<string>) => (selectedChatId.state = chatIdFromString(e.detail))}
+				on:select={handleSelect}
 			/>
 		{:else}
 			<div class="p-8 text-center text-surface-600-500">

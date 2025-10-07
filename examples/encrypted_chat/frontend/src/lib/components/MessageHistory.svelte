@@ -5,6 +5,7 @@
 	import { SvelteDate } from 'svelte/reactivity';
 	import { auth, getMyPrincipal } from '$lib/stores/auth.svelte';
 	import { chatIdToString } from '$lib/utils';
+	import type { ChatId } from '../../declarations/encrypted_chat/encrypted_chat.did';
 
 	let messagesContainer: HTMLDivElement | undefined = $state(undefined);
 	let autoScroll = $state(true);
@@ -17,9 +18,7 @@
 			: null
 	);
 
-	const selectedChatMessages = $derived(
-		selectedChatId.state ? (messages.state[chatIdToString(selectedChatId.state)] ?? []) : []
-	);
+	const selectedChatMessages = $derived(setSelectedChatMessages());
 
 	// Scroll to bottom when new messages arrive (after DOM updates)
 	$effect(() => {
@@ -30,6 +29,19 @@
 			});
 		}
 	});
+
+	$effect(() => {
+		console.log(
+			'selectedChatMessages',
+			selectedChatMessages.map((m) => m.messageId)
+		);
+	});
+
+	function setSelectedChatMessages(): Message[] {
+		if (!selectedChatId.state) return [];
+		const selectedChatIdStr = chatIdToString(selectedChatId.state);
+		return messages.state[selectedChatIdStr] ?? [];
+	}
 
 	// Check if user has scrolled up (disable auto-scroll)
 	function handleScroll() {
@@ -178,7 +190,7 @@
 			{:else}
 				<!-- Messages -->
 				<div class="messages-list py-4">
-					{#each selectedChatMessages as message, index (message.chatMessageId)}
+					{#each selectedChatMessages as message, index (message.messageId)}
 						<!-- Date separator -->
 						{#if shouldShowDateSeparator(message, index)}
 							<div class="date-separator flex items-center justify-center py-4">

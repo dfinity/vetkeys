@@ -81,7 +81,7 @@ export const chatUIActions = {
 				if (chatMessages.length !== 0) {
 					encryptedMessagingService.skipMessagesAvailableLocally(
 						chatIdFromString(chat.idStr),
-						BigInt(chatMessages[chatMessages.length - 1].chatMessageId) + 1n
+						BigInt(chatMessages[chatMessages.length - 1].messageId) + 1n
 					);
 				}
 				messages.state[chat.idStr] = [...chatMessages];
@@ -219,10 +219,14 @@ export const chatUIActions = {
 
 			for (const m of messagesArray) await chatStorageService.saveMessage(m);
 
-			messages.state = {
+			const chatMessages = [...messages.state[chatIdStr], ...messagesArray];
+
+			const newMessagesState = {
 				...messages.state,
-				[chatIdStr]: [...messages.state[chatIdStr], ...messagesArray]
+				[chatIdStr]: chatMessages
 			};
+
+			messages.state = newMessagesState;
 
 			chats.state = chats.state.map((c) =>
 				c.idStr === chatIdStr

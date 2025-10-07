@@ -9,12 +9,11 @@ export interface User {
 }
 
 export interface Message {
-	chatMessageId: string;
+	messageId: string;
 	chatId: string;
 	senderId: string;
 	content: string;
 	timestamp: Date;
-	type: 'text' | 'file' | 'image';
 	fileData?: {
 		name: string;
 		size: number;

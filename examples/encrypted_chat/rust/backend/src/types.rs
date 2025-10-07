@@ -59,7 +59,7 @@ pub struct EncryptedMessageMetadata {
     pub vetkey_epoch: VetKeyEpochId,
     pub symmetric_key_epoch: SymmetricKeyEpochId,
     pub chat_message_id: ChatMessageId,
-    pub sender_message_id: SenderMessageId,
+    pub nonce: SenderMessageId,
 }
 
 impl Storable for EncryptedMessageMetadata {
@@ -70,7 +70,7 @@ impl Storable for EncryptedMessageMetadata {
         bytes.extend_from_slice(&self.vetkey_epoch.0.to_le_bytes());
         bytes.extend_from_slice(&self.symmetric_key_epoch.0.to_le_bytes());
         bytes.extend_from_slice(&self.chat_message_id.0.to_le_bytes());
-        bytes.extend_from_slice(&self.sender_message_id.0.to_le_bytes());
+        bytes.extend_from_slice(&self.nonce.0.to_le_bytes());
         Cow::Owned(bytes)
     }
 
@@ -95,13 +95,11 @@ impl Storable for EncryptedMessageMetadata {
             symmetric_key_epoch_bytes.try_into().unwrap(),
         ));
 
-        let (chat_message_id_bytes, sender_message_id_bytes) = rest.split_at(8);
-        let chat_message_id = ChatMessageId(u64::from_le_bytes(
-            chat_message_id_bytes.try_into().unwrap(),
-        ));
+        let (chat_message_id_bytes, nonce_bytes) = rest.split_at(8);
+        let chat_message_id = ChatMessageId(u64::from_le_bytes(chat_message_id_bytes.try_into().unwrap()));
 
-        let sender_message_id = SenderMessageId(u64::from_le_bytes(
-            sender_message_id_bytes.try_into().unwrap(),
+        let nonce = SenderMessageId(u64::from_le_bytes(
+            nonce_bytes.try_into().unwrap(),
         ));
 
         Self {
@@ -110,7 +108,7 @@ impl Storable for EncryptedMessageMetadata {
             vetkey_epoch,
             symmetric_key_epoch,
             chat_message_id,
-            sender_message_id,
+            nonce,
         }
     }
 

@@ -25,10 +25,13 @@ export class RatchetInitializationService {
 		const rotationDuration = new Date(
 			Number(metadata.symmetric_key_rotation_duration / 1_000_000n)
 		);
+		console.log(
+			`RatchetInitializationService.initializeRatchetStateAndReshareAndCacheIfNeeded: Initializing ratchet state for chat ${chatIdToString(chatId)} and vetKey epoch ${vetKeyEpoch.toString()} with creation time ${creationTime.toUTCString()} and rotation duration ${rotationDuration.toUTCString()}`
+		);
 
 		try {
 			const keyState = await this.cryptoKeyStateFromLocalStorage(chatId, vetKeyEpoch);
-			return new SymmetricRatchetState(keyState.key, vetKeyEpoch, creationTime, rotationDuration);
+			return new SymmetricRatchetState(keyState.key, 0n, creationTime, rotationDuration);
 		} catch (error) {
 			console.info(
 				`User doesn't have key in persistent storage for chat ${chatIdToString(chatId)} and vetKey epoch ${vetKeyEpoch.toString()}: `,
@@ -38,7 +41,12 @@ export class RatchetInitializationService {
 
 		try {
 			const keyState = await this.cryptoKeyStateFromRemoteCache(chatId, vetKeyEpoch);
-			return new SymmetricRatchetState(keyState.key, vetKeyEpoch, creationTime, rotationDuration);
+			return new SymmetricRatchetState(
+				keyState.key,
+				keyState.symmetricKeyEpoch,
+				creationTime,
+				rotationDuration
+			);
 		} catch (error) {
 			console.info(
 				`User doesn't have key in remote cache for chat ${chatIdToString(chatId)} and vetKey epoch ${vetKeyEpoch.toString()}: `,
@@ -48,14 +56,24 @@ export class RatchetInitializationService {
 
 		try {
 			const keyState = await this.cryptoKeyStateFromResharedVetKey(chatId, vetKeyEpoch);
-			return new SymmetricRatchetState(keyState.key, vetKeyEpoch, creationTime, rotationDuration);
+			return new SymmetricRatchetState(
+				keyState.key,
+				keyState.symmetricKeyEpoch,
+				creationTime,
+				rotationDuration
+			);
 		} catch (error) {
 			console.info('Failed to fetch reshared IBE encrypted vetkey: ', error);
 		}
 
 		try {
 			const keyState = await this.fetchAndReshareAndCacheVetKey(chatId, vetKeyEpoch);
-			return new SymmetricRatchetState(keyState.key, vetKeyEpoch, creationTime, rotationDuration);
+			return new SymmetricRatchetState(
+				keyState.key,
+				keyState.symmetricKeyEpoch,
+				creationTime,
+				rotationDuration
+			);
 		} catch (error) {
 			console.info('Failed to fetch vetkey: ', error);
 		}

@@ -17,7 +17,7 @@ export class KeyManager {
 			);
 		}
 		console.log(
-			`KeyManager.inductState: Inducting state for chatId ${chatId} and vetKeyEpoch ${vetKeyEpoch}`
+			`KeyManager.inductState: Inducting state for chatId ${chatId} and vetKeyEpoch ${vetKeyEpoch} with creation time ${state.getCreationTime().toUTCString()} and ratchet epoch ${state.getCurrentEpoch().toString()}`
 		);
 		this.#symmetricRatchetStates.set(chatId, new Map([[vetKeyEpoch, state]]));
 	}
@@ -80,9 +80,9 @@ export class KeyManager {
 		}
 		let last = null;
 
-		for (const [vetKeyEpoch, state] of chatIdEpochStates.entries()) {
+		for (const [vetKeyEpoch, symmetricRatchetState] of chatIdEpochStates.entries()) {
 			if (last === null || vetKeyEpoch > last.vetKeyEpoch) {
-				last = { vetKeyEpoch, symmetricRatchetState: state };
+				last = { vetKeyEpoch, symmetricRatchetState };
 			}
 		}
 		if (last === null) {

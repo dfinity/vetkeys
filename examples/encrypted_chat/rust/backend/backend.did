@@ -11,8 +11,8 @@ type EncryptedMessageMetadata = record {
   sender : principal;
   symmetric_key_epoch : nat64;
   chat_message_id : nat64;
+  nonce : nat64;
   timestamp : nat64;
-  sender_message_id : nat64;
 };
 type GroupChatMetadata = record { creation_timestamp : nat64; chat_id : nat64 };
 type GroupModification = record {
@@ -57,9 +57,6 @@ service : (text) -> {
   first_accessible_message_id : (nat64) -> (opt nat64) query;
   get_encrypted_vetkey_for_my_cache_storage : (blob) -> (blob);
   get_latest_chat_vetkey_epoch_metadata : (ChatId) -> (Result_3) query;
-  get_my_chat_ids : () -> (vec record { ChatId; nat64 }) query;
-  get_my_reshared_ibe_encrypted_vetkey : (ChatId, nat64) -> (Result_4);
-  get_my_symmetric_key_cache : (ChatId, nat64) -> (Result_4);
   // Returns messages for a chat starting from a given message id.
   // 
   // # Arguments
@@ -69,9 +66,10 @@ service : (text) -> {
   // 
   // # Notes
   // * Does not fail if the chat does not exist or the user has no access -- returns empty vector instead.
-  get_some_messages_for_chat_starting_from : (ChatId, nat64, opt nat32) -> (
-      vec EncryptedMessage,
-    ) query;
+  get_messages : (ChatId, nat64, opt nat32) -> (vec EncryptedMessage) query;
+  get_my_chat_ids : () -> (vec record { ChatId; nat64 }) query;
+  get_my_reshared_ibe_encrypted_vetkey : (ChatId, nat64) -> (Result_4);
+  get_my_symmetric_key_cache : (ChatId, nat64) -> (Result_4);
   get_vetkey_epoch_metadata : (ChatId, nat64) -> (Result_3) query;
   get_vetkey_resharing_ibe_decryption_key : (blob) -> (blob);
   get_vetkey_resharing_ibe_encryption_key : (principal) -> (blob);

@@ -172,11 +172,7 @@ export class CanisterAPI {
 		startId: bigint,
 		limit: bigint | undefined
 	): Promise<EncryptedMessage[]> {
-		const result = await actor.get_some_messages_for_chat_starting_from(
-			chatId,
-			startId,
-			limit ? [Number(limit)] : []
-		);
+		const result = await actor.get_messages(chatId, startId, limit ? [Number(limit)] : []);
 		console.log(
 			`fetchEncryptedMessages: ${stringifyBigInt(chatId)} from ${startId.toString()} with limit ${limit} with result ${stringifyBigInt(result)}`
 		);
