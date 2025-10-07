@@ -205,20 +205,3 @@
 	on:select={handleEmojiSelect}
 	on:close={() => (showEmojiPicker = false)}
 />
-
-<style>
-	@reference "tailwindcss";
-
-	.message-input {
-		scrollbar-width: thin;
-	}
-
-	.message-input::-webkit-scrollbar {
-		width: 4px;
-	}
-
-	.message-input::-webkit-scrollbar-thumb {
-		@apply bg-gray-400;
-		border-radius: 2px;
-	}
-</style>

@@ -18,7 +18,7 @@ export interface Message {
 		name: string;
 		size: number;
 		type: string;
-		data: ArrayBuffer;
+		data: Uint8Array;
 	};
 	vetkeyEpoch: number;
 	symmetricRatchetEpoch: number;

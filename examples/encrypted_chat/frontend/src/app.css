@@ -254,3 +254,16 @@
 .gradient-success {
 	background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
 }
+
+.message-input {
+	scrollbar-width: thin;
+}
+
+.message-input::-webkit-scrollbar {
+	width: 4px;
+}
+
+.message-input::-webkit-scrollbar-thumb {
+	@apply bg-gray-400;
+	border-radius: 2px;
+}

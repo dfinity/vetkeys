@@ -2,6 +2,7 @@
 	import { Download, File } from 'lucide-svelte';
 	import Button from './ui/Button.svelte';
 	import type { Message, User } from '../types';
+	import * as base64 from 'base64-js';
 
 	let {
 		message,
@@ -34,7 +35,7 @@
 	function downloadFile() {
 		if (!message.fileData) return;
 
-		const blob = new Blob([message.fileData.data], { type: message.fileData.type });
+		const blob = new Blob([new Uint8Array(message.fileData.data)], { type: message.fileData.type });
 		const url = URL.createObjectURL(blob);
 		const a = document.createElement('a');
 		a.href = url;
@@ -141,19 +142,17 @@
 
 		<!-- Message bubble -->
 		<div
-			class="message-bubble {getMessageBubbleClasses()} inline-block max-w-full rounded-2xl px-3 py-2 break-words"
+			class="message-bubble {getMessageBubbleClasses()} inline-block max-w-full break-words rounded-2xl px-3 py-2"
 		>
 			{#if message.fileData === undefined}
 				<!-- eslint-disable-next-line svelte/no-at-html-tags -->
-				<p class="text-sm whitespace-pre-wrap">{@html parseEmojis(message.content)}</p>
+				<p class="whitespace-pre-wrap text-sm">{@html parseEmojis(message.content)}</p>
 			{:else if message.fileData !== undefined}
 				<div class="file-message">
 					{#if isImageFile(message.fileData.type)}
 						<div class="image-preview mb-2">
 							<img
-								src="data:{message.fileData.type};base64,{btoa(
-									String.fromCharCode(...new Uint8Array(message.fileData.data))
-								)}"
+								src="data:{message.fileData.type};base64,{base64.fromByteArray(message.fileData.data)}"
 								alt={message.fileData.name}
 								class="h-auto max-w-full rounded-lg"
 								style="max-height: 300px;"
@@ -169,7 +168,7 @@
 						<div class="flex items-center justify-between">
 							<div class="min-w-0 flex-1">
 								<p class="truncate text-sm font-medium">{message.fileData.name}</p>
-								<p class="text-surface-500-400 text-xs">
+								<p class="text-xs">
 									{formatFileSize(message.fileData.size)}
 								</p>
 							</div>

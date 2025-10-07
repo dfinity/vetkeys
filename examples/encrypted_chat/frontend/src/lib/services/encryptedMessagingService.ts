@@ -16,17 +16,18 @@ import {
 	chatIdToString,
 	randomSenderMessageId
 } from '$lib/utils';
+import * as cbor from 'cbor-x';
 
 type MessageContent = {
 	textContent: string;
-	fileData?: { name: string; size: number; type: string; data: ArrayBuffer };
+	fileData?: { name: string; size: number; type: string; data: Uint8Array };
 };
 
 export class EncryptedMessagingService {
 	#ratchetInitializationService: RatchetInitializationService;
 	#keyManager: KeyManager;
 
-	#sendingQueue: Map<string, string[]>;
+	#sendingQueue: Map<string, Uint8Array[]>;
 
 	#receivingQueue: Map<string, Message[]>;
 	#receivingQueueToDecrypt: Map<string, EncryptedMessage[]>;
@@ -82,7 +83,7 @@ export class EncryptedMessagingService {
 		return this.#keyManager.getCurrentChatIdStrs().map(chatIdFromString);
 	}
 
-	enqueueSendMessage(chatId: ChatId, content: string) {
+	enqueueSendMessage(chatId: ChatId, content: Uint8Array) {
 		this.#sendingQueue.set(chatIdToString(chatId), [
 			...(this.#sendingQueue.get(chatIdToString(chatId)) || []),
 			content
@@ -115,7 +116,7 @@ export class EncryptedMessagingService {
 		}
 	}
 
-	async #handleOutgoingMessage(chatIdStr: string, content: string) {
+	async #handleOutgoingMessage(chatIdStr: string, content: Uint8Array) {
 		const MAX_RETRIES = 50;
 		const TIMEOUT_MS = 1000;
 
@@ -126,7 +127,7 @@ export class EncryptedMessagingService {
 					chatIdStr,
 					getMyPrincipal(),
 					senderMessageId,
-					new TextEncoder().encode(content)
+					content
 				);
 				await sendMessage(
 					getActor(),
@@ -349,15 +350,15 @@ export class EncryptedMessagingService {
 		metadata: EncryptedMessageMetadata,
 		decrypted: Uint8Array
 	): Message {
-		const json = JSON.parse(new TextDecoder().decode(decrypted)) as MessageContent;
+		const messageContent = cbor.decode(decrypted) as MessageContent;
 
 		return {
 			messageId: metadata.chat_message_id.toString(),
 			chatId: chatIdStr,
 			senderId: metadata.sender.toText(),
-			content: json.textContent,
+			content: messageContent.textContent,
 			timestamp: new Date(Number(metadata.timestamp / 1_000_000n)),
-			fileData: json.fileData,
+			fileData: messageContent.fileData,
 			vetkeyEpoch: Number(metadata.vetkey_epoch),
 			symmetricRatchetEpoch: Number(metadata.symmetric_key_epoch)
 		};

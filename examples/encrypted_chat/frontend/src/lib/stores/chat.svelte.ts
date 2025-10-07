@@ -16,6 +16,7 @@ import type {
 import { Principal } from '@dfinity/principal';
 import { chatIdFromString, chatIdToString } from '$lib/utils';
 import { EncryptedMessagingService } from '$lib/services/encryptedMessagingService';
+import * as cbor from 'cbor-x';
 
 export const chats = $state<{ state: Chat[] }>({ state: [] });
 export const selectedChatId = $state<{ state: ChatId | null }>({ state: null });
@@ -245,7 +246,7 @@ export const chatUIActions = {
 		textContent: string,
 		fileData?: { name: string; size: number; type: string; data: ArrayBuffer }
 	) {
-		const messageContent = JSON.stringify({ textContent, fileData });
+		const messageContent = cbor.encode({ textContent, fileData }) as Uint8Array;
 		encryptedMessagingService.enqueueSendMessage(chatId, messageContent);
 	},
 
