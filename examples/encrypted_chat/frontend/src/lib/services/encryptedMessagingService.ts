@@ -402,7 +402,7 @@ class BackgroundWorker {
 					console.error('Background worker error:', error);
 				}
 				if (this.abortController.signal.aborted) break;
-				await sleep(100);
+				await sleep(250);
 			}
 		};
 
