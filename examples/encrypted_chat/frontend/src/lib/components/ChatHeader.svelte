@@ -68,10 +68,9 @@
 		event: CustomEvent<{
 			addUsers: string[];
 			removeUsers: string[];
-			allowHistoryForNew: boolean;
 		}>
 	) {
-		const { addUsers, removeUsers, allowHistoryForNew } = event.detail;
+		const { addUsers, removeUsers } = event.detail;
 		console.log(`handleGroupManagementSave: ${JSON.stringify(event.detail)}`);
 
 		const addUsersPrincipal = addUsers.map((id) => Principal.fromText(id));
@@ -82,7 +81,6 @@
 				chatIdFromString(chat.idStr),
 				addUsersPrincipal,
 				removeUsersPrincipal,
-				allowHistoryForNew
 			);
 
 			chatUIActions.addNotification({

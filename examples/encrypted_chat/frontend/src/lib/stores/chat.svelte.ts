@@ -406,9 +406,6 @@ export const chatUIActions = {
 		chatId: ChatId,
 		addUsers: Principal[],
 		removeUsers: Principal[],
-		// TODO: implement this
-		// eslint-disable-next-line @typescript-eslint/no-unused-vars
-		allowHistoryForNew: boolean
 	) {
 		if ('Direct' in chatId) {
 			throw new Error('updateGroupMembers: chatId is a direct chat');
@@ -420,7 +417,7 @@ export const chatUIActions = {
 		const result = await getActor().modify_group_chat_participants(chatId.Group, modification);
 		if ('Ok' in result) {
 			console.log(
-				`Group ${chatIdToString(chatId)} updated: +${addUsers.length}, -${removeUsers.length}, history: ${allowHistoryForNew}`
+				`Group ${chatIdToString(chatId)} updated: +${addUsers.length}, -${removeUsers.length}`
 			);
 		} else {
 			throw new Error(result.Err);

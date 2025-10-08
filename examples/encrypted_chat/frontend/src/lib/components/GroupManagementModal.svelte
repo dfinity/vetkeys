@@ -12,12 +12,11 @@
 
 	const dispatch = createEventDispatcher<{
 		close: void;
-		save: { addUsers: string[]; removeUsers: string[]; allowHistoryForNew: boolean };
+		save: { addUsers: string[]; removeUsers: string[] };
 	}>();
 
 	let selectedToAdd: string[] = [];
 	let selectedToRemove: string[] = [];
-	let allowHistoryForNew = true;
 
 	// Text input for adding multiple principals
 	let principalsInput = '';
@@ -68,8 +67,7 @@
 		const combinedAddUsers = Array.from(new Set([...selectedToAdd, ...validPrincipalStrings]));
 		dispatch('save', {
 			addUsers: combinedAddUsers,
-			removeUsers: selectedToRemove,
-			allowHistoryForNew
+			removeUsers: selectedToRemove
 		});
 		handleClose();
 	}
@@ -78,7 +76,6 @@
 		show = false;
 		selectedToAdd = [];
 		selectedToRemove = [];
-		allowHistoryForNew = false;
 		principalsInput = '';
 		validPrincipalStrings = [];
 		invalidPrincipalTokens = [];
@@ -194,24 +191,6 @@
 							{/if}
 						</div>
 					</div>
-
-					<!-- Options -->
-					{#if totalAddCount > 0}
-						<div>
-							<h3 class="mb-3 font-semibold">Options</h3>
-							<label
-								class="bg-surface-200-700-token flex cursor-pointer items-center gap-3 rounded-lg p-3"
-							>
-								<input type="checkbox" bind:checked={allowHistoryForNew} class="checkbox" />
-								<div>
-									<p class="text-sm font-medium">Allow new members to see chat history</p>
-									<p class="text-surface-600-300-token text-xs">
-										New members will be able to see messages sent before they joined
-									</p>
-								</div>
-							</label>
-						</div>
-					{/if}
 
 					<!-- Summary -->
 					{#if totalAddCount > 0 || selectedToRemove.length > 0}
