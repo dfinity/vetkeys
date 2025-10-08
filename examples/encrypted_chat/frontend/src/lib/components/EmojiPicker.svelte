@@ -164,12 +164,12 @@
 
 	<!-- Emoji Picker -->
 	<div
-		class="emoji-picker bg-surface-100-800-token border-surface-300-600-token fixed right-4 bottom-20 z-50 max-w-sm rounded-lg border p-4 shadow-xl"
+		class="emoji-picker fixed right-4 bottom-20 z-50 max-w-sm rounded-lg border border-gray-300 bg-white p-4 shadow-xl"
 	>
 		<div class="mb-4 flex items-center justify-between">
-			<h3 class="text-sm font-semibold">Add Emoji</h3>
+			<h3 class="text-sm font-semibold text-gray-800">Add Emoji</h3>
 			<button
-				class="variant-ghost-surface btn-icon"
+				class="flex h-8 w-8 items-center justify-center rounded text-xl text-gray-600 hover:bg-gray-100"
 				onclick={closeModal}
 				aria-label="Close emoji picker"
 			>
@@ -177,14 +177,14 @@
 			</button>
 		</div>
 
-		<div class="emoji-grid scrollbar-thin max-h-64 overflow-y-auto">
+		<div class="emoji-grid max-h-64 overflow-y-auto scrollbar-hide">
 			{#each Object.entries(emojiCategories) as [category, emojis] (category)}
 				<div class="emoji-category mb-4">
-					<h4 class="text-surface-600-300-token mb-2 text-xs font-medium">{category}</h4>
+					<h4 class="mb-2 text-xs font-medium text-gray-600">{category}</h4>
 					<div class="grid grid-cols-8 gap-1">
 						{#each emojis as emoji (emoji)}
 							<button
-								class="emoji-button hover:bg-surface-200-700-token flex h-8 w-8 items-center justify-center rounded text-lg transition-colors"
+								class="emoji-button flex h-8 w-8 items-center justify-center rounded text-lg transition-colors hover:bg-gray-100"
 								onclick={() => selectEmoji(emoji)}
 								title={emoji}
 							>
@@ -196,8 +196,8 @@
 			{/each}
 		</div>
 
-		<div class="border-surface-300-600-token mt-4 border-t pt-3">
-			<p class="text-surface-600-300-token text-xs">
+		<div class="mt-4 border-t border-gray-200 pt-3">
+			<p class="text-xs text-gray-600">
 				You can also type emoji shortcodes like <code>:smile:</code>, <code>:heart:</code>,
 				<code>:rocket:</code>
 			</p>
@@ -211,18 +211,23 @@
 		max-height: 400px;
 	}
 
+	.emoji-grid {
+		scrollbar-width: none; /* Firefox */
+		-ms-overflow-style: none; /* IE and Edge */
+	}
+
+	.emoji-grid::-webkit-scrollbar {
+		display: none; /* Chrome, Safari, Opera */
+	}
+
 	.emoji-button:hover {
 		transform: scale(1.1);
 	}
 
 	code {
-		background: var(--color-surface-200);
+		background: #f3f4f6;
 		padding: 1px 4px;
 		border-radius: 3px;
 		font-size: 10px;
-	}
-
-	:global(.dark) code {
-		background: var(--color-surface-700);
 	}
 </style>
