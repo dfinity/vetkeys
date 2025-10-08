@@ -229,11 +229,16 @@ export const chatUIActions = {
 
 			messages.state = newMessagesState;
 
+			// Check if this chat is currently selected
+			const isCurrentlySelected =
+				selectedChatId.state && chatIdToString(selectedChatId.state) === chatIdStr;
+
 			chats.state = chats.state.map((c) =>
 				c.idStr === chatIdStr
 					? {
 							...c,
-							unreadCount: c.unreadCount + messagesArray.length,
+							// Don't increment unread count if chat is currently selected
+							unreadCount: isCurrentlySelected ? 0 : c.unreadCount + messagesArray.length,
 							lastMessage: messagesArray[messagesArray.length - 1]
 						}
 					: c

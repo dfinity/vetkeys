@@ -67,9 +67,6 @@
 			<button class="variant-ghost-surface btn-icon" onclick={logout} aria-label="Logout">
 				<LogOut class="h-5 w-5" />
 			</button>
-			<button class="variant-ghost-surface btn-icon" onclick={toggleConfig} aria-label="Settings">
-				<Settings class="h-5 w-5" />
-			</button>
 		</div>
 	</div>
 </div>

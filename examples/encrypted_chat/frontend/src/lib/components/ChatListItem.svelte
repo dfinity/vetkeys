@@ -79,13 +79,13 @@
 					{/if}
 				</p>
 
-				{#if chat.unreadCount > 0}
-					<div
-						class="unread-badge from-primary-500 to-primary-600 flex h-5 min-w-[20px] items-center justify-center rounded-full bg-gradient-to-r px-2 py-1 text-xs text-white shadow-sm"
-					>
-						{chat.unreadCount > 99 ? '99+' : chat.unreadCount}
-					</div>
-				{/if}
+			{#if chat.unreadCount > 0}
+				<div
+					class="unread-badge flex h-5 min-w-[20px] items-center justify-center rounded-full px-2 py-1 text-xs text-white"
+				>
+					{chat.unreadCount > 99 ? '99+' : chat.unreadCount}
+				</div>
+			{/if}
 			</div>
 
 			<!-- Chat status info -->
@@ -172,7 +172,30 @@
 	.unread-badge {
 		font-size: 10px;
 		line-height: 1;
-		font-weight: 600;
+		font-weight: 700;
+		background: linear-gradient(135deg, #3b82f6, #2563eb);
+		box-shadow:
+			0 2px 8px rgba(59, 130, 246, 0.4),
+			0 0 0 2px rgba(255, 255, 255, 0.9);
+		animation: badge-pulse 2s ease-in-out infinite;
+	}
+
+	:global(.dark) .unread-badge {
+		background: linear-gradient(135deg, #60a5fa, #3b82f6);
+		box-shadow:
+			0 2px 8px rgba(59, 130, 246, 0.6),
+			0 0 0 2px rgba(0, 0, 0, 0.3);
+	}
+
+	@keyframes badge-pulse {
+		0%,
+		100% {
+			transform: scale(1);
+		}
+		50% {
+			transform: scale(1.05);
+			filter: brightness(1.1);
+		}
 	}
 
 	.status-chip {

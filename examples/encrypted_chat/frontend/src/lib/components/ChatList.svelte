@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { chats, selectedChatId } from '../stores/chat.svelte';
+	import { chats, selectedChatId, chatUIActions } from '../stores/chat.svelte';
 	import ChatListItem from './ChatListItem.svelte';
 	import UserProfile from './UserProfile.svelte';
 	import Button from './ui/Button.svelte';
@@ -10,7 +10,7 @@
 
 	function handleSelect(e: CustomEvent<string>) {
 		const chatId = e.detail;
-		selectedChatId.state = chatIdFromString(chatId);
+		chatUIActions.selectChat(chatIdFromString(chatId));
 	}
 </script>
 
