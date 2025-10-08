@@ -43,7 +43,7 @@
 			<div
 				class="avatar from-primary-500 to-primary-600 flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br text-lg text-white shadow-sm"
 			>
-				?????
+		<!-- TODO -->
 			</div>
 			<!-- Status indicator -->
 			<div class="absolute -bottom-1 -right-1">
