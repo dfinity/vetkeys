@@ -110,7 +110,7 @@ export function getMyPrincipal(): Principal {
 
 export function getActor(): ActorSubclass<_SERVICE> {
 	if (auth.state.label === 'initialized') {
-		const host = DFX_NETWORK === 'ic' ? 'https://icp0.app' : 'http://localhost:4943';
+		const host = DFX_NETWORK === 'ic' ? 'https://ic0.app' : 'http://localhost:4943';
 		const shouldFetchRootKey = DFX_NETWORK !== 'ic';
 		const agent = HttpAgent.createSync({
 			identity: auth.state.client.getIdentity(),
