@@ -143,7 +143,7 @@
 							</label>
 						</div>
 						<div class="flex justify-end gap-2">
-							<Button onclick={createGroup} disabled={!groupPrincipalsText.trim()}>
+							<Button onclick={createGroup}>
 								<Plus class="h-4 w-4" />
 								<span class="ml-1">Create Group</span>
 							</Button>
