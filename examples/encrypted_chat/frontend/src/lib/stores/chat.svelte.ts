@@ -128,7 +128,9 @@ export const chatUIActions = {
 				' because in currentChatIds from encryptedMessagingService we have ',
 				currentChatIds.map((c) => chatIdToString(c))
 			);
-			chats.state = chats.state.filter((c) => currentChatIds.includes(chatIdFromString(c.idStr)));
+			chats.state = chats.state.filter((c) =>
+				currentChatIds.find((chatId) => chatIdToString(chatId) === c.idStr)
+			);
 		}
 		const chatsToAddToUi = currentChatIds.filter(
 			(chatId) => !chats.state.find((chat) => chat.idStr === chatIdToString(chatId))
@@ -187,7 +189,7 @@ export const chatUIActions = {
 				avatar: isGroup ? '👥' : '👤',
 				firstAccessibleMessageId: Number(firstAccessibleMessageId)
 			};
-			chats.state.push(chat);
+			chats.state = [...chats.state, chat];
 
 			// Initialize empty messages cache; we lazy-load on demand
 			if (!messages.state[chatIdStr]) messages.state[chatIdStr] = [];
@@ -215,7 +217,7 @@ export const chatUIActions = {
 			const chat = chats.state.find((c) => c.idStr === chatIdStr);
 			if (!chat) {
 				console.error('Bug in loadChatMessages: chat not found for a new message: ', chatIdStr);
-				return;
+				continue;
 			}
 
 			for (const m of messagesArray) await chatStorageService.saveMessage(m);
