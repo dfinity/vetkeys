@@ -96,24 +96,3 @@
 		</div>
 	{/each}
 </div>
-
-<style>
-	.alert {
-		display: flex;
-		align-items: center;
-		gap: 0.75rem;
-		padding: 1rem;
-		border-radius: 0.5rem;
-	}
-
-	.alert-message {
-		flex: 1 1 0%;
-		min-width: 0;
-	}
-
-	.alert-actions {
-		display: flex;
-		align-items: center;
-		gap: 0.5rem;
-	}
-</style>

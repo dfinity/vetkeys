@@ -267,3 +267,56 @@
 	@apply bg-gray-400;
 	border-radius: 2px;
 }
+
+.alert {
+	display: flex;
+	align-items: center;
+	gap: 0.75rem;
+	padding: 1rem;
+	border-radius: 0.5rem;
+}
+
+.alert-message {
+	flex: 1 1 0%;
+	min-width: 0;
+}
+
+.alert-actions {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+}
+
+/* Alert/Notification variants with softer, muted colors */
+.variant-filled-primary.alert {
+	@apply bg-blue-50 text-blue-900 border border-blue-200;
+}
+
+.variant-filled-success.alert {
+	@apply bg-green-50 text-green-900 border border-green-200;
+}
+
+.variant-filled-warning.alert {
+	@apply bg-orange-50 text-orange-900 border border-orange-200;
+}
+
+.variant-filled-error.alert {
+	@apply bg-red-50 text-red-900 border border-red-200;
+}
+
+/* Dark mode adjustments for alerts */
+.dark .variant-filled-primary.alert {
+	@apply bg-blue-950 text-blue-100 border-blue-800;
+}
+
+.dark .variant-filled-success.alert {
+	@apply bg-green-950 text-green-100 border-green-800;
+}
+
+.dark .variant-filled-warning.alert {
+	@apply bg-orange-950 text-orange-100 border-orange-800;
+}
+
+.dark .variant-filled-error.alert {
+	@apply bg-red-950 text-red-100 border-red-800;
+}
