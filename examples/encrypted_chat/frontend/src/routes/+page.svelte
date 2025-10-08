@@ -60,7 +60,7 @@
 {:else if isLoading.state}
 	<!-- Loading state -->
 	<div
-		class="loading-screen flex h-full items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800"
+		class="loading-screen flex h-full items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100"
 	>
 		<div class="animate-fade-in text-center">
 			<div
@@ -71,7 +71,7 @@
 			>
 				Loading vetKeys Chat
 			</h2>
-			<p class="font-medium text-gray-600 dark:text-gray-400">
+			<p class="font-medium text-gray-600">
 				Initializing secure communication...
 			</p>
 			<div class="mt-4 flex justify-center space-x-1">
@@ -90,7 +90,7 @@
 {:else}
 	<!-- Main chat interface -->
 	<div
-		class="chat-container flex h-full bg-gradient-to-br from-gray-50 via-blue-50 to-indigo-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900"
+		class="chat-container flex h-full bg-gradient-to-br from-gray-50 via-blue-50 to-indigo-50"
 	>
 		<!-- Chat List Sidebar (Desktop) or Full Screen (Mobile) -->
 		<div

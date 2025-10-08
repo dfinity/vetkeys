@@ -127,7 +127,7 @@
 			</div>
 			<div>
 				<h2
-					class="bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-xl font-bold text-transparent dark:from-gray-100 dark:to-gray-300"
+					class="bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-xl font-bold text-transparent"
 				>
 					{getDisplayName()}
 				</h2>

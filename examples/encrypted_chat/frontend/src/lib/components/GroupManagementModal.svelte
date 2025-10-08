@@ -93,12 +93,12 @@
 	<div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
 		<!-- Modal -->
 		<Card
-			class="w-full max-w-2xl rounded-xl bg-white shadow-2xl ring-1 ring-black/10 dark:bg-neutral-900 dark:ring-white/10"
+			class="w-full max-w-2xl rounded-xl bg-white shadow-2xl ring-1 ring-black/10"
 		>
 			<div class="p-6 md:p-8">
 				<!-- Header -->
 				<div
-					class="mb-4 flex items-center justify-between border-b border-black/5 pb-4 dark:border-white/10"
+					class="mb-4 flex items-center justify-between border-b border-black/5 pb-4"
 				>
 					<div class="flex items-center gap-3">
 						<Users class="h-6 w-6" />

@@ -25,7 +25,7 @@
 		>
 			Chats
 		</h2>
-		<p class="mt-1 text-sm font-medium text-gray-500 dark:text-gray-400">
+		<p class="mt-1 text-sm font-medium text-gray-500">
 			{chats.state.length} conversation{chats.state.length !== 1 ? 's' : ''}
 		</p>
 		<div class="mt-3 flex gap-2">

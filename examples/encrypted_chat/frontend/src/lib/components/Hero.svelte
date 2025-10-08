@@ -8,7 +8,7 @@
 <div class="flex min-h-screen flex-col items-center justify-start pt-8 sm:justify-center sm:pt-0">
 	<div class="flex max-w-xl flex-col items-center text-center">
 		<div class="max-w-xl">
-			<h1 class="text-primary mb-5 text-4xl font-bold sm:text-5xl dark:text-white">
+			<h1 class="text-primary mb-5 text-4xl font-bold sm:text-5xl">
 				Encrypted Chat using vetKeys
 			</h1>
 			<p class="mb-5 text-xl font-semibold">Your private chat on the Internet Computer.</p>

@@ -45,11 +45,11 @@
 		aria-modal="true"
 	>
 		<Card
-			class="w-full max-w-lg rounded-xl bg-white shadow-2xl ring-1 ring-black/10 dark:bg-neutral-900 dark:ring-white/10"
+			class="w-full max-w-lg rounded-xl bg-white shadow-2xl ring-1 ring-black/10"
 		>
 			<div class="p-6 md:p-8">
 				<div
-					class="mb-4 flex items-center justify-between border-b border-black/5 pb-4 dark:border-white/10"
+					class="mb-4 flex items-center justify-between border-b border-black/5 pb-4"
 				>
 					<h3 class="text-lg font-semibold">Create Chat</h3>
 					<button class="variant-ghost-surface btn-icon" onclick={close} aria-label="Close">
@@ -79,7 +79,7 @@
 						<label class="block text-sm">
 							<span class="mb-1 block font-medium">Receiver Principal</span>
 							<input
-								class="w-full rounded-md border bg-white px-3 py-2 dark:bg-neutral-800"
+								class="w-full rounded-md border bg-white px-3 py-2"
 								bind:value={directPrincipal}
 								placeholder="aaaaa-aa"
 							/>
@@ -90,7 +90,7 @@
 								<input
 									type="number"
 									min="0"
-									class="w-full rounded-md border bg-white px-3 py-2 dark:bg-neutral-800"
+									class="w-full rounded-md border bg-white px-3 py-2"
 									bind:value={directRotationMinutes}
 								/>
 							</label>
@@ -99,7 +99,7 @@
 								<input
 									type="number"
 									min="0"
-									class="w-full rounded-md border bg-white px-3 py-2 dark:bg-neutral-800"
+									class="w-full rounded-md border bg-white px-3 py-2"
 									bind:value={directExpirationMinutes}
 								/>
 							</label>
@@ -117,7 +117,7 @@
 							<span class="mb-1 block font-medium">Participant Principals</span>
 							<textarea
 								rows="3"
-								class="w-full rounded-md border bg-white px-3 py-2 dark:bg-neutral-800"
+								class="w-full rounded-md border bg-white px-3 py-2"
 								bind:value={groupPrincipalsText}
 								placeholder="comma or space separated principals"
 							></textarea>
@@ -128,7 +128,7 @@
 								<input
 									type="number"
 									min="0"
-									class="w-full rounded-md border bg-white px-3 py-2 dark:bg-neutral-800"
+									class="w-full rounded-md border bg-white px-3 py-2"
 									bind:value={groupRotationMinutes}
 								/>
 							</label>
@@ -137,7 +137,7 @@
 								<input
 									type="number"
 									min="0"
-									class="w-full rounded-md border bg-white px-3 py-2 dark:bg-neutral-800"
+									class="w-full rounded-md border bg-white px-3 py-2"
 									bind:value={groupExpirationMinutes}
 								/>
 							</label>

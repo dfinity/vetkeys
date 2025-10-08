@@ -152,7 +152,7 @@
 				{placeholder}
 				{disabled}
 				rows="1"
-				class="message-input w-full resize-none rounded-xl border border-gray-200/50 bg-white/80 px-4 py-3 pr-20 text-sm shadow-lg backdrop-blur-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none dark:border-gray-700/50 dark:bg-gray-800/80"
+				class="message-input w-full resize-none rounded-xl border border-gray-200/50 bg-white/80 px-4 py-3 pr-20 text-sm shadow-lg backdrop-blur-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none"
 				style="min-height: 44px; max-height: 120px;"
 			></textarea>
 

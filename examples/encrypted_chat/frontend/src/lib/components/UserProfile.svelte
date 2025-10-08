@@ -65,7 +65,7 @@
 		</div>
 		<div class="flex items-center gap-2">
 			<button class="variant-ghost-surface btn-icon" onclick={logout} aria-label="Logout">
-				<LogOut class="h-5 w-5" />
+				<LogOut class="h-5 w-6" />
 			</button>
 		</div>
 	</div>
@@ -85,15 +85,15 @@
 	<!-- Modal -->
 	<div class="fixed inset-0 z-50 flex items-center justify-center p-4">
 		<div
-			class="config-modal w-full max-w-md rounded-2xl border border-gray-200 bg-white shadow-2xl dark:border-gray-700 dark:bg-gray-800"
+			class="config-modal w-full max-w-md rounded-2xl border border-gray-200 bg-white shadow-2xl"
 		>
 			<!-- Header -->
 			<div
-				class="flex items-center justify-between border-b border-gray-200 p-6 dark:border-gray-700"
+				class="flex items-center justify-between border-b border-gray-200 p-6"
 			>
-				<h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100">Settings</h3>
+				<h3 class="text-lg font-semibold text-gray-900">Settings</h3>
 				<button
-					class="rounded-lg p-1 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-700 dark:hover:text-gray-300"
+					class="rounded-lg p-1 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
 					onclick={() => (showConfig = false)}
 					aria-label="Close settings"
 				>
@@ -106,7 +106,7 @@
 				<div>
 					<label
 						for="cache-retention"
-						class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300"
+						class="mb-2 block text-sm font-medium text-gray-700"
 					>
 						Cache Retention (days)
 					</label>
@@ -116,10 +116,10 @@
 						min="1"
 						max="365"
 						bind:value={configForm.cacheRetentionDays}
-						class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-gray-900 outline-none transition-all focus:border-transparent focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
+						class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-gray-900 outline-none transition-all focus:border-transparent focus:ring-2 focus:ring-blue-500"
 						placeholder="7"
 					/>
-					<p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+					<p class="mt-1 text-xs text-gray-500">
 						How long to keep symmetric key cache before automatic cleanup
 					</p>
 				</div>
@@ -127,10 +127,10 @@
 
 			<!-- Footer -->
 			<div
-				class="flex items-center justify-end gap-3 border-t border-gray-200 p-6 dark:border-gray-700"
+				class="flex items-center justify-end gap-3 border-t border-gray-200 p-6"
 			>
 				<button
-					class="rounded-lg px-4 py-2 text-gray-700 transition-colors hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
+					class="rounded-lg px-4 py-2 text-gray-700 transition-colors hover:bg-gray-100"
 					onclick={() => (showConfig = false)}
 				>
 					Cancel
@@ -150,10 +150,6 @@
 <style>
 	.user-profile {
 		background: var(--color-surface-100);
-	}
-
-	:global(.dark) .user-profile {
-		background: var(--color-surface-800);
 	}
 
 	.config-modal {
