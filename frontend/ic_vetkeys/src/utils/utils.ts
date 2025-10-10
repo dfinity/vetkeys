@@ -594,8 +594,6 @@ export class DerivedKeyMaterial {
             length: 32 * 8,
         };
 
-        const exportable = false;
-
         const derivedKey = await crypto.subtle.deriveKey(
             derivationParams,
             raw,
