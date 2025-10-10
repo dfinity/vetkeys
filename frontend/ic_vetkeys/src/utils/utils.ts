@@ -570,6 +570,16 @@ export class DerivedKeyMaterial {
     }
 
     static async fromCryptoKey(raw: CryptoKey): Promise<DerivedKeyMaterial> {
+        /**
+         * For whatever reason it's not possible in WebCrypto to use HKDF to derive a
+         * new HKDF key. So instead we have to derive a new key and then import it.
+         *
+         * We cannot directly use deriveBits because earlier versions of this library
+         * created keys using only the deriveKey permission, and not deriveBits. So
+         * instead we derive a new WebCrypto key (nominally AES), then export it, then
+         * finally import that exported value as an HKDF key.
+         */
+
         const derivationParams = {
             name: "HKDF",
             hash: "SHA-256",
@@ -579,16 +589,26 @@ export class DerivedKeyMaterial {
             salt: new Uint8Array(),
         };
 
-        /**
-         * For whatever reason it's not possible in WebCrypto to use HKDF to derive a
-         * new HKDF key. So instead we have to derive the key as an exported value
-         * (using `deriveBits`) and then import it.
-         */
+        const gcmParams = {
+            name: "AES-GCM",
+            length: 32 * 8,
+        };
+
+        const exportable = false;
+
+        const derivedKey = await crypto.subtle.deriveKey(
+            derivationParams,
+            raw,
+            gcmParams,
+            true, // exportable
+            ["encrypt"],
+        );
+
+        const derivedKeyBytes = await crypto.subtle.exportKey("raw", derivedKey);
+
         const derived = await crypto.subtle.importKey(
             "raw",
-            new Uint8Array(
-                await crypto.subtle.deriveBits(derivationParams, raw, 256),
-            ),
+            derivedKeyBytes,
             { name: "HKDF" },
             false,
             ["deriveKey", "deriveBits"],
