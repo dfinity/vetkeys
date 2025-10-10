@@ -604,7 +604,10 @@ export class DerivedKeyMaterial {
             ["encrypt"],
         );
 
-        const derivedKeyBytes = await crypto.subtle.exportKey("raw", derivedKey);
+        const derivedKeyBytes = await crypto.subtle.exportKey(
+            "raw",
+            derivedKey,
+        );
 
         const derived = await crypto.subtle.importKey(
             "raw",
