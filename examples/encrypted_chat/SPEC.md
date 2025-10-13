@@ -14,7 +14,7 @@ TODO: explain what keys we have.
 
 vetKey Rotation:
 
-* Independent key material - provides both forward and backward security, i.e., an adversary obtaining the key material for a vetKey epoch gains no knowledge about the key material in other vetKey epochs.
+* Independent key material - provides both secrecy and post-compromise security, i.e., an adversary obtaining the key material for a vetKey epoch gains no knowledge about the key material in other vetKey epochs.
 
 * More costly than symmetric key ratchet because requires interaction with the backend canister and a [vetKey derivation](https://internetcomputer.org/docs/building-apps/network-features/vetkeys/api).
 
@@ -28,11 +28,11 @@ Symmetric Key Ratchet:
 
 * Very efficient local ratchet evolution based on consensus time frames.
 
-* Provides forward securiry but not backward security, i.e., an adversary obtaining the key material for the symmetric ratchet ID `i` can derive any ratchet state for an epoch ID that is larger than `i`.
+* Provides forward secrecy but not post-compromise security, i.e., an adversary obtaining the key material for the symmetric ratchet ID `i` can derive any ratchet state for an epoch ID that is larger than `i`.
 
-While vetKey rotation can be performed at arbitry time points, the symmetric ratchet is performed at time frame boundaries.
+While vetKey rotation can be performed at arbitrary time points, the symmetric ratchet is performed at time frame boundaries.
 The duration of the time frame defines the granularity of the time frame that the user must keep the key material around for in order to be able to decrypt messages.
-This differs from e.g. the Signal protocol, where we discard the old key as soon as we evolved it in most cases.
+This differs from e.g. the Signal protocol, where the old key is discarded as soon as it is evolved in most cases.
 Keeping some keys around is important if we want to decrypt messages in arbitrary order.
 Consider for example a scenario where we only want to decrypt the newest messages that we want to display to the user and not the whole history, which might be much longer and contain media material that requires a lot of potentially unnecessary communication.
 This requires us to keep around the ratchet state, with which we are able to decrypt the oldest non-expired message.
@@ -46,12 +46,12 @@ If we set the state recovery limit to `l` ns and symmetric ratchet duration to `
 For example, if we set the state recovery limit to one month and the symmetric ratchet duration to one hour, then we would need to keep the key material (and the ability to decrypt all message encrypted with it) for almost one additional hour in the worst case.
 
 The downside of this approach is that we need to keep symmetric ratchet states for more ratchet epochs around or compute them on the fly s.t. the messages can be decrypted in any order.
-However, with realistic time frames, keeping around hunderds of keys or just a key that we can generate the other keys from is not a showstopper.
+However, with realistic time frames, keeping around hundreds of keys or just a single key that we can generate the other keys from is not a showstopper.
 
 Realistic time frames for symmetric ratchet evolution: between a minute and a few hours/days. Being on a lower side (minutes) makes less sense, since updating the state's keys involves updating the encrypted cache, where every update costs cycles, which would make mass adoption of the chat costly.
 
 Since the symmetric ratchet is instantiated from a vetKey, the ability to obtain the vetKey allows to decrypt all messages encrypted using any derived ratchet states.
-Therefore, to allow for a limited state recorve it is important to disallow the frontend to obtain the initial vetKey once a encrypted cache for that vetKey epoch was uploaded by the user.
+Therefore, to allow for a limited state recovery it is important to disallow the frontend to obtain the initial vetKey again once an encrypted cache for that vetKey epoch was uploaded by the user.
 Instead, the frontend encrypts its symmetric ratchet states that are required for state recovery and stores them in the canister.
 Then, once a state recovery is required, the frontend fetches the required encrypted ratchet states and decrypts them.
 
@@ -60,15 +60,15 @@ This poses another tradeoff in terms of the symmetric ratchet duration, i.e., th
 Therefore, symmetric ratchet state evolution duration in the order of minutes might be too short to be practical in chats with many users, and duration in the order of hours or days could be better in that case.
 
 Note also that only active users can update their encrypted cache in the canister.
-Therefore, forward security can only be guaranteed to active users or users who disable the state recovery.
+Therefore, forward secrecy can only be guaranteed to active users or users who disable the state recovery by uploading invalid encrypted cache.
 
 ## Notation
 
-TODO
+* Disappearing messages - automatically remove messages in the frontend and encrypted messages in the backend canister from the memory/storage once they expire.
 
-* Disappearing messages
+* State recovery limit - store an encrypted backup of the encryption keys in the canister that allows to decrypt messages and recover from a state loss in the frontend.
 
-* State recovery limit
+* Time - in this document we use [Unix time](https://en.wikipedia.org/wiki/Unix_time) and standard abbreviations for time units such as ns for nanoseconds. 
 
 ## Components
 
@@ -205,14 +205,17 @@ When this API is triggered, the canister checks that:
 
 Note that the latter two points guarantee that there is no intersection between `remove_participants` and `add_participants`.
 
-A group change triggers a vetKey epoch rotation that updates the set of group participants according to the passed `GroupModification` and stores it in the next vetKey epoch for the chat. The effects of vetKey epoch rotation are further discussed in a [separate section](#vetkey-epoch-rotation).
+A group change triggers a vetKey epoch rotation that updates the set of group participants according to the passed `GroupModification` and stores it in the next vetKey epoch for the chat. The effects of vetKey epoch rotation are further discussed in the [vetKet Epoch Rotation](#vetkey-epoch-rotation) section.
+
+The user removed from a group chat loses access to the messages and vetKeys (as well as key cache) in that chat and does not regain access if added to that group chat later.
+Instead, if two users are added to the chat in the same call, while one of the users has previously had access to the chat but was removed and the other user never had access to that chat, they would be able to access only the same messages and vetKeys.
 
 > [!NOTE]
 > One call to `modify_group_chat_participants` triggers one vetKey epoch rotation even if multiple `principals` are added or removed. Further potential optimizations for reducing the number of vetKey epoch rotations or the number of vetKey retrievals are discussed in [Optimizations](#optimizations).
 
 ### Incoming Message Validation
 
-Upon receival of a user message via one of the following APIs
+Upon receival of a user message via the following API
 
 ```
 type GroupChatId = nat64;
@@ -255,7 +258,7 @@ Finally, the canister adds the message to the state and returns an `Ok`.
 
 ### Exposing Metadata about Chats and New Messages
 
-The backend canister exposees the following APIs for fetching metadata:
+The backend canister exposes the following APIs for fetching metadata:
 
 ```
 type GroupChatId = nat64;
@@ -437,7 +440,61 @@ The expired caches are removed transparently to the user by the canister, i.e., 
 Expired cache is defined as a cache that neither has any messages associated with it in the canister nor does it correspond to the latest vetKey epoch for the chat ID.
 See also [Disappearing Messages](#disappearing-messages).
 
-TODO: give more details about the Encrypted Maps APIs and how they are called.
+Encrypted maps handles the encryption of the map values transparently to the developer, i.e., the developer does not need to know how encryption exactly works in encrypted maps and can use encrypted maps as a black box.
+For the purpose of using encrypted maps for the encryption of user's cached keys, the encrypted maps object is instantiated with the domain separator `"vetkeys-example-encrypted-chat-user-cache"` in the backend.
+Then, to handle the cache, the frontend relies on the following:
+
+* Store to encrypted maps - when the frontend obtained a new ratchet state or wants to update a ratchet state cache, the frontend calls.
+
+* Load from encrypted maps - when the frontend requires to recover its previous ratchet states, it retrieves the encrypted cache and decrypts it locally.
+
+```ts
+    import { EncryptedMaps } from '@dfinity/vetkeys/encrypted_maps';
+
+    function store(encryptedMaps: EncryptedMaps, myPrincipal: Principal, chatId: ChatId, vetKeyEpochId: bigint, cache: Uint8Array) {
+      const epochBytes = uBigIntTo8ByteUint8ArrayBigEndian(vetKeyEpochId);
+      const chatIdBytes = chatIdToBytes(chatId);
+      const mapKey = new Uint8Array([...chatIdBytes, ...epochBytes]);
+      encryptedMaps.setValue(myPrincipal, mapName(), mapKey, cache);
+    }
+
+    function load(encryptedMaps: EncryptedMaps, myPrincipal: Principal, chatId: ChatId, vetKeyEpochId: bigint) : Uint8Array {
+      const epochBytes = uBigIntTo8ByteUint8ArrayBigEndian(vetKeyEpochId);
+      const chatIdBytes = chatIdToBytes(chatId);
+      const mapKey = new Uint8Array([...chatIdBytes, ...epochBytes]);
+      return encryptedMaps.getValue(myPrincipal, mapName(), mapKey);
+    }
+
+    function chatIdToBytes(chatId: ChatId) : Uint8Array {
+      if ('Direct' in chatId) {
+        return new Uint8Array([
+          0,
+          ...chatId.Direct[0].toUint8Array(),
+          ...chatId.Direct[1].toUint8Array()
+        ]);
+	    } else {
+		    return new Uint8Array([1, ...uBigIntTo8ByteUint8ArrayBigEndian(chatId.Group)]);
+	    }
+    }
+
+    function uBigIntTo8ByteUint8ArrayBigEndian(value: bigint): Uint8Array {
+	    if (value < 0n) throw new RangeError('Accepts only bigint n >= 0');
+
+	    const bytes = new Uint8Array(8);
+	    for (let i = 0; i < 8; i++) {
+	    	bytes[i] = Number((value >> BigInt(i * 8)) & 0xffn);
+    	}
+	    return bytes;
+    }
+
+    function mapName(): Uint8Array {
+	    return new TextEncoder().encode('encrypted_chat_cache');
+    }
+```
+
+The garbage collection of expired caches happens when there can be no messages that need a particular ratchet state cache for decryption.
+That ratchet state cache is then removed by the canister.
+This can either happen during user's calls e.g. to add a new message to a chat, or by a timer job, or, actually, both in parallel to reduce the latency of cache deletion.
 
 As a potential further optimization, it is possible to fetch the available cached ratchet states for all chats at once to reduce the number of calls.
 However, this is mostly helpful for the relatively rare cases of complete state recovery but not in the other cases such as if part of the state is already available in the local state (i.e., opening the chat in the browser after some time when the chat was closed).
@@ -455,9 +512,9 @@ To allow for mass adoption of a chat app, one could think of the following strat
 
 * Allow only larger time frames for the symmetric ratchet evolution, e.g., in the order of hours or days.
 
-* Instead of updating the caches separately, introduce a batch API for batch updates, which is perfored only once per time frame for all chats.
+* Instead of updating the caches separately, introduce a batch API for batch updates, which is performed only once per time frame for all chats.
 
-* Let the privacy-focused users pay for the cost of the more frequent updates in the chats where they want to have the maximally fined-grained privacy gurantees.
+* Let the privacy-focused users pay for the cost of the more frequent updates in the chats where they want to have the maximally fined-grained privacy guarantees.
 
 ### vetKey Epoch Rotation
 
@@ -498,7 +555,8 @@ Further validation rules can be added here and are an implementation detail. For
 
 ### Disappearing Messages
 
-Disappearing messages for a chat are defined by a non-negative integer identifying how many messages are expired, i.e., `e` expired messages mean that any message ID in the chat smaller than `e` has expired.
+The prefix of messages to be removed from a chat is defined by a non-negative integer, which identifies the size of the prefix of expired messages in the chat history, i.e., `e` expired messages means that any message ID in the chat smaller than `e` has expired.
+The value of `e` is calculated from the consensus time and the messages in the chat and does not necessarily need to be stored in memory.
 Expired messages cannot be [retrieved](#encrypted-message-retrieval) from the canister backend anymore and the canister backend will delete them eventually.
 
 The deletion algorithm is an implementation detail of the canister backend, but in general we see two options:
@@ -570,7 +628,7 @@ The chat UI uses the EMS in a black-box way to:
 
 * Dispatch user messages to be encrypted and sent via the `enqueueSendMessage` API of the EMS.
 
-* Fetch received and decrypted messages via periodically quering the `takeReceivedMessages` API of the EMS.
+* Fetch received and decrypted messages via periodically querying the `takeReceivedMessages` API of the EMS.
 
 * Find out which chats are accessible at the moment via the `getCurrentChatIds` API of the EMS. New chats need to be added to the UI and chats that the user has lost access to need to be removed from the UI. 
 
@@ -580,7 +638,7 @@ Encrypted Messaging Service (EMS) is a component that gives the developer a tran
 
 Types:
 
-* `type ChatId = variant { Group : nat64; Direct : record { principal; principal }; }`
+* `type ChatId = { 'Group' : bigint } | { 'Direct' : [Principal, Principal] };`
 
 * `type ChatIdAsString = string`
 
@@ -593,17 +651,17 @@ Types:
       vetkeyEpoch: bigint;
       symmetricRatchetEpoch: bigint;
     }
-    `
+  `
 
 The EMS exposes the following APIs:
 
-* `enqueueSendMessage(chatId: ChatId, content: Uint8Array)`: adds the message `content` to be encrypted for and sent for adding to the chat with ID `chatId`. This API does not give any guarantees that the message will actually be added to the chat but it makes attempts to recover from recoverable errors (see [Encrypting and Sending Messages in the EMS](#encrypting-and-sending-messages)).
+* `enqueueSendMessage(chatId: ChatId, content: Uint8Array)`: adds the message `content` to be encrypted for and sent to the chat with ID `chatId`. This API does not give any guarantees that the message will actually be added to the chat but it makes attempts to recover from recoverable errors (see [Encrypting and Sending Messages in the EMS](#encrypting-and-sending-messages)).
 
 * `takeReceivedMessages(): Map<ChatIdAsString, Message[]>`: returns latest chat messages that were received and decrypted by the EMS and were not yet taken by the user from the EMS (see [Fetching and Decrypting Messages in the EMS](#fetching-and-decrypting-messages)).
 
-* `start()`: starts the EMS service.
+* `start()`: starts the EMS service. Before the service is started, calling any other APIs should throw an error. Once it is started, the APIs start to return their intended values, and the EMS starts background tasks to continuously update the relevant chat information from the canister.
 
-* `skipMessagesAvailableLocally(chatId: ChatId, lastKnownChatMessageId: bigint)`: tells the EMS what chat message ID should be the first one to fetch the messages. This is relevant if some of the messages are available from another source such as [browser storage](#local-cache-in-indexeddb).
+* `skipMessagesAvailableLocally(chatId: ChatId, lastKnownChatMessageId: bigint)`: tells the EMS what chat message ID should be the first one to be fetched. This is relevant if some of the messages are available from another source such as [browser storage](#local-cache-in-indexeddb).
 
 * `getCurrentChatIds(): ChatId[]`: returns the chat IDs that are currently accessible to the user. This particular API is mostly an efficiency optimization, since the message retrieval in the EMS anyways requires fetching the information about the currently accessible chats.
 
@@ -628,7 +686,7 @@ The EMS periodically takes a message from the sending stream that was added via 
 To avoid infinite loops in case of too strict parameters, bad network connectivity, etc., the maximum number of retries should be capped.
 
 > [!TIP]
-> A useful feature of chat applications is displaying when a user joined or left the chat directly in the chat history. The current spec only makes use of such information in the vetKey epoch metadata, which returns the full list of participants for each vetKey epoch, which is a bit redundant for the purpose. More succinct data can be exposed by proving an additional backend API that returns a vector of `GroupModification`s (see [Group Changes](#group-changes)).
+> A useful feature of chat applications is displaying when a user joined or left the chat directly in the chat history. The current spec only makes use of such information in the vetKey epoch metadata, which returns the full list of participants for each vetKey epoch, which is a bit redundant for the purpose. More succinct data can be exposed by providing an additional backend API that returns a vector of `GroupModification`s (see [Group Changes](#group-changes)).
 
 #### Fetching and Decrypting Messages
 
@@ -640,7 +698,7 @@ For message [retrieval](#encrypted-message-retrieval) and [decryption](#ratchet-
 
 * Further canister APIs required for [Ratchet Initialization](#ratchet-initialization).
 
-The frontend stores the following data related to this section in its state:
+The frontend stores the following related data related in its state:
 
 * The chat IDs accessible to the user.
 
@@ -654,12 +712,13 @@ Let's call this information frontend chat metadata.
 
 Periodically, the EMS queries the `get_my_chats_and_time` backend canister API.
 Its result is compared to the frontend chat metadata in the state.
+The existing chat metadata is updated if required.
 If there is a new chat in the result that is not yet in the state, the EMS adds it to the state along with the information that no messages were obtained for this chat yet.
-If one of the chats in the state does not appear in the result of `get_my_chats_and_time` anymore, then this chat is deleted from the state.
+If one of the chats in the state does not appear in the result of `get_my_chats_and_time` anymore, then this chat is deleted from the state including from the queues containing received and decrypted messages.
 
 Also periodically, two separate routines run.
 
-1. Check if there are new messages to be fetched from the canister: if the largest received message ID for the chat plus one is smaller than the total number of messages in the chat. If it is, then `get_messages` is invoked with the first message ID to be fetched that is equal to the largest received message ID for the chat plus one, or if no messages were received so far for a chat, message ID 0 is used. If an error occurs due to too large messages that don't fit into the canister's response due to the query response limits on the ICP, the query to `get_messages` is retried with a limit of e.g. one. A successful result is stored in the received messages queue.
+1. Check if there are new messages to be fetched from the canister: if the largest received message ID for the chat plus one is smaller than the total number of messages in the chat. If it is, then `get_messages` is invoked with the first message ID to be fetched that is equal to the largest received message ID for the chat plus one, or if no messages were received so far for a chat, message ID 0 is used. If an error occurs due to too large messages that don't fit into the canister's response due to the query response limits on the ICP, the query to `get_messages` is retried with a limit of e.g. one. A successful result appended to the received messages queue.
 
 2. Try to take a message from the received messages queue and decrypt it.
 
@@ -667,25 +726,19 @@ Also periodically, two separate routines run.
     
     b. The EMS [decrypts](#ratchet-message-decryption) the message using the symmetric ratchet state and the vetKey epoch ID stored in the message metadata. A successfully decrypted message is put into the decrypted message queue that is exposed to the chat UI component via the [`takeReceivedMessages` API](#encrypted-messaging-service) of the EMS. If the decryption returns an error, such an error is unrecoverable and instead of a decrypted message, a message of special form is put into the decrypted message queue that indicated that this message could not be decrypted. Note that user-side errors cannot be avoided, since the canister cannot check if the encryption is valid.
 
-#### vetKey Epoch Rotation
-
-TODO: how often
-
 #### Symmetric Ratchet
 
-A symmetric ratchet state consists of a symmetric ratchet epoch key and a symmetric ratchet epoch ID that it corresponds to.
-
-The backend canister APIs required for ratchet initialization are described in a [separate section](#providing-vetkeys-for-symmetric-ratchet-initialization).
+The backend canister APIs required for ratchet initialization are described in the [Providing vetKeys for Symmetric Ratchet Initialization](#providing-vetkeys-for-symmetric-ratchet-initialization) section.
 
 A symmetric ratchet state consists of:
 
-* Key material that is used to:
+* Epoch key that is used to:
 
     1. Derive the next ratchet state.
 
     2. Derive chat participants' message encryption keys.
 
-* Symmetric ratchet epoch ID, which is a non-negative number.
+* Symmetric ratchet epoch ID that the key corresponds to, which is a non-negative number.
 
 ##### Ratchet Initialization
 
@@ -718,11 +771,15 @@ import { deriveSymmetricKey } from '@dfinity/vetkeys';
 
 type RawSymmetricRatchetState = { epochKey: Uint8Array, epochId: bigint };
 
-function evolve(symmetricRatchetState: RawSymmetricRatchetState) : RawSymmetricRatchetState {
-	const domainSeparator = new Uint8Array([
+function ratchetStepDomainSeparator(epoch: bigInt) {
+  return new Uint8Array([
 		...DOMAIN_RATCHET_STEP,
 		...uBigIntTo8ByteUint8ArrayBigEndian(symmetricRatchetState.epochId)
 	]);
+}
+
+function evolve(symmetricRatchetState: RawSymmetricRatchetState) : RawSymmetricRatchetState {
+	const domainSeparator = ratchetStepDomainSeparator(symmetricRatchetState.epochKey);
 	const newEpochkey = deriveSymmetricKey(symmetricRatchetState.epochKey, domainSeparator, 32);
 
   return { epochKey: newEpochkey, epochId: symmetricRatchetState.epochId + 1n}
@@ -730,14 +787,16 @@ function evolve(symmetricRatchetState: RawSymmetricRatchetState) : RawSymmetricR
 ```
 where `DOMAIN_RATCHET_STEP` is a unique domain separator.
 
-Alternatively, this can be implemented using Web Crypto API to make the current key non-extractable. Note though that Web Crypto API's `deriveKey` cannot derive an HKDF key and, therefore, to derive the next epoch key, it first needs to be derive via `deriveBits`, which returns the next epoch key in form of a byte vector, which needs to be imported as `CryptoKey`.
+Alternatively, this can be implemented using Web Crypto API to make the current key non-extractable. Note though that Web Crypto API's `deriveKey` cannot derive an HKDF key and, therefore, derivation of the next epoch key is a two-step process:
+1. Derive the next epoch key in form of a byte vector via `deriveBits`.
+2. Import the derived byte vector as `CryptoKey`.
 
 ```ts
 type SymmetricRatchetState = { epochKey: CryptoKey, epochId: bigint };
 
 async function deriveNextSymmetricRatchetEpochCryptoKey(symmetricRatchetState: RawSymmetricRatchetState) : Promise<CryptoKey> {
 	const exportable = false;
-	const domainSeparator = ratchetStepDomainSeparator()
+	const domainSeparator = ratchetStepDomainSeparator(symmetricRatchetState.epochKey)
 	const algorithm = {
 		name: 'HKDF',
 		hash: 'SHA-256',
@@ -755,7 +814,7 @@ async function deriveNextSymmetricRatchetEpochCryptoKey(symmetricRatchetState: R
 }
 ```
 
-It would be quite natural and similar to [Signal's symmetric ratchet](https://signal.org/docs/specifications/doubleratchet/) if the decryption would trigger the ratchet evolution. However, that would force the frontned to decrypt all messages belonging to one vetKey epoch in cases where a chat has many messages and we only want to display the latest ones. This incurs a big and unnecessary overhead in terms of both communication and computation.
+It would be quite natural and similar to [Signal's symmetric ratchet](https://signal.org/docs/specifications/doubleratchet/) if the decryption would trigger the ratchet evolution. However, that would force the frontend to decrypt all messages belonging to one vetKey epoch in cases where a chat has many messages and we only want to display the latest ones. This incurs a big and unnecessary overhead in terms of both communication and computation.
 
 Therefore, neither encryption nor decryption directly evolve `SymmetricRatchetState` but instead, the state is evolved whenever the current consensus time obtained via `get_my_chats_and_time` minus the message expiry is larger than the timestamp of the current symmetric key epoch id + 1, i.e., whenever there can be no non-expired message that we would need the current symmetric ratchet epoch to decrypt. The state evolution can be triggered by a background job that periodically checks if state evolution should be performed. 
 
@@ -774,7 +833,7 @@ async encrypt(
 	return await derivedKeyMaterial.encryptMessage(message, domainSeparator);
 }
 ```
-where [`messageEncryptionDomainSeparator`](#typescript-domain-separators) is a unique [size-prefixed](#typescript-size-prefix) domain separator.
+where [`messageEncryptionDomainSeparator`](#typescript-domain-separators) is a unique [size-prefixed](#typescript-size-prefix) domain separator and the `nonce` argument is a user-assigned nonce associated with the message that must be unique for `epochKey` (i.e., the symmetric ratchet epoch) und MUST NOT be reused.
 
 ##### Ratchet Message Decryption
 
@@ -786,16 +845,25 @@ async decrypt(
     epochKey: CryptoKey,
 	sender: Principal,
 	nonce: Uint8Array,
-	message: Uint8Array
+	encryptedMessage: Uint8Array
 ): Promise<Uint8Array> {
 	const domainSeparator = messageEncryptionDomainSeparator(sender, nonce);
 	const derivedKeyMaterial = DerivedKeyMaterial.fromCryptoKey(epochKey);
-	return await derivedKeyMaterial.encryptMessage(message, domainSeparator);
+	return await derivedKeyMaterial.decryptMessage(encryptedMessage, domainSeparator);
 }
 ```
 where [`messageEncryptionDomainSeparator`](#typescript-domain-separators) is a unique [size-prefixed](#typescript-size-prefix) domain separator.
 
 #### State Cache
+
+TODO
+
+The state cache is intended to allow the user to upload encrypted symmetric ratchet epoch keys to the canister. 
+
+Relation to disappearing messages.
+
+While disappearing messages duration is a chat-level setting, the state recovery duration is a user-level setting in a chat.
+The state recovery duration is always smaller or equal to the disappearing messages duration because because keys for messages that don't exist anymore are not useful.
 
 ##### Encrypted Maps
 
@@ -814,11 +882,52 @@ Is something like mixed hash tree possible in a single canister scenario to redu
 
 ## Optimizations
 
+Here, we discuss potential further optimizations that are not an essential part of the spec.
+
 ### Local Cache in indexedDB
+
+The local cache in indexedDB is essentially a copy of the frontend state stored in a persistent storage.
+
+* Keys - whenever a new ratchet state is created or evolved, it is stored in indexedDB at an index containing its chat ID and the vetKey epoch ID. Whenever a ratchet state is deleted locally, it is also deleted from indexedDB.
+
+* Messages - in a similar fashion to keys, the decrypted messages are also added to and removed from indexedDB to keep it in sync with the frontend.
+
+An important difference between keys and messages in indexedDB is the component that is responsible for caching.
+For keys, the [EMS](#encrypted-messaging-service) is responsible.
+Namely, whenever a ratchet state is required, the EMS first checks if it is available from IndexedDB.
+For messages, the UI is responsible.
+More specifically, upon initialization of the app, it first loads all messages available in indexedDB into the local state and updates the count of the messages available locally via the EMS API s.t. they are not loaded and decrypted again from the canister.
 
 ### IBE-Encrypted vetKey Resharing
 
-### Allowing New Users to See Old Messsage History
+To reduce the number of vetKeys required for group changes and periodic key rotations, IBE with long-term keys can be used:
+
+1. Each user fetches a long-term IBE key for their principal.
+
+2. Whenever a user fetches a vetKey for a chat, the user decrypts it and reshares with all other users by encrypting the vetKey with their public IBE keys, resulting in a vector containing a separate encryption for each user. Then, the user sends this vector to a special canister API (not described further in this spec).
+
+3. Upon receival of a call to that API, the canister checks which users already have either an existing reshared vetKey or have a cached ratchet state. Such reshared vetKeys are filtered out and the rest is added to the canister state.
+
+Then, the user frontend would check if there is a reshared vetKey stored for them in the canister state before trying to obtain the vetKey in the normal way.
+If that is the case, the user would fetch and IBE-decrypt it, and then verify that the vetKey is valid (recall that the vetKey is a BLS signature that can efficiently be verified).
+If the check fails, the reshared vetKey is ignored and the frontend proceeds as if there was no resharing, i.e., it obtains the vetKey via the normal API.
+
+Note that this adds the overhead of resharing keys with potentially many users in the chat which incurs additional runtime overhead.
+However, this can be done in the background and doesn't have to block the app.
+For that, most of the more costly vetKey derivation calls by the canister can be replaced by cheaper calls to store small encrypted vetKeys.
+Also, this optimization works well only if most of the users provide valid reshared vetKeys, but, on the other hand, the penalty to the honest users (some additional latency due to the higher number of steps in the vetKey retrieval logic) is rather small.
+
+An additional step useful to save a small amount of storage in the resharing routine is to remove the reshared vetKey after an encrypted cache has been added for a user to the canister state. 
+
+### Allowing New Users to See Old Message History
+
+It is not necessarily always the case that a user added to a chat should not see the previous history, which is the default setting in this spec.
+This not only allows specific users to see the chat history but also reduces the number of calls to derive vetKeys.
+
+In the chat UI, this functionality can be realized e.g. via a flag set in the chat UI while adding a new user.
+
+The current spec does not allow to integrate this optimization in a completely non-invasive way, since the chat participants of a vetKey epoch cannot be changed.
+To facilitate this, the list of chat participants could have versioning, where for each version the list change would be stored in the canister and `get_my_chats_and_time` would return no only the last message in the chat but also all vetKey epoch IDs for each chat and their participant list versions, or only for those where actual changes happened.
 
 ## Appendix
 
