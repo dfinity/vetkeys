@@ -396,9 +396,22 @@ pub fn ratchet_context(chat_id_bytes: &[u8]) -> Vec<u8> {
 
 The actual initialization of the symmetric ratchet state is performed in the frontend and is, therefore, specified in [Ratchet Initialization](#ratchet-initialization) in the frontend.
 
-### User's Encrypted Symmetric Ratchet State Cache
+### Encrypted Symmetric Ratchet State Cache
 
-The canister backend provides the following APIs for storing users' encrypted symmetric ratchet states in the canister:
+The encrypted ratchet state cache is intended to allow the user to upload encrypted symmetric ratchet epoch keys to the canister and then [recover](#state-recovery) the local state in the frontend whenever needed, e.g., for disaster recovery or after a browser change.
+
+There is a relation between state recovery and the [disappearing messages](#disappearing-messages) duration.
+The state recovery duration is always smaller or equal to the disappearing messages duration because because keys for messages that don't exist anymore are not useful.
+
+While disappearing messages duration is a chat-level setting, the state recovery duration is a user-level setting in a chat.
+In general, the state recovery limit can be both chat-level and user-level setting, but it makes more sense to make state recovery a user setting because the user frontend is in full control of state recovery for a non-expired vetKey epoch.
+
+In the canister backend, the state recovery limit is used in three cases - all related to expired vetKey epochs:
+* Removal of expired caches.
+* Acceptance/rejection of cache uploads.
+* Acceptance/rejection of cache downloads (because removal may not happen instantly).
+
+The canister backend provides the following APIs for storing and obtaining users' encrypted symmetric ratchet states in the canister:
 ```
 type PublicTransportKey = blob;
 type EncryptedVetKey = blob;
@@ -436,60 +449,43 @@ If the checks pass, the canister accepts the call and stores the cache, or overw
 
 The `get_my_symmetric_key_cache` call retrieves the response of Encrypted Maps for getting their cache corresponding to the input arguments, which is the encrypted bytes if the entry exists or `null` if it does not.
 
-The expired caches are removed transparently to the user by the canister, i.e., the removal does not require explicit calls for doing that.
-Expired cache is defined as a cache that neither has any messages associated with it in the canister nor does it correspond to the latest vetKey epoch for the chat ID.
-See also [Disappearing Messages](#disappearing-messages).
+The expired caches are removed transparently to the frontend by the canister, i.e., the removal does not require explicit calls for doing that.
+Expired cache is a cache, where both of the following is true:
+* The cache neither has any messages associated with its vetKey epoch (see [Disappearing Messages](#disappearing-messages)) nor does it correspond to the _latest_ vetKey epoch for the chat ID.
+* The vetKey epoch has not expired with regards to the state recovery limit (see below).
 
-Encrypted maps handles the encryption of the map values transparently to the developer, i.e., the developer does not need to know how encryption exactly works in encrypted maps and can use encrypted maps as a black box.
-For the purpose of using encrypted maps for the encryption of user's cached keys, the encrypted maps object is instantiated with the domain separator `"vetkeys-example-encrypted-chat-user-cache"` in the backend.
-Then, to handle the cache, the frontend relies on the following:
+Let's denote the state recovery limit as `limit`, current consensus time as `consensus_time` and next vetKey epoch creation time as `next_epoch_creation`, which equals `None` it current epoch is the latest and there is no next epoch.
+To determine if a vetKey epoch has expired with regards to the state recovery limit, the following function is used.
 
-* Store to encrypted maps - when the frontend obtained a new ratchet state or wants to update a ratchet state cache, the frontend calls.
+```rust
+fn has_expired(limit: u64, consensus_time: u64, next_epoch_creation: Option<u64>) : bool {
+  if next_epoch.is_none() {
+    return false;
+  } else {
+    next_epoch.map(|next_epoch| consensus_time.saturating_sub(next_epoch) > limit)
+  }
+}
+```
 
-* Load from encrypted maps - when the frontend requires to recover its previous ratchet states, it retrieves the encrypted cache and decrypts it locally.
+The canister backend API for setting the state recovery limit is defined as follows:
+```candid
+set_state_recovery_limit : (ChatId, MessageExpiryMins) -> (variant { Ok; Err : text });
+```
+and must remove expired caches before setting a _higher_ limit. In general, it could make sense to remove expired caches on each update, since the latency of this operation is usually not critical.
 
-```ts
-    import { EncryptedMaps } from '@dfinity/vetkeys/encrypted_maps';
+The canister backend API `get_state_recovery_limit` can be used by a frontend that has lost its state to recover the information about user's state recovery limit for a chat with ID `ChatId`.
+```candid
+get_state_recovery_limit : (ChatId) -> (variant { Ok : ?MessageExpiryMins; Err : text }) query;
+```
 
-    function store(encryptedMaps: EncryptedMaps, myPrincipal: Principal, chatId: ChatId, vetKeyEpochId: bigint, cache: Uint8Array) {
-      const epochBytes = uBigIntTo8ByteUint8ArrayBigEndian(vetKeyEpochId);
-      const chatIdBytes = chatIdToBytes(chatId);
-      const mapKey = new Uint8Array([...chatIdBytes, ...epochBytes]);
-      encryptedMaps.setValue(myPrincipal, mapName(), mapKey, cache);
-    }
+Since cache update is usually a relatively rare operation compared to e.g. potential message updates, adding the cache metadata to the `get_my_chats_and_time` API of the backend canister seems like overkill. Instead, we could add a separate API that would return this metadata s.t. the frontend can find out which caches should be updated.
+```candid
+type StateRecoveryCacheMetadata = record {
+  vetkey_epoch_id: VetKeyEpochId;
+  symmetric_epoch_id : SymmetricEpochId;
+};
 
-    function load(encryptedMaps: EncryptedMaps, myPrincipal: Principal, chatId: ChatId, vetKeyEpochId: bigint) : Uint8Array {
-      const epochBytes = uBigIntTo8ByteUint8ArrayBigEndian(vetKeyEpochId);
-      const chatIdBytes = chatIdToBytes(chatId);
-      const mapKey = new Uint8Array([...chatIdBytes, ...epochBytes]);
-      return encryptedMaps.getValue(myPrincipal, mapName(), mapKey);
-    }
-
-    function chatIdToBytes(chatId: ChatId) : Uint8Array {
-      if ('Direct' in chatId) {
-        return new Uint8Array([
-          0,
-          ...chatId.Direct[0].toUint8Array(),
-          ...chatId.Direct[1].toUint8Array()
-        ]);
-	    } else {
-		    return new Uint8Array([1, ...uBigIntTo8ByteUint8ArrayBigEndian(chatId.Group)]);
-	    }
-    }
-
-    function uBigIntTo8ByteUint8ArrayBigEndian(value: bigint): Uint8Array {
-	    if (value < 0n) throw new RangeError('Accepts only bigint n >= 0');
-
-	    const bytes = new Uint8Array(8);
-	    for (let i = 0; i < 8; i++) {
-	    	bytes[i] = Number((value >> BigInt(i * 8)) & 0xffn);
-    	}
-	    return bytes;
-    }
-
-    function mapName(): Uint8Array {
-	    return new TextEncoder().encode('encrypted_chat_cache');
-    }
+get_metadata_for_my_state_recovery_caches : () -> (vec StateRecoveryCacheMetadata) query;
 ```
 
 The garbage collection of expired caches happens when there can be no messages that need a particular ratchet state cache for decryption.
@@ -497,15 +493,15 @@ That ratchet state cache is then removed by the canister.
 This can either happen during user's calls e.g. to add a new message to a chat, or by a timer job, or, actually, both in parallel to reduce the latency of cache deletion.
 
 As a potential further optimization, it is possible to fetch the available cached ratchet states for all chats at once to reduce the number of calls.
-However, this is mostly helpful for the relatively rare cases of complete state recovery but not in the other cases such as if part of the state is already available in the local state (i.e., opening the chat in the browser after some time when the chat was closed).
 
 In the best case, user's ratchet state cache should be synchronized with the frontend's state, i.e., whenever a ratchet state is evolved in the frontend, it should also be updated in the backend.
 However, this only works if the user is online and active.
 If the user is offline, the canister will delete the ratchet states that don't have any messages in canister storage that can be decrypted using those states, except for the very last state in order to be able to evolve it to a later when the user is online.
 
-If keeping an older ratchet state is not desirable by some users, this can be mitigated by setting up a periodic key rotation, where a frontend will not encrypt new messages with a ratchet state from an old vetKey epoch and will instead request a vetKey rotation before the next encryption.
+As an idea for further improvement in cases if keeping an older ratchet state is not desirable by some users even if the users may potentially go offline for longer time frames, this can be mitigated by setting up a periodic key rotation (not defined in this spec), where a frontend will not encrypt new messages with a ratchet state from an old vetKey epoch and will instead request a vetKey rotation before the next encryption.
 In that case, the users' encrypted caches associated with the older vetKey epoch will be garbage-collected automatically by the canister once they are not required for state recovery anymore.
-Note though that this happens by a timer job, so despite that the canister APIs will returns correct results for the state recovery, the actual cache deletion from a canister might happen at a later point, e.g., during an hour or a day, depending on the configuration.
+In that case, the caches for the latest vetKey epoch that should have been rotated could also be garbage-collected.
+Note though that this is normally performed by a timer job, so despite that the canister APIs will return correct results for the state recovery, the actual cache deletion from a canister might happen at a later point, e.g., during an hour or a day, depending on the configuration.
 
 Also, if the symmetric ratchet evolution duration is too short or the number of users in a chat is very high, updating the cache may be costly because that would involve many canister calls (one per user per chat).
 To allow for mass adoption of a chat app, one could think of the following strategies to reduce costs:
@@ -590,84 +586,6 @@ Every chat is [created](#chat-creation) with the expiry of 0, which holds a spec
 Once the state is updated, it affects the behavior of [the APIs returning the metadata about message IDs](#exposing-metadata-about-chats-and-new-messages) and [the APIs returning the actual messages](#encrypted-message-retrieval).
 
 * `get_messages : (ChatId, ChatMessageId, opt Limit) -> (vec EncryptedMessage) query;` does not add expired messages to the output.
-
-### Encrypted Ratchet State Cache
-
-The state encrypted ratchet state cache is intended to allow the user to upload encrypted symmetric ratchet epoch keys to the canister and then recover the local state whenever needed, e.g., for disaster recovery or after browser change.
-
-There is a relation between state recovery and the disappearing message duration.
-The state recovery duration is always smaller or equal to the disappearing messages duration because because keys for messages that don't exist anymore are not useful.
-
-While disappearing messages duration is a chat-level setting, the state recovery duration is a user-level setting in a chat.
-In general, the state recovery limit can be both chat-level and user-level setting, but it makes more sense to make state recovery a user setting because the user frontend is in full control of state recovery for a non-expired vetKey epoch.
-
-In the canister backend, the state recovery limit is used in three cases - all related to expired vetKey epochs:
-* Removal of expired caches.
-* Acceptance/rejection of cache uploads.
-* Acceptance/rejection of cache downloads (because removal may not happen instantly).
-
-Let's denote the state recovery limit as `limit`, current consensus time as `consensus_time` and next vetKey epoch creation time as `next_epoch_creation`, which equals `None` it current epoch is the latest and there is no next epoch.
-
-```
-fn has_expired(limit: u64, consensus_time: u64, next_epoch_creation: Option<u64>) : bool {
-  if next_epoch.is_none() {
-    return false;
-  } else {
-    next_epoch.map(|next_epoch| consensus_time.saturating_sub(limit) > next_epoch)
-  }
-}
-let expired = now - l
-```
-
-The canister backend API looks as follows:
-```candid
-set_state_recovery_limit : (ChatId, MessageExpiryMins) -> (variant { Ok; Err : text });
-```
-and must remove expired caches before setting a _higher_ limit. In general, it could make sense to remove expired caches on each update, since the latency of this operation is not critical.
-
-The canister backend API `get_state_recovery_limit` can be used by a frontend that has lost its state to recover the information about user's state recovery limit for a chat with ID `ChatId`.
-```candid
-get_state_recovery_limit : (ChatId) -> (variant { Ok : ?MessageExpiryMins; Err : text }) query;
-```
-
-Since cache update is usually a relatively rare operation compared to e.g. potential message updates, adding the cache metadata to the `get_my_chats_and_time` API of the backend canister seems like overkill. Instead, we could add a separate API that would return this metadata s.t. the frontend can find out which caches should be updated.
-```candid
-type StateRecoveryCacheMetadata = record {
-  vetkey_epoch_id: VetKeyEpochId;
-  symmetric_epoch_id : SymmetricEpochId;
-};
-
-get_metadata_for_my_state_recovery_caches : () -> (vec StateRecoveryCacheMetadata) query;
-```
-
-The frontend's role in enabling state recovery is twofold:
-* Initialization of caches.
-* Updates of caches.
-
-Independent of how the local ratchet state was initialized, once initialized the frontend checks if the ratchet state cache in the canister needs to be updated. If no cache state exists in the canister or it is outdated, the frontend encrypts and uploads the state via the `update_my_symmetric_key_cache` backend canister API.
-
-```candid
-type GroupChatId = nat64;
-type ChatId = variant {
-  Group : GroupChatId;
-  Direct : record { principal; principal };
-};
-type VetKeyEpochId = nat64;
-type EncryptedSymmetricRatchetCache = blob;
-
-update_my_symmetric_key_cache : (ChatId, VetKeyEpochId, EncryptedSymmetricRatchetCache) -> (variant { Ok; Err : text });
-```
-
-The `update_my_symmetric_key_cache` backend canister API works as follows:
-1. If the user doesn't have access to the chat with ID `ChatId` or the chat does not exist, return an error.
-2. If the user tries to upload cache for an invalid `VetKeyEpochId`, return an error.
-3. Store the EncryptedSymmetricRatchetCache 
-
-In addition to cache updates upon initialization, the frontend should periodically check that the cache is up-to-date. How often this is done depends on the symmetric ratchet duration window.
-However, note that only the client that is online can update their cache, which normally doesn't work perfectly practice, e.g., if we rotate the symmetric ratchet state every hour, there will be very few clients that will be online for actually performing cache updates every hour.
-Also, cache updates cost cycles in the ICP, and hence excessive use undesirably costs additional money.
-Therefore, cache updates every (half a) day, and therefore the symmetric ratchet duration of a similar length, seem to be most practical in the general use case.
-If another use case requires more strict parameters, they can be set appropriately to enable that use case.
 
 ## User Frontend Component
 
@@ -840,7 +758,7 @@ The ratchet state is initialized from a vetKey as follows:
 
 More details about the retrieval and decryption of vetKeys can be found in the [developer docs](https://internetcomputer.org/docs/building-apps/network-features/vetkeys/api) of the ICP.
 
-After initializing the ratchet state, the user uploads encrypted cache of the state to the backend canister which is further described in [Encrypted Ratchet State Cache](#encrypted-ratchet-state-cache).
+After initializing the ratchet state, the user uploads encrypted cache of the state to the backend canister which is further described in [Encrypted Ratchet State Cache](#encrypted-symmetric-ratchet-state-cache).
 
 ##### Ratchet Evolution
 
@@ -896,7 +814,7 @@ It would be quite natural and similar to [Signal's symmetric ratchet](https://si
 
 Therefore, neither encryption nor decryption directly evolve `SymmetricRatchetState` but instead, the state is evolved whenever the current consensus time obtained via `get_my_chats_and_time` minus the message expiry is larger than the timestamp of the current symmetric key epoch id + 1, i.e., whenever there can be no non-expired message that we would need the current symmetric ratchet epoch to decrypt. The state evolution can be triggered by a background job that periodically checks if state evolution should be performed. 
 
-After evolving the ratchet state, the user uploads encrypted updated state cache to the canister backend which is further described in [Encrypted Ratchet State Cache](#encrypted-ratchet-state-cache). 
+After evolving the ratchet state, the user uploads encrypted updated state cache to the canister backend which is further described in [Encrypted Ratchet State Cache](#encrypted-symmetric-ratchet-state-cache). 
 
 ##### Ratchet Message Encryption
 ```ts
@@ -995,6 +913,72 @@ In the chat UI, this functionality can be realized e.g. via a flag set in the ch
 
 The current spec does not allow to integrate this optimization in a completely non-invasive way, since the chat participants of a vetKey epoch cannot be changed.
 To facilitate this, the list of chat participants could have versioning, where for each version the list change would be stored in the canister and `get_my_chats_and_time` would return no only the last message in the chat but also all vetKey epoch IDs for each chat and their participant list versions, or only for those where actual changes happened.
+
+### State Recovery
+
+The frontend's role in enabling state recovery (see also [Encrypted Ratchet State Cache](#encrypted-symmetric-ratchet-state-cache) in the backend) is twofold:
+* Initialization of caches.
+* Updates of caches.
+
+Independent of how the local ratchet state was initialized, once initialized the frontend checks if the ratchet state cache in the canister needs to be updated. If no cache state exists in the canister or it is outdated, the frontend encrypts and uploads the state via the `update_my_symmetric_key_cache` backend canister API.
+
+In addition to cache updates upon initialization, the frontend should periodically check that the cache is up-to-date. How often this is done depends on the symmetric ratchet duration window.
+However, note that only the client that is online can update their cache, which normally doesn't work perfectly practice, e.g., if we rotate the symmetric ratchet state every hour, there will be very few clients that will be online for actually performing cache updates every hour.
+Also, cache updates cost cycles in the ICP, and hence excessive use undesirably costs additional money.
+Therefore, cache updates every (half a) day, and therefore the symmetric ratchet duration of a similar length, seem to be most practical in the general use case.
+If another use case requires more strict parameters, they can be set appropriately to enable that use case.
+
+Encrypted maps handles the encryption of the map values transparently to the developer, i.e., the developer does not need to know how encryption exactly works in encrypted maps and can use encrypted maps as a black box.
+For the purpose of using encrypted maps for the encryption of user's cached keys, the encrypted maps object is instantiated with the domain separator `"vetkeys-example-encrypted-chat-user-cache"` in the backend.
+Then, to handle the cache, the frontend relies on the following:
+
+* Store to encrypted maps - when the frontend obtained a new ratchet state or wants to update a ratchet state cache, the frontend calls.
+
+* Load from encrypted maps - when the frontend requires to recover its previous ratchet states, it retrieves the encrypted cache and decrypts it locally.
+
+```ts
+    import { EncryptedMaps } from '@dfinity/vetkeys/encrypted_maps';
+
+    function store(encryptedMaps: EncryptedMaps, myPrincipal: Principal, chatId: ChatId, vetKeyEpochId: bigint, cache: Uint8Array) {
+      const epochBytes = uBigIntTo8ByteUint8ArrayBigEndian(vetKeyEpochId);
+      const chatIdBytes = chatIdToBytes(chatId);
+      const mapKey = new Uint8Array([...chatIdBytes, ...epochBytes]);
+      encryptedMaps.setValue(myPrincipal, mapName(), mapKey, cache);
+    }
+
+    function load(encryptedMaps: EncryptedMaps, myPrincipal: Principal, chatId: ChatId, vetKeyEpochId: bigint) : Uint8Array {
+      const epochBytes = uBigIntTo8ByteUint8ArrayBigEndian(vetKeyEpochId);
+      const chatIdBytes = chatIdToBytes(chatId);
+      const mapKey = new Uint8Array([...chatIdBytes, ...epochBytes]);
+      return encryptedMaps.getValue(myPrincipal, mapName(), mapKey);
+    }
+
+    function chatIdToBytes(chatId: ChatId) : Uint8Array {
+      if ('Direct' in chatId) {
+        return new Uint8Array([
+          0,
+          ...chatId.Direct[0].toUint8Array(),
+          ...chatId.Direct[1].toUint8Array()
+        ]);
+	    } else {
+		    return new Uint8Array([1, ...uBigIntTo8ByteUint8ArrayBigEndian(chatId.Group)]);
+	    }
+    }
+
+    function uBigIntTo8ByteUint8ArrayBigEndian(value: bigint): Uint8Array {
+	    if (value < 0n) throw new RangeError('Accepts only bigint n >= 0');
+
+	    const bytes = new Uint8Array(8);
+	    for (let i = 0; i < 8; i++) {
+	    	bytes[i] = Number((value >> BigInt(i * 8)) & 0xffn);
+    	}
+	    return bytes;
+    }
+
+    function mapName(): Uint8Array {
+	    return new TextEncoder().encode('encrypted_chat_cache');
+    }
+```
 
 ## Appendix
 
