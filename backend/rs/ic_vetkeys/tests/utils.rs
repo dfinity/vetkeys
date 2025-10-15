@@ -340,6 +340,18 @@ fn aes_gcm_encryption() {
         assert!(dkm.decrypt_message(&mod_ctext, domain_sep, aad).is_err());
     }
 
+    // Test sequentially flipping each bit of the associated data
+
+    for i in 0..aad.len() * 8 {
+        let mod_aad = {
+            let mut a = aad.clone();
+            a[i / 8] ^= 0x80 >> i % 8;
+            a
+        };
+
+        assert!(dkm.decrypt_message(&ctext, domain_sep, &mod_aad).is_err());
+    }
+
     // Test truncating
 
     for i in 0..ctext.len() - 1 {

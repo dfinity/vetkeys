@@ -359,7 +359,7 @@ test("AES-GCM encryption", async () => {
 
     // Test decryption of various mutated or truncated ciphertexts: all should fail
 
-    // Test sequentially flipping each bit
+    // Test sequentially flipping each bit of the ciphertext
     for (let trial = 0; trial < msg3.length * 8; trial++) {
         const modMsg = new Uint8Array(msg3);
 
@@ -377,6 +377,25 @@ test("AES-GCM encryption", async () => {
                 modMsg,
                 domainSep,
                 associatedData,
+            );
+        }).rejects.toThrow(expectedError);
+    }
+
+    // Test sequentially flipping each bit of the associated data
+    for (let trial = 0; trial < associatedData.length * 8; trial++) {
+        const modAad = new TextEncoder().encode(associatedData);
+
+        const flip = 0x80 >> trial % 8;
+        const byteToFlip = Math.floor(trial / 8);
+        modAad[byteToFlip] ^= flip;
+
+        const expectedError = "Decryption failed";
+
+        await expect(async () => {
+            return await keyMaterial.decryptMessage(
+                msg3,
+                domainSep,
+                modAad,
             );
         }).rejects.toThrow(expectedError);
     }
