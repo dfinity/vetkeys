@@ -1,8 +1,19 @@
 # Change Log
 
-## [0.4.1] - Unreleased
+## [0.5.0] - Unreleased
+
+### Added
 
 - Make `deriveSymmetricKey` non-`@internal`.
+- `DerivedKeyMaterial` encryption now supports authenticated data
+- `DerivedKeyMaterial` encryption uses a different format for encryption now.
+  Decryption of old messages is supported, however older versions of this library
+  will not be able to read messages encrypted by this or newer versions.
+
+### Changed
+
+
+- Make `DerivedKeyMaterial.deriveAesGcmCryptoKey` `@internal`.
 
 ## [0.4.0] - 2025-08-04
 

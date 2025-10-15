@@ -607,6 +607,13 @@ export class DerivedKeyMaterial {
             derivedKey,
         );
 
+        /*
+         * Note that the earlier versions of this library imported keys using
+         * only deriveKey and not deriveBits permissions. Since such keys might
+         * be persisted in a browser nearly indefinitely, any use of deriveBits
+         * must be done with the understanding that the call might fail
+         */
+
         const derived = await crypto.subtle.importKey(
             "raw",
             derivedKeyBytes,
@@ -623,6 +630,13 @@ export class DerivedKeyMaterial {
      */
     static async setup(vetkey: Uint8Array) {
         const exportable = false;
+
+        /*
+         * Note that the earlier versions of this library imported keys using
+         * only deriveKey and not deriveBits permissions. Since such keys might
+         * be persisted in a browser nearly indefinitely, any use of deriveBits
+         * must be done with the understanding that the call might fail
+         */
         const raw = await globalThis.crypto.subtle.importKey(
             "raw",
             vetkey,
