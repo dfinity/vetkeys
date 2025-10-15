@@ -392,11 +392,7 @@ test("AES-GCM encryption", async () => {
         const expectedError = "Decryption failed";
 
         await expect(async () => {
-            return await keyMaterial.decryptMessage(
-                msg3,
-                domainSep,
-                modAad,
-            );
+            return await keyMaterial.decryptMessage(msg3, domainSep, modAad);
         }).rejects.toThrow(expectedError);
     }
 
