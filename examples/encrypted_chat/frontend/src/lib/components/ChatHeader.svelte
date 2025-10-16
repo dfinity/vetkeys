@@ -3,7 +3,7 @@
 	import Button from './ui/Button.svelte';
 	import Card from './ui/Card.svelte';
 	import type { Chat, SymmetricRatchetStats, GroupChat } from '../types';
-	import { canisterAPI } from '../services/canisteApi';
+	import { canisterAPI } from '../services/canisterApi';
 	import { chatUIActions } from '../stores/chat.svelte';
 	import GroupManagementModal from './GroupManagementModal.svelte';
 	import { Principal } from '@dfinity/principal';

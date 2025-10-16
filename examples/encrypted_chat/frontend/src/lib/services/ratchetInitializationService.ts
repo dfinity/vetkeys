@@ -2,7 +2,7 @@ import { deriveRootKeyBytes, SymmetricRatchetState } from '$lib/crypto/symmetric
 import type { ChatId } from '../../declarations/encrypted_chat/encrypted_chat.did';
 import { getActor, getMyPrincipal } from '$lib/stores/auth.svelte';
 import { stringifyBigInt, chatIdToString } from '$lib/utils';
-import { canisterAPI } from './canisteApi';
+import { canisterAPI } from './canisterApi';
 import { keyStorageService } from './keyStorage';
 import { EncryptedCanisterCacheService } from './encryptedCanisterCacheService';
 import { VetKeyResharingService } from './vetKeyResharingService';

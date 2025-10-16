@@ -227,19 +227,3 @@
 		</Card>
 	</div>
 {/if}
-
-<style>
-	.checkbox {
-		width: 1rem;
-		height: 1rem;
-		border: 2px solid var(--color-surface-400);
-		border-radius: 0.25rem;
-		background: transparent;
-		cursor: pointer;
-	}
-
-	.checkbox:checked {
-		background: var(--color-primary-500);
-		border-color: var(--color-primary-500);
-	}
-</style>

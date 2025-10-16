@@ -9,7 +9,7 @@ import type {
 import { KeyManager } from '$lib/crypto/keyManager';
 import { RatchetInitializationService } from './ratchetInitializationService';
 import { SymmetricRatchetEpochError, VetKeyEpochError, type Message } from '$lib/types';
-import { canisterAPI } from './canisteApi';
+import { canisterAPI } from './canisterApi';
 import {
 	chatIdFromString,
 	chatIdsNumMessagesToSummary,
@@ -402,7 +402,7 @@ class BackgroundWorker {
 					console.error('Background worker error:', error);
 				}
 				if (this.abortController.signal.aborted) break;
-				await sleep(250);
+				await sleep(500);
 			}
 		};
 

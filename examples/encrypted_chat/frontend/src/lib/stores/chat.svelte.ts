@@ -5,7 +5,7 @@ import {
 	type Notification,
 	type SymmetricRatchetStats
 } from '../types';
-import { canisterAPI } from '../services/canisteApi';
+import { canisterAPI } from '../services/canisterApi';
 import { chatStorageService } from '../services/chatStorage';
 import { SvelteDate } from 'svelte/reactivity';
 import { auth, getActor, getMyPrincipal } from '$lib/stores/auth.svelte';
@@ -85,7 +85,7 @@ export const chatUIActions = {
 						BigInt(chatMessages[chatMessages.length - 1].messageId) + 1n
 					);
 				}
-				messages.state[chat.idStr] = [...chatMessages];
+				messages.state[chat.idStr] = [...(messages.state[chat.idStr] ?? []), ...chatMessages];
 			}
 
 			encryptedMessagingService.start();
@@ -117,9 +117,6 @@ export const chatUIActions = {
 			(c) => !currentChatIds.find((chatId) => chatIdToString(chatId) === c.idStr)
 		);
 		if (chatsToRemoveFromUi.length > 0) {
-			for (const chat of chatsToRemoveFromUi) {
-				await chatStorageService.deleteChat(chat.idStr);
-			}
 			console.log(
 				'refreshChats: removing chats ',
 				chatsToRemoveFromUi.map((c) => c.idStr),
@@ -128,15 +125,30 @@ export const chatUIActions = {
 				' because in currentChatIds from encryptedMessagingService we have ',
 				currentChatIds.map((c) => chatIdToString(c))
 			);
-			chats.state = chats.state.filter((c) =>
-				currentChatIds.find((chatId) => chatIdToString(chatId) === c.idStr)
-			);
 		}
+
 		const chatsToAddToUi = currentChatIds.filter(
 			(chatId) => !chats.state.find((chat) => chat.idStr === chatIdToString(chatId))
 		);
 
+		const vetKeyEpochMetaData = [];
+		const firstAccessibleMessageIds = [];
+
 		for (const chatId of chatsToAddToUi) {
+			const chatIdStr = chatIdToString(chatId);
+			console.log('refreshChats: adding chat ', chatIdStr);
+
+			vetKeyEpochMetaData.push(await canisterAPI.getLatestVetKeyEpochMetadata(getActor(), chatId));
+			const isGroup = 'Group' in chatId;
+			firstAccessibleMessageIds.push(
+				isGroup ? await canisterAPI.firstAccessibleMessageId(getActor(), chatId.Group) : 0n
+			);
+		}
+
+		const newChats: Chat[] = [];
+
+		for (let i = 0; i < chatsToAddToUi.length; i++) {
+			const chatId = chatsToAddToUi[i];
 			const chatIdStr = chatIdToString(chatId);
 			console.log('refreshChats: adding chat ', chatIdStr);
 
@@ -144,17 +156,9 @@ export const chatUIActions = {
 				continue;
 			}
 
-			const vetKeyEpochMetadata = await canisterAPI.getLatestVetKeyEpochMetadata(
-				getActor(),
-				chatId
-			);
-
 			const isGroup = 'Group' in chatId;
-			const firstAccessibleMessageId = isGroup
-				? await canisterAPI.firstAccessibleMessageId(getActor(), chatId.Group)
-				: 0n;
 
-			const participants = vetKeyEpochMetadata.participants;
+			const participants = vetKeyEpochMetaData[i].participants;
 			if (!participants) {
 				console.error('Failed to get participants for chat:', chatId);
 				continue;
@@ -183,16 +187,31 @@ export const chatUIActions = {
 				isUpdating: false,
 				disappearingMessagesDuration: 0,
 				keyRotationStatus: buildDummyRotationStatus(),
-				vetKeyEpoch: Number(vetKeyEpochMetadata.epoch_id),
+				vetKeyEpoch: Number(vetKeyEpochMetaData[i].epoch_id),
 				symmetricRatchetEpoch: 0,
 				unreadCount: 0,
 				avatar: isGroup ? '👥' : '👤',
-				firstAccessibleMessageId: Number(firstAccessibleMessageId)
+				firstAccessibleMessageId: Number(firstAccessibleMessageIds[i])
 			};
-			chats.state = [...chats.state, chat];
+			newChats.push(chat);
+		}
 
-			// Initialize empty messages cache; we lazy-load on demand
-			if (!messages.state[chatIdStr]) messages.state[chatIdStr] = [];
+		chats.state = [
+			...chats.state.filter((c) =>
+				currentChatIds.find((chatId) => chatIdToString(chatId) === c.idStr)
+			),
+			...newChats.filter((c) => !chats.state.find((c2) => c2.idStr === c.idStr))
+		];
+
+		// Initialize empty messages cache; we lazy-load on demand
+		for (const chat of newChats) {
+			if (!messages.state[chat.idStr]) messages.state[chat.idStr] = [];
+		}
+
+		if (chatsToRemoveFromUi.length > 0) {
+			for (const chat of chatsToRemoveFromUi) {
+				await chatStorageService.deleteChat(chat.idStr);
+			}
 		}
 	},
 
@@ -201,9 +220,12 @@ export const chatUIActions = {
 		console.log('selectChat: selected chat ', chatIdToString(chatId));
 
 		// Mark as read
-		chats.state = chats.state.map((chat) =>
-			chat.idStr === chatIdToString(chatId) ? { ...chat, unreadCount: 0 } : chat
-		);
+		const index = chats.state.findIndex((c) => c.idStr === chatIdToString(chatId)); 
+		if (index >= 0) {
+			chats.state[index].unreadCount = 0;
+		} else {
+			console.error('selectChat: chat not found: ', chatIdToString(chatId));
+		}
 	},
 
 	async loadChatMessages() {
@@ -404,11 +426,7 @@ export const chatUIActions = {
 		}
 	},
 
-	async updateGroupMembers(
-		chatId: ChatId,
-		addUsers: Principal[],
-		removeUsers: Principal[],
-	) {
+	async updateGroupMembers(chatId: ChatId, addUsers: Principal[], removeUsers: Principal[]) {
 		if ('Direct' in chatId) {
 			throw new Error('updateGroupMembers: chatId is a direct chat');
 		}
