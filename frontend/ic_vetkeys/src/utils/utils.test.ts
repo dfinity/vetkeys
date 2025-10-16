@@ -267,8 +267,8 @@ test("hkdf using webcrypto", async () => {
 
     const key1 = vetkey.deriveSymmetricKey(domainSep, 32);
     assertEqual(
-        bytesToHex(key1),
         "3b7bd854033cdc119865ba3019dc1e35010fdaf90f8ff5c9cfe9d1d557dddb29",
+        bytesToHex(key1),
     );
 
     const wckey = (await vetkey.asDerivedKeyMaterial()).getCryptoKey();
@@ -312,36 +312,54 @@ test("AES-GCM encryption", async () => {
     const testMessage = "stay calm, this is only a test";
     const testMessageBytes = new TextEncoder().encode(testMessage);
     const domainSep = "ic-test-domain-sep";
+    const associatedData = "some additional authenticated data";
 
     const keyMaterial = await vetkey.asDerivedKeyMaterial();
 
     // Test string encryption path, then decryption
 
-    const msg1 = await keyMaterial.encryptMessage(testMessage, domainSep);
+    const msg1 = await keyMaterial.encryptMessage(
+        testMessage,
+        domainSep,
+        associatedData,
+    );
     assertEqual(
-        await keyMaterial.decryptMessage(msg1, domainSep),
+        await keyMaterial.decryptMessage(msg1, domainSep, associatedData),
         testMessageBytes,
     );
 
     // Test Uint8Array encryption path, then decryption
-    const msg2 = await keyMaterial.encryptMessage(testMessageBytes, domainSep);
+    const msg2 = await keyMaterial.encryptMessage(
+        testMessageBytes,
+        domainSep,
+        associatedData,
+    );
     assertEqual(
-        await keyMaterial.decryptMessage(msg2, domainSep),
+        await keyMaterial.decryptMessage(msg2, domainSep, associatedData),
+        testMessageBytes,
+    );
+
+    // Test decryption of old format (headerless) ciphertext
+    const msgOldFormat = hexToBytes(
+        "476f440e30bb95fff1420ce41ba6a07e03c3fcc0a751cfb23e64a8dcb0fc2b1eb74e2d4768f5c4dccbf2526609156664046ad27a6e78bd93bb8b",
+    );
+    assertEqual(
+        await keyMaterial.decryptMessage(msgOldFormat, domainSep, ""),
         testMessageBytes,
     );
 
     // Test decryption of known ciphertext encrypted with the derived key
     const msg3 = hexToBytes(
-        "476f440e30bb95fff1420ce41ba6a07e03c3fcc0a751cfb23e64a8dcb0fc2b1eb74e2d4768f5c4dccbf2526609156664046ad27a6e78bd93bb8b",
+        "49432047434d76325dc1b0f5f8deec973adda66ce7cb9dc06118c738fae12027c5bae5b86e69ffd633ddfc0ea66c4df37b6e7e298d9f80170ec3d51c4238be9a63bd",
     );
     assertEqual(
-        await keyMaterial.decryptMessage(msg3, domainSep),
+        await keyMaterial.decryptMessage(msg3, domainSep, associatedData),
         testMessageBytes,
     );
 
     // Test decryption of various mutated or truncated ciphertexts: all should fail
 
-    // Test sequentially flipping each bit
+    // Test sequentially flipping each bit of the ciphertext
     for (let trial = 0; trial < msg3.length * 8; trial++) {
         const modMsg = new Uint8Array(msg3);
 
@@ -349,9 +367,33 @@ test("AES-GCM encryption", async () => {
         const byteToFlip = Math.floor(trial / 8);
         modMsg[byteToFlip] ^= flip;
 
+        const expectedError =
+            trial < 8 * 8
+                ? "Unknown header for AES-GCM encrypted ciphertext"
+                : "Decryption failed";
+
         await expect(async () => {
-            return await keyMaterial.decryptMessage(modMsg, domainSep);
-        }).rejects.toThrow("Decryption failed");
+            return await keyMaterial.decryptMessage(
+                modMsg,
+                domainSep,
+                associatedData,
+            );
+        }).rejects.toThrow(expectedError);
+    }
+
+    // Test sequentially flipping each bit of the associated data
+    for (let trial = 0; trial < associatedData.length * 8; trial++) {
+        const modAad = new TextEncoder().encode(associatedData);
+
+        const flip = 0x80 >> trial % 8;
+        const byteToFlip = Math.floor(trial / 8);
+        modAad[byteToFlip] ^= flip;
+
+        const expectedError = "Decryption failed";
+
+        await expect(async () => {
+            return await keyMaterial.decryptMessage(msg3, domainSep, modAad);
+        }).rejects.toThrow(expectedError);
     }
 
     // Test truncating
@@ -359,12 +401,16 @@ test("AES-GCM encryption", async () => {
         const modMsg = msg3.slice(0, trial);
 
         const expectedError =
-            modMsg.length < 12 + 16
+            modMsg.length < 8 + 12 + 16
                 ? "Invalid ciphertext, too short"
                 : "Decryption failed";
 
         await expect(async () => {
-            return await keyMaterial.decryptMessage(modMsg, domainSep);
+            return await keyMaterial.decryptMessage(
+                modMsg,
+                domainSep,
+                associatedData,
+            );
         }).rejects.toThrow(expectedError);
     }
 
@@ -376,7 +422,11 @@ test("AES-GCM encryption", async () => {
         const modMsg = new Uint8Array([...msg3, ...extraBytes]);
 
         await expect(async () => {
-            return await keyMaterial.decryptMessage(modMsg, domainSep);
+            return await keyMaterial.decryptMessage(
+                modMsg,
+                domainSep,
+                associatedData,
+            );
         }).rejects.toThrow("Decryption failed");
     }
 });

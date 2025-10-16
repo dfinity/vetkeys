@@ -52,8 +52,9 @@ test("can get vetkey", async () => {
     expect(
         isEqualArrayThrowing(
             await secondVetkey.decryptMessage(
-                await vetkey.encryptMessage("message", "domain"),
+                await vetkey.encryptMessage("message", "domain", ""),
                 "domain",
+                "",
             ),
             new TextEncoder().encode("message"),
         ),
@@ -147,10 +148,10 @@ test("set value should work", async () => {
     }
 
     expect(expectedEncryptionResult.length).to.equal(
-        12 + 16 + plaintext.length,
+        8 + 12 + 16 + plaintext.length,
     );
     expect(getValueResult.Ok[0].inner.length).to.equal(
-        12 + 16 + plaintext.length,
+        8 + 12 + 16 + plaintext.length,
     );
 
     const tryDecryptFromCheck = await encryptedMaps.decryptFor(
