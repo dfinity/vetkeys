@@ -17,6 +17,7 @@ import {
 	randomSenderMessageId
 } from '$lib/utils';
 import * as cbor from 'cbor-x';
+import type { SymmetricRatchetState } from '$lib/crypto/symmetricRatchet';
 
 type MessageContent = {
 	textContent: string;
@@ -67,6 +68,10 @@ export class EncryptedMessagingService {
 			},
 			async () => this.#handleOutgoingMessages()
 		);
+	}
+
+	inductSymmetricRatchetState(chatIdStr: string, vetKeyEpoch: bigint, symmetricRatchetState: SymmetricRatchetState) {
+		this.#keyManager.inductSymmetricRatchetState(chatIdStr, vetKeyEpoch, symmetricRatchetState);
 	}
 
 	skipMessagesAvailableLocally(chatId: ChatId, numMessages: bigint) {

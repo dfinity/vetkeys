@@ -64,7 +64,9 @@ export function sizePrefixedBytesFromString(text: string): Uint8Array {
 	return new Uint8Array([...size, ...bytes]);
 }
 
-export function chatIdsNumMessagesToSummary(args: { chatId: ChatId; numMessages: bigint }[]): string {
+export function chatIdsNumMessagesToSummary(
+	args: { chatId: ChatId; numMessages: bigint }[]
+): string {
 	return args.reduce((acc, { chatId, numMessages }) => {
 		if ('Direct' in chatId) {
 			return (
@@ -93,4 +95,23 @@ export function randomSenderMessageId(): bigint {
 	let senderMessageId = 0n;
 	for (const b of buf) senderMessageId = (senderMessageId << 8n) | BigInt(b);
 	return senderMessageId;
+}
+
+export function toHex(bytes: Uint8Array): string {
+	const hex: string[] = [];
+	for (let i = 0; i < bytes.length; i++) {
+		const v = bytes[i].toString(16);
+		hex[i] = v.length === 1 ? '0' + v : v;
+	}
+	return hex.join('');
+}
+
+export function fromHex(hex: string): Uint8Array {
+	if (hex.length % 2 !== 0) throw new Error('Invalid hex string');
+	const len = hex.length / 2;
+	const bytes = new Uint8Array(len);
+	for (let i = 0; i < len; i++) {
+		bytes[i] = parseInt(hex.substr(i * 2, 2), 16);
+	}
+	return bytes;
 }

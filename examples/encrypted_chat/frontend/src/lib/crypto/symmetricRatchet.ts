@@ -28,6 +28,13 @@ const DOMAIN_MESSAGE_ENCRYPTION = sizePrefixedBytesFromString(
 //
 // In summary, the raw key state allows to cache the key and the CryptoKey state allows to encrypt/decrypt messages.
 
+export type StorableSymmetricRatchetState = {
+	cryptoKey: CryptoKey;
+	symmetricRatchetEpoch: bigint;
+	creationTime: Date;
+	rotationDuration: Date;
+};
+
 export class SymmetricRatchetState {
 	#cryptoKey: CryptoKey;
 	#symmetricRatchetEpoch: bigint;
@@ -44,6 +51,15 @@ export class SymmetricRatchetState {
 		this.#symmetricRatchetEpoch = symmetricRatchetEpoch;
 		this.#creationTime = creationTime;
 		this.#rotationDuration = rotationDuration;
+	}
+
+	toStorable(): StorableSymmetricRatchetState {
+		return {
+			cryptoKey: this.#cryptoKey,
+			symmetricRatchetEpoch: this.#symmetricRatchetEpoch,
+			creationTime: this.#creationTime,
+			rotationDuration: this.#rotationDuration
+		};
 	}
 
 	static async fromRawKeyState(

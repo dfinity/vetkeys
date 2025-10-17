@@ -30,8 +30,7 @@ export class RatchetInitializationService {
 		);
 
 		try {
-			const keyState = await this.cryptoKeyStateFromLocalStorage(chatId, vetKeyEpoch);
-			return new SymmetricRatchetState(keyState.key, 0n, creationTime, rotationDuration);
+			return await this.cryptoKeyStateFromLocalStorage(chatId, vetKeyEpoch);
 		} catch (error) {
 			console.info(
 				`User doesn't have key in persistent storage for chat ${chatIdToString(chatId)} and vetKey epoch ${vetKeyEpoch.toString()}: `,
@@ -41,12 +40,26 @@ export class RatchetInitializationService {
 
 		try {
 			const keyState = await this.cryptoKeyStateFromRemoteCache(chatId, vetKeyEpoch);
-			return new SymmetricRatchetState(
+			const symmetricRatchetState = new SymmetricRatchetState(
 				keyState.key,
 				keyState.symmetricKeyEpoch,
 				creationTime,
 				rotationDuration
 			);
+
+			keyStorageService
+				.saveSymmetricRatchetState(
+					chatIdToString(chatId),
+					vetKeyEpoch.toString(),
+					symmetricRatchetState
+				)
+				.catch((error) => {
+					console.error(
+						`Failed to save key state for chat ${chatIdToString(chatId)} vetkeyEpoch ${vetKeyEpoch.toString()}: `,
+						error
+					);
+				});
+			return symmetricRatchetState;
 		} catch (error) {
 			console.info(
 				`User doesn't have key in remote cache for chat ${chatIdToString(chatId)} and vetKey epoch ${vetKeyEpoch.toString()}: `,
@@ -68,12 +81,25 @@ export class RatchetInitializationService {
 
 		try {
 			const keyState = await this.fetchAndReshareAndCacheVetKey(chatId, vetKeyEpoch);
-			return new SymmetricRatchetState(
+			const symmetricRatchetState = new SymmetricRatchetState(
 				keyState.key,
 				keyState.symmetricKeyEpoch,
 				creationTime,
 				rotationDuration
 			);
+			keyStorageService
+				.saveSymmetricRatchetState(
+					chatIdToString(chatId),
+					vetKeyEpoch.toString(),
+					symmetricRatchetState
+				)
+				.catch((error) => {
+					console.error(
+						`Failed to save key state for chat ${chatIdToString(chatId)} vetkeyEpoch ${vetKeyEpoch.toString()}: `,
+						error
+					);
+				});
+			return symmetricRatchetState;
 		} catch (error) {
 			console.info('Failed to fetch vetkey: ', error);
 		}
@@ -84,9 +110,9 @@ export class RatchetInitializationService {
 	async cryptoKeyStateFromLocalStorage(
 		chatId: ChatId,
 		vetKeyEpoch: bigint
-	): Promise<{ key: CryptoKey; symmetricKeyEpoch: bigint }> {
+	): Promise<SymmetricRatchetState> {
 		return keyStorageService
-			.getSymmetricKeyState(chatIdToString(chatId), vetKeyEpoch.toString())
+			.getSymmetricRatchetState(chatIdToString(chatId), vetKeyEpoch.toString())
 			.then((keyState) => {
 				if (keyState) {
 					console.log('Key state found in key storage: ', keyState);
@@ -150,25 +176,9 @@ export class RatchetInitializationService {
 					);
 				});
 
-			const freshCryptoKeyState = importKeyStateFromBytes(
+			return await importKeyStateFromBytes(
 				deriveRootKeyAndDispatchCaching(chatId, vetKeyEpoch, vetKey.signatureBytes())
-			).then((freshCryptoKeyState) => {
-				keyStorageService
-					.saveSymmetricKeyState(
-						chatIdToString(chatId),
-						vetKeyEpoch.toString(),
-						freshCryptoKeyState
-					)
-					.catch((error) => {
-						console.error(
-							`Failed to save key state for chat ${chatIdToString(chatId)} vetkeyEpoch ${vetKeyEpoch.toString()}: `,
-							error
-						);
-					});
-				return freshCryptoKeyState;
-			});
-
-			return freshCryptoKeyState;
+			);
 		}
 	}
 }

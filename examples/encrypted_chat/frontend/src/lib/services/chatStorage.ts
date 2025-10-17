@@ -1,6 +1,8 @@
 import { get, set, del, clear, keys } from 'idb-keyval';
 import type { Message, Chat, UserConfig } from '../types';
 import { storagePrefixes } from '../types';
+import * as cbor from 'cbor-x';
+import { fromHex, toHex } from '$lib/utils';
 
 // IndexedDB storage service for persistent chat data
 export class ChatStorageService {
@@ -8,13 +10,16 @@ export class ChatStorageService {
 		console.log(
 			`ChatStorageService: Saving from chat ${message.chatId} message ${message.messageId} to indexedDB`
 		);
-		await set([storagePrefixes.MESSAGE_PREFIX, message.chatId, message.messageId], message);
+
+		const encodedMessage = toHex(cbor.encode(message) as Uint8Array);
+
+		await set([storagePrefixes.MESSAGE_PREFIX, message.chatId, message.messageId], encodedMessage);
 	}
 
 	async getMessages(chatId: string): Promise<Message[]> {
 		const allKeys = await keys();
 		const chatMessageKeys = allKeys.filter(
-			(key) => Array.isArray(key) && key[0] === storagePrefixes.MESSAGE_PREFIX
+			(key) => Array.isArray(key) && key[0] === storagePrefixes.MESSAGE_PREFIX && key[1] === chatId
 		);
 		if (chatMessageKeys.length === 0) {
 			console.log(`ChatStorageService: No messages found in indexedDB for chat ${chatId}`);
@@ -26,7 +31,12 @@ export class ChatStorageService {
 
 		const messages: Message[] = [];
 		for (const key of chatMessageKeys) {
-			const message = (await get(key)) as Message;
+			const encodedMessage = await get(key) as string;
+			if (!encodedMessage) {
+				console.error("ChatStorageService: Failed to get encoded message from indexedDB");
+				continue;
+			}
+			const message = cbor.decode(fromHex(encodedMessage)) as Message;
 			if (message) {
 				// Ensure timestamp is a Date object
 				if (typeof message.timestamp === 'string') {
@@ -42,6 +52,16 @@ export class ChatStorageService {
 
 	async deleteMessage(chatId: string, messageId: string): Promise<void> {
 		await del([storagePrefixes.MESSAGE_PREFIX, chatId, messageId]);
+	}
+
+	async containsMessage(chatId: string, messageId: string): Promise<boolean> {
+		return (await keys()).some(
+			(key) =>
+				Array.isArray(key) &&
+				key[0] === storagePrefixes.MESSAGE_PREFIX &&
+				key[1] === chatId &&
+				key[2] === messageId
+		);
 	}
 
 	// Chat metadata storage

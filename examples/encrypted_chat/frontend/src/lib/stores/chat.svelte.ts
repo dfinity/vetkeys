@@ -17,6 +17,7 @@ import { Principal } from '@dfinity/principal';
 import { chatIdFromString, chatIdToString } from '$lib/utils';
 import { EncryptedMessagingService } from '$lib/services/encryptedMessagingService';
 import * as cbor from 'cbor-x';
+import { KeyStorageService } from '$lib/services/keyStorage';
 
 export const chats = $state<{ state: Chat[] }>({ state: [] });
 export const selectedChatId = $state<{ state: ChatId | null }>({ state: null });
@@ -41,13 +42,17 @@ export function initVetKeyReactions() {
 				});
 			}
 
-			// for (const [_chatIdStr, messagesArray] of messages.state.entries() {
-			// 	for (const message of messagesArray) {
-			// 		chatStorageService.saveMessage(message).catch((error) => {
-			// 			console.error('Failed to save message:', error);
-			// 		});
-			// 	}
-			// }
+			for (const [chatIdStr, messagesArray] of Object.entries(messages.state)) {
+				for (const message of messagesArray) {
+					void chatStorageService.containsMessage(chatIdStr, message.messageId).then((exists) => {
+						if (!exists) {
+							chatStorageService.saveMessage(message).catch((error) => {
+								console.error('Failed to save message:', error);
+							});
+						}
+					});
+				}
+			}
 		});
 	});
 }
@@ -68,8 +73,10 @@ export const chatUIActions = {
 
 			// Load chats
 			const allChats = await chatStorageService.getAllChats();
-			chats.state = [...allChats];
 
+			console.log('initialize: allChats', allChats);
+
+			const allMessages: Record<string, Message[]> = {};
 			// Load messages
 			for (const chat of allChats) {
 				const chatMessages = await chatStorageService.getMessages(chat.idStr);
@@ -85,7 +92,29 @@ export const chatUIActions = {
 						BigInt(chatMessages[chatMessages.length - 1].messageId) + 1n
 					);
 				}
-				messages.state[chat.idStr] = [...(messages.state[chat.idStr] ?? []), ...chatMessages];
+				allMessages[chat.idStr] = [...(allMessages[chat.idStr] ?? []), ...chatMessages];
+			}
+
+			// set the last message for each chat
+			allChats.forEach((chat) => {
+				const lastMessage = allMessages[chat.idStr][allMessages[chat.idStr].length - 1];
+				chat.lastMessage = lastMessage;
+			});
+			console.log('initialize: allMessages', allMessages);
+			console.log('initialize: allChats', allChats);
+			chats.state = allChats;
+			messages.state = allMessages;
+			const symmetricRatchetStates = await new KeyStorageService().getAllSymmetricRatchetStates();
+			for (const { chatIdStr, vetKeyEpoch, state } of symmetricRatchetStates) {
+				console.log(
+					'initialize: inducting symmetric ratchet state for chatId',
+					chatIdStr,
+					'vetKeyEpoch',
+					vetKeyEpoch,
+					'symmetricRatchetState',
+					state
+				);
+				encryptedMessagingService.inductSymmetricRatchetState(chatIdStr, vetKeyEpoch, state);
 			}
 
 			encryptedMessagingService.start();
@@ -220,7 +249,7 @@ export const chatUIActions = {
 		console.log('selectChat: selected chat ', chatIdToString(chatId));
 
 		// Mark as read
-		const index = chats.state.findIndex((c) => c.idStr === chatIdToString(chatId)); 
+		const index = chats.state.findIndex((c) => c.idStr === chatIdToString(chatId));
 		if (index >= 0) {
 			chats.state[index].unreadCount = 0;
 		} else {
