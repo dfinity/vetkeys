@@ -3,6 +3,7 @@ import type { Message, Chat, UserConfig } from '../types';
 import { storagePrefixes } from '../types';
 import * as cbor from 'cbor-x';
 import { fromHex, toHex } from '$lib/utils';
+import { Principal } from '@dfinity/principal';
 
 // IndexedDB storage service for persistent chat data
 export class ChatStorageService {
@@ -31,9 +32,9 @@ export class ChatStorageService {
 
 		const messages: Message[] = [];
 		for (const key of chatMessageKeys) {
-			const encodedMessage = await get(key) as string;
+			const encodedMessage = (await get(key)) as string;
 			if (!encodedMessage) {
-				console.error("ChatStorageService: Failed to get encoded message from indexedDB");
+				console.error('ChatStorageService: Failed to get encoded message from indexedDB');
 				continue;
 			}
 			const message = cbor.decode(fromHex(encodedMessage)) as Message;
@@ -67,7 +68,17 @@ export class ChatStorageService {
 	// Chat metadata storage
 	async saveChat(chat: Chat): Promise<void> {
 		console.log(`ChatStorageService: Saving chat ${chat.idStr} to indexedDB`);
-		const value = JSON.stringify(chat);
+		// example of the JSON encoding is
+		const value = JSON.stringify(chat, (key, value) => {
+			if (value instanceof Principal) {
+				const principal = {
+					__principal__: true,
+					value: value.toText()
+				};
+				return principal;
+			}
+			return value as unknown;
+		});
 		if (!value) {
 			throw new Error('ChatStorageService: Failed to stringify chat');
 		}
@@ -96,7 +107,16 @@ export class ChatStorageService {
 			const chatStr = (await get(key)) as string;
 			if (chatStr) {
 				console.log('getAllChats: getting key', key, ' with value ', chatStr);
-				chats.push(JSON.parse(chatStr) as Chat);
+				chats.push(
+					JSON.parse(chatStr, (key, value) => {
+						if (typeof value === 'object' && value !== null && '__principal__' in value) {
+							// eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+							const principal = Principal.fromText(value.__principal__ as string);
+							return principal;
+						}
+						return value as unknown;
+					}) as Chat
+				);
 			}
 		}
 		return chats;

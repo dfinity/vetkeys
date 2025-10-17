@@ -20,9 +20,7 @@ export class KeyStorageService {
 			vetKeyEpochStr
 		])) as StorableSymmetricRatchetState;
 		if (!stateRecord) {
-			throw new Error(
-				`KeyStorageService: No symmetric ratchet state found for chat ${chatIdStr} vetkeyEpoch ${vetKeyEpochStr}`
-			);
+			return undefined;
 		}
 		console.log(
 			`KeyStorageService.getSymmetricRatchetState: Got symmetric ratchet state for chat ${chatIdStr} vetkeyEpoch ${vetKeyEpochStr}: state`,
@@ -45,7 +43,10 @@ export class KeyStorageService {
 			`KeyStorageService: Saving key state for chat ${chatIdStr} vetkeyEpoch ${vetKeyEpochStr}: state`,
 			state
 		);
-		await set([storagePrefixes.CHAT_EPOCH_KEY_PREFIX, chatIdStr, vetKeyEpochStr], state.toStorable());
+		await set(
+			[storagePrefixes.CHAT_EPOCH_KEY_PREFIX, chatIdStr, vetKeyEpochStr],
+			state.toStorable()
+		);
 	}
 
 	async getAllSymmetricRatchetStates(): Promise<

@@ -54,7 +54,6 @@ service : (text) -> {
   // * If the user does not have access to the chat or vetKey epoch.
   // * If the user has already cached the key.
   derive_chat_vetkey : (ChatId, opt nat64, blob) -> (Result_2);
-  first_accessible_message_id : (nat64) -> (opt nat64) query;
   get_encrypted_vetkey_for_my_cache_storage : (blob) -> (blob);
   get_latest_chat_vetkey_epoch_metadata : (ChatId) -> (Result_3) query;
   // Returns messages for a chat starting from a given message id.

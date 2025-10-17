@@ -105,6 +105,9 @@ export async function logout() {
 
 export function getMyPrincipal(): Principal {
 	if (auth.state.label !== 'initialized') throw new Error('Unexpectedly not authenticated');
+	if (!auth.state.client.getIdentity().getPrincipal()) {
+		console.error('Unexpectedly not authenticated: undefined principal', auth.state.client.getIdentity().getPrincipal());
+	}
 	return auth.state.client.getIdentity().getPrincipal();
 }
 

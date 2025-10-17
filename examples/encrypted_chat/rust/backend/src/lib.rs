@@ -248,20 +248,6 @@ fn create_group_chat(
     Ok(group_chat_metadata)
 }
 
-#[ic_cdk::query]
-async fn first_accessible_message_id(group_chat_id: GroupChatId) -> Option<ChatMessageId> {
-    let caller = ic_cdk::api::msg_caller();
-    let chat_id = ChatId::Group(group_chat_id);
-
-    CHAT_TO_VETKEYS_METADATA.with_borrow(|metadata| {
-        metadata
-            .range(&(chat_id, Time(0))..)
-            .take_while(|metadata| metadata.key().0 == chat_id)
-            .find(|metadata| metadata.value().participants.contains(&caller))
-            .map(|metadata| metadata.value().messages_start_with_id)
-    })
-}
-
 #[ic_cdk::update]
 async fn chat_public_key(chat_id: ChatId, vetkey_epoch_id: VetKeyEpochId) -> serde_bytes::ByteBuf {
     let request = VetKDPublicKeyArgs {

@@ -32,7 +32,6 @@ export class EncryptedMessagingService {
 
 	#receivingQueue: Map<string, Message[]>;
 	#receivingQueueToDecrypt: Map<string, EncryptedMessage[]>;
-	#firstAccessibleMessageId: Map<string, bigint>;
 	#chatIdToCurrentNumberOfRemoteMessages: Map<string, bigint>;
 	#chatIdToCurrentNumberOfFetchedMessages: Map<string, bigint>;
 
@@ -47,7 +46,6 @@ export class EncryptedMessagingService {
 		this.#receivingQueue = new Map();
 		this.#receivingQueueToDecrypt = new Map();
 
-		this.#firstAccessibleMessageId = new Map();
 		this.#chatIdToCurrentNumberOfRemoteMessages = new Map();
 		this.#chatIdToCurrentNumberOfFetchedMessages = new Map();
 
@@ -70,7 +68,11 @@ export class EncryptedMessagingService {
 		);
 	}
 
-	inductSymmetricRatchetState(chatIdStr: string, vetKeyEpoch: bigint, symmetricRatchetState: SymmetricRatchetState) {
+	inductSymmetricRatchetState(
+		chatIdStr: string,
+		vetKeyEpoch: bigint,
+		symmetricRatchetState: SymmetricRatchetState
+	) {
 		this.#keyManager.inductSymmetricRatchetState(chatIdStr, vetKeyEpoch, symmetricRatchetState);
 	}
 
@@ -205,22 +207,12 @@ export class EncryptedMessagingService {
 				this.#chatIdToCurrentNumberOfFetchedMessages.get(chatIdToString(chatId)) ?? 0n;
 			this.#chatIdToCurrentNumberOfRemoteMessages.set(chatIdToString(chatId), numMessages);
 
-			if (
-				(this.#firstAccessibleMessageId.get(chatIdToString(chatId)) ?? 0n) +
-					currentNumberOfFetchedMessages >=
-				numMessages
-			) {
-				continue;
-			}
-
 			console.log(
-				`#pollForNewMessages: new messages for chatId: ${chatIdToString(chatId)}, currentNumberOfFetchedMessages: ${currentNumberOfFetchedMessages}, numMessages: ${numMessages}, firstAccessibleMessageId: ${this.#firstAccessibleMessageId.get(chatIdToString(chatId)) ?? 0n}`
+				`#pollForNewMessages: new messages for chatId: ${chatIdToString(chatId)}, currentNumberOfFetchedMessages: ${currentNumberOfFetchedMessages}, numMessages: ${numMessages}`
 			);
 
 			// Get messages starting from the last known message ID
-			const startId =
-				(await this.#getFirstAccessibleMessageId(chatIdToString(chatId))) +
-				currentNumberOfFetchedMessages;
+			const startId = 0n + currentNumberOfFetchedMessages;
 
 			try {
 				const messages = await canisterAPI.fetchEncryptedMessages(
@@ -233,7 +225,7 @@ export class EncryptedMessagingService {
 				console.log(
 					`#pollForNewMessages: fetched ${messages.length} messages for chatId ${chatIdToString(
 						chatId
-					)}, currentNumberOfFetchedMessages: ${currentNumberOfFetchedMessages}, numMessages: ${numMessages}, firstAccessibleMessageId: ${this.#firstAccessibleMessageId.get(chatIdToString(chatId)) ?? 0n} new fetched messages count: ${currentNumberOfFetchedMessages + BigInt(messages.length)}`
+					)}, currentNumberOfFetchedMessages: ${currentNumberOfFetchedMessages}, numMessages: ${numMessages}, new fetched messages count: ${currentNumberOfFetchedMessages + BigInt(messages.length)}`
 				);
 
 				console.log(
@@ -367,22 +359,6 @@ export class EncryptedMessagingService {
 			vetkeyEpoch: Number(metadata.vetkey_epoch),
 			symmetricRatchetEpoch: Number(metadata.symmetric_key_epoch)
 		};
-	}
-
-	async #getFirstAccessibleMessageId(chatIdStr: string) {
-		const chatId = chatIdFromString(chatIdStr);
-		if ('Direct' in chatId) {
-			return 0n;
-		}
-
-		if (this.#firstAccessibleMessageId.has(chatIdStr)) {
-			return this.#firstAccessibleMessageId.get(chatIdStr)!;
-		}
-
-		const id = (await canisterAPI.firstAccessibleMessageId(getActor(), chatId.Group)) ?? 0n;
-		this.#firstAccessibleMessageId.set(chatIdStr, id);
-
-		return id;
 	}
 }
 

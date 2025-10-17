@@ -40,7 +40,6 @@ export interface Chat {
 	symmetricRatchetEpoch: number;
 	unreadCount: number;
 	avatar?: string;
-	firstAccessibleMessageId: number;
 }
 
 export interface DirectChat extends Chat {

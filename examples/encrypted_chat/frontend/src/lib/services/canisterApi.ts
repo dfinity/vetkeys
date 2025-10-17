@@ -178,18 +178,6 @@ export class CanisterAPI {
 		);
 		return result;
 	}
-
-	async firstAccessibleMessageId(
-		actor: ActorSubclass<_SERVICE>,
-		groupChatId: bigint
-	): Promise<bigint | undefined> {
-		const result = await actor.first_accessible_message_id(groupChatId);
-		if (result.length === 0) {
-			return undefined;
-		} else {
-			return result[0];
-		}
-	}
 }
 
 export const canisterAPI = new CanisterAPI();

@@ -161,17 +161,11 @@ export const chatUIActions = {
 		);
 
 		const vetKeyEpochMetaData = [];
-		const firstAccessibleMessageIds = [];
 
 		for (const chatId of chatsToAddToUi) {
 			const chatIdStr = chatIdToString(chatId);
 			console.log('refreshChats: adding chat ', chatIdStr);
-
 			vetKeyEpochMetaData.push(await canisterAPI.getLatestVetKeyEpochMetadata(getActor(), chatId));
-			const isGroup = 'Group' in chatId;
-			firstAccessibleMessageIds.push(
-				isGroup ? await canisterAPI.firstAccessibleMessageId(getActor(), chatId.Group) : 0n
-			);
 		}
 
 		const newChats: Chat[] = [];
@@ -219,8 +213,7 @@ export const chatUIActions = {
 				vetKeyEpoch: Number(vetKeyEpochMetaData[i].epoch_id),
 				symmetricRatchetEpoch: 0,
 				unreadCount: 0,
-				avatar: isGroup ? '👥' : '👤',
-				firstAccessibleMessageId: Number(firstAccessibleMessageIds[i])
+				avatar: isGroup ? '👥' : '👤'
 			};
 			newChats.push(chat);
 		}
