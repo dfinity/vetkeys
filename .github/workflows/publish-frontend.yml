@@ -9,6 +9,7 @@ on:
 jobs:
   publish:
     if: startsWith(github.ref, 'refs/tags/frontend/@dfinity/vetkeys/')
+    environment: release
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -42,7 +43,7 @@ jobs:
             exit 1
           fi
       - run: |
-          npm install
+          npm ci
           cd frontend/ic_vetkeys
           npm list
           npm run build
