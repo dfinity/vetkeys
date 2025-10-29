@@ -157,10 +157,7 @@ fn test_derivation_using_pocketic_keys() {
         let canister_key = mk.derive_canister_key(canister_id.as_slice());
         let derived_key = canister_key.derive_sub_key(context.as_bytes());
 
-        assert_eq!(
-            hex::encode(derived_key.serialize()),
-            *expected
-        );
+        assert_eq!(hex::encode(derived_key.serialize()), *expected);
     }
 }
 

@@ -423,7 +423,9 @@ impl MasterPublicKey {
         match (key_id.curve, key_id.name.as_str()) {
             (VetKDCurve::Bls12_381_G2, "key_1") => Some(Self::new(*POCKETIC_G2_KEY_1)),
             (VetKDCurve::Bls12_381_G2, "test_key_1") => Some(Self::new(*POCKETIC_G2_TEST_KEY_1)),
-            (VetKDCurve::Bls12_381_G2, "dfx_test_key") => Some(Self::new(*POCKETIC_G2_DFX_TEST_KEY)),
+            (VetKDCurve::Bls12_381_G2, "dfx_test_key") => {
+                Some(Self::new(*POCKETIC_G2_DFX_TEST_KEY))
+            }
             (_, _) => None,
         }
     }
