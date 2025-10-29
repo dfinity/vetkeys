@@ -136,6 +136,35 @@ fn test_derivation_using_production_key() {
 }
 
 #[test]
+fn test_derivation_using_pocketic_keys() {
+    let test_vectors = [
+        ("key_1", "899a951f6ec2f9a96759c554a6cb01fb1cb20b2f2f96a2d2c869221c04d3349c3be8d49c3257312aed031f430f15f7ef0f4d43adf11251015d70dd91ac07df50fb70818ece721a1d6a314204acddde55542902f5d0d95e2406a5ab1fad18349d"),
+        ("test_key_1", "a60993fc46593728bd9b0a4ffb1fb9a662dd89b29c99fde36e403c311c8992e6eeb097b31174dd43f74e73fe10c190271193a4345490f64a41ce778a2f6e7c16804919e843ac72ff65bab959c53fa839c9fb3cb263e41498d17fb82704fe18bc"),
+        ("dfx_test_key", "800424bea66b95b715f86a9bed06b1f60df98206a57235c3e0f2da4d485dc1c93c56eef54155d559ef45c757fb0444920620b932652f1d683fdbc57db98b5aeb8ba664a5e040cbdf4d685e4e236a7193d1bd5b0927204fab05fff4f61f26b358"),
+    ];
+
+    let canister_id = candid::Principal::from_text("uzt4z-lp777-77774-qaabq-cai").unwrap();
+
+    for (key_id, expected) in &test_vectors {
+        let context = format!("Test Derivation For PocketIC VetKD {}", key_id);
+
+        let key_id = VetKDKeyId {
+            curve: VetKDCurve::Bls12_381_G2,
+            name: key_id.to_string(),
+        };
+
+        let mk = MasterPublicKey::for_pocketic_key(&key_id).unwrap();
+        let canister_key = mk.derive_canister_key(canister_id.as_slice());
+        let derived_key = canister_key.derive_sub_key(context.as_bytes());
+
+        assert_eq!(
+            hex::encode(derived_key.serialize()),
+            *expected
+        );
+    }
+}
+
+#[test]
 fn test_second_level_public_key_derivation() {
     let canister_key = DerivedPublicKey::deserialize(&hex::decode("8bf165ea580742abf5fd5123eb848aa116dcf75c3ddb3cd3540c852cf99f0c5394e72dfc2f25dbcb5f9220f251cd04040a508a0bcb8b2543908d6626b46f09d614c924c5deb63a9949338ae4f4ac436bd77f8d0a392fd29de0f392a009fa61f3").unwrap()).unwrap();
 

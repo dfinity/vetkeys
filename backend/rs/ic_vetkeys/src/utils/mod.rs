@@ -22,11 +22,25 @@ const MASTER_PUBLIC_KEY_BYTES_KEY_1 : [u8; 96] = hex!("a9caf9ae8af0c7c7272f8a122
 
 const MASTER_PUBLIC_KEY_BYTES_TEST_KEY_1 : [u8; 96] = hex!("ad86e8ff845912f022a0838a502d763fdea547c9948f8cb20ea7738dd52c1c38dcb4c6ca9ac29f9ac690fc5ad7681cb41922b8dffbd65d94bff141f5fb5b6624eccc03bf850f222052df888cf9b1e47203556d7522271cbb879b2ef4b8c2bfb1");
 
+const POCKETIC_MASTER_PUBLIC_KEY_BYTES_KEY_1 : [u8; 96] = hex!("8c800b5cff00463d26e8167369168827f1e48f4d8d60f71dd6a295580f65275b5f5f8e6a792c876b2c72492136530d0710a27522ee63977a76216c3cef9e70bfcb45b88736fc62142e7e0737848ce06cbb1f45a4a6a349b142ae5cf7853561e0");
+
+const POCKETIC_MASTER_PUBLIC_KEY_BYTES_TEST_KEY_1 : [u8; 96] = hex!("9069b82c7aae418cef27678291e7f2cb1a008a500eceba7199bffca12421b07c158987c6a22618af3d1958738b2835691028801f7663d311799733286c557c8979184bb62cb559a4d582fca7d2e48b860f08ed6641aef66a059ec891889a6218");
+
+const POCKETIC_MASTER_PUBLIC_KEY_BYTES_DFX_TEST_KEY : [u8; 96] = hex!("b181c14cf9d04ba45d782c0067a44b0aaa9fc2acf94f1a875f0dae801af4f80339a7e6bf8b09fcf993824c8df3080b3f1409b688ca08cbd44d2cb28db9899f4aa3b5f06b9174240448e10be2f01f9f80079ea5431ce2d11d1c8d1c775333315f");
+
+fn decode_g2_mpk(bytes: &[u8; 96]) -> G2Affine {
+    G2Affine::from_compressed(bytes).expect("Hardcoded master public key not a valid point")
+}
+
 lazy_static::lazy_static! {
     static ref G2PREPARED_NEG_G : G2Prepared = G2Affine::generator().neg().into();
 
-    static ref G2_KEY_1: G2Affine = G2Affine::from_compressed(&MASTER_PUBLIC_KEY_BYTES_KEY_1).expect("Hardcoded master public key not a valid point");
-    static ref G2_TEST_KEY_1: G2Affine = G2Affine::from_compressed(&MASTER_PUBLIC_KEY_BYTES_TEST_KEY_1).expect("Hardcoded master public key not a valid point");
+    static ref PROD_G2_KEY_1: G2Affine = decode_g2_mpk(&MASTER_PUBLIC_KEY_BYTES_KEY_1);
+    static ref PROD_G2_TEST_KEY_1: G2Affine = decode_g2_mpk(&MASTER_PUBLIC_KEY_BYTES_TEST_KEY_1);
+
+    static ref POCKETIC_G2_KEY_1: G2Affine = decode_g2_mpk(&POCKETIC_MASTER_PUBLIC_KEY_BYTES_KEY_1);
+    static ref POCKETIC_G2_TEST_KEY_1: G2Affine = decode_g2_mpk(&POCKETIC_MASTER_PUBLIC_KEY_BYTES_TEST_KEY_1);
+    static ref POCKETIC_G2_DFX_TEST_KEY: G2Affine = decode_g2_mpk(&POCKETIC_MASTER_PUBLIC_KEY_BYTES_DFX_TEST_KEY);
 }
 
 const G1AFFINE_BYTES: usize = 48; // Size of compressed form
@@ -396,8 +410,20 @@ impl MasterPublicKey {
     /// Returns None if the provided key_id is not known
     pub fn for_mainnet_key(key_id: &VetKDKeyId) -> Option<Self> {
         match (key_id.curve, key_id.name.as_str()) {
-            (VetKDCurve::Bls12_381_G2, "key_1") => Some(Self::new(*G2_KEY_1)),
-            (VetKDCurve::Bls12_381_G2, "test_key_1") => Some(Self::new(*G2_TEST_KEY_1)),
+            (VetKDCurve::Bls12_381_G2, "key_1") => Some(Self::new(*PROD_G2_KEY_1)),
+            (VetKDCurve::Bls12_381_G2, "test_key_1") => Some(Self::new(*PROD_G2_TEST_KEY_1)),
+            (_, _) => None,
+        }
+    }
+
+    /// Return the hardcoded master public key used for testing in PocketIC
+    ///
+    /// Returns None if the provided key_id is not known
+    pub fn for_pocketic_key(key_id: &VetKDKeyId) -> Option<Self> {
+        match (key_id.curve, key_id.name.as_str()) {
+            (VetKDCurve::Bls12_381_G2, "key_1") => Some(Self::new(*POCKETIC_G2_KEY_1)),
+            (VetKDCurve::Bls12_381_G2, "test_key_1") => Some(Self::new(*POCKETIC_G2_TEST_KEY_1)),
+            (VetKDCurve::Bls12_381_G2, "dfx_test_key") => Some(Self::new(*POCKETIC_G2_DFX_TEST_KEY)),
             (_, _) => None,
         }
     }
