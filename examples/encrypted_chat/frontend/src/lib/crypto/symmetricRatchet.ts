@@ -33,6 +33,7 @@ export type StorableSymmetricRatchetState = {
 	symmetricRatchetEpoch: bigint;
 	creationTime: Date;
 	rotationDuration: Date;
+	stateRecoveryDuration: Date;
 };
 
 export class SymmetricRatchetState {
@@ -45,12 +46,19 @@ export class SymmetricRatchetState {
 		key: CryptoKey,
 		symmetricRatchetEpoch: bigint,
 		creationTime: Date,
-		rotationDuration: Date
+		rotationDuration: Date,
+		stateRecoveryDuration: Date
 	) {
 		this.#cryptoKey = key;
 		this.#symmetricRatchetEpoch = symmetricRatchetEpoch;
 		this.#creationTime = creationTime;
 		this.#rotationDuration = rotationDuration;
+		this.#stateRecoveryDuration = stateRecoveryDuration;
+	}
+
+	updateStateRecoveryDurationAndEvolve(stateRecoveryDuration: Date) {
+		this.#stateRecoveryDuration = stateRecoveryDuration;
+		// TODO: Implement
 	}
 
 	toStorable(): StorableSymmetricRatchetState {
@@ -58,7 +66,8 @@ export class SymmetricRatchetState {
 			cryptoKey: this.#cryptoKey,
 			symmetricRatchetEpoch: this.#symmetricRatchetEpoch,
 			creationTime: this.#creationTime,
-			rotationDuration: this.#rotationDuration
+			rotationDuration: this.#rotationDuration,
+			stateRecoveryDuration: this.#stateRecoveryDuration
 		};
 	}
 
@@ -73,11 +82,12 @@ export class SymmetricRatchetState {
 			key,
 			symmetricKeyEpoch,
 			rawKeyState.creationTime,
-			rawKeyState.rotationDuration
+			rawKeyState.rotationDuration,
+			rawKeyState.stateRecoveryDuration
 		);
 	}
 
-	async decryptAtTimeAndEvolveIfNeeded(
+	async decryptAtTime(
 		sender: Principal,
 		senderMessageId: bigint,
 		message: Uint8Array,
@@ -87,9 +97,11 @@ export class SymmetricRatchetState {
 			throw new Error('Cannot decrypt message before the state was created');
 		}
 		const expectedEpoch = this.getExpectedEpochAtTime(time);
-		await this.evolveTo(expectedEpoch);
+		const neededSymmetricRatchetState = await this.peekAtEpoch(expectedEpoch);
 		const domainSeparator = messageEncryptionDomainSeparator(sender, senderMessageId);
-		const derivedKeyMaterial = DerivedKeyMaterial.fromCryptoKey(this.#cryptoKey);
+		const derivedKeyMaterial = DerivedKeyMaterial.fromCryptoKey(
+			neededSymmetricRatchetState.#cryptoKey
+		);
 		return await derivedKeyMaterial.decryptMessage(message, domainSeparator);
 	}
 
@@ -116,6 +128,22 @@ export class SymmetricRatchetState {
 			encryptedBytes,
 			symmetricRatchetEpoch: neededSymmetricRatchetState.#symmetricRatchetEpoch
 		};
+	}
+
+	async evolveIfNeeded(consensusTime: Date) {
+		while (true) {
+			const epoch = Number(this.#symmetricRatchetEpoch);
+			const creationMs = this.#creationTime.getMilliseconds();
+			const rotationMs = this.#rotationDuration.getMilliseconds();
+			const recoveryMs = this.#stateRecoveryDuration.getMilliseconds();
+			const consensusMs = consensusTime.getMilliseconds();
+
+			if (creationMs + epoch * rotationMs + recoveryMs < consensusMs) {
+				await this.evolve();
+			} else {
+				return;
+			}
+		}
 	}
 
 	/// Evolve the state to the next epoch.
@@ -161,7 +189,8 @@ export class SymmetricRatchetState {
 			this.#cryptoKey,
 			symmetricKeyEpoch,
 			this.#creationTime,
-			this.#rotationDuration
+			this.#rotationDuration,
+			this.#stateRecoveryDuration
 		);
 		await newSymmetricRatchetState.evolveTo(symmetricKeyEpoch);
 		return newSymmetricRatchetState;
@@ -197,17 +226,20 @@ export class CacheableSymmetricRatchetState {
 	symmetricRatchetEpoch: bigint;
 	creationTime: Date;
 	rotationDuration: Date;
+	stateRecoveryDuration: Date;
 
 	private constructor(
 		rawKey: Uint8Array,
 		symmetricRatchetEpoch: bigint,
 		creationTime: Date,
-		rotationDuration: Date
+		rotationDuration: Date,
+		stateRecoveryDuration: Date
 	) {
 		this.rawKey = rawKey;
 		this.symmetricRatchetEpoch = symmetricRatchetEpoch;
 		this.creationTime = creationTime;
 		this.rotationDuration = rotationDuration;
+		this.stateRecoveryDuration = stateRecoveryDuration;
 	}
 
 	/// Evolve the state to the next epoch.
@@ -243,7 +275,8 @@ export class CacheableSymmetricRatchetState {
 			clonedRawKey,
 			newEpoch,
 			this.creationTime,
-			this.rotationDuration
+			this.rotationDuration,
+			this.stateRecoveryDuration
 		);
 		newState.evolveTo(symmetricKeyEpoch);
 		return newState;
@@ -256,11 +289,18 @@ export class CacheableSymmetricRatchetState {
 	static initializeFromVetKey(
 		vetKey: VetKey,
 		creationTime: Date,
-		rotationDuration: Date
+		rotationDuration: Date,
+		stateRecoveryDuration: Date
 	): CacheableSymmetricRatchetState {
 		const vetKeyBytes = vetKey.signatureBytes();
 		const rawKey = deriveSymmetricKey(vetKeyBytes, DOMAIN_RATCHET_INIT, 32);
-		return new CacheableSymmetricRatchetState(rawKey, 0n, creationTime, rotationDuration);
+		return new CacheableSymmetricRatchetState(
+			rawKey,
+			0n,
+			creationTime,
+			rotationDuration,
+			stateRecoveryDuration
+		);
 	}
 
 	serialize(): Uint8Array {
@@ -282,11 +322,16 @@ export class CacheableSymmetricRatchetState {
 		const rotationDuration = new Date(
 			Number(u8ByteUint8ArrayBigEndianToUBigInt(bytes.slice(32 + 8 + 8)))
 		);
+		const stateRecoveryDuration = new Date(
+			Number(u8ByteUint8ArrayBigEndianToUBigInt(bytes.slice(32 + 8 + 8 + 8)))
+		);
+
 		return new CacheableSymmetricRatchetState(
 			rawKey,
 			symmetricRatchetEpoch,
 			creationTime,
-			rotationDuration
+			rotationDuration,
+			stateRecoveryDuration
 		);
 	}
 }

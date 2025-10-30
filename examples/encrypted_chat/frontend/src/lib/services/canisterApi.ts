@@ -3,6 +3,7 @@ import type { SymmetricRatchetStats } from '../types';
 import type {
 	_SERVICE,
 	ChatId,
+	ChatMetadata,
 	EncryptedMessage,
 	GroupChatMetadata,
 	UserMessage,
@@ -84,13 +85,24 @@ export class CanisterAPI {
 		}
 	}
 
-	async getChatIdsAndCurrentNumbersOfMessages(
+	async getChatsAndTime(
 		actor: ActorSubclass<_SERVICE>
-	): Promise<{ chatId: ChatId; numMessages: bigint }[]> {
-		const chatIds = await actor.get_my_chat_ids();
-		return chatIds.map(([chatId, numMessages]) => {
-			return { chatId, numMessages };
-		});
+	): Promise<{ chats: ChatMetadata[]; currentConsensusTime: Date }> {
+		const chatsAndTime = await actor.get_my_chats_and_time();
+		return {
+			chats: chatsAndTime.chats_metadata,
+			currentConsensusTime: new Date(Number(chatsAndTime.current_consensus_time / 1_000_000n))
+		};
+	}
+
+	async getExpiry(actor: ActorSubclass<_SERVICE>, chatId: ChatId): Promise<Date> {
+		const result = await actor.get_expiry(chatId);
+		if ('Ok' in result) {
+			const MILLISECONDS_IN_MINUTE = 60000n;
+			return new Date(Number(result.Ok * MILLISECONDS_IN_MINUTE));
+		} else {
+			throw new Error(result.Err);
+		}
 	}
 
 	async getLatestVetKeyEpochMetadata(
