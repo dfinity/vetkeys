@@ -121,6 +121,15 @@ export enum MasterPublicKeyId {
 }
 
 /**
+ * Enumeration identifying possible PocketIC test keys
+ */
+export enum PocketIcMasterPublicKeyId {
+    KEY_1 = "key_1",
+    TEST_KEY_1 = "test_key_1",
+    DFX_TEST_KEY = "dfx_test_key",
+}
+
+/**
  * @internal helper to perform hex decoding
  */
 function hexToBytes(hex: string): Uint8Array {
@@ -204,6 +213,39 @@ export class MasterPublicKey {
         } else {
             throw new Error(
                 "Unknown MasterPublicKeyId value for productionKey",
+            );
+        }
+    }
+
+    /**
+     * Return the hardcoded master public key used in PocketIC
+     *
+     * This allows performing public key derivation offline
+     */
+    static pocketicKey(
+        keyId: PocketIcMasterPublicKeyId = PocketIcMasterPublicKeyId.KEY_1,
+    ): MasterPublicKey {
+        if (keyId == PocketIcMasterPublicKeyId.KEY_1) {
+            return MasterPublicKey.deserialize(
+                hexToBytes(
+                    "8c800b5cff00463d26e8167369168827f1e48f4d8d60f71dd6a295580f65275b5f5f8e6a792c876b2c72492136530d0710a27522ee63977a76216c3cef9e70bfcb45b88736fc62142e7e0737848ce06cbb1f45a4a6a349b142ae5cf7853561e0",
+                ),
+            );
+        } else if (keyId == PocketIcMasterPublicKeyId.TEST_KEY_1) {
+            return MasterPublicKey.deserialize(
+                hexToBytes(
+                    "9069b82c7aae418cef27678291e7f2cb1a008a500eceba7199bffca12421b07c158987c6a22618af3d1958738b2835691028801f7663d311799733286c557c8979184bb62cb559a4d582fca7d2e48b860f08ed6641aef66a059ec891889a6218",
+                ),
+            );
+        } else if (keyId == PocketIcMasterPublicKeyId.DFX_TEST_KEY) {
+            return MasterPublicKey.deserialize(
+                hexToBytes(
+                    "b181c14cf9d04ba45d782c0067a44b0aaa9fc2acf94f1a875f0dae801af4f80339a7e6bf8b09fcf993824c8df3080b3f1409b688ca08cbd44d2cb28db9899f4aa3b5f06b9174240448e10be2f01f9f80079ea5431ce2d11d1c8d1c775333315f",
+                ),
+            );
+        } else {
+            throw new Error(
+                "Unknown PocketIcMasterPublicKeyId value for pocketicKey",
             );
         }
     }

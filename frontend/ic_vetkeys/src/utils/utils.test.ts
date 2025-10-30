@@ -5,6 +5,7 @@ import {
     IbeCiphertext,
     MasterPublicKey,
     MasterPublicKeyId,
+    PocketIcMasterPublicKeyId,
     IbeSeed,
     TransportSecretKey,
     VetKey,
@@ -119,6 +120,64 @@ test("MasterPublicKey derivation using prod key", () => {
     assertEqual(
         bytesToHex(derivedKey.publicKeyBytes()),
         "aa45fccb82432315e39fedb1b1f150d2e895fb1f7399cc593b826ac151b519f0966b92aef49a89efe60570ef325f0f7e1974ac3519d2e127a52c013e246aedbff2158bdd0bb9f26c763c88c0b8ec796f401d057eab276d0a34384a8a97b1937f",
+    );
+});
+
+test("MasterPublicKey derivation using PocketIC key_1", () => {
+    const canisterId = hexToBytes("ffffffffff9000030101");
+
+    const masterKey = MasterPublicKey.pocketicKey(
+        PocketIcMasterPublicKeyId.KEY_1,
+    );
+    const canisterKey = masterKey.deriveCanisterKey(canisterId);
+
+    const derivedKey = canisterKey.deriveSubKey(
+        new TextEncoder().encode("Test Derivation For PocketIC VetKD key_1"),
+    );
+
+    assertEqual(
+        bytesToHex(derivedKey.publicKeyBytes()),
+        "899a951f6ec2f9a96759c554a6cb01fb1cb20b2f2f96a2d2c869221c04d3349c3be8d49c3257312aed031f430f15f7ef0f4d43adf11251015d70dd91ac07df50fb70818ece721a1d6a314204acddde55542902f5d0d95e2406a5ab1fad18349d",
+    );
+});
+
+test("MasterPublicKey derivation using PocketIC test_key_1", () => {
+    const canisterId = hexToBytes("ffffffffff9000030101");
+
+    const masterKey = MasterPublicKey.pocketicKey(
+        PocketIcMasterPublicKeyId.TEST_KEY_1,
+    );
+    const canisterKey = masterKey.deriveCanisterKey(canisterId);
+
+    const derivedKey = canisterKey.deriveSubKey(
+        new TextEncoder().encode(
+            "Test Derivation For PocketIC VetKD test_key_1",
+        ),
+    );
+
+    assertEqual(
+        bytesToHex(derivedKey.publicKeyBytes()),
+        "a60993fc46593728bd9b0a4ffb1fb9a662dd89b29c99fde36e403c311c8992e6eeb097b31174dd43f74e73fe10c190271193a4345490f64a41ce778a2f6e7c16804919e843ac72ff65bab959c53fa839c9fb3cb263e41498d17fb82704fe18bc",
+    );
+});
+
+test("MasterPublicKey derivation using PocketIC dfx_test_key", () => {
+    const canisterId = hexToBytes("ffffffffff9000030101");
+
+    const masterKey = MasterPublicKey.pocketicKey(
+        PocketIcMasterPublicKeyId.DFX_TEST_KEY,
+    );
+    const canisterKey = masterKey.deriveCanisterKey(canisterId);
+
+    const derivedKey = canisterKey.deriveSubKey(
+        new TextEncoder().encode(
+            "Test Derivation For PocketIC VetKD dfx_test_key",
+        ),
+    );
+
+    assertEqual(
+        bytesToHex(derivedKey.publicKeyBytes()),
+        "800424bea66b95b715f86a9bed06b1f60df98206a57235c3e0f2da4d485dc1c93c56eef54155d559ef45c757fb0444920620b932652f1d683fdbc57db98b5aeb8ba664a5e040cbdf4d685e4e236a7193d1bd5b0927204fab05fff4f61f26b358",
     );
 });
 
