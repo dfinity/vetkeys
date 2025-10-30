@@ -1,0 +1,32 @@
+[package]
+name = "ic-vetkeys-example-verifiable-nft"
+authors = ["DFINITY Stiftung"]
+version = "0.1.0"
+edition = "2021"
+license = "Apache-2.0"
+description = "Verifiable NFT example"
+repository = "https://github.com/dfinity/vetkeys"
+rust-version = "1.75.0"
+
+[lib]
+path = "src/lib.rs"
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+candid = "0.10.2"
+getrandom = { version = "0.2", features = ["custom"] }
+hex = "0.4"
+ic-cdk = "0.18.3"
+ic-stable-structures = "0.6.8"
+ic-vetkeys = { path = "../../../../backend/rs/ic_vetkeys" }
+identicon-rs = "7"
+image = { version = "0.25", default-features = false }
+png = "0.17"
+serde = "1.0.217"
+serde_bytes = "0.11.15"
+serde_cbor = "0.11.2"
+
+[dev-dependencies]
+pocket-ic = "9.0.0"
+rand = "0.8.5"
+rand_chacha = "0.3.1"
