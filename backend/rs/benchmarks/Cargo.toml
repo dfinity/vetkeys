@@ -12,6 +12,6 @@ canbench-rs = { version = "0.2.1", optional = true }
 candid = "0.10.0"
 getrandom = { version = "0.2", features = ["custom"] }
 hex = { workspace = true }
-ic-cdk = "0.18.5"
+ic-cdk = { workspace = true }
 ic-vetkeys = { path = "../ic_vetkeys" }
 
