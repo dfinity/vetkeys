@@ -16,8 +16,8 @@ crate-type = ["cdylib"]
 candid = "0.10.2"
 ic-cdk = { workspace = true }
 ic-dummy-getrandom-for-wasm = "0.1.0"
-ic-stable-structures = "0.6.8"
-ic-vetkeys = "0.3.0"
+ic-stable-structures = { workspace = true }
+ic-vetkeys = { path = "../../ic_vetkeys" }
 serde = "1.0.217"
 
 [dev-dependencies]
