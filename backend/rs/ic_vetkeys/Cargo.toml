@@ -38,7 +38,6 @@ hkdf = { version = "0.12" }
 futures = "0.3.31"
 hex-literal = { version = "1" }
 ic-cdk = { workspace = true }
-ic-cdk-macros = { workspace = true }
 ic-stable-structures = { workspace = true }
 lazy_static = { workspace = true }
 pairing = "0.23.0"
