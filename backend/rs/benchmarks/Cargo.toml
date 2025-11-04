@@ -9,7 +9,7 @@ path = "ibe/src/main.rs"
 
 [dependencies]
 # FIXME: use versioned `canbench` when https://github.com/dfinity/canbench/pull/156 is merged and released
-canbench-rs = { git = "https://github.com/dfinity/canbench.git", rev = "e8df43674c3bd635e49929094175294f148e8f41", optional = true }
+canbench-rs = { git = "https://github.com/dfinity/canbench.git", rev = "66ea29a88a62c17c3ac8c7c8538daecf931ddace", optional = true }
 candid = "0.10.0"
 getrandom = { version = "0.2", features = ["custom"] }
 hex = { workspace = true }
