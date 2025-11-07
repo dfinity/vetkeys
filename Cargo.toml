@@ -23,7 +23,7 @@ documentation = "https://docs.rs/ic-vetkeys"
 anyhow = "1.0.95"
 candid = "0.10.16"
 hex = "0.4.3"
-ic-cdk = { git = "https://github.com/dfinity/cdk-rs.git", rev = "d547693ec4ee03b149f82abe8c8292b166b90054" } # branch spofford/concurrent-closures
+ic-cdk = { git = "https://github.com/dfinity/cdk-rs.git", rev = "c7429aa05bb6b035f1bc8267bbef3316742a8fb1" } # branch spofford/concurrent-closures
 ic-stable-structures = "0.7.0"
 lazy_static = "1.5.0"
 pocket-ic = "9.0.0"
