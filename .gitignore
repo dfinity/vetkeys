@@ -19,6 +19,7 @@ target/
 **/.dfx/*
 **/deps/*
 backend/**/declarations
+examples/**/declarations
 
 lib-cov
 *.seed
