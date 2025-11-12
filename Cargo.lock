@@ -200,7 +200,7 @@ checksum = "d71b6127be86fdcfddb610f7182ac57211d4b18a3e9c82eb2d17662f2227ad6a"
 [[package]]
 name = "canbench-rs"
 version = "0.3.0"
-source = "git+https://github.com/dfinity/canbench.git?rev=02869879713c693f9fa75b44c1a5b1e765d086e1#02869879713c693f9fa75b44c1a5b1e765d086e1"
+source = "git+https://github.com/dfinity/canbench.git?rev=cdb84aee8ce7aa758df786bb4787e4e2b3bb5675#cdb84aee8ce7aa758df786bb4787e4e2b3bb5675"
 dependencies = [
  "canbench-rs-macros",
  "candid",
@@ -211,7 +211,7 @@ dependencies = [
 [[package]]
 name = "canbench-rs-macros"
 version = "0.3.0"
-source = "git+https://github.com/dfinity/canbench.git?rev=02869879713c693f9fa75b44c1a5b1e765d086e1#02869879713c693f9fa75b44c1a5b1e765d086e1"
+source = "git+https://github.com/dfinity/canbench.git?rev=cdb84aee8ce7aa758df786bb4787e4e2b3bb5675#cdb84aee8ce7aa758df786bb4787e4e2b3bb5675"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -883,7 +883,7 @@ dependencies = [
 [[package]]
 name = "ic-cdk"
 version = "0.19.0-beta.3"
-source = "git+https://github.com/dfinity/cdk-rs.git?rev=e49f7219f4dea72396c428726133fee017c34387#e49f7219f4dea72396c428726133fee017c34387"
+source = "git+https://github.com/dfinity/cdk-rs.git?rev=cd516011d96c6e1abd239f706a2d42029737d5cc#cd516011d96c6e1abd239f706a2d42029737d5cc"
 dependencies = [
  "candid",
  "ic-cdk-executor",
@@ -901,7 +901,7 @@ dependencies = [
 [[package]]
 name = "ic-cdk-executor"
 version = "2.0.0-beta.1"
-source = "git+https://github.com/dfinity/cdk-rs.git?rev=e49f7219f4dea72396c428726133fee017c34387#e49f7219f4dea72396c428726133fee017c34387"
+source = "git+https://github.com/dfinity/cdk-rs.git?rev=cd516011d96c6e1abd239f706a2d42029737d5cc#cd516011d96c6e1abd239f706a2d42029737d5cc"
 dependencies = [
  "ic0",
  "slotmap",
@@ -911,7 +911,7 @@ dependencies = [
 [[package]]
 name = "ic-cdk-macros"
 version = "0.19.0-beta.3"
-source = "git+https://github.com/dfinity/cdk-rs.git?rev=e49f7219f4dea72396c428726133fee017c34387#e49f7219f4dea72396c428726133fee017c34387"
+source = "git+https://github.com/dfinity/cdk-rs.git?rev=cd516011d96c6e1abd239f706a2d42029737d5cc#cd516011d96c6e1abd239f706a2d42029737d5cc"
 dependencies = [
  "candid",
  "darling",
@@ -966,7 +966,7 @@ dependencies = [
 [[package]]
 name = "ic-management-canister-types"
 version = "0.4.1"
-source = "git+https://github.com/dfinity/cdk-rs.git?rev=e49f7219f4dea72396c428726133fee017c34387#e49f7219f4dea72396c428726133fee017c34387"
+source = "git+https://github.com/dfinity/cdk-rs.git?rev=cd516011d96c6e1abd239f706a2d42029737d5cc#cd516011d96c6e1abd239f706a2d42029737d5cc"
 dependencies = [
  "candid",
  "serde",
@@ -1103,7 +1103,7 @@ dependencies = [
 [[package]]
 name = "ic0"
 version = "1.0.1"
-source = "git+https://github.com/dfinity/cdk-rs.git?rev=e49f7219f4dea72396c428726133fee017c34387#e49f7219f4dea72396c428726133fee017c34387"
+source = "git+https://github.com/dfinity/cdk-rs.git?rev=cd516011d96c6e1abd239f706a2d42029737d5cc#cd516011d96c6e1abd239f706a2d42029737d5cc"
 
 [[package]]
 name = "ic_bls12_381"
