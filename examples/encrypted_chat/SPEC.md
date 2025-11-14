@@ -87,6 +87,8 @@ The frontend's responsibilities are:
 
 * Fetching and decrypting incoming messages.
 
+* Upload user's encrypted key cache in the backend. 
+
 ## Backend Canister Component
 
 ### Backend State
@@ -386,7 +388,7 @@ The actual initialization of the symmetric ratchet state is performed in the fro
 The encrypted ratchet state cache is intended to allow the user to upload encrypted symmetric ratchet epoch keys to the canister and then [recover](#state-recovery) the local state in the frontend whenever needed, e.g., for disaster recovery or after a browser change.
 
 There is a relation between state recovery and the [disappearing messages](#disappearing-messages) duration.
-The state recovery duration is always smaller or equal to the disappearing messages duration because because keys for messages that don't exist anymore are not useful.
+The state recovery duration is always smaller or equal to the disappearing messages duration because keys for messages that don't exist anymore are not useful.
 
 While disappearing messages duration is a chat-level setting, the state recovery duration is a user-level setting in a chat.
 In general, the state recovery limit can be both chat-level and user-level setting, but it makes more sense to make state recovery a user setting because the user frontend is in full control of state recovery for a non-expired vetKey epoch.
