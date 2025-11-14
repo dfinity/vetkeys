@@ -2,73 +2,58 @@
 
 vetKey Encrypted Chat has two main components: the canister backend and user frontend. It provides the following features:
 
-* Messaging protected with end-to-end encryption.
+* End-to-end encrypted messaging.
 
 * High security through symmetric ratchet and key rotation via [vetKeys](https://internetcomputer.org/docs/building-apps/network-features/vetkeys/introduction).
 
-* Disappearing messages guaranteed by the canister (ICP smart contract) logic.
+* Disappearing messages, enforced by the canister (ICP smart contract) logic. Messages are automatically removed from the frontend and encrypted messages are purged from the backend once they expire.
+
+* Encrypted state recovery, enabling users to securely restore their message-decryption capability across different devices.
 
 ## Encryption Keys and State Recovery
 
-TODO: explain what keys we have.
+### Key Hierarchy
 
-vetKey Rotation:
+vetKey encrypted chat uses three layers of cryptographic keys:
+* **vetKeys**: shared keys established thorough the [vetKD protocol](https://internetcomputer.org/docs/references/vetkeys-overview). 
+They rotate periodically, e.g. upon group configuration changes, to ensure both forward security and post-compromise security. 
+This means that an adversary who obtains the key material for one vetKey epoch gains no information about past or future epochs. 
+Deriving new vetKeys incurs some cost, as it requires interaction with the backend canister, which triggers a vetKey-derivation protocol on the ICP.
+* **Symmetric key ratchet**: a continuously evolving chain of symmetric keys derived from the current vetKey. 
+It provides forward security but not post-compromise security: an adversary who obtains the ratchet key for step i can derive all future ratchet states for that same vetKey epoch. 
+Ratchet advancement is efficient and can be performed locally by each participant without interacting with the backend canister.
+* **Message encryption keys**: per-message keys derived from the current symmetric ratchet state.
 
-* Independent key material - provides both secrecy and post-compromise security, i.e., an adversary obtaining the key material for a vetKey epoch gains no knowledge about the key material in other vetKey epochs.
+### Key Rotation
 
-* More costly than symmetric key ratchet because requires interaction with the backend canister and a [vetKey derivation](https://internetcomputer.org/docs/building-apps/network-features/vetkeys/api).
+While vetKey rotations can occur at arbitrary times, the symmetric ratchet progresses strictly at fixed time-frame boundaries. 
+The length of this time frame determines how long a user must retain ratchet key material to decrypt messages. 
+This contrasts with protocols such as Signal, where old keys are usually discarded immediately after advancing the ratchet.
 
-* Can be performed on group changes in a chat or periodically.
+Retaining some ratchet states is necessary to support out-of-order decryption. 
+For example, a client may only want to decrypt recent messages shown in the UI—not the entire history, which may include large media requiring unnecessary downloads. 
+To decrypt the oldest non-expired message, the client must keep the appropriate ratchet state.
 
-For each vetKey epoch, we instantiate a Symmetric Key Ratchet State that can be evolved.
+The duration of the symmetric ratchet time frame directly affects how long clients must retain decryption capability beyond what is strictly necessary. 
+For example, if each symmetric ratchet epoch has length `r` and the encrypted chat maintains a message history of length `h ≤ k·r`, then the frontend may need to keep the ratchet state for up to `k + 1` epochs in order to decrypt any message within that history window.
 
-Symmetric Key Ratchet:
 
-* Creates a chain of symmetric keys known by the chat participants from an initial key material derived from a vetKey.
+### Encrypted State Recovery
 
-* Very efficient local ratchet evolution based on consensus time frames.
-
-* Provides forward secrecy but not post-compromise security, i.e., an adversary obtaining the key material for the symmetric ratchet ID `i` can derive any ratchet state for an epoch ID that is larger than `i`.
-
-While vetKey rotation can be performed at arbitrary time points, the symmetric ratchet is performed at time frame boundaries.
-The duration of the time frame defines the granularity of the time frame that the user must keep the key material around for in order to be able to decrypt messages.
-This differs from e.g. the Signal protocol, where the old key is discarded as soon as it is evolved in most cases.
-Keeping some keys around is important if we want to decrypt messages in arbitrary order.
-Consider for example a scenario where we only want to decrypt the newest messages that we want to display to the user and not the whole history, which might be much longer and contain media material that requires a lot of potentially unnecessary communication.
-This requires us to keep around the ratchet state, with which we are able to decrypt the oldest non-expired message.
-
-The duration of the symmetric key ratchet time frame defines the duration of the time frame that we would be able to decrypt messages for that goes beyond what's necessary.
-Consider e.g. a state recovery limit `l` ns and the symmetric ratchet duration of `r` ns as well.
-In that case, if no vetKey rotations happen in between, at a time point `p` that is `l < p < 2r` the frontend would need to keep around both symmetric ratchet states and the ability to decrypt messages received by the canister from `0` ns and `p` ns instead of from `p - l` to `p`.
-If a vetKey rotation happens in-between, this redundant encryption time frame can only become shorter.
-
-If we set the state recovery limit to `l` ns and symmetric ratchet duration to `r * l`, then we can reduce the amount of time we unnecessarily keep the key material for by a factor of `r`.
-For example, if we set the state recovery limit to one month and the symmetric ratchet duration to one hour, then we would need to keep the key material (and the ability to decrypt all message encrypted with it) for almost one additional hour in the worst case.
-
-The downside of this approach is that we need to keep symmetric ratchet states for more ratchet epochs around or compute them on the fly s.t. the messages can be decrypted in any order.
-However, with realistic time frames, keeping around hundreds of keys or just a single key that we can generate the other keys from is not a showstopper.
-
-Realistic time frames for symmetric ratchet evolution: between a minute and a few hours/days. Being on a lower side (minutes) makes less sense, since updating the state's keys involves updating the encrypted cache, where every update costs cycles, which would make mass adoption of the chat costly.
+Encrypted state recovery allows a user to restore their ability to decrypt messages on a new device by securely caching encrypted symmetric ratchet states in the backend. 
+Each ratchet state is encrypted client-side using an individual key, ensuring that the backend never learns any cryptographic material that would enable message decryption.
 
 Since the symmetric ratchet is instantiated from a vetKey, the ability to obtain the vetKey allows to decrypt all messages encrypted using any derived ratchet states.
-Therefore, to allow for a limited state recovery it is important to disallow the frontend to obtain the initial vetKey again once an encrypted cache for that vetKey epoch was uploaded by the user.
-Instead, the frontend encrypts its symmetric ratchet states that are required for state recovery and stores them in the canister.
-Then, once a state recovery is required, the frontend fetches the required encrypted ratchet states and decrypts them.
+To provide a _limited_ state recovery it is crucial to:
+* Prevent the frontend to obtain the initial vetKey once the user has uploaded the encrypted cache for its epoch.
+* Encrypt and upload the necessary symmetric ratchet states using user-specific encryption keys.
+* Retrieve and decrypt the stored ratchet states during recovery, restoring the user's ability to decrypt messages without exposing the initial vetKey.
 
-Note that the end of life of a symmetric ratchet state triggers ratchet evolution, which evolves the state and forgets about the previous one, meaning that also the frontend's encrypted cache must be updated.
-This poses another tradeoff in terms of the symmetric ratchet duration, i.e., the shorter the time frame is, the more often the cached state must be updated.
-Therefore, symmetric ratchet state evolution duration in the order of minutes might be too short to be practical in chats with many users, and duration in the order of hours or days could be better in that case.
+Users who do not wish to enable state recovery may still want to signal to the backend that they have retrieved the vetKey, thereby preventing any future retrievals. This can be achieved, for example, by uploading a deliberately invalid encrypted cache once, which marks the vetKey as unrecoverable for that epoch.
 
-Note also that only active users can update their encrypted cache in the canister.
-Therefore, forward secrecy can only be guaranteed to active users or users who disable the state recovery by uploading invalid encrypted cache.
-
-## Notation
-
-* Disappearing messages - automatically remove messages in the frontend and encrypted messages in the backend canister from the memory/storage once they expire.
-
-* State recovery limit - store an encrypted backup of the encryption keys in the canister that allows to decrypt messages and recover from a state loss in the frontend.
-
-* Time - in this document we use [Unix time](https://en.wikipedia.org/wiki/Unix_time) and standard abbreviations for time units such as ns for nanoseconds. 
+Practical symmetric-ratchet epoch durations range from a few minutes to several hours or even days. 
+When state recovery is enabled, shorter epochs increase the frequency of encrypted-cache updates, which in turn raises cycle consumption on the backend. 
+As a result, very short time frames may be impractical in large or busy chats.
 
 ## Components
 
