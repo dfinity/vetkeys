@@ -199,8 +199,9 @@ checksum = "d71b6127be86fdcfddb610f7182ac57211d4b18a3e9c82eb2d17662f2227ad6a"
 
 [[package]]
 name = "canbench-rs"
-version = "0.3.0"
-source = "git+https://github.com/dfinity/canbench.git?rev=cdb84aee8ce7aa758df786bb4787e4e2b3bb5675#cdb84aee8ce7aa758df786bb4787e4e2b3bb5675"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0dfe0fee0135b3face2ff259fddc28fff3c28e7acd84ae7746e25972f11230f9"
 dependencies = [
  "canbench-rs-macros",
  "candid",
@@ -210,8 +211,9 @@ dependencies = [
 
 [[package]]
 name = "canbench-rs-macros"
-version = "0.3.0"
-source = "git+https://github.com/dfinity/canbench.git?rev=cdb84aee8ce7aa758df786bb4787e4e2b3bb5675#cdb84aee8ce7aa758df786bb4787e4e2b3bb5675"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "237e2e5d914039918eee4bdf141e976ff34cf4130c6760808a047c081710e0a8"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -882,14 +884,15 @@ dependencies = [
 
 [[package]]
 name = "ic-cdk"
-version = "0.19.0-beta.3"
-source = "git+https://github.com/dfinity/cdk-rs.git?rev=cd516011d96c6e1abd239f706a2d42029737d5cc#cd516011d96c6e1abd239f706a2d42029737d5cc"
+version = "0.19.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "818d6d5416a8f0212e1b132703b0da51e36c55f2b96677e96f2bbe7702e1bd85"
 dependencies = [
  "candid",
  "ic-cdk-executor",
  "ic-cdk-macros",
  "ic-error-types",
- "ic-management-canister-types 0.4.1",
+ "ic-management-canister-types 0.5.0",
  "ic0",
  "pin-project-lite",
  "serde",
@@ -900,8 +903,9 @@ dependencies = [
 
 [[package]]
 name = "ic-cdk-executor"
-version = "2.0.0-beta.1"
-source = "git+https://github.com/dfinity/cdk-rs.git?rev=cd516011d96c6e1abd239f706a2d42029737d5cc#cd516011d96c6e1abd239f706a2d42029737d5cc"
+version = "2.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "33716b730ded33690b8a704bff3533fda87d229e58046823647d28816e9bcee7"
 dependencies = [
  "ic0",
  "slotmap",
@@ -910,8 +914,9 @@ dependencies = [
 
 [[package]]
 name = "ic-cdk-macros"
-version = "0.19.0-beta.3"
-source = "git+https://github.com/dfinity/cdk-rs.git?rev=cd516011d96c6e1abd239f706a2d42029737d5cc#cd516011d96c6e1abd239f706a2d42029737d5cc"
+version = "0.19.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "66dad91a214945cb3605bc9ef6901b87e2ac41e3624284c2cabba49d43aa4f43"
 dependencies = [
  "candid",
  "darling",
@@ -965,8 +970,9 @@ dependencies = [
 
 [[package]]
 name = "ic-management-canister-types"
-version = "0.4.1"
-source = "git+https://github.com/dfinity/cdk-rs.git?rev=cd516011d96c6e1abd239f706a2d42029737d5cc#cd516011d96c6e1abd239f706a2d42029737d5cc"
+version = "0.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3149217e24186df3f13dc45eee14cdb3e5cad07d0b2b67bd53555c1c55462957"
 dependencies = [
  "candid",
  "serde",
@@ -1103,7 +1109,8 @@ dependencies = [
 [[package]]
 name = "ic0"
 version = "1.0.1"
-source = "git+https://github.com/dfinity/cdk-rs.git?rev=cd516011d96c6e1abd239f706a2d42029737d5cc#cd516011d96c6e1abd239f706a2d42029737d5cc"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1499d08fd5be8f790d477e1865d63bab6a8d748300e141270c4296e6d5fdd6bc"
 
 [[package]]
 name = "ic_bls12_381"
@@ -1699,9 +1706,9 @@ dependencies = [
 
 [[package]]
 name = "proc-macro2"
-version = "1.0.95"
+version = "1.0.103"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "02b3e5e68a3a1a02aad3ec490a98007cbc13c37cbe84a3cd7b8e406d76e7f778"
+checksum = "5ee95bc4ef87b8d5ba32e8b7714ccc834865276eab0aed5c9958d00ec45f49e8"
 dependencies = [
  "unicode-ident",
 ]
@@ -1772,9 +1779,9 @@ dependencies = [
 
 [[package]]
 name = "quote"
-version = "1.0.40"
+version = "1.0.42"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1885c039570dc00dcb4ff087a89e185fd56bae234ddc7f056a945bf36467248d"
+checksum = "a338cc41d27e6cc6dce6cefc13a0729dfbb81c262b1f519331575dd80ef3067f"
 dependencies = [
  "proc-macro2",
 ]
@@ -2095,10 +2102,11 @@ dependencies = [
 
 [[package]]
 name = "serde"
-version = "1.0.219"
+version = "1.0.228"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5f0e2c6ed6606019b4e29e69dbaba95b11854410e5347d525002456dbbb786b6"
+checksum = "9a8e94ea7f378bd32cbbd37198a4a91436180c5bb472411e48b5ec2e2124ae9e"
 dependencies = [
+ "serde_core",
  "serde_derive",
 ]
 
@@ -2122,10 +2130,19 @@ dependencies = [
 ]
 
 [[package]]
-name = "serde_derive"
-version = "1.0.219"
+name = "serde_core"
+version = "1.0.228"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5b0276cf7f2c73365f7157c8123c21cd9a50fbbd844757af28ca1f5925fc2a00"
+checksum = "41d385c7d4ca58e59fc732af25c3983b67ac852c1a25000afe1175de458b67ad"
+dependencies = [
+ "serde_derive",
+]
+
+[[package]]
+name = "serde_derive"
+version = "1.0.228"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d540f220d3187173da220f885ab66608367b6574e925011a9353e4badda91d79"
 dependencies = [
  "proc-macro2",
  "quote",
