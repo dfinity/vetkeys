@@ -1,6 +1,6 @@
 # Change Log
 
-## [0.6.0] - Not Yet Released
+## [0.6.0] - 2025-11-24
 
 ### Added
 
@@ -8,6 +8,7 @@
 
 ### Changed
 
+- Increased CDK dependency to version 0.19
 - Changes to format of the AES-GCM encryption helpers added in 0.5.0. This version can decrypt messages encrypted by 0.5.0, but 0.5.0 cannot decrypt messages encrypted by 0.6.0
 
 ## [0.5.0] - 2025-09-08
