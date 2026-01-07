@@ -28,7 +28,6 @@ Ratchet advancement is efficient and can be performed locally by each participan
 
 While vetKey rotations can occur at arbitrary times, the symmetric ratchet progresses strictly at fixed time-frame boundaries. 
 The length of this time frame determines how long a user must retain ratchet key material to decrypt messages. 
-This contrasts with protocols such as Signal, where old keys are usually discarded immediately after advancing the ratchet.
 
 Retaining some ratchet states is necessary to support out-of-order decryption. 
 For example, a client may only want to decrypt recent messages shown in the UI—not the entire history, which may include large media requiring unnecessary downloads. 
@@ -391,7 +390,7 @@ There is a relation between state recovery and the [disappearing messages](#disa
 The state recovery duration is always smaller or equal to the disappearing messages duration because keys for messages that don't exist anymore are not useful.
 
 While disappearing messages duration is a chat-level setting, the state recovery duration is a user-level setting in a chat.
-In general, the state recovery limit can be both chat-level and user-level setting, but it makes more sense to make state recovery a user setting because the user frontend is in full control of state recovery for a non-expired vetKey epoch.
+In general, the state recovery limit can be both chat-level and user-level setting, but it makes more sense to make state recovery a user setting because the user frontend is in full control of state recovery for a non-expired vetKey epoch. [Note that the current MVP of encrypted-chat does not support this setting.]
 
 In the canister backend, the state recovery limit is used in three cases - all related to expired vetKey epochs:
 * Removal of expired caches.
