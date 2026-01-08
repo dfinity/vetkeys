@@ -1,10 +1,10 @@
-# Basic Identity Based Encryption
+# Identity-Based Encryption
 
 | Motoko backend | [![](https://icp.ninja/assets/open.svg)](http://icp.ninja/editor?g=https://github.com/dfinity/vetkeys/tree/main/examples/basic_ibe/motoko)|
 | --- | --- |
 | Rust backend | [![](https://icp.ninja/assets/open.svg)](http://icp.ninja/editor?g=https://github.com/dfinity/vetkeys/tree/main/examples/basic_ibe/rust) |
 
-The **Basic IBE** example demonstrates how to use **[VetKeys](https://internetcomputer.org/docs/building-apps/network-features/vetkeys/introduction)** to implement secure messaging between users by means of Identity Based Encryption (IBE) on the **Internet Computer (IC)**. This application allows users to send encrypted messages to other users using their **Internet Identity Principal** as the encryption key identifier. This canister (IC smart contract) ensures that only the authorized user can access their private decryption key, meaning that even if someone else knows your principal, they cannot decrypt messages intended for you because neither other users nor this canister can access your private key.
+The **Basic IBE** example demonstrates how to use **[VetKeys](https://internetcomputer.org/docs/building-apps/network-features/vetkeys/introduction)** to implement secure messaging between users by means of Identity-Based Encryption (IBE) on the **Internet Computer (IC)**. This application allows users to send encrypted messages to other users using their **Internet Identity Principal** as the encryption key identifier. This canister (IC smart contract) ensures that only the authorized user can access their private decryption key, meaning that even if someone else knows your principal, they cannot decrypt messages intended for you because neither other users nor this canister can access your private key.
 
 Note that generally it is possible for a canister to request a decryption key to decrypt secrets as part of its code.
 However, doing so requires the canister to provide its own transport key instead of requesting a user's transport key and this inherently makes secrets public.
