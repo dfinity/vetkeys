@@ -1,4 +1,7 @@
 name: Check PR title
+
+permissions: {}
+
 on:
   pull_request_target:
     types:

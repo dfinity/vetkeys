@@ -1,5 +1,7 @@
 name: Backend Motoko Format Check
 
+permissions: {}
+
 on:
   push:
     branches:
@@ -16,6 +18,8 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
       - uses: ZenVoich/setup-mops@v1
         with:
           mops-version: 1

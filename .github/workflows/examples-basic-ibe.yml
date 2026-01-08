@@ -1,4 +1,6 @@
 name: examples-basic-ibe
+permissions: {}
+
 on:
   push:
     branches:
@@ -19,6 +21,8 @@ jobs:
     runs-on: macos-15
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
       - name: Provision Darwin
         run: |
           bash .github/workflows/provision-darwin.sh
@@ -34,6 +38,8 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
       - name: Provision Linux
         run: bash .github/workflows/provision-linux.sh
       - name: Deploy Basic IBE Rust Linux
@@ -48,6 +54,8 @@ jobs:
     runs-on: macos-15
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
       - name: Provision Darwin
         run: |
           bash .github/workflows/provision-darwin.sh
@@ -63,6 +71,8 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
       - name: Provision Linux
         run: bash .github/workflows/provision-linux.sh
       - name: Deploy Basic IBE Motoko Linux
