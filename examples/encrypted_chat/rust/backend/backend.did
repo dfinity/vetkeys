@@ -29,7 +29,7 @@ type UserMessage = record {
   vetkey_epoch : nat64;
   content : blob;
   symmetric_key_epoch : nat64;
-  message_id : nat64;
+  nonce : nat64;
 };
 type VetKeyEpochMetadata = record {
   symmetric_key_rotation_duration : nat64;

@@ -42,7 +42,7 @@ thread_local! {
         MEMORY_MANAGER.with(|m| m.borrow().get(MemoryId::new(3))),
     ));
 
-    static SET_CHAT_AND_SENDER_AND_USER_MESSAGE_ID: RefCell<StableBTreeMap<(ChatId, Sender, SenderMessageId), (), Memory>> = RefCell::new(StableBTreeMap::init(
+    static SET_CHAT_AND_SENDER_AND_USER_MESSAGE_ID: RefCell<StableBTreeMap<(ChatId, Sender, Nonce), (), Memory>> = RefCell::new(StableBTreeMap::init(
         MEMORY_MANAGER.with(|m| m.borrow().get(MemoryId::new(4))),
     ));
 
@@ -396,7 +396,7 @@ fn send_direct_message(user_message: UserMessage, receiver: Principal) -> Result
         user_message.vetkey_epoch,
         user_message.symmetric_key_epoch,
     )?;
-    ensure_message_id_is_unique(chat_id, user_message.message_id)?;
+    ensure_nonce_is_unique(chat_id, user_message.nonce)?;
 
     let now = Time(ic_cdk::api::time());
 
@@ -416,12 +416,12 @@ fn send_direct_message(user_message: UserMessage, receiver: Principal) -> Result
             vetkey_epoch: user_message.vetkey_epoch,
             symmetric_key_epoch: user_message.symmetric_key_epoch,
             chat_message_id,
-            nonce: user_message.message_id,
+            nonce: user_message.nonce,
         },
     };
 
     SET_CHAT_AND_SENDER_AND_USER_MESSAGE_ID.with_borrow_mut(|message_times| {
-        message_times.insert((chat_id, Sender(caller), user_message.message_id), ());
+        message_times.insert((chat_id, Sender(caller), user_message.nonce), ());
     });
 
     DIRECT_CHAT_MESSAGES.with_borrow_mut(|messages| {
@@ -458,7 +458,7 @@ fn send_group_message(
         user_message.vetkey_epoch,
         user_message.symmetric_key_epoch,
     )?;
-    ensure_message_id_is_unique(chat_id, user_message.message_id)?;
+    ensure_nonce_is_unique(chat_id, user_message.nonce)?;
 
     let now = Time(ic_cdk::api::time());
 
@@ -478,12 +478,12 @@ fn send_group_message(
             vetkey_epoch: user_message.vetkey_epoch,
             symmetric_key_epoch: user_message.symmetric_key_epoch,
             chat_message_id,
-            nonce: user_message.message_id,
+            nonce: user_message.nonce,
         },
     };
 
     SET_CHAT_AND_SENDER_AND_USER_MESSAGE_ID.with_borrow_mut(|message_times| {
-        message_times.insert((chat_id, Sender(caller), user_message.message_id), ());
+        message_times.insert((chat_id, Sender(caller), user_message.nonce), ());
     });
 
     GROUP_CHAT_MESSAGES.with_borrow_mut(|messages| {
@@ -1081,10 +1081,7 @@ fn ensure_chat_and_vetkey_epoch_exist(
     })
 }
 
-fn ensure_message_id_is_unique(
-    chat_id: ChatId,
-    nonce: SenderMessageId,
-) -> Result<(), String> {
+fn ensure_nonce_is_unique(chat_id: ChatId, nonce: Nonce) -> Result<(), String> {
     let caller = ic_cdk::api::msg_caller();
     let maybe_existing_id = SET_CHAT_AND_SENDER_AND_USER_MESSAGE_ID
         .with_borrow(|message_ids| message_ids.get(&(chat_id, Sender(caller), nonce)));

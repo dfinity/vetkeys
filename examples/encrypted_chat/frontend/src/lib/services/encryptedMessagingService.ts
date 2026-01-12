@@ -14,7 +14,7 @@ import {
 	chatIdFromString,
 	chatIdsNumMessagesToSummary,
 	chatIdToString,
-	randomSenderMessageId
+	randomNonce
 } from '$lib/utils';
 import * as cbor from 'cbor-x';
 import type { SymmetricRatchetState } from '$lib/crypto/symmetricRatchet';
@@ -127,13 +127,13 @@ export class EncryptedMessagingService {
 		const MAX_RETRIES = 50;
 		const TIMEOUT_MS = 1000;
 
-		const senderMessageId = randomSenderMessageId();
+		const nonce = randomNonce();
 		for (let i = 0; i < MAX_RETRIES; i++) {
 			try {
 				const encrypted = await this.#keyManager.encryptNow(
 					chatIdStr,
 					getMyPrincipal(),
-					senderMessageId,
+					nonce,
 					content
 				);
 				await sendMessage(
@@ -141,7 +141,7 @@ export class EncryptedMessagingService {
 					chatIdFromString(chatIdStr),
 					encrypted.vetKeyEpoch,
 					encrypted.symmetricRatchetEpoch,
-					senderMessageId,
+					nonce,
 					encrypted.encryptedBytes
 				);
 				break;
@@ -408,7 +408,7 @@ async function sendMessage(
 	chatId: ChatId,
 	vetKeyEpoch: bigint,
 	symmetricRatchetEpoch: bigint,
-	senderMessageId: bigint,
+	nonce: bigint,
 	encryptedBytes: Uint8Array
 ) {
 	// Create UserMessage for the canister
@@ -416,7 +416,7 @@ async function sendMessage(
 		vetkey_epoch: vetKeyEpoch,
 		content: encryptedBytes,
 		symmetric_key_epoch: symmetricRatchetEpoch,
-		message_id: senderMessageId
+		nonce: nonce
 	};
 
 	// Send to canister using the appropriate method based on chat type

@@ -59,7 +59,7 @@ pub struct EncryptedMessageMetadata {
     pub vetkey_epoch: VetKeyEpochId,
     pub symmetric_key_epoch: SymmetricKeyEpochId,
     pub chat_message_id: ChatMessageId,
-    pub nonce: SenderMessageId,
+    pub nonce: Nonce,
 }
 
 impl Storable for EncryptedMessageMetadata {
@@ -96,11 +96,11 @@ impl Storable for EncryptedMessageMetadata {
         ));
 
         let (chat_message_id_bytes, nonce_bytes) = rest.split_at(8);
-        let chat_message_id = ChatMessageId(u64::from_le_bytes(chat_message_id_bytes.try_into().unwrap()));
-
-        let nonce = SenderMessageId(u64::from_le_bytes(
-            nonce_bytes.try_into().unwrap(),
+        let chat_message_id = ChatMessageId(u64::from_le_bytes(
+            chat_message_id_bytes.try_into().unwrap(),
         ));
+
+        let nonce = Nonce(u64::from_le_bytes(nonce_bytes.try_into().unwrap()));
 
         Self {
             sender,
@@ -123,7 +123,7 @@ pub struct UserMessage {
     pub content: Vec<u8>,
     pub vetkey_epoch: VetKeyEpochId,
     pub symmetric_key_epoch: SymmetricKeyEpochId,
-    pub message_id: SenderMessageId,
+    pub nonce: Nonce,
 }
 
 storable_unbounded!(UserMessage);
@@ -262,13 +262,13 @@ impl Storable for ChatId {
     };
 }
 
-/// Per-sender, user-assigned message id.
+/// User-assigned nonce used for message encryption.
 #[derive(
     CandidType, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Clone, Debug, Copy,
 )]
-pub struct SenderMessageId(pub u64);
+pub struct Nonce(pub u64);
 
-storable_delegate!(SenderMessageId, u64);
+storable_delegate!(Nonce, u64);
 
 /// Chat message id is assigned to each message in the chat sequentially.
 /// The IDs are assigned from an incrementing counter for a chat for all users.

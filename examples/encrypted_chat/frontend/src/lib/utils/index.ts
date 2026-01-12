@@ -89,12 +89,12 @@ export function chatIdsNumMessagesToSummary(
 	}, '');
 }
 
-export function randomSenderMessageId(): bigint {
+export function randomNonce(): bigint {
 	const buf = new Uint8Array(8);
 	globalThis.crypto.getRandomValues(buf);
-	let senderMessageId = 0n;
-	for (const b of buf) senderMessageId = (senderMessageId << 8n) | BigInt(b);
-	return senderMessageId;
+	let nonce = 0n;
+	for (const b of buf) nonce = (nonce << 8n) | BigInt(b);
+	return nonce;
 }
 
 export function toHex(bytes: Uint8Array): string {

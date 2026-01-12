@@ -1,8 +1,8 @@
 use candid::{encode_args, Principal};
 use ic_vetkeys_example_encrypted_chat_backend::types::{
     ChatId, ChatMessageId, DirectChatId, EncryptedMessage, EncryptedMessageMetadata,
-    EncryptedSymmetricKeyEpochCache, IbeEncryptedVetKey, SenderMessageId, SymmetricKeyEpochId,
-    Time, UserMessage, VetKeyEpochId,
+    EncryptedSymmetricKeyEpochCache, IbeEncryptedVetKey, Nonce, SymmetricKeyEpochId, Time,
+    UserMessage, VetKeyEpochId,
 };
 use serde_bytes::ByteBuf;
 
@@ -132,14 +132,14 @@ fn can_send_and_get_messages() {
 
     for _ in 0..10 {
         for sender in [env.principal_0, env.principal_1].iter().copied() {
-            let message_id_raw = *message_id_counters.get(&sender).unwrap();
-            message_id_counters.insert(sender, message_id_raw + 1);
+            let nonce_raw = *message_id_counters.get(&sender).unwrap();
+            message_id_counters.insert(sender, nonce_raw + 1);
 
             let user_message = UserMessage {
                 content: message_content.clone(),
                 vetkey_epoch: VetKeyEpochId(0),
                 symmetric_key_epoch: SymmetricKeyEpochId(0),
-                message_id: SenderMessageId(message_id_raw),
+                nonce: Nonce(nonce_raw),
             };
 
             // + 1 is because the update call calls `tick` internally
@@ -169,7 +169,7 @@ fn can_send_and_get_messages() {
                     vetkey_epoch: VetKeyEpochId(0),
                     symmetric_key_epoch: SymmetricKeyEpochId(0),
                     chat_message_id: ChatMessageId(expected_chat_history.len() as u64),
-                    sender_message_id: SenderMessageId(message_id_raw),
+                    nonce: Nonce(nonce_raw),
                 },
             };
 
@@ -223,7 +223,7 @@ fn fails_to_send_messages_with_wrong_symmetric_key_epoch() {
                 content: message_content.clone(),
                 vetkey_epoch: VetKeyEpochId(0),
                 symmetric_key_epoch,
-                message_id: SenderMessageId(0),
+                nonce: Nonce(0),
             };
 
             let result = env.update::<Result<Time, String>>(
@@ -273,7 +273,7 @@ fn fails_to_send_messages_with_wrong_symmetric_key_epoch() {
                     content: message_content.clone(),
                     vetkey_epoch: VetKeyEpochId(0),
                     symmetric_key_epoch,
-                    message_id: SenderMessageId(0),
+                    nonce: Nonce(0),
                 };
 
                 let result = env.update::<Result<Time, String>>(
@@ -310,7 +310,7 @@ fn fails_to_send_messages_with_wrong_symmetric_key_epoch() {
                     content: message_content.clone(),
                     vetkey_epoch: VetKeyEpochId(0),
                     symmetric_key_epoch,
-                    message_id: SenderMessageId(0),
+                    nonce: Nonce(0),
                 };
 
                 let result = env.update::<Result<Time, String>>(
@@ -546,7 +546,7 @@ fn fails_to_send_messages_with_wrong_vetkey_epoch() {
                 content: message_content.clone(),
                 vetkey_epoch: VetKeyEpochId(latest_epoch + 1),
                 symmetric_key_epoch: SymmetricKeyEpochId(0),
-                message_id: SenderMessageId(0),
+                nonce: Nonce(0),
             };
 
             let result = env.update::<Result<Time, String>>(
@@ -1477,7 +1477,7 @@ fn time_job_reports_cleaned_up_expired_items() {
                 content: b"hello".to_vec(),
                 vetkey_epoch: VetKeyEpochId(i),
                 symmetric_key_epoch: SymmetricKeyEpochId(0),
-                message_id: SenderMessageId(i + 2 * j),
+                nonce: Nonce(i + 2 * j),
             };
             env.update::<Result<Time, String>>(
                 env.principal_0,
