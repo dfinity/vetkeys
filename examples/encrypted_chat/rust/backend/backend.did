@@ -2,14 +2,6 @@ type ChatId = variant {
   Group : nat64;
   Direct : record { principal; principal };
 };
-type ChatMetadata = record {
-  first_non_expired_message_id : opt nat64;
-  disappearing_messages_duration : nat64;
-  latest_vetkey_epoch_id : nat64;
-  first_non_expired_vetkey_epoch_id : nat64;
-  chat_id : ChatId;
-  number_of_messages : nat64;
-};
 type EncryptedMessage = record {
   content : blob;
   metadata : EncryptedMessageMetadata;
@@ -22,10 +14,6 @@ type EncryptedMessageMetadata = record {
   nonce : nat64;
   timestamp : nat64;
 };
-type GetMyChatsAndTimeResponse = record {
-  chats_metadata : vec ChatMetadata;
-  current_consensus_time : nat64;
-};
 type GroupChatMetadata = record { creation_timestamp : nat64; chat_id : nat64 };
 type GroupModification = record {
   remove_participants : vec principal;
@@ -37,12 +25,11 @@ type Result_2 = variant { Ok : blob; Err : text };
 type Result_3 = variant { Ok : VetKeyEpochMetadata; Err : text };
 type Result_4 = variant { Ok : opt blob; Err : text };
 type Result_5 = variant { Ok; Err : text };
-type Result_6 = variant { Ok : opt nat64; Err : text };
 type UserMessage = record {
   vetkey_epoch : nat64;
   content : blob;
   symmetric_key_epoch : nat64;
-  nonce : nat64;
+  message_id : nat64;
 };
 type VetKeyEpochMetadata = record {
   symmetric_key_rotation_duration : nat64;
@@ -68,7 +55,6 @@ service : (text) -> {
   // * If the user has already cached the key.
   derive_chat_vetkey : (ChatId, opt nat64, blob) -> (Result_2);
   get_encrypted_vetkey_for_my_cache_storage : (blob) -> (blob);
-  get_expiry : (ChatId) -> (Result) query;
   get_latest_chat_vetkey_epoch_metadata : (ChatId) -> (Result_3) query;
   // Returns messages for a chat starting from a given message id.
   // 
@@ -80,7 +66,7 @@ service : (text) -> {
   // # Notes
   // * Does not fail if the chat does not exist or the user has no access -- returns empty vector instead.
   get_messages : (ChatId, nat64, opt nat32) -> (vec EncryptedMessage) query;
-  get_my_chats_and_time : () -> (GetMyChatsAndTimeResponse) query;
+  get_my_chat_ids : () -> (vec record { ChatId; nat64 }) query;
   get_my_reshared_ibe_encrypted_vetkey : (ChatId, nat64) -> (Result_4);
   get_my_symmetric_key_cache : (ChatId, nat64) -> (Result_4);
   get_vetkey_epoch_metadata : (ChatId, nat64) -> (Result_3) query;
@@ -96,6 +82,5 @@ service : (text) -> {
   rotate_chat_vetkey : (ChatId) -> (Result);
   send_direct_message : (UserMessage, principal) -> (Result);
   send_group_message : (UserMessage, nat64) -> (Result);
-  set_expiry : (ChatId, nat64) -> (Result_6) query;
   update_my_symmetric_key_cache : (ChatId, nat64, blob) -> (Result_5);
 }

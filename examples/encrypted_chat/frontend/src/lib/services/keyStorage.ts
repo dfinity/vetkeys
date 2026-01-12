@@ -20,10 +20,6 @@ export class KeyStorageService {
 			vetKeyEpochStr
 		])) as StorableSymmetricRatchetState;
 		if (!stateRecord) {
-			console.warn(
-				`KeyStorageService.getSymmetricRatchetState: failed to load symmetric ratchet state for chat ${chatIdStr} vetkeyEpoch ${vetKeyEpochStr}: state`,
-				stateRecord
-			);
 			return undefined;
 		}
 		console.log(
@@ -34,8 +30,7 @@ export class KeyStorageService {
 			stateRecord.cryptoKey,
 			stateRecord.symmetricRatchetEpoch,
 			stateRecord.creationTime,
-			stateRecord.rotationDuration,
-			stateRecord.stateRecoveryDuration
+			stateRecord.rotationDuration
 		);
 	}
 

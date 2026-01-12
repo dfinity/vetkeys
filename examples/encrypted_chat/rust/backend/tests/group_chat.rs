@@ -2,7 +2,7 @@ use candid::{encode_args, Principal};
 use ic_vetkeys_example_encrypted_chat_backend::types::{
     ChatId, ChatMessageId, EncryptedMessage, EncryptedMessageMetadata,
     EncryptedSymmetricKeyEpochCache, GroupChatId, GroupChatMetadata, GroupModification,
-    IbeEncryptedVetKey, Nonce, SymmetricKeyEpochId, Time, UserMessage, VetKeyEpochId,
+    IbeEncryptedVetKey, SenderMessageId, SymmetricKeyEpochId, Time, UserMessage, VetKeyEpochId,
     VetKeyEpochMetadata,
 };
 use serde_bytes::ByteBuf;
@@ -15,14 +15,13 @@ fn can_create_chat() {
     let rng = &mut reproducible_rng();
     let env = TestEnvironment::new(rng);
 
-    for (expected_chat_id, other_participants) in [
+    let mut expected_chat_id = 0;
+
+    for other_participants in [
         vec![],
         vec![env.principal_1],
         vec![env.principal_1, env.principal_2],
-    ]
-    .into_iter()
-    .enumerate()
-    {
+    ] {
         let result = env.update::<Result<GroupChatMetadata, String>>(
             env.principal_0,
             "create_group_chat",
@@ -32,10 +31,12 @@ fn can_create_chat() {
         assert_eq!(
             result,
             Ok(GroupChatMetadata {
-                chat_id: GroupChatId(expected_chat_id as u64),
+                chat_id: GroupChatId(expected_chat_id),
                 creation_timestamp: Time(env.pic.get_time().as_nanos_since_unix_epoch()),
             })
         );
+
+        expected_chat_id += 1;
     }
 }
 
@@ -78,7 +79,7 @@ fn can_send_and_get_messages() {
             assert_eq!(
                 env.update::<Vec<EncryptedMessage>>(
                     caller,
-                    "get_messages",
+                    "get_some_messages_for_chat_starting_from",
                     encode_args((chat_id, ChatMessageId(0), Option::<u32>::None)).unwrap(),
                 ),
                 vec![]
@@ -87,14 +88,14 @@ fn can_send_and_get_messages() {
 
         for _ in 0..10 {
             for sender in all_participants.iter().copied() {
-                let nonce_raw = *message_id_counters.get(&sender).unwrap();
-                message_id_counters.insert(sender, nonce_raw + 1);
+                let message_id_raw = *message_id_counters.get(&sender).unwrap();
+                message_id_counters.insert(sender, message_id_raw + 1);
 
                 let user_message = UserMessage {
                     content: message_content.clone(),
                     vetkey_epoch: VetKeyEpochId(0),
                     symmetric_key_epoch: SymmetricKeyEpochId(0),
-                    nonce: Nonce(nonce_raw),
+                    message_id: SenderMessageId(message_id_raw),
                 };
 
                 // + 1 is because the update call calls `tick` internally
@@ -116,7 +117,7 @@ fn can_send_and_get_messages() {
                         vetkey_epoch: VetKeyEpochId(0),
                         symmetric_key_epoch: SymmetricKeyEpochId(0),
                         chat_message_id: ChatMessageId(expected_chat_history.len() as u64),
-                        nonce: Nonce(nonce_raw),
+                        sender_message_id: SenderMessageId(message_id_raw),
                     },
                 };
 
@@ -126,7 +127,7 @@ fn can_send_and_get_messages() {
                     assert_eq!(
                         env.update::<Vec<EncryptedMessage>>(
                             caller,
-                            "get_messages",
+                            "get_some_messages_for_chat_starting_from",
                             encode_args((chat_id, ChatMessageId(0), Option::<u32>::None)).unwrap(),
                         ),
                         expected_chat_history
@@ -181,7 +182,7 @@ fn fails_to_send_messages_with_wrong_symmetric_key_epoch() {
                     content: message_content.clone(),
                     vetkey_epoch: VetKeyEpochId(0),
                     symmetric_key_epoch,
-                    nonce: Nonce(0),
+                    message_id: SenderMessageId(0),
                 };
 
                 let result = env.update::<Result<Time, String>>(
@@ -224,7 +225,7 @@ fn fails_to_send_messages_with_wrong_symmetric_key_epoch() {
                         content: message_content.clone(),
                         vetkey_epoch: VetKeyEpochId(0),
                         symmetric_key_epoch,
-                        nonce: Nonce(0),
+                        message_id: SenderMessageId(0),
                     };
 
                     let result = env.update::<Result<Time, String>>(
@@ -253,7 +254,7 @@ fn fails_to_send_messages_with_wrong_symmetric_key_epoch() {
                         content: message_content.clone(),
                         vetkey_epoch: VetKeyEpochId(0),
                         symmetric_key_epoch,
-                        nonce: Nonce(0),
+                        message_id: SenderMessageId(0),
                     };
 
                     let result = env.update::<Result<Time, String>>(
@@ -292,7 +293,7 @@ fn fails_to_send_messages_with_wrong_symmetric_key_epoch() {
             assert_eq!(
                 env.update::<Vec<EncryptedMessage>>(
                     caller,
-                    "get_messages",
+                    "get_some_messages_for_chat_starting_from",
                     encode_args((chat_id, ChatMessageId(0), Option::<u32>::None)).unwrap(),
                 ),
                 vec![]
@@ -506,7 +507,7 @@ fn fails_to_send_group_chat_message_with_wrong_vetkey_epoch() {
                     content: message_content.clone(),
                     vetkey_epoch: VetKeyEpochId(latest_epoch + 1),
                     symmetric_key_epoch: SymmetricKeyEpochId(0),
-                    nonce: Nonce(0),
+                    message_id: SenderMessageId(0),
                 };
 
                 let result = env.update::<Result<Time, String>>(
@@ -540,7 +541,7 @@ fn fails_to_send_group_chat_message_with_wrong_vetkey_epoch() {
             assert_eq!(
                 env.update::<Vec<EncryptedMessage>>(
                     caller,
-                    "get_messages",
+                    "get_some_messages_for_chat_starting_from",
                     encode_args((chat_id, ChatMessageId(0), Option::<u32>::None)).unwrap(),
                 ),
                 vec![]
@@ -854,7 +855,6 @@ fn unauthorized_user_cannot_access_symmetric_key_cache() {
 fn cannot_access_cache_after_vetkey_epoch_expires() {
     let rng = &mut reproducible_rng();
     let env = TestEnvironment::new(rng);
-    let expiry_setting_minutes = 10_000;
 
     for other_participants in [
         vec![],
@@ -870,12 +870,7 @@ fn cannot_access_cache_after_vetkey_epoch_expires() {
             .update::<Result<GroupChatMetadata, String>>(
                 env.principal_0,
                 "create_group_chat",
-                encode_args((
-                    other_participants.clone(),
-                    Time(1_000),
-                    Time(expiry_setting_minutes),
-                ))
-                .unwrap(),
+                encode_args((other_participants.clone(), Time(1_000), Time(10_000))).unwrap(),
             )
             .unwrap();
 
@@ -903,9 +898,9 @@ fn cannot_access_cache_after_vetkey_epoch_expires() {
             .unwrap();
         assert_eq!(new_epoch, VetKeyEpochId(1));
 
-        let rotation_time = env.pic.get_time().as_nanos_since_unix_epoch();
-
-        let expiry_time = rotation_time + expiry_setting_minutes * NANOSECONDS_IN_MINUTE;
+        let expiry_setting_minutes = 10_000;
+        let expiry_time = group_chat_metadata.creation_timestamp.0
+            + expiry_setting_minutes * NANOSECONDS_IN_MINUTE;
         // Fast forward time to expire epoch 0
         env.pic
             .set_time(pocket_ic::Time::from_nanos_since_unix_epoch(expiry_time));
@@ -913,7 +908,7 @@ fn cannot_access_cache_after_vetkey_epoch_expires() {
         // Neither authorized nor unauthorized users can access expired epoch cache
         for caller in [env.principal_0, env.principal_1, env.principal_2]
             .into_iter()
-            .filter(|p| *p == env.principal_0 || other_participants.contains(p))
+            .filter(|p| *p == env.principal_0 || other_participants.contains(&p))
         {
             // Cannot update cache for expired epoch
             let result = env.update::<Result<(), String>>(
@@ -1755,8 +1750,6 @@ fn fails_to_reshare_or_get_reshared_vetkeys_for_invalid_vetkey_epochs() {
             .unwrap();
         assert_eq!(new_epoch, VetKeyEpochId(1));
 
-        let rotation_time_1 = env.pic.get_time().as_nanos_since_unix_epoch();
-
         // Verify epoch 0 reshared vetkey is still available
         let result = env.update::<Result<Option<IbeEncryptedVetKey>, String>>(
             participants[1],
@@ -1785,7 +1778,8 @@ fn fails_to_reshare_or_get_reshared_vetkeys_for_invalid_vetkey_epochs() {
         );
 
         // Fast forward time to expire epoch 0
-        let expiry_time = rotation_time_1 + expiry_setting_minutes.0 * NANOSECONDS_IN_MINUTE;
+        let expiry_time = group_chat_metadata.creation_timestamp.0
+            + expiry_setting_minutes.0 * NANOSECONDS_IN_MINUTE;
         env.pic
             .set_time(pocket_ic::Time::from_nanos_since_unix_epoch(expiry_time));
 
@@ -1809,20 +1803,8 @@ fn fails_to_reshare_or_get_reshared_vetkeys_for_invalid_vetkey_epochs() {
         )
         .unwrap();
 
-        // Rotate to epoch 1
-        let new_epoch = env
-            .update::<Result<VetKeyEpochId, String>>(
-                participants[0],
-                "rotate_chat_vetkey",
-                encode_args((chat_id,)).unwrap(),
-            )
-            .unwrap();
-        assert_eq!(new_epoch, VetKeyEpochId(2));
-
         // Fast forward time to expire epoch 1
-        env.pic.advance_time(std::time::Duration::from_nanos(
-            expiry_setting_minutes.0 * NANOSECONDS_IN_MINUTE,
-        ));
+        env.pic.advance_time(std::time::Duration::from_nanos(10));
 
         let result = env.update::<Result<Option<IbeEncryptedVetKey>, String>>(
             participants[1],
@@ -1890,7 +1872,7 @@ fn time_job_reports_cleaned_up_expired_items() {
                 content: b"hello".to_vec(),
                 vetkey_epoch: VetKeyEpochId(i),
                 symmetric_key_epoch: SymmetricKeyEpochId(0),
-                nonce: Nonce(i + 2 * j),
+                message_id: SenderMessageId(i + 2 * j),
             };
             env.update::<Result<Time, String>>(
                 env.principal_0,
@@ -1951,7 +1933,5 @@ fn time_job_reports_cleaned_up_expired_items() {
     let log_string = logs.iter().fold(String::new(), |acc, log| {
         format!("{acc}{}", String::from_utf8(log.content.clone()).unwrap())
     });
-
-    let index = log_string.find("Timer job").expect("no timer job found");
-    assert_eq!(&log_string[index..], "Timer job: cleaned up 0 expired direct messages, 8 expired group messages, 2 expired vetkey epochs (2 caches), 2 expired reshared vetkeys");
+    assert_eq!(log_string, "Timer job: cleaned up 0 expired direct messages, 8 expired group messages, 4 expired vetkey epochs caches, 4 expired reshared vetkeys");
 }

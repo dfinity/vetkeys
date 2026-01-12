@@ -44,22 +44,6 @@ macro_rules! storable_delegate {
 }
 
 #[derive(CandidType, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Clone, Debug)]
-pub struct GetMyChatsAndTimeResponse {
-    pub chats_metadata: Vec<ChatMetadata>,
-    pub current_consensus_time: u64,
-}
-
-#[derive(CandidType, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Clone, Debug)]
-pub struct ChatMetadata {
-    pub chat_id: ChatId,
-    pub number_of_messages: ChatMessageId,
-    pub latest_vetkey_epoch_id: VetKeyEpochId,
-    pub disappearing_messages_duration: Time,
-    pub first_non_expired_message_id: Option<ChatMessageId>,
-    pub first_non_expired_vetkey_epoch_id: VetKeyEpochId,
-}
-
-#[derive(CandidType, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Clone, Debug)]
 pub struct EncryptedMessage {
     pub content: Vec<u8>,
     pub metadata: EncryptedMessageMetadata,
@@ -75,7 +59,7 @@ pub struct EncryptedMessageMetadata {
     pub vetkey_epoch: VetKeyEpochId,
     pub symmetric_key_epoch: SymmetricKeyEpochId,
     pub chat_message_id: ChatMessageId,
-    pub nonce: Nonce,
+    pub nonce: SenderMessageId,
 }
 
 impl Storable for EncryptedMessageMetadata {
@@ -112,11 +96,11 @@ impl Storable for EncryptedMessageMetadata {
         ));
 
         let (chat_message_id_bytes, nonce_bytes) = rest.split_at(8);
-        let chat_message_id = ChatMessageId(u64::from_le_bytes(
-            chat_message_id_bytes.try_into().unwrap(),
-        ));
+        let chat_message_id = ChatMessageId(u64::from_le_bytes(chat_message_id_bytes.try_into().unwrap()));
 
-        let nonce = Nonce(u64::from_le_bytes(nonce_bytes.try_into().unwrap()));
+        let nonce = SenderMessageId(u64::from_le_bytes(
+            nonce_bytes.try_into().unwrap(),
+        ));
 
         Self {
             sender,
@@ -139,7 +123,7 @@ pub struct UserMessage {
     pub content: Vec<u8>,
     pub vetkey_epoch: VetKeyEpochId,
     pub symmetric_key_epoch: SymmetricKeyEpochId,
-    pub nonce: Nonce,
+    pub message_id: SenderMessageId,
 }
 
 storable_unbounded!(UserMessage);
@@ -282,9 +266,9 @@ impl Storable for ChatId {
 #[derive(
     CandidType, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Clone, Debug, Copy,
 )]
-pub struct Nonce(pub u64);
+pub struct SenderMessageId(pub u64);
 
-storable_delegate!(Nonce, u64);
+storable_delegate!(SenderMessageId, u64);
 
 /// Chat message id is assigned to each message in the chat sequentially.
 /// The IDs are assigned from an incrementing counter for a chat for all users.

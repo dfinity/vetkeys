@@ -15,7 +15,7 @@ import type { ChatId } from '../../declarations/encrypted_chat/encrypted_chat.di
 import type { Principal } from '@dfinity/principal';
 import { getActor, getMyPrincipal } from '$lib/stores/auth.svelte';
 
-export class EncryptedRatchetStateCacheService {
+export class EncryptedCanisterCacheService {
 	#encryptedMaps: EncryptedMaps;
 
 	constructor() {

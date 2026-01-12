@@ -72,7 +72,7 @@ fn can_create_many_chats() {
             if group_creator[0] != participants[0]
                 && !invited_participants.contains(&participants[0])
             {
-                invited_participants.push(participants[0]);
+                invited_participants.push(participants[0].clone());
             }
 
             let chat_id = ChatId::Group(GroupChatId(num_group_chats));
@@ -95,37 +95,27 @@ fn can_create_many_chats() {
         }
 
         for p in participants.clone() {
-            let my_chat_ids = env.query::<GetMyChatsAndTimeResponse>(
+            let my_chat_ids = env.query::<Vec<(ChatId, ChatMessageId)>>(
                 p,
-                "get_my_chats_and_time",
+                "get_my_chat_ids",
                 encode_args(()).unwrap(),
             );
 
             let expected_chat_ids = expected_chat_ids
                 .range((p, ChatId::MIN_VALUE)..)
                 .take_while(|(key, _)| key.0 == p)
-                .map(|(key, _value)| ChatMetadata {
-                    chat_id: key.1,
-                    number_of_messages: ChatMessageId(0),
-                    latest_vetkey_epoch_id: VetKeyEpochId(0),
-                    disappearing_messages_duration: Time(NANOSECONDS_IN_MINUTE * 10_000),
-                    first_non_expired_message_id: None,
-                    first_non_expired_vetkey_epoch_id: VetKeyEpochId(0),
-                })
+                .map(|(key, _value)| (key.1, ChatMessageId(0)))
                 .collect::<Vec<_>>();
 
-            assert_eq!(my_chat_ids.chats_metadata, expected_chat_ids);
+            assert_eq!(my_chat_ids, expected_chat_ids);
         }
 
-        let p0_chat_ids = env.query::<GetMyChatsAndTimeResponse>(
+        let p0_chat_ids = env.query::<Vec<(ChatId, ChatMessageId)>>(
             participants[0],
-            "get_my_chats_and_time",
+            "get_my_chat_ids",
             encode_args(()).unwrap(),
         );
 
-        assert_eq!(
-            p0_chat_ids.chats_metadata.len() as u64,
-            num_group_chats + num_direct_chats
-        );
+        assert_eq!(p0_chat_ids.len() as u64, num_group_chats + num_direct_chats);
     }
 }

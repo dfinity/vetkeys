@@ -35,8 +35,6 @@ export class EncryptedMessagingService {
 	#chatIdToCurrentNumberOfRemoteMessages: Map<string, bigint>;
 	#chatIdToCurrentNumberOfFetchedMessages: Map<string, bigint>;
 
-	#currentConsensusTime: Date;
-
 	#backgroundWorker: BackgroundWorker;
 
 	constructor() {
@@ -51,18 +49,8 @@ export class EncryptedMessagingService {
 		this.#chatIdToCurrentNumberOfRemoteMessages = new Map();
 		this.#chatIdToCurrentNumberOfFetchedMessages = new Map();
 
-		this.#currentConsensusTime = new Date(0);
-
 		// Start the background worker to handle encryption, sending, polling, and decryption
 		this.#backgroundWorker = new BackgroundWorker();
-	}
-
-	ratchetVersion(): {
-		chatIdStr: string;
-		vetKeyEpochId: bigint;
-		oldestSymmetricRatchetEpochId: bigint;
-	}[] {
-		return this.#keyManager.ratchetVersions();
 	}
 
 	start() {
@@ -78,10 +66,6 @@ export class EncryptedMessagingService {
 			},
 			async () => this.#handleOutgoingMessages()
 		);
-	}
-
-	getConsensusTime(): Date {
-		return this.#currentConsensusTime;
 	}
 
 	inductSymmetricRatchetState(
@@ -164,22 +148,16 @@ export class EncryptedMessagingService {
 			} catch (e) {
 				console.info('#handleOutgoingMessage: VetKeyEpochError', e);
 				if (e instanceof VetKeyEpochError) {
-					const messageExpiry = await canisterAPI.getExpiry(
-						getActor(),
-						chatIdFromString(chatIdStr)
-					);
 					const ratchetState =
 						await this.#ratchetInitializationService.initializeRatchetStateAndReshareAndCacheIfNeeded(
 							chatIdFromString(chatIdStr),
-							e.requiredVetKeyEpoch,
-							messageExpiry
+							e.requiredVetKeyEpoch
 						);
 					this.#keyManager.inductSymmetricRatchetState(
 						chatIdStr,
 						e.requiredVetKeyEpoch,
 						ratchetState
 					);
-					this.#keyManager.setExpiry(chatIdStr, messageExpiry);
 				} else if (e instanceof SymmetricRatchetEpochError) {
 					console.log('#handleOutgoingMessage: Symmetric ratchet epoch error', e);
 				} else {
@@ -198,23 +176,12 @@ export class EncryptedMessagingService {
 		if (auth.state.label !== 'initialized') return;
 
 		// Get chat IDs and check for new messages
-		const { chats, currentConsensusTime } = await canisterAPI.getChatsAndTime(getActor());
+		const chatIds = await canisterAPI.getChatIdsAndCurrentNumbersOfMessages(getActor());
 
-		this.#currentConsensusTime = currentConsensusTime;
+		const summary = chatIdsNumMessagesToSummary(chatIds);
+		console.log('fetched ' + chatIds.length + ' chats: ' + summary);
 
-		const summary = chatIdsNumMessagesToSummary(
-			Array.from(
-				chats.values().map((chat) => {
-					return {
-						chatId: chat.chat_id,
-						numMessages: chat.number_of_messages
-					};
-				})
-			)
-		);
-		console.log('fetched ' + chats.length + ' chats: ' + summary);
-
-		for (const { chat_id: chatId, number_of_messages: numMessages } of chats) {
+		for (const { chatId, numMessages } of chatIds) {
 			if (!this.#keyManager.doesChatHaveKeys(chatIdToString(chatId))) {
 				console.log(
 					'#pollForNewMessages: chatId',
@@ -224,12 +191,10 @@ export class EncryptedMessagingService {
 				const latestVetKeyEpoch = (
 					await canisterAPI.getLatestVetKeyEpochMetadata(getActor(), chatId)
 				).epoch_id;
-				const messageExpiry = await canisterAPI.getExpiry(getActor(), chatId);
 				const ratchetState =
 					await this.#ratchetInitializationService.initializeRatchetStateAndReshareAndCacheIfNeeded(
 						chatId,
-						latestVetKeyEpoch,
-						messageExpiry
+						latestVetKeyEpoch
 					);
 				this.#keyManager.inductSymmetricRatchetState(
 					chatIdToString(chatId),
@@ -358,15 +323,10 @@ export class EncryptedMessagingService {
 					console.info(
 						`#decryptMessage: Failed to decrypt message ${encryptedMessage.metadata.chat_message_id.toString()}, trying again... Caught error: ${error instanceof Error ? error.message : 'Unknown error'}`
 					);
-					const messageExpiry = await canisterAPI.getExpiry(
-						getActor(),
-						chatIdFromString(chatIdStr)
-					);
 					const ratchetState =
 						await this.#ratchetInitializationService.initializeRatchetStateAndReshareAndCacheIfNeeded(
 							chatIdFromString(chatIdStr),
-							encryptedMessage.metadata.vetkey_epoch,
-							messageExpiry
+							encryptedMessage.metadata.vetkey_epoch
 						);
 					this.#keyManager.inductSymmetricRatchetState(
 						chatIdStr,
@@ -448,7 +408,7 @@ async function sendMessage(
 	chatId: ChatId,
 	vetKeyEpoch: bigint,
 	symmetricRatchetEpoch: bigint,
-	nonce: bigint,
+	senderMessageId: bigint,
 	encryptedBytes: Uint8Array
 ) {
 	// Create UserMessage for the canister
@@ -456,7 +416,7 @@ async function sendMessage(
 		vetkey_epoch: vetKeyEpoch,
 		content: encryptedBytes,
 		symmetric_key_epoch: symmetricRatchetEpoch,
-		nonce
+		message_id: senderMessageId
 	};
 
 	// Send to canister using the appropriate method based on chat type
@@ -486,5 +446,3 @@ async function sendMessage(
 		}
 	}
 }
-
-// TODO: handling of expiry time changes doesn't work yet.

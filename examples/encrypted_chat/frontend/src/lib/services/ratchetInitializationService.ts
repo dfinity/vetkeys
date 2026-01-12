@@ -4,22 +4,21 @@ import { getActor, getMyPrincipal } from '$lib/stores/auth.svelte';
 import { stringifyBigInt, chatIdToString } from '$lib/utils';
 import { canisterAPI } from './canisterApi';
 import { keyStorageService } from './keyStorage';
-import { EncryptedRatchetStateCacheService } from './encryptedRatchetStateCacheService';
+import { EncryptedCanisterCacheService } from './encryptedCanisterCacheService';
 import { VetKeyResharingService } from './vetKeyResharingService';
 
 export class RatchetInitializationService {
 	#vetKeyResharingService: VetKeyResharingService;
-	#encryptedRatchetStateCacheService: EncryptedRatchetStateCacheService;
+	#encryptedCanisterCacheService: EncryptedCanisterCacheService;
 
 	constructor() {
 		this.#vetKeyResharingService = new VetKeyResharingService();
-		this.#encryptedRatchetStateCacheService = new EncryptedRatchetStateCacheService();
+		this.#encryptedCanisterCacheService = new EncryptedCanisterCacheService();
 	}
 
 	async initializeRatchetStateAndReshareAndCacheIfNeeded(
 		chatId: ChatId,
-		vetKeyEpoch: bigint,
-		stateRecoveryDuration: Date
+		vetKeyEpoch: bigint
 	): Promise<SymmetricRatchetState> {
 		const metadata = await canisterAPI.getVetKeyEpochMetadata(getActor(), chatId, vetKeyEpoch);
 		const creationTime = new Date(Number(metadata.creation_timestamp / 1_000_000n));
@@ -45,8 +44,7 @@ export class RatchetInitializationService {
 				keyState.key,
 				keyState.symmetricKeyEpoch,
 				creationTime,
-				rotationDuration,
-				stateRecoveryDuration
+				rotationDuration
 			);
 
 			keyStorageService
@@ -75,8 +73,7 @@ export class RatchetInitializationService {
 				keyState.key,
 				keyState.symmetricKeyEpoch,
 				creationTime,
-				rotationDuration,
-				stateRecoveryDuration
+				rotationDuration
 			);
 		} catch (error) {
 			console.info('Failed to fetch reshared IBE encrypted vetkey: ', error);
@@ -88,8 +85,7 @@ export class RatchetInitializationService {
 				keyState.key,
 				keyState.symmetricKeyEpoch,
 				creationTime,
-				rotationDuration,
-				stateRecoveryDuration
+				rotationDuration
 			);
 			keyStorageService
 				.saveSymmetricRatchetState(
@@ -136,7 +132,7 @@ export class RatchetInitializationService {
 		chatId: ChatId,
 		vetKeyEpoch: bigint
 	): Promise<{ key: CryptoKey; symmetricKeyEpoch: bigint }> {
-		return this.#encryptedRatchetStateCacheService
+		return this.#encryptedCanisterCacheService
 			.fetchAndDecryptFor(chatId, vetKeyEpoch)
 			.then((epochKeyState) => {
 				return importKeyStateFromBytes(epochKeyState);
@@ -198,7 +194,7 @@ function deriveRootKeyAndDispatchCaching(
 	);
 
 	console.log('starting to store the root key in cache: ', rootKey);
-	const vetKeyEncryptedCache = new EncryptedRatchetStateCacheService();
+	const vetKeyEncryptedCache = new EncryptedCanisterCacheService();
 	const keyState = { keyBytes: rootKey, symmetricKeyEpoch: 0n };
 	// await this future in background
 	vetKeyEncryptedCache.encryptAndStoreFor(chatId, vetKeyEpoch, keyState).catch((error) => {
