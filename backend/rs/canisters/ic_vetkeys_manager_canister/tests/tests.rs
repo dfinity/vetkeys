@@ -354,7 +354,8 @@ fn should_not_alter_owner_rights() {
             caller,
             "set_user_rights",
             encode_args((caller, key_name.clone(), caller, AccessRights::Read)).unwrap(),
-        ),
+        )
+        .map_err(|s| s.to_ascii_lowercase()),
         Err("cannot change key owner's user rights".to_string())
     );
 
@@ -363,7 +364,8 @@ fn should_not_alter_owner_rights() {
             caller,
             "remove_user",
             encode_args((caller, key_name.clone(), caller)).unwrap(),
-        ),
+        )
+        .map_err(|s| s.to_ascii_lowercase()),
         Err("cannot remove key owner".to_string())
     );
 }

@@ -11,16 +11,11 @@ import Int "mo:base/Int";
 import Debug "mo:base/Debug";
 import VetKeys "mo:ic-vetkeys";
 
-actor class (keyName : Text) {
+persistent actor class (keyName : Text) {
 
   // Global state
-  let accessRightsOperations = VetKeys.accessRightsOperations();
-  let keyId = { curve = #bls12_381_g2; name = keyName };
-  let encryptedMaps = VetKeys.EncryptedMaps.EncryptedMaps<VetKeys.AccessRights>(
-    keyId,
-    "password_manager_dapp",
-    accessRightsOperations,
-  );
+  let encryptedMapsState = VetKeys.EncryptedMaps.newEncryptedMapsState<VetKeys.AccessRights>({ curve = #bls12_381_g2; name = keyName }, "password_manager_example_dapp");
+  transient let encryptedMaps = VetKeys.EncryptedMaps.EncryptedMaps<VetKeys.AccessRights>(encryptedMapsState, VetKeys.accessRightsOperations());
 
   func compareMetadataKeys(a : MetadataKey, b : MetadataKey) : {
     #less;
@@ -39,7 +34,7 @@ actor class (keyName : Text) {
       ownerCompare;
     };
   };
-  let metadataMapOps = OrderedMap.Make<MetadataKey>(compareMetadataKeys);
+  transient let metadataMapOps = OrderedMap.Make<MetadataKey>(compareMetadataKeys);
   var metadata : OrderedMap.Map<MetadataKey, PasswordMetadata> = metadataMapOps.empty<PasswordMetadata>();
 
   // Types
@@ -249,7 +244,7 @@ actor class (keyName : Text) {
     access_rights : VetKeys.AccessRights,
   ) : async Result<?VetKeys.AccessRights, Text> {
     let mapId = (map_owner, map_name.inner);
-    convertResult(encryptedMaps.keyManager.setUserRights(caller, mapId, user, access_rights));
+    convertResult(encryptedMaps.setUserRights(caller, mapId, user, access_rights));
   };
 
   public shared ({ caller }) func remove_user(
@@ -258,6 +253,6 @@ actor class (keyName : Text) {
     user : Principal,
   ) : async Result<?VetKeys.AccessRights, Text> {
     let mapId = (map_owner, map_name.inner);
-    convertResult(encryptedMaps.keyManager.removeUserRights(caller, mapId, user));
+    convertResult(encryptedMaps.removeUser(caller, mapId, user));
   };
 };

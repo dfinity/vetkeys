@@ -1,6 +1,6 @@
 [package]
 name = "ic-vetkeys"
-version = "0.3.0"
+version = "0.4.0"
 repository = "https://github.com/dfinity/vetkeys/backend/mo/ic_vetkeys"
 description = "A set of tools designed to help canister developers integrate vetKeys into their Internet Computer (ICP) applications"
 keywords = [

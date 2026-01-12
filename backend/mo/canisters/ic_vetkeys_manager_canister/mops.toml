@@ -10,3 +10,4 @@ license = "Apache-2.0"
 
 [dependencies]
 base = "0.14.6"
+ic-vetkeys = "0.3.0"
