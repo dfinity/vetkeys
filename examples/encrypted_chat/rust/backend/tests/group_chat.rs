@@ -79,7 +79,7 @@ fn can_send_and_get_messages() {
             assert_eq!(
                 env.update::<Vec<EncryptedMessage>>(
                     caller,
-                    "get_some_messages_for_chat_starting_from",
+                    "get_messages",
                     encode_args((chat_id, ChatMessageId(0), Option::<u32>::None)).unwrap(),
                 ),
                 vec![]
@@ -127,7 +127,7 @@ fn can_send_and_get_messages() {
                     assert_eq!(
                         env.update::<Vec<EncryptedMessage>>(
                             caller,
-                            "get_some_messages_for_chat_starting_from",
+                            "get_messages",
                             encode_args((chat_id, ChatMessageId(0), Option::<u32>::None)).unwrap(),
                         ),
                         expected_chat_history
@@ -293,7 +293,7 @@ fn fails_to_send_messages_with_wrong_symmetric_key_epoch() {
             assert_eq!(
                 env.update::<Vec<EncryptedMessage>>(
                     caller,
-                    "get_some_messages_for_chat_starting_from",
+                    "get_messages",
                     encode_args((chat_id, ChatMessageId(0), Option::<u32>::None)).unwrap(),
                 ),
                 vec![]
@@ -541,7 +541,7 @@ fn fails_to_send_group_chat_message_with_wrong_vetkey_epoch() {
             assert_eq!(
                 env.update::<Vec<EncryptedMessage>>(
                     caller,
-                    "get_some_messages_for_chat_starting_from",
+                    "get_messages",
                     encode_args((chat_id, ChatMessageId(0), Option::<u32>::None)).unwrap(),
                 ),
                 vec![]
