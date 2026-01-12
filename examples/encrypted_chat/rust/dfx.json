@@ -43,7 +43,7 @@
   "output_env_file": ".env",
   "networks": {
     "local": {
-      "bind": "localhost:4943",
+      "bind": "127.0.0.1:4943",
       "type": "ephemeral"
     }
   }
