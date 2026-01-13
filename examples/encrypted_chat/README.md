@@ -2,4 +2,4 @@
 > 
 > DO NOT USE IN PRODUCTION!!
 
-[![](https://icp.ninja/assets/open.svg)](https://icp.ninja/editor?g=https://github.com/dfinity/vetkeys/tree/alex/encrypted-chat/examples/encrypted_chat/rust)
+[![](https://icp.ninja/assets/open.svg)](https://icp.ninja/editor?g=https://github.com/dfinity/vetkeys/tree/main/examples/encrypted_chat/rust)
