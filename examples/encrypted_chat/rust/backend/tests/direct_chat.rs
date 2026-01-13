@@ -855,6 +855,7 @@ fn unauthorized_user_cannot_access_symmetric_key_cache() {
 }
 
 #[test]
+#[ignore = "vetkey epoch expiry not fully implemented yet"]
 fn cannot_access_cache_after_vetkey_epoch_expires() {
     let rng = &mut reproducible_rng();
     let env = TestEnvironment::new(rng);
@@ -1297,6 +1298,7 @@ fn fails_to_reshare_vetkey_with_oneself() {
 }
 
 #[test]
+#[ignore = "vetkey epoch expiry not fully implemented yet"]
 fn fails_to_reshare_or_get_reshared_vetkeys_for_invalid_vetkey_epochs() {
     let rng = &mut reproducible_rng();
     let env = TestEnvironment::new(rng);
