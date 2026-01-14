@@ -43,9 +43,10 @@ Tools for frontend developers to interact with VetKD enabled canisters.
 
 ### **3. vetKeys Example Applications** - Deployable to the IC with the click of a button
 
-- **[Basic BLS Signing](examples/basic_bls_signing)** - Demonstrates secure threshold BLS signature generation where users can only sign messages for their own identity.
-- **[Basic IBE](examples/basic_ibe)** - Shows how to implement secure messaging using Identity Based Encryption with Internet Identity Principals as encryption keys.
-- **[Basic Timelock IBE](examples/basic_timelock_ibe)** - Implements a secret-bid auction system where bids remain encrypted until a specified deadline.
+- **[Threshold BLS Signatures](examples/basic_bls_signing)** - Demonstrates how to use vetKeys to create a threshold BLS signing service.
+- **[Identity-Based Encryption (IBE)](examples/basic_ibe)** - Shows how to implement secure messaging using Identity Based Encryption using Internet Identity Principals as encryption IDs.
+- **[Timelock Encryption](examples/basic_timelock_ibe)** - Implements a secret-bid auction system where bids remain encrypted until the auction is opened.
 - **[Password Manager](examples/password_manager)** - A secure, decentralized password manager using Encrypted Maps for vault-based password storage and sharing.
 - **[Password Manager with Metadata](examples/password_manager_with_metadata)** - Extends the basic password manager to support unencrypted metadata alongside encrypted passwords.
 - **[Encrypted Notes](examples/encrypted_notes_dapp_vetkd)** - A secure note-taking application that uses vetKeys for encryption and enables sharing notes between users without device management.
+- **[Encrypted Chat](examples/encrypted_chat)** - An *unfinished prototype* for an end-to-end encrypted messaging application based on vetKeys.

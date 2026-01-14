@@ -17,7 +17,7 @@ candid = "0.10.2"
 ic-cdk = { workspace = true }
 ic-dummy-getrandom-for-wasm = "0.1.0"
 ic-stable-structures = { workspace = true }
-ic-vetkeys = { path = "../../ic_vetkeys" }
+ic-vetkeys = { workspace = true }
 serde = "1.0.217"
 
 [dev-dependencies]
