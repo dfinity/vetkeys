@@ -600,7 +600,7 @@ export class EncryptedMaps {
     ): Promise<Uint8Array> {
         const derivedKeyMaterial =
             await this.getDerivedKeyMaterialOrFetchIfNeeded(mapOwner, mapName);
-        return await derivedKeyMaterial.encryptMessage(cleartext, mapKey);
+        return await derivedKeyMaterial.encryptMessage(cleartext, mapKey, "");
     }
 
     /**
@@ -620,7 +620,11 @@ export class EncryptedMaps {
     ): Promise<Uint8Array> {
         const derivedKeyMaterial =
             await this.getDerivedKeyMaterialOrFetchIfNeeded(mapOwner, mapName);
-        return await derivedKeyMaterial.decryptMessage(encryptedValue, mapKey);
+        return await derivedKeyMaterial.decryptMessage(
+            encryptedValue,
+            mapKey,
+            "",
+        );
     }
 
     /**
@@ -639,7 +643,7 @@ export class EncryptedMaps {
             mapName,
         ]);
         if (cachedRawDerivedKeyMaterial) {
-            return DerivedKeyMaterial.fromCryptoKey(
+            return await DerivedKeyMaterial.fromCryptoKey(
                 cachedRawDerivedKeyMaterial,
             );
         }

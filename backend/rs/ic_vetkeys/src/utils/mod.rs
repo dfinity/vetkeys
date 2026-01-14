@@ -22,11 +22,25 @@ const MASTER_PUBLIC_KEY_BYTES_KEY_1 : [u8; 96] = hex!("a9caf9ae8af0c7c7272f8a122
 
 const MASTER_PUBLIC_KEY_BYTES_TEST_KEY_1 : [u8; 96] = hex!("ad86e8ff845912f022a0838a502d763fdea547c9948f8cb20ea7738dd52c1c38dcb4c6ca9ac29f9ac690fc5ad7681cb41922b8dffbd65d94bff141f5fb5b6624eccc03bf850f222052df888cf9b1e47203556d7522271cbb879b2ef4b8c2bfb1");
 
+const POCKETIC_MASTER_PUBLIC_KEY_BYTES_KEY_1 : [u8; 96] = hex!("8c800b5cff00463d26e8167369168827f1e48f4d8d60f71dd6a295580f65275b5f5f8e6a792c876b2c72492136530d0710a27522ee63977a76216c3cef9e70bfcb45b88736fc62142e7e0737848ce06cbb1f45a4a6a349b142ae5cf7853561e0");
+
+const POCKETIC_MASTER_PUBLIC_KEY_BYTES_TEST_KEY_1 : [u8; 96] = hex!("9069b82c7aae418cef27678291e7f2cb1a008a500eceba7199bffca12421b07c158987c6a22618af3d1958738b2835691028801f7663d311799733286c557c8979184bb62cb559a4d582fca7d2e48b860f08ed6641aef66a059ec891889a6218");
+
+const POCKETIC_MASTER_PUBLIC_KEY_BYTES_DFX_TEST_KEY : [u8; 96] = hex!("b181c14cf9d04ba45d782c0067a44b0aaa9fc2acf94f1a875f0dae801af4f80339a7e6bf8b09fcf993824c8df3080b3f1409b688ca08cbd44d2cb28db9899f4aa3b5f06b9174240448e10be2f01f9f80079ea5431ce2d11d1c8d1c775333315f");
+
+fn decode_g2_mpk(bytes: &[u8; 96]) -> G2Affine {
+    G2Affine::from_compressed(bytes).expect("Hardcoded master public key not a valid point")
+}
+
 lazy_static::lazy_static! {
     static ref G2PREPARED_NEG_G : G2Prepared = G2Affine::generator().neg().into();
 
-    static ref G2_KEY_1: G2Affine = G2Affine::from_compressed(&MASTER_PUBLIC_KEY_BYTES_KEY_1).expect("Hardcoded master public key not a valid point");
-    static ref G2_TEST_KEY_1: G2Affine = G2Affine::from_compressed(&MASTER_PUBLIC_KEY_BYTES_TEST_KEY_1).expect("Hardcoded master public key not a valid point");
+    static ref PROD_G2_KEY_1: G2Affine = decode_g2_mpk(&MASTER_PUBLIC_KEY_BYTES_KEY_1);
+    static ref PROD_G2_TEST_KEY_1: G2Affine = decode_g2_mpk(&MASTER_PUBLIC_KEY_BYTES_TEST_KEY_1);
+
+    static ref POCKETIC_G2_KEY_1: G2Affine = decode_g2_mpk(&POCKETIC_MASTER_PUBLIC_KEY_BYTES_KEY_1);
+    static ref POCKETIC_G2_TEST_KEY_1: G2Affine = decode_g2_mpk(&POCKETIC_MASTER_PUBLIC_KEY_BYTES_TEST_KEY_1);
+    static ref POCKETIC_G2_DFX_TEST_KEY: G2Affine = decode_g2_mpk(&POCKETIC_MASTER_PUBLIC_KEY_BYTES_DFX_TEST_KEY);
 }
 
 const G1AFFINE_BYTES: usize = 48; // Size of compressed form
@@ -396,8 +410,22 @@ impl MasterPublicKey {
     /// Returns None if the provided key_id is not known
     pub fn for_mainnet_key(key_id: &VetKDKeyId) -> Option<Self> {
         match (key_id.curve, key_id.name.as_str()) {
-            (VetKDCurve::Bls12_381_G2, "key_1") => Some(Self::new(*G2_KEY_1)),
-            (VetKDCurve::Bls12_381_G2, "test_key_1") => Some(Self::new(*G2_TEST_KEY_1)),
+            (VetKDCurve::Bls12_381_G2, "key_1") => Some(Self::new(*PROD_G2_KEY_1)),
+            (VetKDCurve::Bls12_381_G2, "test_key_1") => Some(Self::new(*PROD_G2_TEST_KEY_1)),
+            (_, _) => None,
+        }
+    }
+
+    /// Return the hardcoded master public key used for testing in PocketIC
+    ///
+    /// Returns None if the provided key_id is not known
+    pub fn for_pocketic_key(key_id: &VetKDKeyId) -> Option<Self> {
+        match (key_id.curve, key_id.name.as_str()) {
+            (VetKDCurve::Bls12_381_G2, "key_1") => Some(Self::new(*POCKETIC_G2_KEY_1)),
+            (VetKDCurve::Bls12_381_G2, "test_key_1") => Some(Self::new(*POCKETIC_G2_TEST_KEY_1)),
+            (VetKDCurve::Bls12_381_G2, "dfx_test_key") => {
+                Some(Self::new(*POCKETIC_G2_DFX_TEST_KEY))
+            }
             (_, _) => None,
         }
     }
@@ -536,7 +564,11 @@ impl VetKey {
      * secret key cannot be extracted.
      */
     pub fn as_derived_key_material(&self) -> DerivedKeyMaterial {
-        DerivedKeyMaterial::new(self)
+        let key = self.derive_symmetric_key("ic-vetkd-bls12-381-g2-derived-key-material", 32);
+        DerivedKeyMaterial {
+            key,
+            raw_vetkey: self.vetkey.1.to_vec(),
+        }
     }
 
     /**
@@ -567,6 +599,7 @@ impl VetKey {
 #[derive(Clone, Zeroize, ZeroizeOnDrop)]
 pub struct DerivedKeyMaterial {
     key: Vec<u8>,
+    raw_vetkey: Vec<u8>,
 }
 
 #[derive(Copy, Clone, Eq, PartialEq, Debug)]
@@ -583,6 +616,11 @@ pub enum DecryptionError {
     MessageTooShort,
     /// The GCM tag did not validate
     InvalidCiphertext,
+    /// The expected message header did not appear in the ciphertext
+    ///
+    /// Either the ciphertext was invalid, or possibly the decrypting side
+    /// needs to be upgraded to support a new format
+    UnknownHeader,
 }
 
 impl DerivedKeyMaterial {
@@ -590,43 +628,81 @@ impl DerivedKeyMaterial {
     const GCM_TAG_SIZE: usize = 16;
     const GCM_NONCE_SIZE: usize = 12;
 
-    /// Create a new DerivedKeyMaterial
-    fn new(vetkey: &VetKey) -> Self {
-        Self {
-            key: vetkey.serialize().to_vec(),
-        }
-    }
+    const GCM_HEADER_VERSION: u8 = 2;
+    const GCM_HEADER_SIZE: usize = 8;
+    const GCM_HEADER: [u8; Self::GCM_HEADER_SIZE] = *b"IC GCMv2";
 
-    fn derive_aes_gcm_key(&self, domain_sep: &str) -> Vec<u8> {
-        derive_symmetric_key(&self.key, domain_sep, Self::GCM_KEY_SIZE)
+    /// Derive a new key for AES-GCM
+    ///
+    /// Note that the domain separator provided by the user is prefixed
+    /// with `ic-vetkd-bls12-381-g2-aes-gcm-`
+    fn derive_aes_gcm_key(&self, domain_sep: &str, version: u8) -> Vec<u8> {
+        derive_symmetric_key(
+            &self.key,
+            &format!("ic-vetkd-bls12-381-g2-aes-gcm-v{}-{}", version, domain_sep),
+            Self::GCM_KEY_SIZE,
+        )
     }
 
     /// Encrypt a message
     ///
     /// The decryption used here is interoperable with the TypeScript
     /// library ic_vetkeys function `DerivedKeyMaterial.decryptMessage`
+    ///
+    /// The domain separator should be unique for this usage, for example
+    /// by including the identities of the sender and receiver.
+    ///
+    /// The associated data field is information which will be authenticated
+    /// but not included in the ciphertext. This can be useful for binding
+    /// additional contextual data (eg a protocol identifier) or information
+    /// which should be authenticated but does not need to be encrypted.
+    /// If not needed, it can be left empty or an application-specific constant
+    /// value can be used,
+    ///
+    /// The format of the returned message is, in order
+    ///  * 8 byte header
+    ///  * 12 byte nonce
+    ///  * Ciphertext of length equal to the message length
+    ///  * 16 byte GCM authentication tag
+    ///
     pub fn encrypt_message<R: rand::RngCore + rand::CryptoRng>(
         &self,
         message: &[u8],
         domain_sep: &str,
+        associated_data: &[u8],
         rng: &mut R,
     ) -> Result<Vec<u8>, EncryptionError> {
         use aes_gcm::{aead::Aead, aead::AeadCore, Aes256Gcm, Key, KeyInit};
-        let key = self.derive_aes_gcm_key(domain_sep);
+        let key = self.derive_aes_gcm_key(domain_sep, Self::GCM_HEADER_VERSION);
         let key = Key::<Aes256Gcm>::from_slice(&key);
         // aes_gcm::Aes256Gcm only supports/uses 12 byte nonces
         let nonce = Aes256Gcm::generate_nonce(rng);
         assert_eq!(nonce.len(), Self::GCM_NONCE_SIZE);
         let gcm = Aes256Gcm::new(key);
 
+        // Unfortunately aes_gcm does not allow a vector of AAD inputs
+        // so we have to allocate a copy. Typically associated data is short
+        let prefixed_aad = {
+            let mut r = Vec::with_capacity(Self::GCM_HEADER.len() + associated_data.len());
+            r.extend_from_slice(&Self::GCM_HEADER); // assumed fixed length
+            r.extend_from_slice(associated_data);
+            r
+        };
+
+        let msg = aes_gcm::aead::Payload {
+            msg: message,
+            aad: &prefixed_aad,
+        };
+
         // The function returns an opaque `Error` with no details, but upon
         // examination, the only way it can fail is if the plaintext is larger
         // than GCM's maximum input length of 2^36 bytes.
         let ctext = gcm
-            .encrypt(&nonce, message)
+            .encrypt(&nonce, msg)
             .map_err(|_| EncryptionError::PlaintextTooLong)?;
 
         let mut res = vec![];
+        res.extend_from_slice(&Self::GCM_HEADER);
         res.extend_from_slice(nonce.as_slice());
         res.extend_from_slice(ctext.as_slice());
         Ok(res)
@@ -640,20 +716,61 @@ impl DerivedKeyMaterial {
         &self,
         ctext: &[u8],
         domain_sep: &str,
+        associated_data: &[u8],
     ) -> Result<Vec<u8>, DecryptionError> {
         use aes_gcm::{aead::Aead, Aes256Gcm, Key, KeyInit};
-        let key = self.derive_aes_gcm_key(domain_sep);
-        let key = Key::<Aes256Gcm>::from_slice(&key);
 
-        // Minimum possible length 12 bytes nonce plus 16 bytes GCM tag
-        if ctext.len() < Self::GCM_NONCE_SIZE + Self::GCM_TAG_SIZE {
+        // Minimum possible length is 8 byte header + 12 bytes nonce + 16 bytes GCM tag
+        if ctext.len() < Self::GCM_HEADER_SIZE + Self::GCM_NONCE_SIZE + Self::GCM_TAG_SIZE {
             return Err(DecryptionError::MessageTooShort);
         }
-        let nonce = aes_gcm::Nonce::from_slice(&ctext[0..Self::GCM_NONCE_SIZE]);
+
+        // If multiple versions are ever supported in the future, and we
+        // must retain backward compatability, then this would need to be
+        // extended to check for multiple different headers and process
+        // the ciphertext accordingly.
+        if ctext[0..Self::GCM_HEADER_SIZE] != Self::GCM_HEADER {
+            if associated_data.is_empty() {
+                // Try decrypting using the old headerless format which did not
+                // support associated data
+
+                let key = derive_symmetric_key(&self.raw_vetkey, domain_sep, Self::GCM_KEY_SIZE);
+
+                let nonce = aes_gcm::Nonce::from_slice(&ctext[0..Self::GCM_NONCE_SIZE]);
+                let gcm = Aes256Gcm::new(Key::<Aes256Gcm>::from_slice(&key));
+
+                let ptext = gcm
+                    .decrypt(nonce, &ctext[Self::GCM_NONCE_SIZE..])
+                    .map_err(|_| DecryptionError::InvalidCiphertext)?;
+
+                return Ok(ptext.as_slice().to_vec());
+            } else {
+                return Err(DecryptionError::UnknownHeader);
+            }
+        }
+
+        let key = self.derive_aes_gcm_key(domain_sep, Self::GCM_HEADER_VERSION);
+        let key = Key::<Aes256Gcm>::from_slice(&key);
+
+        let nonce = aes_gcm::Nonce::from_slice(
+            &ctext[Self::GCM_HEADER_SIZE..Self::GCM_HEADER_SIZE + Self::GCM_NONCE_SIZE],
+        );
         let gcm = Aes256Gcm::new(key);
 
+        let prefixed_aad = {
+            let mut r = Vec::with_capacity(Self::GCM_HEADER.len() + associated_data.len());
+            r.extend_from_slice(&ctext[0..Self::GCM_HEADER_SIZE]);
+            r.extend_from_slice(associated_data);
+            r
+        };
+
+        let msg = aes_gcm::aead::Payload {
+            msg: &ctext[Self::GCM_HEADER_SIZE + Self::GCM_NONCE_SIZE..],
+            aad: &prefixed_aad,
+        };
+
         let ptext = gcm
-            .decrypt(nonce, &ctext[Self::GCM_NONCE_SIZE..])
+            .decrypt(nonce, msg)
             .map_err(|_| DecryptionError::InvalidCiphertext)?;
 
         Ok(ptext.as_slice().to_vec())

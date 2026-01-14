@@ -136,6 +136,32 @@ fn test_derivation_using_production_key() {
 }
 
 #[test]
+fn test_derivation_using_pocketic_keys() {
+    let test_vectors = [
+        ("key_1", "899a951f6ec2f9a96759c554a6cb01fb1cb20b2f2f96a2d2c869221c04d3349c3be8d49c3257312aed031f430f15f7ef0f4d43adf11251015d70dd91ac07df50fb70818ece721a1d6a314204acddde55542902f5d0d95e2406a5ab1fad18349d"),
+        ("test_key_1", "a60993fc46593728bd9b0a4ffb1fb9a662dd89b29c99fde36e403c311c8992e6eeb097b31174dd43f74e73fe10c190271193a4345490f64a41ce778a2f6e7c16804919e843ac72ff65bab959c53fa839c9fb3cb263e41498d17fb82704fe18bc"),
+        ("dfx_test_key", "800424bea66b95b715f86a9bed06b1f60df98206a57235c3e0f2da4d485dc1c93c56eef54155d559ef45c757fb0444920620b932652f1d683fdbc57db98b5aeb8ba664a5e040cbdf4d685e4e236a7193d1bd5b0927204fab05fff4f61f26b358"),
+    ];
+
+    let canister_id = candid::Principal::from_text("uzt4z-lp777-77774-qaabq-cai").unwrap();
+
+    for (key_id, expected) in &test_vectors {
+        let context = format!("Test Derivation For PocketIC VetKD {}", key_id);
+
+        let key_id = VetKDKeyId {
+            curve: VetKDCurve::Bls12_381_G2,
+            name: key_id.to_string(),
+        };
+
+        let mk = MasterPublicKey::for_pocketic_key(&key_id).unwrap();
+        let canister_key = mk.derive_canister_key(canister_id.as_slice());
+        let derived_key = canister_key.derive_sub_key(context.as_bytes());
+
+        assert_eq!(hex::encode(derived_key.serialize()), *expected);
+    }
+}
+
+#[test]
 fn test_second_level_public_key_derivation() {
     let canister_key = DerivedPublicKey::deserialize(&hex::decode("8bf165ea580742abf5fd5123eb848aa116dcf75c3ddb3cd3540c852cf99f0c5394e72dfc2f25dbcb5f9220f251cd04040a508a0bcb8b2543908d6626b46f09d614c924c5deb63a9949338ae4f4ac436bd77f8d0a392fd29de0f392a009fa61f3").unwrap()).unwrap();
 
@@ -292,24 +318,37 @@ fn aes_gcm_encryption() {
 
     let test_message = b"stay calm, this is only a test";
     let domain_sep = "ic-test-domain-sep";
+    let aad = b"some additional authenticated data";
 
     // Test string encryption path, then decryption
 
     let mut rng = reproducible_rng();
 
     let ctext = dkm
-        .encrypt_message(test_message, domain_sep, &mut rng)
+        .encrypt_message(test_message, domain_sep, aad, &mut rng)
         .unwrap();
+
     assert_eq!(
-        dkm.decrypt_message(&ctext, domain_sep).unwrap(),
+        dkm.decrypt_message(&ctext, domain_sep, aad).unwrap(),
         test_message,
     );
 
     // Test decryption of known ciphertext encrypted with the derived key
-    let fixed_ctext = hex!("476f440e30bb95fff1420ce41ba6a07e03c3fcc0a751cfb23e64a8dcb0fc2b1eb74e2d4768f5c4dccbf2526609156664046ad27a6e78bd93bb8b");
+
+    // This checks the behavior for handling old versions that did not use a header or support AAD
+    let fixed_ctext_old_format = hex!("476f440e30bb95fff1420ce41ba6a07e03c3fcc0a751cfb23e64a8dcb0fc2b1eb74e2d4768f5c4dccbf2526609156664046ad27a6e78bd93bb8b");
 
     assert_eq!(
-        dkm.decrypt_message(&fixed_ctext, domain_sep).unwrap(),
+        dkm.decrypt_message(&fixed_ctext_old_format, domain_sep, &[])
+            .unwrap(),
+        test_message,
+    );
+
+    // Test decryption of known ciphertext encrypted with the derived key
+    let fixed_ctext = hex!("49432047434d76325dc1b0f5f8deec973adda66ce7cb9dc06118c738fae12027c5bae5b86e69ffd633ddfc0ea66c4df37b6e7e298d9f80170ec3d51c4238be9a63bd");
+
+    assert_eq!(
+        dkm.decrypt_message(&fixed_ctext, domain_sep, aad).unwrap(),
         test_message,
     );
 
@@ -324,7 +363,19 @@ fn aes_gcm_encryption() {
             m
         };
 
-        assert!(dkm.decrypt_message(&mod_ctext, domain_sep).is_err());
+        assert!(dkm.decrypt_message(&mod_ctext, domain_sep, aad).is_err());
+    }
+
+    // Test sequentially flipping each bit of the associated data
+
+    for i in 0..aad.len() * 8 {
+        let mod_aad = {
+            let mut a = aad.clone();
+            a[i / 8] ^= 0x80 >> i % 8;
+            a
+        };
+
+        assert!(dkm.decrypt_message(&ctext, domain_sep, &mod_aad).is_err());
     }
 
     // Test truncating
@@ -336,7 +387,7 @@ fn aes_gcm_encryption() {
             m
         };
 
-        assert!(dkm.decrypt_message(&mod_ctext, domain_sep).is_err());
+        assert!(dkm.decrypt_message(&mod_ctext, domain_sep, aad).is_err());
     }
 
     // Test appending random bytes
@@ -351,6 +402,6 @@ fn aes_gcm_encryption() {
             m
         };
 
-        assert!(dkm.decrypt_message(&mod_ctext, domain_sep).is_err());
+        assert!(dkm.decrypt_message(&mod_ctext, domain_sep, aad).is_err());
     }
 }

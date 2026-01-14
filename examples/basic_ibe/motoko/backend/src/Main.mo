@@ -1,16 +1,16 @@
-import Principal "mo:base/Principal";
-import Time "mo:base/Time";
-import HashMap "mo:base/HashMap";
-import Text "mo:base/Text";
-import Blob "mo:base/Blob";
-import Array "mo:base/Array";
-import Buffer "mo:base/Buffer";
-import Nat64 "mo:base/Nat64";
-import Result "mo:base/Result";
-import Int "mo:base/Int";
-import Iter "mo:base/Iter";
+import Principal "mo:core/Principal";
+import Time "mo:core/Time";
+import Map "mo:core/Map";
+import Text "mo:core/Text";
+import Blob "mo:core/Blob";
+import Array "mo:core/Array";
+import List "mo:core/List";
+import Nat64 "mo:core/Nat64";
+import Nat "mo:core/Nat";
+import Result "mo:core/Result";
+import Int "mo:core/Int";
 
-actor class (keyNameString : Text) {
+persistent actor class (keyNameString : Text) {
   // Types
   type Message = {
     sender : Principal;
@@ -62,7 +62,7 @@ actor class (keyNameString : Text) {
   let DOMAIN_SEPARATOR : Text = "basic_ibe_example_dapp";
 
   // State
-  var inboxes = HashMap.HashMap<Principal, Inbox>(0, Principal.equal, Principal.hash);
+  var inboxes = Map.empty<Principal, Inbox>();
 
   // Management canister actor
   let vetKdSystemApi : VetKdSystemApi = actor ("aaaaa-aa");
@@ -76,7 +76,7 @@ actor class (keyNameString : Text) {
     };
 
     let receiver = request.receiver;
-    let current_inbox = switch (inboxes.get(receiver)) {
+    let current_inbox = switch (Map.get(inboxes, Principal.compare, receiver)) {
       case (?inbox) { inbox };
       case null { { messages = [] } };
     };
@@ -84,10 +84,10 @@ actor class (keyNameString : Text) {
     if (current_inbox.messages.size() >= MAX_MESSAGES_PER_INBOX) {
       return #Err("Inbox for " # Principal.toText(receiver) # " is full");
     };
-
-    let new_messages = Array.append(current_inbox.messages, [message]);
+  
+    let new_messages = Array.concat(current_inbox.messages, [message]);
     let new_inbox : Inbox = { messages = new_messages };
-    inboxes.put(receiver, new_inbox);
+    ignore Map.insert(inboxes, Principal.compare, receiver, new_inbox);
 
     #Ok();
   };
@@ -132,7 +132,7 @@ actor class (keyNameString : Text) {
 
   // Get the caller's messages
   public shared query ({ caller }) func get_my_messages() : async Inbox {
-    switch (inboxes.get(caller)) {
+    switch (Map.get(inboxes, Principal.compare, caller)) {
       case (?inbox) { inbox };
       case null { { messages = [] } };
     };
@@ -140,7 +140,7 @@ actor class (keyNameString : Text) {
 
   // Remove a message by index
   public shared ({ caller }) func remove_my_message_by_index(message_index : Nat64) : async Result<(), Text> {
-    let current_inbox = switch (inboxes.get(caller)) {
+    let current_inbox = switch (Map.get(inboxes, Principal.compare, caller)) {
       case (?inbox) { inbox };
       case null { { messages = [] } };
     };
@@ -152,17 +152,17 @@ actor class (keyNameString : Text) {
 
     // Create a new array without the specified index
     let messages = current_inbox.messages;
-    let new_messages_buffer = Buffer.Buffer<Message>(0);
+    let new_messages_list = List.empty<Message>();
 
-    for (i in Iter.range(0, messages.size() - 1)) {
+    for (i in messages.keys()) {
       if (i != index) {
-        new_messages_buffer.add(messages[i]);
+        List.add(new_messages_list, messages[i]);
       };
     };
 
-    let new_messages = Buffer.toArray(new_messages_buffer);
+    let new_messages = List.toArray(new_messages_list);
     let new_inbox : Inbox = { messages = new_messages };
-    inboxes.put(caller, new_inbox);
+    ignore Map.insert(inboxes, Principal.compare, caller, new_inbox);
 
     #Ok();
   };

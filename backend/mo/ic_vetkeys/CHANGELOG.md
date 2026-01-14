@@ -1,6 +1,6 @@
 # Change Log
 
-## [0.4.0] - Not Yet Released
+## [0.4.0] - 2025-09-29
 
 ### Breaking changes
 

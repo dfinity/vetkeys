@@ -5,6 +5,7 @@ import {
     IbeCiphertext,
     MasterPublicKey,
     MasterPublicKeyId,
+    PocketIcMasterPublicKeyId,
     IbeSeed,
     TransportSecretKey,
     VetKey,
@@ -119,6 +120,64 @@ test("MasterPublicKey derivation using prod key", () => {
     assertEqual(
         bytesToHex(derivedKey.publicKeyBytes()),
         "aa45fccb82432315e39fedb1b1f150d2e895fb1f7399cc593b826ac151b519f0966b92aef49a89efe60570ef325f0f7e1974ac3519d2e127a52c013e246aedbff2158bdd0bb9f26c763c88c0b8ec796f401d057eab276d0a34384a8a97b1937f",
+    );
+});
+
+test("MasterPublicKey derivation using PocketIC key_1", () => {
+    const canisterId = hexToBytes("ffffffffff9000030101");
+
+    const masterKey = MasterPublicKey.pocketicKey(
+        PocketIcMasterPublicKeyId.KEY_1,
+    );
+    const canisterKey = masterKey.deriveCanisterKey(canisterId);
+
+    const derivedKey = canisterKey.deriveSubKey(
+        new TextEncoder().encode("Test Derivation For PocketIC VetKD key_1"),
+    );
+
+    assertEqual(
+        bytesToHex(derivedKey.publicKeyBytes()),
+        "899a951f6ec2f9a96759c554a6cb01fb1cb20b2f2f96a2d2c869221c04d3349c3be8d49c3257312aed031f430f15f7ef0f4d43adf11251015d70dd91ac07df50fb70818ece721a1d6a314204acddde55542902f5d0d95e2406a5ab1fad18349d",
+    );
+});
+
+test("MasterPublicKey derivation using PocketIC test_key_1", () => {
+    const canisterId = hexToBytes("ffffffffff9000030101");
+
+    const masterKey = MasterPublicKey.pocketicKey(
+        PocketIcMasterPublicKeyId.TEST_KEY_1,
+    );
+    const canisterKey = masterKey.deriveCanisterKey(canisterId);
+
+    const derivedKey = canisterKey.deriveSubKey(
+        new TextEncoder().encode(
+            "Test Derivation For PocketIC VetKD test_key_1",
+        ),
+    );
+
+    assertEqual(
+        bytesToHex(derivedKey.publicKeyBytes()),
+        "a60993fc46593728bd9b0a4ffb1fb9a662dd89b29c99fde36e403c311c8992e6eeb097b31174dd43f74e73fe10c190271193a4345490f64a41ce778a2f6e7c16804919e843ac72ff65bab959c53fa839c9fb3cb263e41498d17fb82704fe18bc",
+    );
+});
+
+test("MasterPublicKey derivation using PocketIC dfx_test_key", () => {
+    const canisterId = hexToBytes("ffffffffff9000030101");
+
+    const masterKey = MasterPublicKey.pocketicKey(
+        PocketIcMasterPublicKeyId.DFX_TEST_KEY,
+    );
+    const canisterKey = masterKey.deriveCanisterKey(canisterId);
+
+    const derivedKey = canisterKey.deriveSubKey(
+        new TextEncoder().encode(
+            "Test Derivation For PocketIC VetKD dfx_test_key",
+        ),
+    );
+
+    assertEqual(
+        bytesToHex(derivedKey.publicKeyBytes()),
+        "800424bea66b95b715f86a9bed06b1f60df98206a57235c3e0f2da4d485dc1c93c56eef54155d559ef45c757fb0444920620b932652f1d683fdbc57db98b5aeb8ba664a5e040cbdf4d685e4e236a7193d1bd5b0927204fab05fff4f61f26b358",
     );
 });
 
@@ -267,8 +326,8 @@ test("hkdf using webcrypto", async () => {
 
     const key1 = vetkey.deriveSymmetricKey(domainSep, 32);
     assertEqual(
-        bytesToHex(key1),
         "3b7bd854033cdc119865ba3019dc1e35010fdaf90f8ff5c9cfe9d1d557dddb29",
+        bytesToHex(key1),
     );
 
     const wckey = (await vetkey.asDerivedKeyMaterial()).getCryptoKey();
@@ -312,36 +371,54 @@ test("AES-GCM encryption", async () => {
     const testMessage = "stay calm, this is only a test";
     const testMessageBytes = new TextEncoder().encode(testMessage);
     const domainSep = "ic-test-domain-sep";
+    const associatedData = "some additional authenticated data";
 
     const keyMaterial = await vetkey.asDerivedKeyMaterial();
 
     // Test string encryption path, then decryption
 
-    const msg1 = await keyMaterial.encryptMessage(testMessage, domainSep);
+    const msg1 = await keyMaterial.encryptMessage(
+        testMessage,
+        domainSep,
+        associatedData,
+    );
     assertEqual(
-        await keyMaterial.decryptMessage(msg1, domainSep),
+        await keyMaterial.decryptMessage(msg1, domainSep, associatedData),
         testMessageBytes,
     );
 
     // Test Uint8Array encryption path, then decryption
-    const msg2 = await keyMaterial.encryptMessage(testMessageBytes, domainSep);
+    const msg2 = await keyMaterial.encryptMessage(
+        testMessageBytes,
+        domainSep,
+        associatedData,
+    );
     assertEqual(
-        await keyMaterial.decryptMessage(msg2, domainSep),
+        await keyMaterial.decryptMessage(msg2, domainSep, associatedData),
+        testMessageBytes,
+    );
+
+    // Test decryption of old format (headerless) ciphertext
+    const msgOldFormat = hexToBytes(
+        "476f440e30bb95fff1420ce41ba6a07e03c3fcc0a751cfb23e64a8dcb0fc2b1eb74e2d4768f5c4dccbf2526609156664046ad27a6e78bd93bb8b",
+    );
+    assertEqual(
+        await keyMaterial.decryptMessage(msgOldFormat, domainSep, ""),
         testMessageBytes,
     );
 
     // Test decryption of known ciphertext encrypted with the derived key
     const msg3 = hexToBytes(
-        "476f440e30bb95fff1420ce41ba6a07e03c3fcc0a751cfb23e64a8dcb0fc2b1eb74e2d4768f5c4dccbf2526609156664046ad27a6e78bd93bb8b",
+        "49432047434d76325dc1b0f5f8deec973adda66ce7cb9dc06118c738fae12027c5bae5b86e69ffd633ddfc0ea66c4df37b6e7e298d9f80170ec3d51c4238be9a63bd",
     );
     assertEqual(
-        await keyMaterial.decryptMessage(msg3, domainSep),
+        await keyMaterial.decryptMessage(msg3, domainSep, associatedData),
         testMessageBytes,
     );
 
     // Test decryption of various mutated or truncated ciphertexts: all should fail
 
-    // Test sequentially flipping each bit
+    // Test sequentially flipping each bit of the ciphertext
     for (let trial = 0; trial < msg3.length * 8; trial++) {
         const modMsg = new Uint8Array(msg3);
 
@@ -349,9 +426,33 @@ test("AES-GCM encryption", async () => {
         const byteToFlip = Math.floor(trial / 8);
         modMsg[byteToFlip] ^= flip;
 
+        const expectedError =
+            trial < 8 * 8
+                ? "Unknown header for AES-GCM encrypted ciphertext"
+                : "Decryption failed";
+
         await expect(async () => {
-            return await keyMaterial.decryptMessage(modMsg, domainSep);
-        }).rejects.toThrow("Decryption failed");
+            return await keyMaterial.decryptMessage(
+                modMsg,
+                domainSep,
+                associatedData,
+            );
+        }).rejects.toThrow(expectedError);
+    }
+
+    // Test sequentially flipping each bit of the associated data
+    for (let trial = 0; trial < associatedData.length * 8; trial++) {
+        const modAad = new TextEncoder().encode(associatedData);
+
+        const flip = 0x80 >> trial % 8;
+        const byteToFlip = Math.floor(trial / 8);
+        modAad[byteToFlip] ^= flip;
+
+        const expectedError = "Decryption failed";
+
+        await expect(async () => {
+            return await keyMaterial.decryptMessage(msg3, domainSep, modAad);
+        }).rejects.toThrow(expectedError);
     }
 
     // Test truncating
@@ -359,12 +460,16 @@ test("AES-GCM encryption", async () => {
         const modMsg = msg3.slice(0, trial);
 
         const expectedError =
-            modMsg.length < 12 + 16
+            modMsg.length < 8 + 12 + 16
                 ? "Invalid ciphertext, too short"
                 : "Decryption failed";
 
         await expect(async () => {
-            return await keyMaterial.decryptMessage(modMsg, domainSep);
+            return await keyMaterial.decryptMessage(
+                modMsg,
+                domainSep,
+                associatedData,
+            );
         }).rejects.toThrow(expectedError);
     }
 
@@ -376,7 +481,11 @@ test("AES-GCM encryption", async () => {
         const modMsg = new Uint8Array([...msg3, ...extraBytes]);
 
         await expect(async () => {
-            return await keyMaterial.decryptMessage(modMsg, domainSep);
+            return await keyMaterial.decryptMessage(
+                modMsg,
+                domainSep,
+                associatedData,
+            );
         }).rejects.toThrow("Decryption failed");
     }
 });
