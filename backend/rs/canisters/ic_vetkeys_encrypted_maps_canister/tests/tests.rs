@@ -593,6 +593,15 @@ fn should_remove_key_from_map() {
         ),
         Ok(Some(encrypted_value))
     );
+
+    assert_eq!(
+        env.query::<Result<Option<ByteBuf>, String>>(
+            caller,
+            "get_encrypted_value",
+            encode_args((caller, map_name.clone(), map_key)).unwrap(),
+        ),
+        Ok(None)
+    );
 }
 
 #[test]
