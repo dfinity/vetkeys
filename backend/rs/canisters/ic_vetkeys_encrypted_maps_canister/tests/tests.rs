@@ -418,6 +418,15 @@ fn should_remove_user_from_map() {
         ),
         Ok(Some(access_rights))
     );
+
+    assert_eq!(
+        env.query::<Result<Option<AccessRights>, String>>(
+            caller,
+            "get_user_rights",
+            encode_args((caller, map_name.clone(), user_to_be_added)).unwrap(),
+        ),
+        Ok(None)
+    );
 }
 
 #[test]
