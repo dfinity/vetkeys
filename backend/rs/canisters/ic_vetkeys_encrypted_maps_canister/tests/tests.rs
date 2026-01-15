@@ -792,18 +792,20 @@ fn should_modify_key_value_in_map() {
     let map_key = random_map_key(rng);
     let encrypted_value = random_encrypted_value(rng);
 
-    env.update::<Result<Option<ByteBuf>, String>>(
-        caller,
-        "insert_encrypted_value",
-        encode_args((
+    assert_eq!(
+        env.update::<Result<Option<ByteBuf>, String>>(
             caller,
-            map_name.clone(),
-            map_key.clone(),
-            encrypted_value.clone(),
-        ))
-        .unwrap(),
-    )
-    .unwrap();
+            "insert_encrypted_value",
+            encode_args((
+                caller,
+                map_name.clone(),
+                map_key.clone(),
+                encrypted_value.clone(),
+            ))
+            .unwrap(),
+        ),
+        Ok(None)
+    );
 
     let new_encrypted_value = random_encrypted_value(rng);
     assert_eq!(
@@ -814,11 +816,20 @@ fn should_modify_key_value_in_map() {
                 caller,
                 map_name.clone(),
                 map_key.clone(),
-                new_encrypted_value
+                new_encrypted_value.clone()
             ))
             .unwrap(),
         ),
         Ok(Some(encrypted_value))
+    );
+
+    assert_eq!(
+        env.query::<Result<Option<ByteBuf>, String>>(
+            caller,
+            "get_encrypted_value",
+            encode_args((caller, map_name.clone(), map_key)).unwrap(),
+        ),
+        Ok(Some(new_encrypted_value))
     );
 }
 
