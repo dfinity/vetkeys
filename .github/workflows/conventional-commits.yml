@@ -1,7 +1,5 @@
 name: Check PR title
 
-permissions: {}
-
 on:
   pull_request_target:
     types:
@@ -13,6 +11,8 @@ on:
 jobs:
   check:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - uses: dfinity/conventional-pr-title-action@v4.0.0
         with:
