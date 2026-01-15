@@ -165,13 +165,40 @@ fn should_remove_map_values() {
     let env = TestEnvironment::new(rng);
     let caller = random_self_authenticating_principal(rng);
     let map_name = random_map_name(rng);
+    let map_key = random_map_key(rng);
+    let encrypted_value = random_encrypted_value(rng);
 
+    // Add an entry into the map
+    env.update::<Result<Option<ByteBuf>, String>>(
+        caller,
+        "insert_encrypted_value",
+        encode_args((
+            caller,
+            map_name.clone(),
+            map_key.clone(),
+            encrypted_value.clone(),
+        ))
+        .unwrap(),
+    )
+    .unwrap();
+
+    // Remove map values and ensure the removed key is returned
     let result = env.update::<Result<Vec<ByteBuf>, String>>(
         caller,
         "remove_map_values",
-        encode_args((caller, map_name)).unwrap(),
+        encode_args((caller, map_name.clone())).unwrap(),
     );
-    assert_eq!(result, Ok(vec![]));
+    assert_eq!(result, Ok(vec![map_key.clone()]));
+
+    // Ensure that the map is indeed empty afterwards
+    let remaining_values = env
+        .query::<Result<Vec<(ByteBuf, ByteBuf)>, String>>(
+            caller,
+            "get_encrypted_values_for_map",
+            encode_args((caller, map_name)).unwrap(),
+        )
+        .unwrap();
+    assert_eq!(remaining_values, vec![]);
 }
 
 #[test]
