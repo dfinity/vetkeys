@@ -274,6 +274,10 @@ fn should_add_user_to_map() {
 
 #[test]
 fn should_fail_to_invoke_operations_by_unauthorized() {
+    // Note: Unauthorized access to
+    // * insert_encrypted_value is tested in should_fail_to_add_a_key_to_map_by_unauthorized and should_fail_modify_key_value_in_map_by_unauthorized
+    // * remove_encrypted_value is tested in should_fail_to_remove_a_key_from_map_by_unauthorized
+
     let rng = &mut reproducible_rng();
     let env = TestEnvironment::new(rng);
     let unauthorized = random_self_authenticating_principal(rng);
@@ -295,7 +299,7 @@ fn should_fail_to_invoke_operations_by_unauthorized() {
         env.query::<Result<Option<ByteBuf>, String>>(
             unauthorized,
             "get_encrypted_value",
-            encode_args((owner, map_name.clone(), map_key)).unwrap(),
+            encode_args((owner, map_name.clone(), map_key.clone())).unwrap(),
         ),
         Err("unauthorized".to_string())
     );
@@ -305,6 +309,26 @@ fn should_fail_to_invoke_operations_by_unauthorized() {
             unauthorized,
             "get_encrypted_values_for_map",
             encode_args((owner, map_name.clone())).unwrap(),
+        ),
+        Err("unauthorized".to_string())
+    );
+
+    assert_eq!(
+        env.query::<Result<Vec<(Principal, AccessRights)>, String>>(
+            unauthorized,
+            "get_shared_user_access_for_map",
+            encode_args((owner, map_name.clone())).unwrap(),
+        ),
+        Err("unauthorized".to_string())
+    );
+
+    let transport_key = random_transport_key(rng);
+    let transport_key_bytes = TransportKey::from(transport_key.public_key());
+    assert_eq!(
+        env.update::<Result<VetKey, String>>(
+            unauthorized,
+            "get_encrypted_vetkey",
+            encode_args((owner, map_name.clone(), transport_key_bytes)).unwrap(),
         ),
         Err("unauthorized".to_string())
     );
