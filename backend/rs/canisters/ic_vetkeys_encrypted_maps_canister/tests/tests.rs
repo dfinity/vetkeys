@@ -490,9 +490,24 @@ fn should_add_a_key_to_map() {
         env.update::<Result<Option<ByteBuf>, String>>(
             caller,
             "insert_encrypted_value",
-            encode_args((caller, map_name.clone(), map_key, encrypted_value)).unwrap(),
+            encode_args((
+                caller,
+                map_name.clone(),
+                map_key.clone(),
+                encrypted_value.clone()
+            ))
+            .unwrap(),
         ),
         Ok(None)
+    );
+
+    assert_eq!(
+        env.query::<Result<Option<ByteBuf>, String>>(
+            caller,
+            "get_encrypted_value",
+            encode_args((caller, map_name.clone(), map_key)).unwrap(),
+        ),
+        Ok(Some(encrypted_value))
     );
 }
 
