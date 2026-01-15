@@ -761,10 +761,11 @@ function ratchetStepDomainSeparator(epoch: bigInt) {
 }
 
 function evolve(symmetricRatchetState: RawSymmetricRatchetState) : RawSymmetricRatchetState {
-	const domainSeparator = ratchetStepDomainSeparator(symmetricRatchetState.epochKey);
+	const nextEpoch = symmetricRatchetState.epochId + 1n;
+	const domainSeparator = ratchetStepDomainSeparator(nextEpoch);
 	const newEpochkey = deriveSymmetricKey(symmetricRatchetState.epochKey, domainSeparator, 32);
 
-  return { epochKey: newEpochkey, epochId: symmetricRatchetState.epochId + 1n}
+	return { epochKey: newEpochkey, epochId: nextEpoch };
 }
 ```
 where `DOMAIN_RATCHET_STEP` is a unique domain separator.
