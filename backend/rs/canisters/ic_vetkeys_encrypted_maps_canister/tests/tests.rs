@@ -165,13 +165,40 @@ fn should_remove_map_values() {
     let env = TestEnvironment::new(rng);
     let caller = random_self_authenticating_principal(rng);
     let map_name = random_map_name(rng);
+    let map_key = random_map_key(rng);
+    let encrypted_value = random_encrypted_value(rng);
 
+    // Add an entry into the map
+    env.update::<Result<Option<ByteBuf>, String>>(
+        caller,
+        "insert_encrypted_value",
+        encode_args((
+            caller,
+            map_name.clone(),
+            map_key.clone(),
+            encrypted_value.clone(),
+        ))
+        .unwrap(),
+    )
+    .unwrap();
+
+    // Remove map values and ensure the removed key is returned
     let result = env.update::<Result<Vec<ByteBuf>, String>>(
         caller,
         "remove_map_values",
-        encode_args((caller, map_name)).unwrap(),
+        encode_args((caller, map_name.clone())).unwrap(),
     );
-    assert_eq!(result, Ok(vec![]));
+    assert_eq!(result, Ok(vec![map_key.clone()]));
+
+    // Ensure that the map is indeed empty afterwards
+    let remaining_values = env
+        .query::<Result<Vec<(ByteBuf, ByteBuf)>, String>>(
+            caller,
+            "get_encrypted_values_for_map",
+            encode_args((caller, map_name)).unwrap(),
+        )
+        .unwrap();
+    assert_eq!(remaining_values, vec![]);
 }
 
 #[test]
@@ -247,6 +274,10 @@ fn should_add_user_to_map() {
 
 #[test]
 fn should_fail_to_invoke_operations_by_unauthorized() {
+    // Note: Unauthorized access to
+    // * insert_encrypted_value is tested in should_fail_to_add_a_key_to_map_by_unauthorized and should_fail_modify_key_value_in_map_by_unauthorized
+    // * remove_encrypted_value is tested in should_fail_to_remove_a_key_from_map_by_unauthorized
+
     let rng = &mut reproducible_rng();
     let env = TestEnvironment::new(rng);
     let unauthorized = random_self_authenticating_principal(rng);
@@ -268,7 +299,7 @@ fn should_fail_to_invoke_operations_by_unauthorized() {
         env.query::<Result<Option<ByteBuf>, String>>(
             unauthorized,
             "get_encrypted_value",
-            encode_args((owner, map_name.clone(), map_key)).unwrap(),
+            encode_args((owner, map_name.clone(), map_key.clone())).unwrap(),
         ),
         Err("unauthorized".to_string())
     );
@@ -278,6 +309,26 @@ fn should_fail_to_invoke_operations_by_unauthorized() {
             unauthorized,
             "get_encrypted_values_for_map",
             encode_args((owner, map_name.clone())).unwrap(),
+        ),
+        Err("unauthorized".to_string())
+    );
+
+    assert_eq!(
+        env.query::<Result<Vec<(Principal, AccessRights)>, String>>(
+            unauthorized,
+            "get_shared_user_access_for_map",
+            encode_args((owner, map_name.clone())).unwrap(),
+        ),
+        Err("unauthorized".to_string())
+    );
+
+    let transport_key = random_transport_key(rng);
+    let transport_key_bytes = TransportKey::from(transport_key.public_key());
+    assert_eq!(
+        env.update::<Result<VetKey, String>>(
+            unauthorized,
+            "get_encrypted_vetkey",
+            encode_args((owner, map_name.clone(), transport_key_bytes)).unwrap(),
         ),
         Err("unauthorized".to_string())
     );
@@ -367,6 +418,15 @@ fn should_remove_user_from_map() {
         ),
         Ok(Some(access_rights))
     );
+
+    assert_eq!(
+        env.query::<Result<Option<AccessRights>, String>>(
+            caller,
+            "get_user_rights",
+            encode_args((caller, map_name.clone(), user_to_be_added)).unwrap(),
+        ),
+        Ok(None)
+    );
 }
 
 #[test]
@@ -430,9 +490,24 @@ fn should_add_a_key_to_map() {
         env.update::<Result<Option<ByteBuf>, String>>(
             caller,
             "insert_encrypted_value",
-            encode_args((caller, map_name.clone(), map_key, encrypted_value)).unwrap(),
+            encode_args((
+                caller,
+                map_name.clone(),
+                map_key.clone(),
+                encrypted_value.clone()
+            ))
+            .unwrap(),
         ),
         Ok(None)
+    );
+
+    assert_eq!(
+        env.query::<Result<Option<ByteBuf>, String>>(
+            caller,
+            "get_encrypted_value",
+            encode_args((caller, map_name.clone(), map_key)).unwrap(),
+        ),
+        Ok(Some(encrypted_value))
     );
 }
 
@@ -517,6 +592,15 @@ fn should_remove_key_from_map() {
             encode_args((caller, map_name.clone(), map_key.clone())).unwrap(),
         ),
         Ok(Some(encrypted_value))
+    );
+
+    assert_eq!(
+        env.query::<Result<Option<ByteBuf>, String>>(
+            caller,
+            "get_encrypted_value",
+            encode_args((caller, map_name.clone(), map_key)).unwrap(),
+        ),
+        Ok(None)
     );
 }
 
@@ -708,18 +792,20 @@ fn should_modify_key_value_in_map() {
     let map_key = random_map_key(rng);
     let encrypted_value = random_encrypted_value(rng);
 
-    env.update::<Result<Option<ByteBuf>, String>>(
-        caller,
-        "insert_encrypted_value",
-        encode_args((
+    assert_eq!(
+        env.update::<Result<Option<ByteBuf>, String>>(
             caller,
-            map_name.clone(),
-            map_key.clone(),
-            encrypted_value.clone(),
-        ))
-        .unwrap(),
-    )
-    .unwrap();
+            "insert_encrypted_value",
+            encode_args((
+                caller,
+                map_name.clone(),
+                map_key.clone(),
+                encrypted_value.clone(),
+            ))
+            .unwrap(),
+        ),
+        Ok(None)
+    );
 
     let new_encrypted_value = random_encrypted_value(rng);
     assert_eq!(
@@ -730,11 +816,20 @@ fn should_modify_key_value_in_map() {
                 caller,
                 map_name.clone(),
                 map_key.clone(),
-                new_encrypted_value
+                new_encrypted_value.clone()
             ))
             .unwrap(),
         ),
         Ok(Some(encrypted_value))
+    );
+
+    assert_eq!(
+        env.query::<Result<Option<ByteBuf>, String>>(
+            caller,
+            "get_encrypted_value",
+            encode_args((caller, map_name.clone(), map_key)).unwrap(),
+        ),
+        Ok(Some(new_encrypted_value))
     );
 }
 
