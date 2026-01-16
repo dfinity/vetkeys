@@ -1,5 +1,7 @@
 # vetKeys
 
+Just testing
+
 This repository contains a set of tools designed to help canister developers as well as frontend developers integrate **vetKeys** into their Internet Computer (ICP) applications.
 
 **vetKeys** – Verifiable Encrypted Threshold Keys – on the Internet Computer addresses the fundamental challenge of storing secrets on-chain by allowing cryptographic key derivation without exposing private keys to anyone but the user. By leveraging **threshold cryptography**, vetKeys make it possible to generate, transport, and use encrypted keys securely, unlocking **privacy-preserving smart contracts** and **externally verifiable randomness**.
