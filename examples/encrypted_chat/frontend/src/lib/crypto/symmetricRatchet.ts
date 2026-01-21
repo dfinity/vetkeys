@@ -6,10 +6,10 @@ import {
 } from '../utils';
 import { Principal } from '@dfinity/principal';
 
-const DOMAIN_RATCHET_INIT = sizePrefixedBytesFromString('ic-vetkeys-chat-example-ratchet-init');
-const DOMAIN_RATCHET_STEP = sizePrefixedBytesFromString('ic-vetkeys-chat-example-ratchet-step');
+const DOMAIN_RATCHET_INIT = sizePrefixedBytesFromString('ic-vetkeys-chat-ratchet-init');
+const DOMAIN_RATCHET_STEP = sizePrefixedBytesFromString('ic-vetkeys-chat-ratchet-step');
 const DOMAIN_MESSAGE_ENCRYPTION = sizePrefixedBytesFromString(
-	'ic-vetkeys-chat-example-message-encryption'
+	'ic-vetkeys-chat-message-encryption'
 );
 
 // Notes
@@ -129,18 +129,18 @@ export class SymmetricRatchetState {
 		this.#symmetricRatchetEpoch += 1n;
 	}
 
-	async evolveTo(symmetricKeyEpoch: bigint) {
-		if (symmetricKeyEpoch < this.#symmetricRatchetEpoch) {
+	async evolveTo(desiredEpoch: bigint) {
+		if (desiredEpoch < this.#symmetricRatchetEpoch) {
 			throw new Error(
-				`SymmetricRatchetState.evolveTo: symmetricKeyEpoch ${symmetricKeyEpoch.toString()} is less than the current epoch ${this.#symmetricRatchetEpoch.toString()}`
+				`SymmetricRatchetState.evolveTo: desiredEpoch ${desiredEpoch.toString()} is less than the current epoch ${this.#symmetricRatchetEpoch.toString()}`
 			);
 		}
-		if (symmetricKeyEpoch === this.#symmetricRatchetEpoch) {
+		if (desiredEpoch === this.#symmetricRatchetEpoch) {
 			return;
 		}
-		while (symmetricKeyEpoch < this.#symmetricRatchetEpoch) {
+		while (desiredEpoch > this.#symmetricRatchetEpoch) {
 			console.log(
-				`SymmetricRatchetState.evolveTo: evolving from epoch ${this.#symmetricRatchetEpoch.toString()} to epoch ${symmetricKeyEpoch.toString()}`
+				`SymmetricRatchetState.evolveTo: evolving from epoch ${this.#symmetricRatchetEpoch.toString()} to epoch ${desiredEpoch.toString()}`
 			);
 			await this.evolve();
 		}
@@ -148,22 +148,22 @@ export class SymmetricRatchetState {
 
 	/// Peek at a future epoch without evolving the state.
 	///
-	/// Returns an error if symmetricKeyEpoch is less than the current epoch.
-	async peekAtEpoch(symmetricKeyEpoch: bigint): Promise<SymmetricRatchetState> {
-		if (symmetricKeyEpoch < this.#symmetricRatchetEpoch) {
+	/// Returns an error if desiredEpoch is less than the current epoch.
+	async peekAtEpoch(desiredEpoch: bigint): Promise<SymmetricRatchetState> {
+		if (desiredEpoch < this.#symmetricRatchetEpoch) {
 			throw new Error(
-				`Cannot peek at epoch ${symmetricKeyEpoch} because the current epoch is ${this.#symmetricRatchetEpoch}`
+				`Cannot peek at epoch ${desiredEpoch} because the current epoch is ${this.#symmetricRatchetEpoch}`
 			);
-		} else if (symmetricKeyEpoch === this.#symmetricRatchetEpoch) {
+		} else if (desiredEpoch === this.#symmetricRatchetEpoch) {
 			return this;
 		}
 		const newSymmetricRatchetState = new SymmetricRatchetState(
 			this.#cryptoKey,
-			symmetricKeyEpoch,
+			desiredEpoch,
 			this.#creationTime,
 			this.#rotationDuration
 		);
-		await newSymmetricRatchetState.evolveTo(symmetricKeyEpoch);
+		await newSymmetricRatchetState.evolveTo(desiredEpoch);
 		return newSymmetricRatchetState;
 	}
 
@@ -219,33 +219,30 @@ export class CacheableSymmetricRatchetState {
 		]);
 		const newRawKey = deriveSymmetricKey(this.rawKey, domainSeparator, 32);
 		this.rawKey = newRawKey;
-		this.symmetricRatchetEpoch += 1n;
 	}
 
-	evolveTo(symmetricKeyEpoch: bigint) {
-		if (symmetricKeyEpoch < this.symmetricRatchetEpoch) {
+	evolveTo(desiredEpoch: bigint) {
+		if (desiredEpoch < this.symmetricRatchetEpoch) {
 			throw new Error(
-				`Cannot evolve to epoch ${symmetricKeyEpoch} because the current epoch is ${this.symmetricRatchetEpoch}`
+				`Cannot evolve to epoch ${desiredEpoch} because the current epoch is ${this.symmetricRatchetEpoch}`
 			);
 		}
-		while (symmetricKeyEpoch > this.symmetricRatchetEpoch) {
+		while (desiredEpoch > this.symmetricRatchetEpoch) {
 			this.evolve();
 		}
 	}
 
 	/// Peek at a future epoch without evolving the state.
 	///
-	/// Returns an error if symmetricKeyEpoch is less than the current epoch.
-	peekAtEpoch(symmetricKeyEpoch: bigint): CacheableSymmetricRatchetState {
-		const clonedRawKey = structuredClone(this.rawKey);
-		const newEpoch = this.symmetricRatchetEpoch + 1n;
+	/// Returns an error if desiredEpoch is less than the current epoch.
+	peekAtEpoch(desiredEpoch: bigint): CacheableSymmetricRatchetState {
 		const newState = new CacheableSymmetricRatchetState(
-			clonedRawKey,
-			newEpoch,
+			structuredClone(this.rawKey),
+			this.symmetricRatchetEpoch,
 			this.creationTime,
 			this.rotationDuration
 		);
-		newState.evolveTo(symmetricKeyEpoch);
+		newState.evolveTo(desiredEpoch);
 		return newState;
 	}
 
