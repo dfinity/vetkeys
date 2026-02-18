@@ -639,7 +639,7 @@ impl DerivedKeyMaterial {
     fn derive_aes_gcm_key(&self, domain_sep: &str, version: u8) -> Vec<u8> {
         derive_symmetric_key(
             &self.key,
-            &format!("ic-vetkd-bls12-381-g2-aes-gcm-v{}-{}", version, domain_sep),
+            &format!("ic-vetkd-bls12-381-g2-aes-gcm-v{version}-{domain_sep}"),
             Self::GCM_KEY_SIZE,
         )
     }
