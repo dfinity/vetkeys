@@ -15,6 +15,7 @@ on:
       - .github/workflows/provision-linux.sh
       - .github/workflows/provision-darwin.sh
       - .github/workflows/clippy.yml
+      - rust-toolchain.toml
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
