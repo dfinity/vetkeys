@@ -42,13 +42,13 @@
         "@dfinity/identity": "^2.3.0",
         "@dfinity/principal": "^2.3.0",
         "@dfinity/vetkeys": "^0.3.0",
-        "@sveltejs/vite-plugin-svelte": "^3.0.2",
+        "@sveltejs/vite-plugin-svelte": "^6.2.4",
         "daisyui": "^4.12.23",
         "save": "^2.9.0",
-        "svelte": "^4.2.19",
+        "svelte": "^5.53.0",
         "svelte-icons": "^2.1.0",
         "svelte-spa-router": "^4.0.1",
         "tailwindcss": "^3.0.17",
-        "typewriter-editor": "^0.9.4"
+        "typewriter-editor": "^0.12.9"
     }
 }
