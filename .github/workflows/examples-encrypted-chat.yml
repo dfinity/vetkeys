@@ -19,7 +19,7 @@ jobs:
   examples-encrypted-chat-rust-darwin:
     runs-on: macos-15
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
       - name: Provision Darwin
         run: |
           bash .github/workflows/provision-darwin.sh
@@ -31,7 +31,7 @@ jobs:
   examples-encrypted-chat-rust-linux:
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
       - name: Provision Linux
         run: bash .github/workflows/provision-linux.sh
       - name: Backend Tests Encrypted Chat Rust Linux
