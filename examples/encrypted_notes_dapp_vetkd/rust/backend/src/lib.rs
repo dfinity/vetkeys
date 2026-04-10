@@ -384,6 +384,9 @@ async fn symmetric_key_verification_key_for_note() -> String {
         key_id: key_id(),
     };
 
+    // In production systems it would make sense to use the offline derivation
+    // support available in ic_vetkeys, eg DerivedPublicKey::derive_sub_key
+    // since this avoids the cycles and time overhead of a management canister call
     let response: VetKDPublicKeyResult = ic_cdk::management_canister::vetkd_public_key(&request)
         .await
         .expect("call to vetkd_public_key failed");
