@@ -17,10 +17,10 @@ jobs:
   backend-motoko-format-check-linux:
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
         with:
           persist-credentials: false
-      - uses: ZenVoich/setup-mops@v1
+      - uses: ZenVoich/setup-mops@3e94e453352269b34137b5ce49f09a8df81bed7d # v1.4.1
         with:
           mops-version: 1
       - name: Provision Linux
