@@ -1,8 +1,11 @@
 #!/bin/bash
 
-cd ../../backend && make extract-candid
-
-cd ..
+if command -v candid-extractor >/dev/null 2>&1; then
+    cd ../../backend && make extract-candid
+    cd ..
+else
+    cd ..
+fi
 
 rm -rf frontend/src/declarations/basic_timelock_ibe
 

@@ -14,9 +14,7 @@ export async function createEncryptedMaps(
     agentOptions?: HttpAgentOptions,
 ): Promise<EncryptedMaps> {
     const canisterId =
-        canisterEnv?.[
-            "PUBLIC_CANISTER_ID:ic_vetkeys_encrypted_maps_canister"
-        ];
+        canisterEnv?.["PUBLIC_CANISTER_ID:ic_vetkeys_encrypted_maps_canister"];
     if (!canisterId) {
         throw new Error(
             "Canister ID for ic_vetkeys_encrypted_maps_canister is not set",

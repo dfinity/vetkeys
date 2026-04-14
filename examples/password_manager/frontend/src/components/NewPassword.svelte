@@ -110,7 +110,9 @@
     <PasswordEditor {editor} class="mb-3" disabled={creating} />
     <button
         class="btn mt-6 btn-primary {creating ? 'loading' : ''}"
-        disabled={creating || vaultName.trim() === "" || passwordName.trim() === ""}
+        disabled={creating ||
+            vaultName.trim() === "" ||
+            passwordName.trim() === ""}
         on:click={add}>{creating ? "Adding..." : "Add password"}</button
     >
 </main>

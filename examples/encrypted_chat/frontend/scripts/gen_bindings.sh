@@ -5,7 +5,9 @@
 # Resolve the physical path of this script so that navigating up works
 # correctly even when frontend/ is reached via a symlink (e.g. motoko/frontend).
 SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd -P)
-cd "$SCRIPT_DIR/../../rust/backend" && make extract-candid
+if command -v candid-extractor >/dev/null 2>&1; then
+    cd "$SCRIPT_DIR/../../rust/backend" && make extract-candid
+fi
 
 cd "$SCRIPT_DIR/../.."
 rm -rf frontend/src/declarations/encrypted_chat

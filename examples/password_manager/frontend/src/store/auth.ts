@@ -100,7 +100,8 @@ function handleSessionTimeout(client: AuthClient) {
 
         const chain = identity.getDelegation();
         // expiration is a BigInt of nanoseconds since epoch
-        const expirationMs = Number(chain.delegations[0].delegation.expiration) / 1_000_000;
+        const expirationMs =
+            Number(chain.delegations[0].delegation.expiration) / 1_000_000;
 
         setTimeout(() => {
             void logout();

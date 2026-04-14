@@ -6,7 +6,6 @@
     import { Principal } from "@icp-sdk/core/principal";
     import Header from "./Header.svelte";
     import Spinner from "./Spinner.svelte";
-    // @ts-ignore: svelte-icons have no type declarations
     import GiOpenTreasureChest from "svelte-icons/gi/GiOpenTreasureChest.svelte";
     import { auth } from "../store/auth";
     import SharingEditor from "./SharingEditor.svelte";
