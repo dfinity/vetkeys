@@ -110,10 +110,10 @@ export function getMyPrincipal(): Principal {
 	return auth.state.client.getIdentity().getPrincipal();
 }
 
-export function getActor(): ActorSubclass<_SERVICE> {
+export async function getActor(): Promise<ActorSubclass<_SERVICE>> {
 	if (auth.state.label === 'initialized') {
 		const canisterEnv = safeGetCanisterEnv<{ 'PUBLIC_CANISTER_ID:encrypted_chat': string }>();
-		const agent = HttpAgent.createSync({
+		const agent = await HttpAgent.create({
 			identity: auth.state.client.getIdentity(),
 			fetch: fetch,
 			host: window.location.origin,

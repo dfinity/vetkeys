@@ -151,7 +151,7 @@ export class EncryptedMessagingService {
 					content
 				);
 				await sendMessage(
-					getActor(),
+					await getActor(),
 					chatIdFromString(chatIdStr),
 					encrypted.vetKeyEpoch,
 					encrypted.symmetricRatchetEpoch,
@@ -196,7 +196,7 @@ export class EncryptedMessagingService {
 		const currentFetchedMap = this.#chatIdToCurrentNumberOfFetchedMessages;
 
 		// Get chat IDs and check for new messages
-		const chatIds = await canisterAPI.getChatIdsAndCurrentNumbersOfMessages(getActor());
+		const chatIds = await canisterAPI.getChatIdsAndCurrentNumbersOfMessages(await getActor());
 
 		// Abort if reset() was called while we were awaiting.
 		if (
@@ -219,7 +219,7 @@ export class EncryptedMessagingService {
 					'does not have keys, initializing'
 				);
 				const latestVetKeyEpoch = (
-					await canisterAPI.getLatestVetKeyEpochMetadata(getActor(), chatId)
+					await canisterAPI.getLatestVetKeyEpochMetadata(await getActor(), chatId)
 				).epoch_id;
 				const ratchetState =
 					await this.#ratchetInitializationService.initializeRatchetStateAndReshareAndCacheIfNeeded(
@@ -247,7 +247,7 @@ export class EncryptedMessagingService {
 
 			try {
 				const messages = await canisterAPI.fetchEncryptedMessages(
-					getActor(),
+					await getActor(),
 					chatId,
 					startId,
 					undefined
@@ -294,7 +294,7 @@ export class EncryptedMessagingService {
 					'Failed to poll for new messages, trying again to pull just one message...',
 					error
 				);
-				const messages = await canisterAPI.fetchEncryptedMessages(getActor(), chatId, startId, 1n);
+				const messages = await canisterAPI.fetchEncryptedMessages(await getActor(), chatId, startId, 1n);
 
 				if (
 					this.#receivingQueueToDecrypt !== currentQueue ||

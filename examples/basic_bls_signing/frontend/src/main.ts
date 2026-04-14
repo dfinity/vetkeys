@@ -23,7 +23,7 @@ let basicBlsSigningCanister: ActorSubclass<_SERVICE> | undefined;
 // let canisterPublicKey: DerivedPublicKey | undefined;
 let myVerificationKey: DerivedPublicKey | undefined;
 
-function getBasicBlsSigningCanister(): ActorSubclass<_SERVICE> {
+async function getBasicBlsSigningCanister(): Promise<ActorSubclass<_SERVICE>> {
   if (basicBlsSigningCanister) return basicBlsSigningCanister;
   const canisterId = canisterEnv?.["PUBLIC_CANISTER_ID:basic_bls_signing"];
   if (!canisterId) {
@@ -33,14 +33,12 @@ function getBasicBlsSigningCanister(): ActorSubclass<_SERVICE> {
     throw Error("Auth client is not initialized");
   }
 
-  basicBlsSigningCanister = Actor.createActor(idlFactory, {
-    agent: HttpAgent.createSync({
-      identity: authClient.getIdentity(),
-      host: window.location.origin,
-      ...(canisterEnv?.IC_ROOT_KEY ? { rootKey: canisterEnv.IC_ROOT_KEY } : {}),
-    }),
-    canisterId,
+  const agent = await HttpAgent.create({
+    identity: authClient.getIdentity(),
+    host: window.location.origin,
+    ...(canisterEnv?.IC_ROOT_KEY ? { rootKey: canisterEnv.IC_ROOT_KEY } : {}),
   });
+  basicBlsSigningCanister = Actor.createActor(idlFactory, { agent, canisterId });
 
   return basicBlsSigningCanister;
 }
@@ -160,7 +158,7 @@ document.getElementById("signMessageButton")!.addEventListener("click", () => {
     const message = prompt("Enter message to sign:");
     if (message) {
       try {
-        await getBasicBlsSigningCanister().sign_message(message);
+        await (await getBasicBlsSigningCanister()).sign_message(message);
         alert("Created and stored signature successfully.");
       } catch (error) {
         alert(`Error: ${error as Error}`);
@@ -220,7 +218,7 @@ document
 
 async function listSignatures() {
   const signatures: Array<Signature> =
-    await getBasicBlsSigningCanister().get_my_signatures();
+    await (await getBasicBlsSigningCanister()).get_my_signatures();
   const signaturesDiv = document.getElementById("signatures")!;
   signaturesDiv.innerHTML = "";
 
@@ -233,7 +231,7 @@ async function listSignatures() {
   } else {
     if (!myVerificationKey) {
       const myVerificationKeyRaw =
-        await getBasicBlsSigningCanister().get_my_verification_key();
+        await (await getBasicBlsSigningCanister()).get_my_verification_key();
       myVerificationKey = DerivedPublicKey.deserialize(
         Uint8Array.from(myVerificationKeyRaw),
       );

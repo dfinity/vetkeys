@@ -25,7 +25,7 @@ let myPrincipal: Principal | undefined = undefined;
 let authClient: AuthClient | undefined;
 let basicIbeCanister: ActorSubclass<_SERVICE> | undefined;
 
-function getBasicIbeCanister(): ActorSubclass<_SERVICE> {
+async function getBasicIbeCanister(): Promise<ActorSubclass<_SERVICE>> {
     if (basicIbeCanister) return basicIbeCanister;
     const canisterId = canisterEnv?.["PUBLIC_CANISTER_ID:basic_ibe"];
     if (!canisterId) {
@@ -35,16 +35,14 @@ function getBasicIbeCanister(): ActorSubclass<_SERVICE> {
         throw Error("Auth client is not initialized");
     }
 
-    basicIbeCanister = Actor.createActor(idlFactory, {
-        agent: HttpAgent.createSync({
-            identity: authClient.getIdentity(),
-            host: window.location.origin,
-            ...(canisterEnv?.IC_ROOT_KEY
-                ? { rootKey: canisterEnv.IC_ROOT_KEY }
-                : {}),
-        }),
-        canisterId,
+    const agent = await HttpAgent.create({
+        identity: authClient.getIdentity(),
+        host: window.location.origin,
+        ...(canisterEnv?.IC_ROOT_KEY
+            ? { rootKey: canisterEnv.IC_ROOT_KEY }
+            : {}),
     });
+    basicIbeCanister = Actor.createActor(idlFactory, { agent, canisterId });
 
     return basicIbeCanister;
 }
@@ -52,7 +50,7 @@ function getBasicIbeCanister(): ActorSubclass<_SERVICE> {
 async function getIbePublicKey(): Promise<DerivedPublicKey> {
     if (ibePublicKey) return ibePublicKey;
     ibePublicKey = DerivedPublicKey.deserialize(
-        new Uint8Array(await getBasicIbeCanister().get_ibe_public_key()),
+        new Uint8Array(await (await getBasicIbeCanister()).get_ibe_public_key()),
     );
     return ibePublicKey;
 }
@@ -80,7 +78,7 @@ async function getMyIbePrivateKey(): Promise<VetKey> {
     } else {
         const transportSecretKey = TransportSecretKey.random();
         const encryptedKey = Uint8Array.from(
-            await getBasicIbeCanister().get_my_encrypted_ibe_key(
+            await (await getBasicIbeCanister()).get_my_encrypted_ibe_key(
                 transportSecretKey.publicKeyBytes(),
             ),
         );
@@ -117,7 +115,7 @@ async function sendMessage() {
             receiverPrincipal,
         );
 
-        const result = await getBasicIbeCanister().send_message({
+        const result = await (await getBasicIbeCanister()).send_message({
             encrypted_message: encryptedMessage,
             receiver: receiverPrincipal,
         });
@@ -133,7 +131,7 @@ async function sendMessage() {
 }
 
 async function showMessages() {
-    const inbox = await getBasicIbeCanister().get_my_messages();
+    const inbox = await (await getBasicIbeCanister()).get_my_messages();
     await displayMessages(inbox);
 }
 
@@ -227,7 +225,7 @@ async function displayMessages(inbox: Inbox) {
             void (async () => {
                 try {
                     const result =
-                        await getBasicIbeCanister().remove_my_message_by_index(
+                        await (await getBasicIbeCanister()).remove_my_message_by_index(
                             BigInt(index),
                         );
                     if ("Err" in result) {

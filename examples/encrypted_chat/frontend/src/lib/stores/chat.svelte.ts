@@ -211,7 +211,7 @@ export const chatUIActions = {
 		// This is independent of the background worker's key induction state, so
 		// chats appear in the UI immediately after login rather than waiting for
 		// the first background-worker poll cycle to complete.
-		const canisterChats = await canisterAPI.getChatIdsAndCurrentNumbersOfMessages(getActor());
+		const canisterChats = await canisterAPI.getChatIdsAndCurrentNumbersOfMessages(await getActor());
 		const currentChatIds = canisterChats.map(({ chatId }) => chatId);
 
 		const chatsToRemoveFromUi = chats.state.filter(
@@ -234,7 +234,7 @@ export const chatUIActions = {
 		for (const chatId of chatsToAddToUi) {
 			const chatIdStr = chatIdToString(chatId);
 			console.log('refreshChats: adding chat ', chatIdStr);
-			vetKeyEpochMetaData.push(await canisterAPI.getLatestVetKeyEpochMetadata(getActor(), chatId));
+			vetKeyEpochMetaData.push(await canisterAPI.getLatestVetKeyEpochMetadata(await getActor(), chatId));
 		}
 
 		const newChats: Chat[] = [];
@@ -460,7 +460,7 @@ export const chatUIActions = {
 		try {
 			const receiver = Principal.fromText(receiverPrincipalText.trim());
 			await canisterAPI.createDirectChat(
-				getActor(),
+				await getActor(),
 				receiver,
 				BigInt(Math.max(0, Math.trunc(rotationMinutes))),
 				BigInt(Math.max(0, Math.trunc(expirationMinutes)))
@@ -495,7 +495,7 @@ export const chatUIActions = {
 				.filter(Boolean)
 				.map((t) => Principal.fromText(t));
 			const meta = await canisterAPI.createGroupChat(
-				getActor(),
+				await getActor(),
 				participants,
 				BigInt(Math.max(0, Math.trunc(rotationMinutes))),
 				BigInt(Math.max(0, Math.trunc(expirationMinutes)))
@@ -527,7 +527,7 @@ export const chatUIActions = {
 			remove_participants: removeUsers,
 			add_participants: addUsers
 		};
-		const result = await getActor().modify_group_chat_participants(chatId.Group, modification);
+		const result = await (await getActor()).modify_group_chat_participants(chatId.Group, modification);
 		if ('Ok' in result) {
 			console.log(
 				`Group ${chatIdToString(chatId)} updated: +${addUsers.length}, -${removeUsers.length}`

@@ -29,7 +29,7 @@ let myPrincipal: Principal | undefined = undefined;
 let authClient: AuthClient | undefined;
 let basicTimelockIbeCanister: ActorSubclass<_SERVICE> | undefined;
 
-function getBasicTimelockIbeCanister(): ActorSubclass<_SERVICE> {
+async function getBasicTimelockIbeCanister(): Promise<ActorSubclass<_SERVICE>> {
     if (basicTimelockIbeCanister) return basicTimelockIbeCanister;
     const canisterId = canisterEnv?.["PUBLIC_CANISTER_ID:basic_timelock_ibe"];
     if (!canisterId) {
@@ -39,14 +39,15 @@ function getBasicTimelockIbeCanister(): ActorSubclass<_SERVICE> {
         throw Error("Auth client is not initialized");
     }
 
+    const agent = await HttpAgent.create({
+        identity: authClient.getIdentity(),
+        host: window.location.origin,
+        ...(canisterEnv?.IC_ROOT_KEY
+            ? { rootKey: canisterEnv.IC_ROOT_KEY }
+            : {}),
+    });
     basicTimelockIbeCanister = Actor.createActor(idlFactory, {
-        agent: HttpAgent.createSync({
-            identity: authClient.getIdentity(),
-            host: window.location.origin,
-            ...(canisterEnv?.IC_ROOT_KEY
-                ? { rootKey: canisterEnv.IC_ROOT_KEY }
-                : {}),
-        }),
+        agent,
         canisterId,
     });
 
@@ -190,7 +191,7 @@ async function getIbePublicKey(): Promise<DerivedPublicKey> {
     if (ibePublicKey) return ibePublicKey;
     ibePublicKey = DerivedPublicKey.deserialize(
         new Uint8Array(
-            await getBasicTimelockIbeCanister().get_ibe_public_key(),
+            await (await getBasicTimelockIbeCanister()).get_ibe_public_key(),
         ),
     );
     return ibePublicKey;
@@ -215,7 +216,7 @@ async function createLot(
     description: string,
     durationSeconds: number,
 ) {
-    const result = await getBasicTimelockIbeCanister().create_lot(
+    const result = await (await getBasicTimelockIbeCanister()).create_lot(
         name,
         description,
         durationSeconds,
@@ -307,7 +308,7 @@ function formatCountdown(endTime: bigint): string {
 async function listLots() {
     try {
         const [openLots, closedLots] =
-            await getBasicTimelockIbeCanister().get_lots();
+            await (await getBasicTimelockIbeCanister()).get_lots();
         const openLotsDiv = document.getElementById("openLots")!;
         const closedLotsDiv = document.getElementById("closedLots")!;
 
@@ -454,7 +455,7 @@ async function placeBid(lotId: bigint, amount: number) {
         const encryptedAmount = await encrypt(amountBytes, lotIdBytes);
 
         // Place the bid
-        const result = await getBasicTimelockIbeCanister().place_bid(
+        const result = await (await getBasicTimelockIbeCanister()).place_bid(
             lotId,
             encryptedAmount,
         );
