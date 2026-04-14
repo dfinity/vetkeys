@@ -1,5 +1,5 @@
 import { SymmetricRatchetState } from './symmetricRatchet';
-import { Principal } from '@dfinity/principal';
+import { Principal } from '@icp-sdk/core/principal';
 
 export class KeyManager {
 	#symmetricRatchetStates: Map<string, Map<bigint, SymmetricRatchetState>> = new Map();
@@ -19,7 +19,9 @@ export class KeyManager {
 		console.log(
 			`KeyManager.inductState: Inducting state for chatId ${chatId} and vetKeyEpoch ${vetKeyEpoch} with creation time ${state.getCreationTime().toUTCString()} and ratchet epoch ${state.getCurrentEpoch().toString()}`
 		);
-		this.#symmetricRatchetStates.set(chatId, new Map([[vetKeyEpoch, state]]));
+		const existing = this.#symmetricRatchetStates.get(chatId) ?? new Map<bigint, SymmetricRatchetState>();
+		existing.set(vetKeyEpoch, state);
+		this.#symmetricRatchetStates.set(chatId, existing);
 	}
 
 	async encryptNow(
@@ -38,25 +40,25 @@ export class KeyManager {
 		return { encryptedBytes, vetKeyEpoch, symmetricRatchetEpoch };
 	}
 
-	async decryptAtTimeAndEvolveIfNeeded(
+	async decryptAtEpochAndEvolveIfNeeded(
 		chatId: string,
 		sender: Principal,
 		senderMessageId: bigint,
 		vetKeyEpoch: bigint,
-		encryptedBytes: Uint8Array,
-		time: Date
+		symmetricKeyEpoch: bigint,
+		encryptedBytes: Uint8Array
 	): Promise<Uint8Array> {
 		const symmetricRatchetState = this.#symmetricRatchetStates.get(chatId)?.get(vetKeyEpoch);
 		if (!symmetricRatchetState) {
 			throw new Error(
-				`KeyManager.decryptAtTimeAndEvolveIfNeeded: No symmetric ratchet states found for chatId ${chatId} and vetKeyEpoch ${vetKeyEpoch}`
+				`KeyManager.decryptAtEpochAndEvolveIfNeeded: No symmetric ratchet states found for chatId ${chatId} and vetKeyEpoch ${vetKeyEpoch}`
 			);
 		}
-		return await symmetricRatchetState.decryptAtTimeAndEvolveIfNeeded(
+		return await symmetricRatchetState.decryptAtEpochAndEvolveIfNeeded(
 			sender,
 			senderMessageId,
 			encryptedBytes,
-			time
+			symmetricKeyEpoch
 		);
 	}
 

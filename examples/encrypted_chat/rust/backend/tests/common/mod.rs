@@ -53,7 +53,7 @@ impl TestEnvironment {
         pic.install_canister(
             canister_id,
             wasm_bytes,
-            encode_one("dfx_test_key").unwrap(),
+            encode_one("test_key_1").unwrap(),
             None,
         );
 

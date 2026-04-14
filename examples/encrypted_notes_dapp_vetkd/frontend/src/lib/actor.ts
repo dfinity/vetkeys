@@ -1,54 +1,30 @@
-import {
-  Actor,
-  ActorConfig,
-  ActorSubclass,
-  HttpAgent,
-  HttpAgentOptions,
-} from "@dfinity/agent";
+import { Actor, HttpAgent, type HttpAgentOptions, type ActorSubclass } from "@icp-sdk/core/agent";
+import { safeGetCanisterEnv } from "@icp-sdk/core/agent/canister-env";
 import {
   idlFactory,
-  _SERVICE,
-} from "../declarations/encrypted_notes/encrypted_notes.did.js";
+  type _SERVICE,
+} from "../declarations/encrypted_notes/encrypted_notes_rust.did";
 
 export type BackendActor = ActorSubclass<_SERVICE>;
 
-export function createActor(options?: {
-  agentOptions?: HttpAgentOptions;
-  actorOptions?: ActorConfig;
-}): BackendActor {
-  const hostOptions = {
-    host:
-      process.env.DFX_NETWORK === "ic"
-        ? `https://${process.env.CANISTER_ID_ENCRYPTED_NOTES}.ic0.app`
-        : "http://localhost:8000",
-  };
-  if (!options) {
-    options = {
-      agentOptions: hostOptions,
-    };
-  } else if (!options.agentOptions) {
-    options.agentOptions = hostOptions;
-  } else {
-    options.agentOptions.host = hostOptions.host;
+const canisterEnv = safeGetCanisterEnv<{
+  "PUBLIC_CANISTER_ID:encrypted_notes": string;
+}>();
+
+export async function createActor(identity?: HttpAgentOptions['identity']): Promise<BackendActor> {
+  const agent = await HttpAgent.create({
+    identity,
+    host: window.location.origin,
+    ...(canisterEnv?.IC_ROOT_KEY ? { rootKey: canisterEnv.IC_ROOT_KEY } : {}),
+  });
+
+  const canisterId = canisterEnv?.["PUBLIC_CANISTER_ID:encrypted_notes"];
+  if (!canisterId) {
+    throw new Error("Canister ID not found. Is the canister deployed?");
   }
 
-  const agent = new HttpAgent({ ...options.agentOptions });
-  // Fetch root key for certificate validation during development
-  if (process.env.NODE_ENV !== "production") {
-    console.log(`Dev environment - fetching root key...`);
-
-    agent.fetchRootKey().catch((err) => {
-      console.warn(
-        "Unable to fetch root key. Check to ensure that your local replica is running"
-      );
-      console.error(err);
-    });
-  }
-
-  // Creates an actor with using the candid interface and the HttpAgent
-  return Actor.createActor(idlFactory, {
+  return Actor.createActor<_SERVICE>(idlFactory, {
     agent,
-    canisterId: process.env.CANISTER_ID_ENCRYPTED_NOTES,
-    ...options?.actorOptions,
+    canisterId,
   });
 }

@@ -1,11 +1,6 @@
-// Required to run `npm run dev`.
-if (!window.global) {
-    window.global = window;
-}
-
 import "./style.css";
-import { createActor } from "./declarations/basic_timelock_ibe";
-import { Principal } from "@dfinity/principal";
+import { idlFactory } from "./declarations/basic_timelock_ibe/backend.did";
+import { Principal } from "@icp-sdk/core/principal";
 import {
     DerivedPublicKey,
     IbeCiphertext,
@@ -15,48 +10,53 @@ import {
 import {
     _SERVICE,
     LotInformation,
-} from "./declarations/basic_timelock_ibe/basic_timelock_ibe.did";
-import { AuthClient } from "@dfinity/auth-client";
-import type { ActorSubclass } from "@dfinity/agent";
+} from "./declarations/basic_timelock_ibe/backend.did";
+import { AuthClient } from "@icp-sdk/auth/client";
+import { Actor, HttpAgent, type ActorSubclass } from "@icp-sdk/core/agent";
+import { safeGetCanisterEnv } from "@icp-sdk/core/agent/canister-env";
+
+const canisterEnv = safeGetCanisterEnv<{
+    "PUBLIC_CANISTER_ID:basic_timelock_ibe": string;
+}>();
 
 let ibePublicKey: DerivedPublicKey | undefined = undefined;
 let myPrincipal: Principal | undefined = undefined;
 let authClient: AuthClient | undefined;
-let basicTimelockIbeCanister: ActorSubclass<_SERVICE> | undefined;
+let basicTimelockIbeActor: ActorSubclass<_SERVICE> | undefined;
 
-function getBasicTimelockIbeCanister(): ActorSubclass<_SERVICE> {
-    if (basicTimelockIbeCanister) return basicTimelockIbeCanister;
-    if (!process.env.CANISTER_ID_BASIC_TIMELOCK_IBE) {
-        throw Error("CANISTER_ID_BASIC_TIMELOCK_IBE is not set");
+async function getBasicTimelockIbeActor(): Promise<ActorSubclass<_SERVICE>> {
+    if (basicTimelockIbeActor) return basicTimelockIbeActor;
+    const canisterId = canisterEnv?.["PUBLIC_CANISTER_ID:basic_timelock_ibe"];
+    if (!canisterId) {
+        throw Error("Canister ID for basic_timelock_ibe is not set");
     }
     if (!authClient) {
         throw Error("Auth client is not initialized");
     }
-    const host =
-        process.env.DFX_NETWORK === "ic"
-            ? `https://${process.env.CANISTER_ID_BASIC_TIMELOCK_IBE}.ic0.app`
-            : "http://localhost:8000";
 
-    basicTimelockIbeCanister = createActor(
-        process.env.CANISTER_ID_BASIC_TIMELOCK_IBE,
-        {
-            agentOptions: {
-                identity: authClient.getIdentity(),
-                host,
-            },
-        },
-    );
+    const agent = await HttpAgent.create({
+        identity: authClient.getIdentity(),
+        host: window.location.origin,
+        ...(canisterEnv?.IC_ROOT_KEY
+            ? { rootKey: canisterEnv.IC_ROOT_KEY }
+            : {}),
+    });
+    basicTimelockIbeActor = Actor.createActor(idlFactory, {
+        agent,
+        canisterId,
+    });
 
-    return basicTimelockIbeCanister;
+    return basicTimelockIbeActor;
 }
 
 export function login(client: AuthClient) {
     void client.login({
         maxTimeToLive: BigInt(1800) * BigInt(1_000_000_000),
         identityProvider:
-            process.env.DFX_NETWORK === "ic"
-                ? "https://identity.ic0.app/#authorize"
-                : `http://rdmx6-jaaaa-aaaaa-aaadq-cai.localhost:8000/#authorize`,
+            window.location.hostname === "localhost" ||
+            window.location.hostname.endsWith(".localhost")
+                ? `http://id.ai.localhost:8000/#authorize`
+                : "https://identity.ic0.app/#authorize",
         onSuccess: () => {
             myPrincipal = client.getIdentity().getPrincipal();
             updateUI(true);
@@ -70,7 +70,7 @@ export function login(client: AuthClient) {
 export function logout() {
     void authClient?.logout();
     myPrincipal = undefined;
-    basicTimelockIbeCanister = undefined;
+    basicTimelockIbeActor = undefined;
     updateUI(false);
 
     // Reset the lots list and form visibility
@@ -184,10 +184,9 @@ document.getElementById("createLotForm")!.addEventListener("submit", (e) => {
 
 async function getIbePublicKey(): Promise<DerivedPublicKey> {
     if (ibePublicKey) return ibePublicKey;
+    const actor = await getBasicTimelockIbeActor();
     ibePublicKey = DerivedPublicKey.deserialize(
-        new Uint8Array(
-            await getBasicTimelockIbeCanister().get_ibe_public_key(),
-        ),
+        new Uint8Array(await actor.get_ibe_public_key()),
     );
     return ibePublicKey;
 }
@@ -211,11 +210,8 @@ async function createLot(
     description: string,
     durationSeconds: number,
 ) {
-    const result = await getBasicTimelockIbeCanister().create_lot(
-        name,
-        description,
-        durationSeconds,
-    );
+    const actor = await getBasicTimelockIbeActor();
+    const result = await actor.create_lot(name, description, durationSeconds);
     if ("Ok" in result) {
         alert(`Lot created successfully with ID: ${result.Ok.toString()}`);
     } else {
@@ -302,8 +298,8 @@ function formatCountdown(endTime: bigint): string {
 
 async function listLots() {
     try {
-        const [openLots, closedLots] =
-            await getBasicTimelockIbeCanister().get_lots();
+        const actor = await getBasicTimelockIbeActor();
+        const [openLots, closedLots] = await actor.get_lots();
         const openLotsDiv = document.getElementById("openLots")!;
         const closedLotsDiv = document.getElementById("closedLots")!;
 
@@ -450,10 +446,8 @@ async function placeBid(lotId: bigint, amount: number) {
         const encryptedAmount = await encrypt(amountBytes, lotIdBytes);
 
         // Place the bid
-        const result = await getBasicTimelockIbeCanister().place_bid(
-            lotId,
-            encryptedAmount,
-        );
+        const actor = await getBasicTimelockIbeActor();
+        const result = await actor.place_bid(lotId, encryptedAmount);
         if ("Err" in result) {
             alert(`Failed to place bid: ${result.Err}`);
             return;

@@ -4,7 +4,7 @@ import {
 	u8ByteUint8ArrayBigEndianToUBigInt,
 	uBigIntTo8ByteUint8ArrayBigEndian
 } from '../utils';
-import { Principal } from '@dfinity/principal';
+import { Principal } from '@icp-sdk/core/principal';
 
 const DOMAIN_RATCHET_INIT = sizePrefixedBytesFromString('ic-vetkeys-chat-ratchet-init');
 const DOMAIN_RATCHET_STEP = sizePrefixedBytesFromString('ic-vetkeys-chat-ratchet-step');
@@ -77,20 +77,16 @@ export class SymmetricRatchetState {
 		);
 	}
 
-	async decryptAtTimeAndEvolveIfNeeded(
+	async decryptAtEpochAndEvolveIfNeeded(
 		sender: Principal,
 		senderMessageId: bigint,
 		message: Uint8Array,
-		time: Date
+		symmetricKeyEpoch: bigint
 	): Promise<Uint8Array> {
-		if (time < this.#creationTime) {
-			throw new Error('Cannot decrypt message before the state was created');
-		}
-		const expectedEpoch = this.getExpectedEpochAtTime(time);
-		await this.evolveTo(expectedEpoch);
+		await this.evolveTo(symmetricKeyEpoch);
 		const domainSeparator = messageEncryptionDomainSeparator(sender, senderMessageId);
-		const derivedKeyMaterial = DerivedKeyMaterial.fromCryptoKey(this.#cryptoKey);
-		return await derivedKeyMaterial.decryptMessage(message, domainSeparator);
+		const derivedKeyMaterial = await DerivedKeyMaterial.fromCryptoKey(this.#cryptoKey);
+		return await derivedKeyMaterial.decryptMessage(message, domainSeparator, new Uint8Array());
 	}
 
 	async encryptNow(
@@ -105,10 +101,10 @@ export class SymmetricRatchetState {
 		const expectedEpoch = this.getExpectedEpochAtTime(now);
 		const neededSymmetricRatchetState = await this.peekAtEpoch(expectedEpoch);
 		const domainSeparator = messageEncryptionDomainSeparator(sender, senderMessageId);
-		const derivedKeyMaterial = DerivedKeyMaterial.fromCryptoKey(
+		const derivedKeyMaterial = await DerivedKeyMaterial.fromCryptoKey(
 			neededSymmetricRatchetState.#cryptoKey
 		);
-		const encryptedBytes = await derivedKeyMaterial.encryptMessage(message, domainSeparator);
+		const encryptedBytes = await derivedKeyMaterial.encryptMessage(message, domainSeparator, new Uint8Array());
 		console.log(
 			`SymmetricRatchetState.encryptNow: encrypted message symmetric ratchet epoch ${neededSymmetricRatchetState.#symmetricRatchetEpoch.toString()}`
 		);

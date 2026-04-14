@@ -2,7 +2,7 @@
     import { type PasswordModel, summarize } from "../lib/password";
     import { link, location } from "svelte-spa-router";
     import { vaultsStore } from "../store/vaults";
-    import { Principal } from "@dfinity/principal";
+    import { Principal } from "@icp-sdk/core/principal";
     import { onDestroy } from "svelte";
     import Spinner from "./Spinner.svelte";
     import Header from "./Header.svelte";
@@ -30,8 +30,8 @@
         ) {
             const split = currentRoute.split("/");
             const vaultOwner = Principal.fromText(split[split.length - 3]);
-            const parentVaultName = split[split.length - 2];
-            const passwordName = split[split.length - 1];
+            const parentVaultName = decodeURIComponent(split[split.length - 2]);
+            const passwordName = decodeURIComponent(split[split.length - 1]);
             const searchedForPassword = $vaultsStore.list
                 .find(
                     (v) =>

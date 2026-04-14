@@ -11,7 +11,7 @@ frontend implementation that uses all defaults from the SDK.
 
 ## Step 3: Deploy frontend. This returns a link that can be used to access the frontend from the asset canister.
 ```shell
-dfx deploy www
+icp deploy www
 ```
-Note: if this returns a URL with the IP `0.0.0.0` and the fronetned does not
+Note: if this returns a URL with the IP `0.0.0.0` and the frontend does not
 work, a potential fix is to replace it with `localhost`.

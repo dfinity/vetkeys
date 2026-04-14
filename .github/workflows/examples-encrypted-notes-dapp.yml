@@ -14,8 +14,6 @@ on:
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
-env:
-  DFX_VERSION: 0.29.1
 jobs:
   examples-encrypted-notes-dapp-rust-darwin:
     runs-on: macos-15
@@ -23,51 +21,79 @@ jobs:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
         with:
           persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '22'
       - name: Provision Darwin
         run: |
           bash .github/workflows/provision-darwin.sh
+      - name: Install workspace dependencies
+        run: npm install
       - name: Deploy Encrypted Notes Dapp VetKD Darwin
+        env:
+          ICP_CLI_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -eExuo pipefail
           cd examples/encrypted_notes_dapp_vetkd/rust
-          dfx start --background && dfx deploy
+          icp network start -d && icp deploy
   examples-encrypted-notes-dapp-rust-linux:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
         with:
           persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '22'
       - name: Provision Linux
         run: bash .github/workflows/provision-linux.sh
+      - name: Install workspace dependencies
+        run: npm install
       - name: Deploy Encrypted Notes Dapp VetKD Linux
+        env:
+          ICP_CLI_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -eExuo pipefail
           cd examples/encrypted_notes_dapp_vetkd/rust
-          dfx start --background && dfx deploy
+          icp network start -d && icp deploy
   examples-encrypted-notes-dapp-motoko-darwin:
     runs-on: macos-15
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
         with:
           persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '22'
       - name: Provision Darwin
         run: |
           bash .github/workflows/provision-darwin.sh
+      - name: Install workspace dependencies
+        run: npm install
       - name: Deploy Encrypted Notes Dapp VetKD Darwin
+        env:
+          ICP_CLI_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -eExuo pipefail
           cd examples/encrypted_notes_dapp_vetkd/motoko
-          dfx start --background && dfx deploy
+          icp network start -d && icp deploy
   examples-encrypted-notes-dapp-motoko-linux:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
         with:
           persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '22'
       - name: Provision Linux
         run: bash .github/workflows/provision-linux.sh
+      - name: Install workspace dependencies
+        run: npm install
       - name: Deploy Encrypted Notes Dapp VetKD Linux
+        env:
+          ICP_CLI_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -eExuo pipefail
           cd examples/encrypted_notes_dapp_vetkd/motoko
-          dfx start --background && dfx deploy
+          icp network start -d && icp deploy
