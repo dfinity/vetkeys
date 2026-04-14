@@ -28,6 +28,8 @@ jobs:
         run: |
           bash .github/workflows/provision-darwin.sh
       - name: Deploy Encrypted Notes Dapp VetKD Darwin
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -eExuo pipefail
           cd examples/encrypted_notes_dapp_vetkd/rust
@@ -44,6 +46,8 @@ jobs:
       - name: Provision Linux
         run: bash .github/workflows/provision-linux.sh
       - name: Deploy Encrypted Notes Dapp VetKD Linux
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -eExuo pipefail
           cd examples/encrypted_notes_dapp_vetkd/rust
@@ -61,6 +65,8 @@ jobs:
         run: |
           bash .github/workflows/provision-darwin.sh
       - name: Deploy Encrypted Notes Dapp VetKD Darwin
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -eExuo pipefail
           cd examples/encrypted_notes_dapp_vetkd/motoko
@@ -77,6 +83,8 @@ jobs:
       - name: Provision Linux
         run: bash .github/workflows/provision-linux.sh
       - name: Deploy Encrypted Notes Dapp VetKD Linux
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -eExuo pipefail
           cd examples/encrypted_notes_dapp_vetkd/motoko
