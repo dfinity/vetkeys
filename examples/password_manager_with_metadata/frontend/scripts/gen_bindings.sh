@@ -1,11 +1,15 @@
 #!/bin/bash
+# Bindings are always generated from the Rust backend since both backends
+# expose the same Candid interface.
 
-cd ../../backend && make extract-candid
+# Resolve the physical path of this script so that navigating up works
+# correctly even when frontend/ is reached via a symlink (e.g. motoko/frontend).
+SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd -P)
+cd "$SCRIPT_DIR/../../rust/backend" && make extract-candid
 
-cd .. && dfx generate password_manager_with_metadata || exit 1
-
-rm -r frontend/src/declarations/password_manager_with_metadata > /dev/null 2>&1 || true
-
+cd "$SCRIPT_DIR/../.."
+rm -rf frontend/src/declarations/password_manager_with_metadata
 mkdir -p frontend/src/declarations/password_manager_with_metadata
-mv src/declarations/password_manager_with_metadata frontend/src/declarations
-rmdir -p src/declarations > /dev/null 2>&1 || true
+npx @icp-sdk/bindgen --did-file rust/backend/backend.did \
+    --out-dir frontend/src/declarations/password_manager_with_metadata \
+    --declarations-flat --force

@@ -4,7 +4,9 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "npm run build:bindings && vite",
+    "dev": "printf '\\nNo backend specified. Use one of:\\n\\n  npm run dev:motoko\\n  npm run dev:rust\\n\\n' && exit 1",
+    "dev:motoko": "npm run build:bindings && BACKEND=motoko vite",
+    "dev:rust": "npm run build:bindings && BACKEND=rust vite",
     "build": "npm run build:bindings && tsc && vite build",
     "build:bindings": "cd scripts && ./gen_bindings.sh",
     "preview": "vite preview",
@@ -24,8 +26,8 @@
     "vite-plugin-environment": "^1.1.3"
   },
   "dependencies": {
-    "@dfinity/auth-client": "^2.4.1",
-    "@dfinity/principal": "^2.4.1",
-    "@dfinity/vetkeys": "^0.3.0"
+    "@dfinity/vetkeys": "file:../../../frontend/ic_vetkeys",
+    "@icp-sdk/auth": "^5.0.0",
+    "@icp-sdk/core": "^5.2.1"
   }
 }

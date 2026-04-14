@@ -1,11 +1,15 @@
 #!/bin/bash
+# Bindings are always generated from the Rust backend since both backends
+# expose the same Candid interface.
 
-cd ../../backend && make extract-candid
+# Resolve the physical path of this script so that navigating up works
+# correctly even when frontend/ is reached via a symlink (e.g. motoko/frontend).
+SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd -P)
+cd "$SCRIPT_DIR/../../rust/backend" && make extract-candid
 
-cd .. && dfx generate encrypted_chat || exit 1
-
-rm -r frontend/src/declarations/encrypted_chat > /dev/null 2>&1 || true
-
+cd "$SCRIPT_DIR/../.."
+rm -rf frontend/src/declarations/encrypted_chat
 mkdir -p frontend/src/declarations/encrypted_chat
-mv src/declarations/encrypted_chat frontend/src/declarations
-rmdir -p src/declarations > /dev/null 2>&1 || true
+npx @icp-sdk/bindgen --did-file rust/backend/backend.did \
+    --out-dir frontend/src/declarations/encrypted_chat \
+    --declarations-flat --force
