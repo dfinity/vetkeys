@@ -665,7 +665,7 @@ fn should_access_map_values() {
     let map_name = random_map_name(rng);
 
     let mut authorized_users = vec![(caller, AccessRights::ReadWriteManage)];
-    let mut keyvals = vec![];
+    let mut keyvals: BTreeMap<ByteBuf, ByteBuf> = BTreeMap::new();
 
     for _ in 0..3 {
         let map_key = random_map_key(rng);
@@ -697,7 +697,7 @@ fn should_access_map_values() {
             authorized_users.push((user_to_be_added, access_rights));
         }
 
-        keyvals.push((map_key, encrypted_value));
+        keyvals.insert(map_key, encrypted_value);
     }
 
     for (map_key, encrypted_value) in keyvals.clone() {
@@ -714,7 +714,7 @@ fn should_access_map_values() {
     }
 
     for (user, _access_rights) in authorized_users.clone() {
-        let expected_map = BTreeMap::from_iter(keyvals.clone());
+        let expected_map = keyvals.clone();
         let computed_map_single = BTreeMap::from_iter(
             env.query::<Result<Vec<(ByteBuf, ByteBuf)>, String>>(
                 user,
