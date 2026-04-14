@@ -14,7 +14,7 @@ fn bls_signature_should_be_valid_and_equal_to_decrypted_vetkey() {
     let context = random_bytes(rng, 10);
     let key_id = VetKDKeyId {
         curve: VetKDCurve::Bls12_381_G2,
-        name: "dfx_test_key".to_string(),
+        name: "test_key_1".to_string(),
     };
     let transport_secret_key = random_transport_key(rng);
     let transport_public_key = transport_secret_key.public_key();
@@ -56,7 +56,7 @@ fn bls_public_key_should_be_equal_to_verification_key() {
     let context = random_bytes(rng, 10);
     let key_id = VetKDKeyId {
         curve: VetKDCurve::Bls12_381_G2,
-        name: "dfx_test_key".to_string(),
+        name: "test_key_1".to_string(),
     };
     let bls_public_key: Vec<u8> = env.update(
         Principal::anonymous(),
