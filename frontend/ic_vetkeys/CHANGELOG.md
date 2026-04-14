@@ -15,8 +15,8 @@
 - **BREAKING** `DefaultEncryptedMapsClient` and `DefaultKeyManagerClient`
   constructors now accept an `HttpAgent` (from `@icp-sdk/core/agent`) instead of
   `HttpAgentOptions`. Since `HttpAgent.create()` is async, the agent must be
-  created by the caller before being passed in — this avoids relying on the
-  deprecated `HttpAgent.createSync()` and allows full configuration upfront,
+  created by the caller before being passed in — this avoids the deprecated
+  `new HttpAgent(options)` constructor and allows full configuration upfront,
   including providing the network's root key for local development:
   ```ts
   const agent = await HttpAgent.create({
