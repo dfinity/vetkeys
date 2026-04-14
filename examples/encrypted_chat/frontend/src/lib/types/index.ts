@@ -1,4 +1,4 @@
-import { Principal } from '@dfinity/principal';
+import { Principal } from '@icp-sdk/core/principal';
 
 export interface User {
 	principal: Principal;
@@ -22,6 +22,10 @@ export interface Message {
 	};
 	vetkeyEpoch: number;
 	symmetricRatchetEpoch: number;
+	/** True when the message could not be decrypted. The message is shown as a
+	 *  placeholder in the UI and is NOT persisted to IndexedDB so that the next
+	 *  session can retry decryption. */
+	decryptionFailed?: boolean;
 }
 
 export interface Chat {

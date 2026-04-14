@@ -11,8 +11,8 @@ import {
 	type EncryptedMapData,
 	type EncryptedMapsClient
 } from '@dfinity/vetkeys/encrypted_maps';
-import type { ChatId } from '../../declarations/encrypted_chat/encrypted_chat.did';
-import type { Principal } from '@dfinity/principal';
+import type { ChatId } from '../../declarations/encrypted_chat/backend.did';
+import type { Principal } from '@icp-sdk/core/principal';
 import { getActor, getMyPrincipal } from '$lib/stores/auth.svelte';
 
 export class EncryptedCanisterCacheService {
@@ -29,7 +29,7 @@ export class EncryptedCanisterCacheService {
 		console.log(
 			`get_my_symmetric_key_cache: chatId=${chatIdToString(chatId)} vetKeyEpoch=${vetKeyEpoch.toString()}`
 		);
-		const keyCacheBytes = await getActor().get_my_symmetric_key_cache(chatId, vetKeyEpoch);
+		const keyCacheBytes = await (await getActor()).get_my_symmetric_key_cache(chatId, vetKeyEpoch);
 		if ('Err' in keyCacheBytes) {
 			throw new Error('Failed to get key cache bytes: ' + keyCacheBytes.Err);
 		} else if (keyCacheBytes.Ok.length === 0) {
@@ -66,7 +66,7 @@ export class EncryptedCanisterCacheService {
 			mapKey,
 			serializeCache(cache)
 		);
-		const result = await getActor().update_my_symmetric_key_cache(chatId, vetKeyEpoch, ciphertext);
+		const result = await (await getActor()).update_my_symmetric_key_cache(chatId, vetKeyEpoch, ciphertext);
 		if ('Err' in result) {
 			throw new Error('Failed to update key cache: ' + result.Err);
 		} else {
@@ -140,7 +140,7 @@ class EncryptedMapsClientForEncryptedCache implements EncryptedMapsClient {
 		transportKey: ByteBuf
 	): Promise<{ Ok: ByteBuf } | { Err: string }> {
 		const data = new Uint8Array(
-			await getActor().get_encrypted_vetkey_for_my_cache_storage(transportKey.inner)
+			await (await getActor()).get_encrypted_vetkey_for_my_cache_storage(transportKey.inner)
 		);
 		const result: { Ok: ByteBuf } | { Err: string } = {
 			Ok: { inner: data }
@@ -173,7 +173,7 @@ class EncryptedMapsClientForEncryptedCache implements EncryptedMapsClient {
 	}
 
 	async get_vetkey_verification_key(): Promise<ByteBuf> {
-		return { inner: await getActor().get_vetkey_verification_key_for_my_cache_storage() };
+		return { inner: await (await getActor()).get_vetkey_verification_key_for_my_cache_storage() };
 	}
 
 	set_user_rights(

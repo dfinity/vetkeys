@@ -6,7 +6,7 @@
 	import { canisterAPI } from '../services/canisterApi';
 	import { chatUIActions } from '../stores/chat.svelte';
 	import GroupManagementModal from './GroupManagementModal.svelte';
-	import { Principal } from '@dfinity/principal';
+	import { Principal } from '@icp-sdk/core/principal';
 	import { chatIdFromString } from '$lib/utils';
 
 	const {

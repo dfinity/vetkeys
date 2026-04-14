@@ -7,7 +7,7 @@ import {
     type AccessRights,
     EncryptedMaps,
 } from "@dfinity/vetkeys/encrypted_maps";
-import type { Principal } from "@dfinity/principal";
+import type { Principal } from "@icp-sdk/core/principal";
 
 export const vaultsStore = writable<
     | {
@@ -148,7 +148,7 @@ auth.subscribe((auth) => {
                             (e: Error) =>
                                 showError(e, "Could not poll vaults."),
                         );
-                    });
+                    })();
                 }, 3000);
             } catch {
                 vaultsStore.set({
