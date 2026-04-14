@@ -5,6 +5,11 @@ ROOT_DIR := $(shell git rev-parse --show-toplevel)
 compile-wasm:
 	cargo build --release --target wasm32-unknown-unknown
 
+.PHONY: test
+.SILENT: test
+test: compile-wasm
+	cargo test -p ic-vetkeys-encrypted-maps-canister
+
 .PHONY: extract-candid
 .SILENT: extract-candid
 extract-candid: compile-wasm
@@ -14,4 +19,4 @@ extract-candid: compile-wasm
 .SILENT: clean
 clean:
 	cargo clean
-	rm -rf .dfx
+	rm -rf .icp/cache

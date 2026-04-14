@@ -17,6 +17,7 @@ target/
 .idea/
 
 **/.dfx/*
+**/.icp/cache
 **/deps/*
 backend/**/declarations
 examples/**/declarations
