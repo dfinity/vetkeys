@@ -4,7 +4,7 @@
  * @description See { @link EncryptedMaps }.
  */
 
-import { Principal } from "@dfinity/principal";
+import { Principal } from "@icp-sdk/core/principal";
 import { get, set } from "idb-keyval";
 import {
     TransportSecretKey,
