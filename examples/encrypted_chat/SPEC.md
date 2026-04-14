@@ -4,7 +4,7 @@ vetKey Encrypted Chat has two main components: the canister backend and user fro
 
 * End-to-end encrypted messaging.
 
-* High security through symmetric ratchet and key rotation via [vetKeys](https://internetcomputer.org/docs/building-apps/network-features/vetkeys/introduction).
+* High security through symmetric ratchet and key rotation via [vetKeys](https://docs.internetcomputer.org/building-apps/network-features/vetkeys/introduction).
 
 * Disappearing messages, enforced by the canister (ICP smart contract) logic. Messages are automatically removed from the frontend and encrypted messages are purged from the backend once they expire.
 
@@ -15,7 +15,7 @@ vetKey Encrypted Chat has two main components: the canister backend and user fro
 ### Key Hierarchy
 
 vetKey encrypted chat uses three layers of cryptographic keys:
-* **vetKeys**: shared keys established thorough the [vetKD protocol](https://internetcomputer.org/docs/references/vetkeys-overview). 
+* **vetKeys**: shared keys established thorough the [vetKD protocol](https://docs.internetcomputer.org/references/vetkeys-overview). 
 They rotate periodically, e.g. upon group configuration changes, to ensure both forward security and post-compromise security. 
 This means that an adversary who obtains the key material for one vetKey epoch gains no information about past or future epochs. 
 Deriving new vetKeys incurs some cost, as it requires interaction with the backend canister, which triggers a vetKey-derivation protocol on the ICP.
@@ -128,7 +128,7 @@ The frontend's responsibilities are:
 
 * User data per chat and vetKey epoch
 
-  * [User-uploaded optional encrypted symmetric ratchet state cache](#state-cache)
+  * [User-uploaded optional encrypted symmetric ratchet state cache](#encrypted-symmetric-ratchet-state-cache)
 
   * Optional optimization: [IBE-encrypted vetKey reshared by another user](#ibe-encrypted-vetkey-resharing)
 
@@ -355,7 +355,7 @@ Then, the canister checks that:
 
 * The user did not upload an encrypted cache for his symmetric ratchet state for the vetKey epoch in question (see [State Recovery](#state-recovery)).
 
-If the checks pass, the canister calls the [`vetkd_derive_key`](https://internetcomputer.org/docs/building-apps/network-features/vetkeys/api) API of the management canister with:
+If the checks pass, the canister calls the [`vetkd_derive_key`](https://docs.internetcomputer.org/building-apps/network-features/vetkeys/api) API of the management canister with:
 
 * `context` being computed by invoking the `ratchet_context` function defined below.
 
@@ -625,27 +625,26 @@ Types:
 * `type ChatIdAsString = string`
 
 * `interface Message {
-      nonce: bigint;
-      chatId: ChatId;
-      senderId: Principal;
+      messageId: string;
+      chatId: ChatIdAsString;
+      senderId: string;
       content: string;
       timestamp: Date;
-      vetkeyEpoch: bigint;
-      symmetricRatchetEpoch: bigint;
+      vetkeyEpoch: number;
+      symmetricRatchetEpoch: number;
+      decryptionFailed?: boolean;
     }
   `
+
+  When `decryptionFailed` is `true` the message content is empty and the UI should render a placeholder indicating the message could not be decrypted. Such messages are not persisted to local storage so that the next session can retry decryption.
 
 The EMS exposes the following APIs:
 
 * `enqueueSendMessage(chatId: ChatId, content: Uint8Array)`: adds the message `content` to be encrypted for and sent to the chat with ID `chatId`. This API does not give any guarantees that the message will actually be added to the chat but it makes attempts to recover from recoverable errors (see [Encrypting and Sending Messages in the EMS](#encrypting-and-sending-messages)).
 
-* `takeReceivedMessages(): Map<ChatIdAsString, Message[]>`: returns latest chat messages that were received and decrypted by the EMS and were not yet taken by the user from the EMS (see [Fetching and Decrypting Messages in the EMS](#fetching-and-decrypting-messages)).
-
-* `start()`: starts the EMS service. Before the service is started, calling any other APIs should throw an error. Once it is started, the APIs start to return their intended values, and the EMS starts background tasks to continuously update the relevant chat information from the canister.
+* `start(onMessagesDecrypted: (chatIdStr: ChatIdAsString, messages: Message[]) => void, onNewChatDiscovered: (chatId: ChatId) => void)`: starts the EMS service and registers push-based delivery callbacks. Once started, the EMS runs background tasks that continuously fetch and decrypt messages. Newly decrypted messages (including decryption-failed placeholders) are delivered immediately to the caller via `onMessagesDecrypted` rather than buffered in a pull queue. When a chat is first observed that has no local key state, `onNewChatDiscovered` is called so the UI can refresh its chat list. The `firstPollComplete` promise resolves as soon as the first fetch cycle finishes (before decryption completes), which the UI can await to determine when the initial chat list is available.
 
 * `skipMessagesAvailableLocally(chatId: ChatId, lastKnownChatMessageId: bigint)`: tells the EMS what chat message ID should be the first one to be fetched. This is relevant if some of the messages are available from another source such as [browser storage](#local-cache-in-indexeddb).
-
-* `getCurrentChatIds(): ChatId[]`: returns the chat IDs that are currently accessible to the user. This particular API is mostly an efficiency optimization, since the message retrieval in the EMS anyways requires fetching the information about the currently accessible chats.
 
 * `getCurrentUsersInChat(chatId: ChatId): Principal[]`: takes in a chat ID and returns the current users in the chat. If the EMS does not have data about the chat with `chatId` because either the user does not have access to the chat, or if `chatId` does not exist, or the frontend did not yet manage to synchronize with the backend, this function throws an error.
 
@@ -680,33 +679,28 @@ For message [retrieval](#encrypted-message-retrieval) and [decryption](#ratchet-
 
 * Further canister APIs required for [Ratchet Initialization](#ratchet-initialization).
 
-The frontend stores the following related data related in its state:
+The frontend stores the following related state:
 
 * The chat IDs accessible to the user.
 
-* The first accessible message ID for the user for each chat
+* The number of messages already fetched for each chat (used to request only new messages on the next poll cycle).
 
-* The last fetched message for the chat.
+* A per-chat queue of fetched-but-not-yet-decrypted encrypted messages.
 
-* The total number of messages in the chat.
+Periodically, the EMS background worker runs a combined fetch-then-decrypt cycle:
 
-Let's call this information frontend chat metadata.
+**Fetch phase**: The EMS calls `get_my_chats_and_time` to learn which chats exist and how many messages each has. For each chat it fetches only the messages it has not yet seen (starting from the locally tracked fetch offset). If a chat is seen for the first time, `onNewChatDiscovered` is called. If an error occurs because a batch of messages is too large for a single response, the fetch is retried with a limit of one message. After all chats have been processed, the `firstPollComplete` promise is resolved — this allows the UI to clear its loading screen even if some messages later fail to decrypt.
 
-Periodically, the EMS queries the `get_my_chats_and_time` backend canister API.
-Its result is compared to the frontend chat metadata in the state.
-The existing chat metadata is updated if required.
-If there is a new chat in the result that is not yet in the state, the EMS adds it to the state along with the information that no messages were obtained for this chat yet.
-If one of the chats in the state does not appear in the result of `get_my_chats_and_time` anymore, then this chat is deleted from the state including from the queues containing received and decrypted messages.
+**Decrypt phase**: For each chat that has messages in the pending queue:
 
-Also periodically, two separate routines run.
+1. The EMS checks if it already has the symmetric ratchet state required to decrypt the message (identified by the vetKey epoch in the message metadata). If the state is not yet initialized, the EMS [initializes](#ratchet-initialization) it. A failure to initialize is treated as unrecoverable for that message.
 
-1. Check if there are new messages to be fetched from the canister: if the largest received message ID for the chat plus one is smaller than the total number of messages in the chat. If it is, then `get_messages` is invoked with the first message ID to be fetched that is equal to the largest received message ID for the chat plus one, or if no messages were received so far for a chat, message ID 0 is used. If an error occurs due to too large messages that don't fit into the canister's response due to the query response limits on the ICP, the query to `get_messages` is retried with a limit of e.g. one. A successful result appended to the received messages queue.
+2. The EMS [decrypts](#ratchet-message-decryption) the message using the ratchet state. If decryption succeeds, the plaintext `Message` is added to the batch. If decryption fails, a placeholder `Message` with `decryptionFailed: true` is added instead so the user can see that a message exists but could not be read. Note that receiver-side decryption errors cannot be fully prevented, since the canister cannot verify that the stored ciphertext is valid.
 
-2. Try to take a message from the received messages queue and decrypt it.
+3. After processing all messages for a chat, the entire batch (successes and placeholders) is delivered immediately to the UI via the `onMessagesDecrypted` callback registered in `start()`. There is no pull-based queue; messages appear in the UI as soon as they are processed.
 
-    a. The EMS checks if it already has the symmetric ratchet state in its state that is required to decrypt the message, whose metadata specifies the required vetKey epoch and symmetric ratchet epoch. If the symmetric ratchet state is not yet initialized, the EMS [initializes](#ratchet-initialization) it. An error to do so is unrecoverable.
-    
-    b. The EMS [decrypts](#ratchet-message-decryption) the message using the symmetric ratchet state and the vetKey epoch ID stored in the message metadata. A successfully decrypted message is put into the decrypted message queue that is exposed to the chat UI component via the [`takeReceivedMessages` API](#encrypted-messaging-service) of the EMS. If the decryption returns an error, such an error is unrecoverable and instead of a decrypted message, a message of special form is put into the decrypted message queue that indicated that this message could not be decrypted. Note that user-side errors cannot be avoided, since the canister cannot check if the encryption is valid.
+> [!NOTE]
+> **Implementation deviation — ratchet evolution during decryption**: The spec states that symmetric ratchet evolution should be performed in a dedicated background task separate from decryption. In the current implementation, evolution happens inline inside `decryptAtEpochAndEvolveIfNeeded` during the decrypt phase. This is a known deviation; see [Ratchet Evolution](#ratchet-evolution) for the intended design.
 
 #### Symmetric Ratchet
 
@@ -742,7 +736,7 @@ The ratchet state is initialized from a vetKey as follows:
 
     b. Initialize the symmetric ratchet state as `rootKey` and symmetric ratchet epoch that is equal to zero.
 
-More details about the retrieval and decryption of vetKeys can be found in the [developer docs](https://internetcomputer.org/docs/building-apps/network-features/vetkeys/api) of the ICP.
+More details about the retrieval and decryption of vetKeys can be found in the [developer docs](https://docs.internetcomputer.org/building-apps/network-features/vetkeys/api) of the ICP.
 
 After initializing the ratchet state, the user uploads encrypted cache of the state to the backend canister which is further described in [Encrypted Ratchet State Cache](#encrypted-symmetric-ratchet-state-cache).
 
