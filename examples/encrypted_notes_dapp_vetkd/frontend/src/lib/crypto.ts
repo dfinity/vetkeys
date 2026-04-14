@@ -80,10 +80,8 @@ export class CryptoService {
   }
 }
 
-const hex_decode = (hexString) =>
-  Uint8Array.from(hexString.match(/.{1,2}/g).map((byte) => parseInt(byte, 16)));
-const hex_encode = (bytes) =>
-  bytes.reduce((str, byte) => str + byte.toString(16).padStart(2, '0'), '');
+const hex_decode = (hexString: string): Uint8Array =>
+  Uint8Array.from((hexString.match(/.{1,2}/g) ?? []).map((byte) => parseInt(byte, 16)));
 
 // Inspired by https://coolaj86.com/articles/convert-js-bigints-to-typedarrays/
 function bigintTo128BitBigEndianUint8Array(bn: bigint): Uint8Array {
