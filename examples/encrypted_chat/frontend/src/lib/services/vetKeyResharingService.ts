@@ -7,9 +7,9 @@ import {
 	TransportSecretKey,
 	EncryptedVetKey
 } from '@dfinity/vetkeys';
-import type { ChatId } from '../../declarations/encrypted_chat/encrypted_chat.did';
+import type { ChatId } from '../../declarations/encrypted_chat/backend.did';
 import { keyStorageService } from './keyStorage';
-import type { Principal } from '@dfinity/principal';
+import type { Principal } from '@icp-sdk/core/principal';
 import { getActor, getMyPrincipal } from '$lib/stores/auth.svelte';
 
 export class VetKeyResharingService {

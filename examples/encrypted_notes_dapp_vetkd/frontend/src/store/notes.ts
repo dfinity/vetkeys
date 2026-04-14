@@ -1,6 +1,6 @@
 import { writable } from 'svelte/store';
 import type { BackendActor } from '../lib/actor';
-import type { EncryptedNote } from '../lib/backend';
+import type { EncryptedNote } from '../declarations/encrypted_notes/encrypted_notes_rust.did';
 import type { CryptoService } from '../lib/crypto';
 import { deserialize, NoteModel, serialize } from '../lib/note';
 import { auth } from './auth';

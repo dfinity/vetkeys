@@ -5,7 +5,7 @@
  *
  */
 
-import { Principal } from "@dfinity/principal";
+import { Principal } from "@icp-sdk/core/principal";
 import {
     TransportSecretKey,
     EncryptedVetKey,
@@ -367,5 +367,5 @@ export interface KeyManagerClient {
 }
 
 function arrayToByteBuf(a: Uint8Array): ByteBuf {
-    return { inner: Array.from(a) };
+    return { inner: a };
 }

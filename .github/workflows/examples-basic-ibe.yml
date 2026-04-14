@@ -14,8 +14,6 @@ on:
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
-env:
-  DFX_VERSION: 0.29.1
 jobs:
   examples-basic-ibe-rust-darwin:
     runs-on: macos-15
@@ -23,6 +21,9 @@ jobs:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
         with:
           persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '22'
       - name: Provision Darwin
         run: |
           bash .github/workflows/provision-darwin.sh
@@ -31,7 +32,7 @@ jobs:
           set -eExuo pipefail
           cargo install candid-extractor
           pushd examples/basic_ibe/rust
-          dfx start --background && dfx deploy
+          icp network start -d && icp deploy
           cd frontend
           npm run lint
   examples-basic-ibe-rust-linux:
@@ -40,6 +41,9 @@ jobs:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
         with:
           persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '22'
       - name: Provision Linux
         run: bash .github/workflows/provision-linux.sh
       - name: Deploy Basic IBE Rust Linux
@@ -47,7 +51,7 @@ jobs:
           set -eExuo pipefail
           cargo install candid-extractor
           pushd examples/basic_ibe/rust
-          dfx start --background && dfx deploy
+          icp network start -d && icp deploy
           cd frontend
           npm run lint
   examples-basic-ibe-motoko-darwin:
@@ -56,6 +60,9 @@ jobs:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
         with:
           persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '22'
       - name: Provision Darwin
         run: |
           bash .github/workflows/provision-darwin.sh
@@ -64,7 +71,7 @@ jobs:
           set -eExuo pipefail
           cargo install candid-extractor
           pushd examples/basic_ibe/motoko
-          dfx start --background && dfx deploy
+          icp network start -d && icp deploy
           cd frontend
           npm run lint
   examples-basic-ibe-motoko-linux:
@@ -73,6 +80,9 @@ jobs:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
         with:
           persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '22'
       - name: Provision Linux
         run: bash .github/workflows/provision-linux.sh
       - name: Deploy Basic IBE Motoko Linux
@@ -80,6 +90,6 @@ jobs:
           set -eExuo pipefail
           cargo install candid-extractor
           pushd examples/basic_ibe/motoko
-          dfx start --background && dfx deploy
+          icp network start -d && icp deploy
           cd frontend
-          npm run lint 
+          npm run lint

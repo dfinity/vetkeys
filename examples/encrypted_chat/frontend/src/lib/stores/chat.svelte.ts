@@ -12,8 +12,8 @@ import { auth, getActor, getMyPrincipal } from '$lib/stores/auth.svelte';
 import type {
 	ChatId,
 	GroupModification
-} from '../../declarations/encrypted_chat/encrypted_chat.did';
-import { Principal } from '@dfinity/principal';
+} from '../../declarations/encrypted_chat/backend.did';
+import { Principal } from '@icp-sdk/core/principal';
 import { chatIdFromString, chatIdToString } from '$lib/utils';
 import { EncryptedMessagingService } from '$lib/services/encryptedMessagingService';
 import * as cbor from 'cbor-x';
@@ -28,10 +28,39 @@ export const isBlocked = $state({ state: false });
 export const availableChats = $state({ state: [] });
 export const messages = $state<{ state: Record<string, Message[]> }>({ state: {} });
 
-const encryptedMessagingService = new EncryptedMessagingService();
+// Each call to initialize() gets its own generation number. Callbacks and
+// async continuations check this to ensure they belong to the current session
+// and not a previous one that was superseded by a logout/re-login.
+let currentGeneration = 0;
+let encryptedMessagingService = new EncryptedMessagingService();
+
+function resetInMemoryState() {
+	currentGeneration++;
+	// Stop the old worker. Its in-flight async ops will continue running, but
+	// they hold references to the OLD instance's maps — not the new one below.
+	encryptedMessagingService.signalStopWorker();
+	// Replace with a fresh instance. Old instance becomes inert and is GC'd.
+	encryptedMessagingService = new EncryptedMessagingService();
+	chats.state = [];
+	messages.state = {};
+	selectedChatId.state = null;
+	userConfig.state = null;
+	notifications.state = [];
+}
 
 export function initVetKeyReactions() {
 	$effect.root(() => {
+		// Re-initialize when the user logs in (including after switching identities).
+		// previousLabel is a plain variable (not $state) so writes don't trigger reactivity.
+		let previousLabel = '';
+		$effect(() => {
+			const currentLabel = auth.state.label;
+			if (currentLabel === 'initialized' && previousLabel !== 'initialized') {
+				void chatUIActions.initialize();
+			}
+			previousLabel = currentLabel;
+		});
+
 		$effect(() => {
 			console.log('Running chat saver $effect...');
 			if (auth.state.label !== 'initialized') return;
@@ -44,6 +73,9 @@ export function initVetKeyReactions() {
 
 			for (const [chatIdStr, messagesArray] of Object.entries(messages.state)) {
 				for (const message of messagesArray) {
+					// Never persist placeholder messages — they are shown in the UI but
+					// omitted from storage so the next session retries decryption.
+					if (message.decryptionFailed) continue;
 					void chatStorageService.containsMessage(chatIdStr, message.messageId).then((exists) => {
 						if (!exists) {
 							chatStorageService.saveMessage(message).catch((error) => {
@@ -60,6 +92,12 @@ export function initVetKeyReactions() {
 export const chatUIActions = {
 	async initialize() {
 		console.log('chatActions.initialize');
+		resetInMemoryState();
+		// Capture this call's generation and service instance. If another
+		// initialize() call races us (e.g. auth state flickering), these let
+		// us detect the conflict and bail out cleanly.
+		const myGeneration = currentGeneration;
+		const myService = encryptedMessagingService;
 		isLoading.state = true;
 
 		try {
@@ -87,7 +125,9 @@ export const chatUIActions = {
 					chat.idStr
 				);
 				if (chatMessages.length !== 0) {
-					encryptedMessagingService.skipMessagesAvailableLocally(
+					// Use myService so a concurrent initialize() can't redirect these
+					// calls to the newer instance it just created.
+					myService.skipMessagesAvailableLocally(
 						chatIdFromString(chat.idStr),
 						BigInt(chatMessages[chatMessages.length - 1].messageId) + 1n
 					);
@@ -102,8 +142,7 @@ export const chatUIActions = {
 			});
 			console.log('initialize: allMessages', allMessages);
 			console.log('initialize: allChats', allChats);
-			chats.state = allChats;
-			messages.state = allMessages;
+
 			const symmetricRatchetStates = await new KeyStorageService().getAllSymmetricRatchetStates();
 			for (const { chatIdStr, vetKeyEpoch, state } of symmetricRatchetStates) {
 				console.log(
@@ -114,12 +153,36 @@ export const chatUIActions = {
 					'symmetricRatchetState',
 					state
 				);
-				encryptedMessagingService.inductSymmetricRatchetState(chatIdStr, vetKeyEpoch, state);
+				myService.inductSymmetricRatchetState(chatIdStr, vetKeyEpoch, state);
 			}
 
-			encryptedMessagingService.start();
+			// Bail before touching shared Svelte state or starting the worker if
+			// another initialize() has already taken over.
+			if (currentGeneration !== myGeneration) {
+				console.log('initialize: superseded by newer initialize(), aborting');
+				return;
+			}
 
-			await this.refreshChats();
+			chats.state = allChats;
+			messages.state = allMessages;
+
+			myService.start(
+				(chatIdStr, newMessages) => {
+					// Generation guard: discard callbacks from a superseded session.
+					// This prevents a previous identity's decrypted messages from
+					// appearing in the current identity's UI.
+					if (currentGeneration !== myGeneration) return;
+					void chatUIActions.onMessagesDecrypted(chatIdStr, newMessages);
+				},
+				(chatId) => {
+					if (currentGeneration !== myGeneration) return;
+					void chatUIActions.onNewChatDiscovered(chatId);
+				}
+			);
+
+			// Wait for the first poll to complete so the chat list is populated
+			// before we clear the loading screen.
+			await myService.firstPollComplete;
 
 			// Set up periodic cleanup
 			//setInterval(() => {
@@ -127,20 +190,29 @@ export const chatUIActions = {
 			//	}, 60000);
 		} catch (error) {
 			console.error('Failed to initialize chat:', error);
-			chatUIActions.addNotification({
-				type: 'error',
-				title: 'Initialization Error',
-				message: 'Failed to load chat data. Please refresh the page.',
-				isDismissible: true
-			});
+			if (currentGeneration === myGeneration) {
+				chatUIActions.addNotification({
+					type: 'error',
+					title: 'Initialization Error',
+					message: 'Failed to load chat data. Please refresh the page.',
+					isDismissible: true
+				});
+			}
 		} finally {
-			isLoading.state = false;
+			if (currentGeneration === myGeneration) {
+				isLoading.state = false;
+			}
 		}
 	},
 
 	async refreshChats() {
 		console.log('refreshChats');
-		const currentChatIds = encryptedMessagingService.getCurrentChatIds();
+		// Use the canister as the authoritative source for which chats exist.
+		// This is independent of the background worker's key induction state, so
+		// chats appear in the UI immediately after login rather than waiting for
+		// the first background-worker poll cycle to complete.
+		const canisterChats = await canisterAPI.getChatIdsAndCurrentNumbersOfMessages(getActor());
+		const currentChatIds = canisterChats.map(({ chatId }) => chatId);
 
 		const chatsToRemoveFromUi = chats.state.filter(
 			(c) => !currentChatIds.find((chatId) => chatIdToString(chatId) === c.idStr)
@@ -149,10 +221,7 @@ export const chatUIActions = {
 			console.log(
 				'refreshChats: removing chats ',
 				chatsToRemoveFromUi.map((c) => c.idStr),
-				' from chats.state ',
-				chats.state.map((c) => c.idStr),
-				' because in currentChatIds from encryptedMessagingService we have ',
-				currentChatIds.map((c) => chatIdToString(c))
+				' from chats.state'
 			);
 		}
 
@@ -189,9 +258,9 @@ export const chatUIActions = {
 			const myPrincipalText = getMyPrincipal().toText();
 			const name = isGroup
 				? `Group: ${shortenId(String(chatId.Group.toString()))}`
-				: participants[0].toString() === participants[1].toString()
+				: participants[0].toText() === participants[1].toText()
 					? 'Note to Self'
-					: `Direct: ${participants.find((p) => p.toString() !== myPrincipalText)?.toString()}`;
+					: `Direct: ${participants.find((p) => p.toText() !== myPrincipalText)?.toText()}`;
 			const now = new SvelteDate();
 
 			const chat: Chat = {
@@ -250,46 +319,48 @@ export const chatUIActions = {
 		}
 	},
 
-	async loadChatMessages() {
-		const newMessages = encryptedMessagingService.takeReceivedMessages();
-		console.log(
-			'loadChatMessages: encryptedMessagingService.takeReceivedMessages() ',
-			newMessages.size,
-			'messages'
-		);
-		for (const [chatIdStr, messagesArray] of newMessages.entries()) {
-			const chat = chats.state.find((c) => c.idStr === chatIdStr);
-			if (!chat) {
-				console.error('Bug in loadChatMessages: chat not found for a new message: ', chatIdStr);
-				continue;
-			}
-
-			for (const m of messagesArray) await chatStorageService.saveMessage(m);
-
-			const chatMessages = [...messages.state[chatIdStr], ...messagesArray];
-
-			const newMessagesState = {
-				...messages.state,
-				[chatIdStr]: chatMessages
-			};
-
-			messages.state = newMessagesState;
-
-			// Check if this chat is currently selected
-			const isCurrentlySelected =
-				selectedChatId.state && chatIdToString(selectedChatId.state) === chatIdStr;
-
-			chats.state = chats.state.map((c) =>
-				c.idStr === chatIdStr
-					? {
-							...c,
-							// Don't increment unread count if chat is currently selected
-							unreadCount: isCurrentlySelected ? 0 : c.unreadCount + messagesArray.length,
-							lastMessage: messagesArray[messagesArray.length - 1]
-						}
-					: c
-			);
+	// Called by the background worker as soon as messages are decrypted — no polling needed.
+	async onMessagesDecrypted(chatIdStr: string, newMessages: Message[]) {
+		const chat = chats.state.find((c) => c.idStr === chatIdStr);
+		if (!chat) {
+			console.error('Bug in onMessagesDecrypted: chat not found: ', chatIdStr);
+			return;
 		}
+
+		// Drop any messages whose ID is already present in the UI (defense-in-depth
+		// deduplication — the service should not deliver duplicates, but guard anyway).
+		const existingIds = new Set((messages.state[chatIdStr] ?? []).map((m) => m.messageId));
+		const freshMessages = newMessages.filter((m) => !existingIds.has(m.messageId));
+		if (freshMessages.length === 0) return;
+
+		// Persist to IndexedDB — but not placeholder messages. Placeholders are
+		// omitted so that the next session retries decryption.
+		for (const m of freshMessages) {
+			if (!m.decryptionFailed) await chatStorageService.saveMessage(m);
+		}
+
+		messages.state = {
+			...messages.state,
+			[chatIdStr]: [...(messages.state[chatIdStr] ?? []), ...freshMessages]
+		};
+
+		const isCurrentlySelected =
+			selectedChatId.state && chatIdToString(selectedChatId.state) === chatIdStr;
+
+		chats.state = chats.state.map((c) =>
+			c.idStr === chatIdStr
+				? {
+						...c,
+						unreadCount: isCurrentlySelected ? 0 : c.unreadCount + freshMessages.length,
+						lastMessage: freshMessages[freshMessages.length - 1]
+					}
+				: c
+		);
+	},
+
+	// Called by the background worker when it discovers a chat not previously seen.
+	async onNewChatDiscovered(_chatId: ChatId) {
+		await chatUIActions.refreshChats();
 	},
 
 	enqueueEncryptAndSendMessage(
@@ -480,7 +551,3 @@ function buildDummyRotationStatus() {
 	};
 }
 
-// Initialize on module load (browser only)
-if (typeof window !== 'undefined') {
-	void chatUIActions.initialize();
-}

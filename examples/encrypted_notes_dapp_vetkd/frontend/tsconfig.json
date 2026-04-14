@@ -1,5 +1,24 @@
 {
   "extends": "@tsconfig/svelte/tsconfig.json",
+  "compilerOptions": {
+    "target": "ES2020",
+    "lib": ["ES2020", "DOM", "DOM.Iterable"],
+    "module": "ES2020",
+    "moduleResolution": "bundler",
+    "verbatimModuleSyntax": false,
+    "noEmit": true,
+    "skipLibCheck": true,
+    "baseUrl": ".",
+    "paths": {
+      "@icp-sdk/core": ["node_modules/@icp-sdk/core/lib/esm/index.d.ts"],
+      "@icp-sdk/core/agent": ["node_modules/@icp-sdk/core/lib/esm/agent/index.d.ts"],
+      "@icp-sdk/core/candid": ["node_modules/@icp-sdk/core/lib/esm/candid/index.d.ts"],
+      "@icp-sdk/core/identity": ["node_modules/@icp-sdk/core/lib/esm/identity/index.d.ts"],
+      "@icp-sdk/core/principal": ["node_modules/@icp-sdk/core/lib/esm/principal/index.d.ts"],
+      "@icp-sdk/core/agent/canister-env": ["node_modules/@icp-sdk/core/lib/esm/agent/canister-env/index.d.ts"],
+      "@icp-sdk/auth/client": ["node_modules/@icp-sdk/auth/dist/esm/client/index.d.ts"]
+    }
+  },
   "include": ["src/**/*"],
-  "exclude": ["node_modules/*", "__sapper__/*", "public/*", "src/declarations/**/*"]
+  "exclude": ["node_modules/*", "public/*", "src/declarations/**/*"]
 }

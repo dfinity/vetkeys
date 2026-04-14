@@ -21,12 +21,12 @@ The **VetKey Password Manager** is an example application demonstrating how to u
 
 ### (Optionally) Choose a Different Master Key
 
-This example uses `test_key_1` by default. To use a different [available master key](https://internetcomputer.org/docs/building-apps/network-features/vetkeys/api#available-master-keys), change the `"init_arg": "(\"test_key_1\")"` line in `dfx.json` to the desired key before running `dfx deploy` in the next step.
+This example uses `test_key_1` by default. To use a different [available master key](https://internetcomputer.org/docs/building-apps/network-features/vetkeys/api#available-master-keys), change the `init_args` value in `icp.yaml` to the desired key before running `icp deploy` in the next step.
 
 ### Deploy the Canisters Locally
 If you want to deploy this project locally with a Motoko backend, then run:
 ```bash
-dfx start --background && dfx deploy
+icp network start -d && icp deploy
 ```
 from the `motoko` folder.
 
@@ -36,7 +36,7 @@ To use the Rust backend instead of Motoko, run the same command in the `rust` fo
 
 ### Backend
 
-The backend consists of an **Encrypted Maps**-enabled canister that securely stores passwords. It is automatically deployed with `dfx deploy`.
+The backend consists of an **Encrypted Maps**-enabled canister that securely stores passwords. It is automatically deployed with `icp deploy`.
 
 ### Frontend
 

@@ -1,6 +1,6 @@
-import { Principal } from "@dfinity/principal";
-import { ActorSubclass, HttpAgent } from "@dfinity/agent";
-import { createActor } from "../declarations/ic_vetkeys_encrypted_maps_canister/index";
+import { Principal } from "@icp-sdk/core/principal";
+import { Actor, ActorSubclass, HttpAgent } from "@icp-sdk/core/agent";
+import { idlFactory } from "../declarations/ic_vetkeys_encrypted_maps_canister/ic_vetkeys_encrypted_maps_canister.did";
 import {
     _SERVICE as _DEFAULT_ENCRYPTED_MAPS_SERVICE,
     AccessRights,
@@ -13,7 +13,10 @@ export class DefaultEncryptedMapsClient implements EncryptedMapsClient {
     actor: ActorSubclass<_DEFAULT_ENCRYPTED_MAPS_SERVICE>;
 
     constructor(agent: HttpAgent, canisterId: string) {
-        this.actor = createActor(canisterId, { agent: agent });
+        this.actor = Actor.createActor(idlFactory, {
+            agent,
+            canisterId,
+        });
     }
 
     get_accessible_shared_map_names(): Promise<[Principal, ByteBuf][]> {

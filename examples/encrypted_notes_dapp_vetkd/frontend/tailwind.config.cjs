@@ -1,10 +1,10 @@
 module.exports = {
   content: [
-    './public/index.html',
+    './index.html',
     './src/**/*.svelte',
   ],
   theme: {
     extend: {},
   },
-  plugins: [require('daisyui'), require('@tailwindcss/line-clamp')],
+  plugins: [require('daisyui')],
 };

@@ -36,12 +36,12 @@ A canister functionality for decrypting secrets can be detected by inspecting th
 
 ### (Optionally) Choose a Different Master Key
 
-This example uses `test_key_1` by default. To use a different [available master key](https://internetcomputer.org/docs/building-apps/network-features/vetkeys/api#available-master-keys), change the `"init_arg": "(\"test_key_1\")"` line in `dfx.json` to the desired key before running `dfx deploy` in the next step.
+This example uses `test_key_1` by default. To use a different [available master key](https://internetcomputer.org/docs/building-apps/network-features/vetkeys/api#available-master-keys), change the `init_args` value in `icp.yaml` to the desired key before running `icp deploy` in the next step.
 
 ### Deploy the Canisters Locally
 
 ```bash
-dfx start --background && dfx deploy
+icp network start -d && icp deploy
 ```
 
 ## Example Components
@@ -61,7 +61,7 @@ The frontend is a vanilla typescript application providing a simple interface fo
 * Viewing open and closed lots including winners and bidders
 * Placing a secret bid for open lots created by other users
 
-To run the frontend in development mode with hot reloading (after running `dfx deploy`):
+To run the frontend in development mode with hot reloading (after running `icp deploy`):
 
 ```bash
 npm run dev

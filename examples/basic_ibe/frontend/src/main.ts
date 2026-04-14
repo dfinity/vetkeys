@@ -1,6 +1,6 @@
 import "./style.css";
-import { createActor } from "./declarations/basic_ibe";
-import { Principal } from "@dfinity/principal";
+import { idlFactory } from "./declarations/basic_ibe/backend.did";
+import { Principal } from "@icp-sdk/core/principal";
 import {
     TransportSecretKey,
     DerivedPublicKey,
@@ -10,9 +10,14 @@ import {
     IbeIdentity,
     IbeSeed,
 } from "@dfinity/vetkeys";
-import { Inbox, _SERVICE } from "./declarations/basic_ibe/basic_ibe.did";
-import { AuthClient } from "@dfinity/auth-client";
-import type { ActorSubclass } from "@dfinity/agent";
+import { Inbox, _SERVICE } from "./declarations/basic_ibe/backend.did";
+import { AuthClient } from "@icp-sdk/auth/client";
+import { Actor, HttpAgent, type ActorSubclass } from "@icp-sdk/core/agent";
+import { safeGetCanisterEnv } from "@icp-sdk/core/agent/canister-env";
+
+const canisterEnv = safeGetCanisterEnv<{
+    "PUBLIC_CANISTER_ID:basic_ibe": string;
+}>();
 
 let ibePrivateKey: VetKey | undefined = undefined;
 let ibePublicKey: DerivedPublicKey | undefined = undefined;
@@ -22,22 +27,23 @@ let basicIbeCanister: ActorSubclass<_SERVICE> | undefined;
 
 function getBasicIbeCanister(): ActorSubclass<_SERVICE> {
     if (basicIbeCanister) return basicIbeCanister;
-    if (!process.env.CANISTER_ID_BASIC_IBE) {
-        throw Error("CANISTER_ID_BASIC_IBE is not set");
+    const canisterId = canisterEnv?.["PUBLIC_CANISTER_ID:basic_ibe"];
+    if (!canisterId) {
+        throw Error("Canister ID for basic_ibe is not set");
     }
     if (!authClient) {
         throw Error("Auth client is not initialized");
     }
-    const host =
-        process.env.DFX_NETWORK === "ic"
-            ? `https://${process.env.CANISTER_ID_BASIC_IBE}.ic0.app`
-            : "http://localhost:8000";
 
-    basicIbeCanister = createActor(process.env.CANISTER_ID_BASIC_IBE, {
-        agentOptions: {
+    basicIbeCanister = Actor.createActor(idlFactory, {
+        agent: HttpAgent.createSync({
             identity: authClient.getIdentity(),
-            host,
-        },
+            host: window.location.origin,
+            ...(canisterEnv?.IC_ROOT_KEY
+                ? { rootKey: canisterEnv.IC_ROOT_KEY }
+                : {}),
+        }),
+        canisterId,
     });
 
     return basicIbeCanister;
@@ -58,7 +64,8 @@ async function encrypt(
     const publicKey = await getIbePublicKey();
     const ciphertext = IbeCiphertext.encrypt(
         publicKey,
-        IbeIdentity.fromPrincipal(receiver),
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-argument
+        IbeIdentity.fromPrincipal(receiver as any),
         cleartext,
         IbeSeed.random(),
     );
@@ -243,9 +250,10 @@ export function login(client: AuthClient) {
     void client.login({
         maxTimeToLive: BigInt(1800) * BigInt(1_000_000_000),
         identityProvider:
-            process.env.DFX_NETWORK === "ic"
-                ? "https://identity.ic0.app/#authorize"
-                : `http://rdmx6-jaaaa-aaaaa-aaadq-cai.localhost:8000/#authorize`,
+            window.location.hostname === "localhost" ||
+            window.location.hostname.endsWith(".localhost")
+                ? `http://id.ai.localhost:8000/#authorize`
+                : "https://identity.ic0.app/#authorize",
         onSuccess: () => {
             myPrincipal = client.getIdentity().getPrincipal();
             updateUI(true);

@@ -1,4 +1,4 @@
-import type { ActorSubclass } from '@dfinity/agent';
+import type { ActorSubclass } from '@icp-sdk/core/agent';
 import type { SymmetricRatchetStats } from '../types';
 import type {
 	_SERVICE,
@@ -7,10 +7,10 @@ import type {
 	GroupChatMetadata,
 	UserMessage,
 	VetKeyEpochMetadata
-} from '../../declarations/encrypted_chat/encrypted_chat.did';
-import { Principal } from '@dfinity/principal';
+} from '../../declarations/encrypted_chat/backend.did';
+import { Principal } from '@icp-sdk/core/principal';
 import { stringifyBigInt } from '$lib/utils';
-import { TransportSecretKey, EncryptedVetKey, DerivedPublicKey, VetKey } from '@dfinity/vetkeys';
+import { TransportSecretKey, EncryptedVetKey, DerivedPublicKey, type VetKey } from '@dfinity/vetkeys';
 
 // Dummy API service that simulates backend calls
 // In real implementation, these would make actual API calls to the backend

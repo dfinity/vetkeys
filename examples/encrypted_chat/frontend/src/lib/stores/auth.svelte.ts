@@ -1,11 +1,10 @@
 import { chatStorageService } from '$lib/services/chatStorage';
-import { HttpAgent, type ActorSubclass } from '@dfinity/agent';
-import { AuthClient } from '@dfinity/auth-client';
-import type { Principal } from '@dfinity/principal';
-import type { _SERVICE } from '../../declarations/encrypted_chat/encrypted_chat.did';
-import { createActor } from '../../declarations/encrypted_chat';
+import { Actor, HttpAgent, type ActorSubclass } from '@icp-sdk/core/agent';
+import { AuthClient } from '@icp-sdk/auth/client';
+import type { Principal } from '@icp-sdk/core/principal';
+import { idlFactory, type _SERVICE } from '../../declarations/encrypted_chat/backend.did';
 import fetch from 'isomorphic-fetch';
-import { DFX_NETWORK, CANISTER_ID_ENCRYPTED_CHAT } from '$env/static/public';
+import { safeGetCanisterEnv } from '@icp-sdk/core/agent/canister-env';
 
 if (import.meta.env.SSR || typeof window === 'undefined') {
 	const {
@@ -74,9 +73,9 @@ export async function login() {
 		await client.login({
 			maxTimeToLive: BigInt(8 * 3600) * BigInt(1_000_000_000), // 8 hours
 			identityProvider:
-				DFX_NETWORK === 'ic'
-					? 'https://identity.ic0.app/#authorize'
-					: `http://rdmx6-jaaaa-aaaaa-aaadq-cai.localhost:4943/#authorize`,
+				window.location.hostname === 'localhost' || window.location.hostname.endsWith('.localhost')
+					? 'http://id.ai.localhost:8000/#authorize'
+					: 'https://identity.ic0.app/#authorize',
 			onSuccess: () => {
 				authenticate(client);
 			},
@@ -113,18 +112,18 @@ export function getMyPrincipal(): Principal {
 
 export function getActor(): ActorSubclass<_SERVICE> {
 	if (auth.state.label === 'initialized') {
-		const host = DFX_NETWORK === 'ic' ? 'https://ic0.app' : 'http://localhost:4943';
-		const shouldFetchRootKey = DFX_NETWORK !== 'ic';
+		const canisterEnv = safeGetCanisterEnv<{ 'PUBLIC_CANISTER_ID:encrypted_chat': string }>();
 		const agent = HttpAgent.createSync({
 			identity: auth.state.client.getIdentity(),
 			fetch: fetch,
-			host,
-			shouldFetchRootKey
+			host: window.location.origin,
+			...(canisterEnv?.IC_ROOT_KEY ? { rootKey: canisterEnv.IC_ROOT_KEY } : {})
 		});
-		if (!CANISTER_ID_ENCRYPTED_CHAT) {
-			throw new Error('CANISTER_ID_ENCRYPTED_CHAT is not set');
-		} 
-		return createActor(CANISTER_ID_ENCRYPTED_CHAT, { agent });
+		const canisterId = canisterEnv?.['PUBLIC_CANISTER_ID:encrypted_chat'];
+		if (!canisterId) {
+			throw new Error('PUBLIC_CANISTER_ID:encrypted_chat is not set');
+		}
+		return Actor.createActor(idlFactory, { agent, canisterId });
 	} else {
 		throw new Error('Not authenticated');
 	}

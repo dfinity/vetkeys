@@ -1,5 +1,6 @@
 <script lang="ts">
   import { auth, logout } from '../store/auth';
+  import { link } from 'svelte-spa-router';
   import FaPlusSquare from 'svelte-icons/fa/FaPlusSquare.svelte';
   import FaBook from 'svelte-icons/fa/FaBook.svelte';
   import FaMobileAlt from 'svelte-icons/fa/FaMobileAlt.svelte';
@@ -33,7 +34,7 @@
         class="p-4 overflow-y-auto menu w-full bg-base-100 flex-1 flex flex-col"
       >
         <li>
-          <a href="/">
+          <a href="/" use:link>
             <span class="w-6 h-6 p-1 mr-2">
               <FaPlusSquare />
             </span>
@@ -41,7 +42,7 @@
           </a>
         </li>
         <li>
-          <a href="/notes">
+          <a href="/notes" use:link>
             <span class="w-6 h-6 p-1 mr-2">
               <FaBook />
             </span>
