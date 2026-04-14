@@ -30,6 +30,8 @@ jobs:
       - name: Provision Linux
         run: bash .github/workflows/provision-frontend-linux.sh
       - name: Frontend Tests and Lint
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -eExuo pipefail
           npm install
@@ -50,6 +52,8 @@ jobs:
         run: |
           bash .github/workflows/provision-frontend-darwin.sh
       - name: Frontend Tests and Lint
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -eExuo pipefail
           npm install
