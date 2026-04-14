@@ -23,6 +23,7 @@ async function newKeyManager(id: Ed25519KeyIdentity): Promise<KeyManager> {
         shouldFetchRootKey: true,
     });
     const canisterId = process.env.CANISTER_ID_IC_VETKEYS_MANAGER_CANISTER;
+    if (!canisterId) throw new Error("CANISTER_ID_IC_VETKEYS_MANAGER_CANISTER is not set");
     return new KeyManager(new DefaultKeyManagerClient(agent, canisterId));
 }
 

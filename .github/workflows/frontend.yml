@@ -11,7 +11,7 @@ on:
       - backend/**/canisters/**
       - package.json
       - package-lock.json
-      - .github/workflows/frontend_ic_vetkeys.yml
+      - .github/workflows/frontend.yml
       - .github/workflows/provision-frontend-darwin.sh
       - .github/workflows/provision-frontend-linux.sh
 concurrency:
