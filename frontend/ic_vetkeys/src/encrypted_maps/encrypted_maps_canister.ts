@@ -1,7 +1,7 @@
 import { Principal } from "@icp-sdk/core/principal";
 import { Actor, ActorSubclass, HttpAgent } from "@icp-sdk/core/agent";
 import { idlFactory } from "../declarations/ic_vetkeys_encrypted_maps_canister/ic_vetkeys_encrypted_maps_canister.did.js";
-import {
+import type {
     _SERVICE as _DEFAULT_ENCRYPTED_MAPS_SERVICE,
     AccessRights,
     ByteBuf,

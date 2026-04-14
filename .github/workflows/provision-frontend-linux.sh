@@ -10,7 +10,7 @@ npm install -g @icp-sdk/icp-cli @icp-sdk/ic-wasm
 
 # Install rust
 wget --output-document install-rustup.sh "https://sh.rustup.rs"
-sudo bash install-rustup.sh -y
+bash install-rustup.sh -y
 rustup target add wasm32-unknown-unknown
 
 # Set environment variables.
