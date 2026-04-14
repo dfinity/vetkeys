@@ -6,7 +6,7 @@ set -ex
 pushd /tmp
 
 # Install icp-cli (requires Node.js >=22, set up via actions/setup-node in the workflow).
-npm install -g @icp-sdk/icp-cli @icp-sdk/ic-wasm
+npm install -g @icp-sdk/icp-cli @icp-sdk/ic-wasm ic-mops
 
 # Install rust
 wget --output-document install-rustup.sh "https://sh.rustup.rs"
