@@ -1,8 +1,10 @@
 # Encrypted notes: vetKD
 
+<!-- TODO: re-enable once icp.ninja supports icp-cli (currently requires dfx)
 | Motoko backend | [![](https://icp.ninja/assets/open.svg)](http://icp.ninja/editor?g=https://github.com/dfinity/vetkeys/tree/main/examples/encrypted_notes_dapp_vetkd/motoko)|
 | --- | --- |
 | Rust backend | [![](https://icp.ninja/assets/open.svg)](http://icp.ninja/editor?g=https://github.com/dfinity/vetkeys/tree/main/examples/encrypted_notes_dapp_vetkd/rust) |
+-->
 
 Encrypted notes is an example dapp for authoring and storing confidential information on the Internet Computer (ICP) in the form of short pieces of text. Users can create and access their notes via any number of automatically synchronized devices authenticated via Internet Identity (II). Notes are stored confidentially using vetKeys. The end-to-end encryption is performed by the dapp’s frontend.
 
@@ -14,12 +16,12 @@ The vetKey used to encrypt and decrypt a note is note-ID-specific (and not, for 
 
 This example requires an installation of:
 
-- [x] Install the [IC SDK](https://internetcomputer.org/docs/current/developer-docs/setup/install/index.mdx).
+- [x] Install the [ICP CLI](https://cli.internetcomputer.org).
 - [x] Install [npm](https://www.npmjs.com/package/npm).
 
 ### (Optionally) Choose a Different Master Key
 
-This example uses `test_key_1` by default. To use a different [available master key](https://internetcomputer.org/docs/building-apps/network-features/vetkeys/api#available-master-keys), change the `init_args` value in `icp.yaml` to the desired key before running `icp deploy` in the next step.
+This example uses `test_key_1` by default. To use a different [available master key](https://docs.internetcomputer.org/building-apps/network-features/vetkeys/api#available-master-keys), change the `init_args` value in `icp.yaml` to the desired key before running `icp deploy` in the next step.
 
 ## Deploy the Canisters Locally
 
@@ -29,23 +31,27 @@ icp network start -d && icp deploy
 ```
 from the `motoko` folder.
 
-To use the Rust backend instead of Motoko, run the same command in the rust folder.
+To use the Rust backend instead of Motoko, run the same command in the `rust` folder.
+
+To run the frontend in development mode with hot reloading (after running `icp deploy`):
+```bash
+npm run dev
+```
+
+When you are done testing, stop the local network to free up resources and unblock the default port for other projects:
+```bash
+icp network stop
+```
 
 ## Example Components
 
 ### Backend
 
-The backend consists of a canister that stores encrypted notes. It is automatically deployed with `icp deploy`.
+The backend consists of a canister that stores encrypted notes.
 
 ### Frontend
 
 The frontend is a **Svelte** application providing a user-friendly interface for managing encrypted notes.
-
-To run the frontend in development mode with hot reloading (after running `icp deploy`):
-
-```bash
-npm run dev
-```
 
 ## Limitations
 

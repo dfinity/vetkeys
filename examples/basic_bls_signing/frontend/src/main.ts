@@ -1,8 +1,3 @@
-// Required to run `npm run dev`.
-if (!window.global) {
-  window.global = window;
-}
-
 import "./style.css";
 import { idlFactory } from "./declarations/basic_bls_signing/backend.did";
 import { Principal } from "@icp-sdk/core/principal";
@@ -19,12 +14,12 @@ const canisterEnv = safeGetCanisterEnv<{
 
 let myPrincipal: Principal | undefined = undefined;
 let authClient: AuthClient | undefined;
-let basicBlsSigningCanister: ActorSubclass<_SERVICE> | undefined;
+let basicBlsSigningActor: ActorSubclass<_SERVICE> | undefined;
 // let canisterPublicKey: DerivedPublicKey | undefined;
 let myVerificationKey: DerivedPublicKey | undefined;
 
-async function getBasicBlsSigningCanister(): Promise<ActorSubclass<_SERVICE>> {
-  if (basicBlsSigningCanister) return basicBlsSigningCanister;
+async function getBasicBlsSigningActor(): Promise<ActorSubclass<_SERVICE>> {
+  if (basicBlsSigningActor) return basicBlsSigningActor;
   const canisterId = canisterEnv?.["PUBLIC_CANISTER_ID:basic_bls_signing"];
   if (!canisterId) {
     throw Error("Canister ID for basic_bls_signing is not set");
@@ -38,9 +33,9 @@ async function getBasicBlsSigningCanister(): Promise<ActorSubclass<_SERVICE>> {
     host: window.location.origin,
     ...(canisterEnv?.IC_ROOT_KEY ? { rootKey: canisterEnv.IC_ROOT_KEY } : {}),
   });
-  basicBlsSigningCanister = Actor.createActor(idlFactory, { agent, canisterId });
+  basicBlsSigningActor = Actor.createActor(idlFactory, { agent, canisterId });
 
-  return basicBlsSigningCanister;
+  return basicBlsSigningActor;
 }
 
 export function login(client: AuthClient) {
@@ -65,7 +60,7 @@ export function logout() {
   void authClient?.logout();
   myPrincipal = undefined;
   myVerificationKey = undefined;
-  basicBlsSigningCanister = undefined;
+  basicBlsSigningActor = undefined;
   updateUI(false);
   document.getElementById("signaturesList")!.classList.toggle("hidden", true);
 }
@@ -158,7 +153,8 @@ document.getElementById("signMessageButton")!.addEventListener("click", () => {
     const message = prompt("Enter message to sign:");
     if (message) {
       try {
-        await (await getBasicBlsSigningCanister()).sign_message(message);
+        const actor = await getBasicBlsSigningActor();
+        await actor.sign_message(message);
         alert("Created and stored signature successfully.");
       } catch (error) {
         alert(`Error: ${error as Error}`);
@@ -217,8 +213,8 @@ document
   });
 
 async function listSignatures() {
-  const signatures: Array<Signature> =
-    await (await getBasicBlsSigningCanister()).get_my_signatures();
+  const actor = await getBasicBlsSigningActor();
+  const signatures: Array<Signature> = await actor.get_my_signatures();
   const signaturesDiv = document.getElementById("signatures")!;
   signaturesDiv.innerHTML = "";
 
@@ -230,8 +226,7 @@ async function listSignatures() {
       `;
   } else {
     if (!myVerificationKey) {
-      const myVerificationKeyRaw =
-        await (await getBasicBlsSigningCanister()).get_my_verification_key();
+      const myVerificationKeyRaw = await actor.get_my_verification_key();
       myVerificationKey = DerivedPublicKey.deserialize(
         Uint8Array.from(myVerificationKeyRaw),
       );

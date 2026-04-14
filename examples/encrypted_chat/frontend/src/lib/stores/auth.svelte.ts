@@ -40,6 +40,7 @@ export type AuthState =
 	| {
 			label: 'initialized';
 			client: AuthClient;
+			actor: ActorSubclass<_SERVICE>;
 	  }
 	| {
 			label: 'error';
@@ -53,10 +54,7 @@ export const auth = $state<{ state: AuthState }>({
 async function initAuth() {
 	const client = await AuthClient.create();
 	if (await client.isAuthenticated()) {
-		auth.state = {
-			label: 'initialized',
-			client
-		};
+		await authenticate(client);
 	} else {
 		auth.state = {
 			label: 'anonymous',
@@ -77,17 +75,30 @@ export async function login() {
 					? 'http://id.ai.localhost:8000/#authorize'
 					: 'https://identity.ic0.app/#authorize',
 			onSuccess: () => {
-				authenticate(client);
+				void authenticate(client);
 			},
 			onError: (e) => console.error('Failed to authenticate with internet identity: ' + e)
 		});
 	}
 }
 
-function authenticate(client: AuthClient) {
+async function authenticate(client: AuthClient) {
+	const canisterEnv = safeGetCanisterEnv<{ 'PUBLIC_CANISTER_ID:encrypted_chat': string }>();
+	const canisterId = canisterEnv?.['PUBLIC_CANISTER_ID:encrypted_chat'];
+	if (!canisterId) {
+		throw new Error('PUBLIC_CANISTER_ID:encrypted_chat is not set');
+	}
+	const agent = await HttpAgent.create({
+		identity: client.getIdentity(),
+		fetch: fetch,
+		host: window.location.origin,
+		...(canisterEnv?.IC_ROOT_KEY ? { rootKey: canisterEnv.IC_ROOT_KEY } : {})
+	});
+	const actor = Actor.createActor<_SERVICE>(idlFactory, { agent, canisterId });
 	auth.state = {
 		label: 'initialized',
-		client
+		client,
+		actor
 	};
 }
 
@@ -112,18 +123,7 @@ export function getMyPrincipal(): Principal {
 
 export async function getActor(): Promise<ActorSubclass<_SERVICE>> {
 	if (auth.state.label === 'initialized') {
-		const canisterEnv = safeGetCanisterEnv<{ 'PUBLIC_CANISTER_ID:encrypted_chat': string }>();
-		const agent = await HttpAgent.create({
-			identity: auth.state.client.getIdentity(),
-			fetch: fetch,
-			host: window.location.origin,
-			...(canisterEnv?.IC_ROOT_KEY ? { rootKey: canisterEnv.IC_ROOT_KEY } : {})
-		});
-		const canisterId = canisterEnv?.['PUBLIC_CANISTER_ID:encrypted_chat'];
-		if (!canisterId) {
-			throw new Error('PUBLIC_CANISTER_ID:encrypted_chat is not set');
-		}
-		return Actor.createActor(idlFactory, { agent, canisterId });
+		return auth.state.actor;
 	} else {
 		throw new Error('Not authenticated');
 	}

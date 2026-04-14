@@ -4,7 +4,7 @@ vetKey Encrypted Chat has two main components: the canister backend and user fro
 
 * End-to-end encrypted messaging.
 
-* High security through symmetric ratchet and key rotation via [vetKeys](https://internetcomputer.org/docs/building-apps/network-features/vetkeys/introduction).
+* High security through symmetric ratchet and key rotation via [vetKeys](https://docs.internetcomputer.org/building-apps/network-features/vetkeys/introduction).
 
 * Disappearing messages, enforced by the canister (ICP smart contract) logic. Messages are automatically removed from the frontend and encrypted messages are purged from the backend once they expire.
 
@@ -15,7 +15,7 @@ vetKey Encrypted Chat has two main components: the canister backend and user fro
 ### Key Hierarchy
 
 vetKey encrypted chat uses three layers of cryptographic keys:
-* **vetKeys**: shared keys established thorough the [vetKD protocol](https://internetcomputer.org/docs/references/vetkeys-overview). 
+* **vetKeys**: shared keys established thorough the [vetKD protocol](https://docs.internetcomputer.org/references/vetkeys-overview). 
 They rotate periodically, e.g. upon group configuration changes, to ensure both forward security and post-compromise security. 
 This means that an adversary who obtains the key material for one vetKey epoch gains no information about past or future epochs. 
 Deriving new vetKeys incurs some cost, as it requires interaction with the backend canister, which triggers a vetKey-derivation protocol on the ICP.
@@ -128,7 +128,7 @@ The frontend's responsibilities are:
 
 * User data per chat and vetKey epoch
 
-  * [User-uploaded optional encrypted symmetric ratchet state cache](#state-cache)
+  * [User-uploaded optional encrypted symmetric ratchet state cache](#encrypted-symmetric-ratchet-state-cache)
 
   * Optional optimization: [IBE-encrypted vetKey reshared by another user](#ibe-encrypted-vetkey-resharing)
 
@@ -355,7 +355,7 @@ Then, the canister checks that:
 
 * The user did not upload an encrypted cache for his symmetric ratchet state for the vetKey epoch in question (see [State Recovery](#state-recovery)).
 
-If the checks pass, the canister calls the [`vetkd_derive_key`](https://internetcomputer.org/docs/building-apps/network-features/vetkeys/api) API of the management canister with:
+If the checks pass, the canister calls the [`vetkd_derive_key`](https://docs.internetcomputer.org/building-apps/network-features/vetkeys/api) API of the management canister with:
 
 * `context` being computed by invoking the `ratchet_context` function defined below.
 
@@ -736,7 +736,7 @@ The ratchet state is initialized from a vetKey as follows:
 
     b. Initialize the symmetric ratchet state as `rootKey` and symmetric ratchet epoch that is equal to zero.
 
-More details about the retrieval and decryption of vetKeys can be found in the [developer docs](https://internetcomputer.org/docs/building-apps/network-features/vetkeys/api) of the ICP.
+More details about the retrieval and decryption of vetKeys can be found in the [developer docs](https://docs.internetcomputer.org/building-apps/network-features/vetkeys/api) of the ICP.
 
 After initializing the ratchet state, the user uploads encrypted cache of the state to the backend canister which is further described in [Encrypted Ratchet State Cache](#encrypted-symmetric-ratchet-state-cache).
 

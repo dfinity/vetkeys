@@ -23,10 +23,10 @@ let ibePrivateKey: VetKey | undefined = undefined;
 let ibePublicKey: DerivedPublicKey | undefined = undefined;
 let myPrincipal: Principal | undefined = undefined;
 let authClient: AuthClient | undefined;
-let basicIbeCanister: ActorSubclass<_SERVICE> | undefined;
+let basicIbeActor: ActorSubclass<_SERVICE> | undefined;
 
-async function getBasicIbeCanister(): Promise<ActorSubclass<_SERVICE>> {
-    if (basicIbeCanister) return basicIbeCanister;
+async function getBasicIbeActor(): Promise<ActorSubclass<_SERVICE>> {
+    if (basicIbeActor) return basicIbeActor;
     const canisterId = canisterEnv?.["PUBLIC_CANISTER_ID:basic_ibe"];
     if (!canisterId) {
         throw Error("Canister ID for basic_ibe is not set");
@@ -42,15 +42,16 @@ async function getBasicIbeCanister(): Promise<ActorSubclass<_SERVICE>> {
             ? { rootKey: canisterEnv.IC_ROOT_KEY }
             : {}),
     });
-    basicIbeCanister = Actor.createActor(idlFactory, { agent, canisterId });
+    basicIbeActor = Actor.createActor(idlFactory, { agent, canisterId });
 
-    return basicIbeCanister;
+    return basicIbeActor;
 }
 
 async function getIbePublicKey(): Promise<DerivedPublicKey> {
     if (ibePublicKey) return ibePublicKey;
+    const actor = await getBasicIbeActor();
     ibePublicKey = DerivedPublicKey.deserialize(
-        new Uint8Array(await (await getBasicIbeCanister()).get_ibe_public_key()),
+        new Uint8Array(await actor.get_ibe_public_key()),
     );
     return ibePublicKey;
 }
@@ -62,8 +63,7 @@ async function encrypt(
     const publicKey = await getIbePublicKey();
     const ciphertext = IbeCiphertext.encrypt(
         publicKey,
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-argument
-        IbeIdentity.fromPrincipal(receiver as any),
+        IbeIdentity.fromPrincipal(receiver),
         cleartext,
         IbeSeed.random(),
     );
@@ -77,8 +77,9 @@ async function getMyIbePrivateKey(): Promise<VetKey> {
         throw Error("My principal is not set");
     } else {
         const transportSecretKey = TransportSecretKey.random();
+        const actor = await getBasicIbeActor();
         const encryptedKey = Uint8Array.from(
-            await (await getBasicIbeCanister()).get_my_encrypted_ibe_key(
+            await actor.get_my_encrypted_ibe_key(
                 transportSecretKey.publicKeyBytes(),
             ),
         );
@@ -115,7 +116,8 @@ async function sendMessage() {
             receiverPrincipal,
         );
 
-        const result = await (await getBasicIbeCanister()).send_message({
+        const actor = await getBasicIbeActor();
+        const result = await actor.send_message({
             encrypted_message: encryptedMessage,
             receiver: receiverPrincipal,
         });
@@ -131,7 +133,8 @@ async function sendMessage() {
 }
 
 async function showMessages() {
-    const inbox = await (await getBasicIbeCanister()).get_my_messages();
+    const actor = await getBasicIbeActor();
+    const inbox = await actor.get_my_messages();
     await displayMessages(inbox);
 }
 
@@ -224,10 +227,10 @@ async function displayMessages(inbox: Inbox) {
 
             void (async () => {
                 try {
-                    const result =
-                        await (await getBasicIbeCanister()).remove_my_message_by_index(
-                            BigInt(index),
-                        );
+                    const actor = await getBasicIbeActor();
+                    const result = await actor.remove_my_message_by_index(
+                        BigInt(index),
+                    );
                     if ("Err" in result) {
                         alert("Error deleting message: " + result.Err);
                     } else {
@@ -268,7 +271,7 @@ export function logout() {
     messagesDiv.innerHTML = "";
     ibePrivateKey = undefined;
     myPrincipal = undefined;
-    basicIbeCanister = undefined;
+    basicIbeActor = undefined;
     updateUI(false);
 }
 

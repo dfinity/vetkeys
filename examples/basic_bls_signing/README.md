@@ -1,8 +1,10 @@
 # Threshold BLS Signatures
 
+<!-- TODO: re-enable once icp.ninja supports icp-cli (currently requires dfx)
 | Motoko backend | [![](https://icp.ninja/assets/open.svg)](http://icp.ninja/editor?g=https://github.com/dfinity/vetkeys/tree/main/examples/basic_bls_signing/motoko)|
 | --- | --- |
 | Rust backend | [![](https://icp.ninja/assets/open.svg)](http://icp.ninja/editor?g=https://github.com/dfinity/vetkeys/tree/main/examples/basic_bls_signing/rust) |
+-->
 
 The **Basic BLS signing** example demonstrates how to use **[vetKeys](https://docs.internetcomputer.org/building-apps/network-features/vetkeys/introduction)** to implement a threshold BLS signing service on the **Internet Computer (IC)**, where every authenticated user can ask the canister (IC smart contract) to produce signatures, where the **Internet Identity Principal** identifies the signer. This canister ensures that users can only produce signature for their own principal and not for someone else's principal. Furthermore, the vetKeys in this dapp can only be produced upon a user request, as specified in the canister code, meaning that the canister cannot produce signatures for arbitrary users or messages.
 
@@ -19,7 +21,7 @@ For confirming that the canister can only produce signatures in the intended way
 
 ### Prerequisites
 
-- [Internet Computer software development kit](https://internetcomputer.org/docs/building-apps/getting-started/install)
+- [ICP CLI](https://cli.internetcomputer.org)
 - [npm](https://www.npmjs.com/package/npm)
 
 ### (Optionally) Choose a Different Master Key
@@ -36,6 +38,16 @@ from the `motoko` folder.
 
 To use the Rust backend instead of Motoko, run the same command in the `rust` folder.
 
+To run the frontend in development mode with hot reloading (after running `icp deploy`):
+```bash
+npm run dev
+```
+
+When you are done testing, stop the local network to free up resources and unblock the default port for other projects:
+```bash
+icp network stop
+```
+
 ## Example Components
 
 ### Backend
@@ -48,12 +60,6 @@ The backend consists of a canister that:
 ### Frontend
 
 The frontend is a vanilla typescript application providing a simple interface for signing, showing the signatures stored in the canister, and publishing a signature.
-
-To run the frontend in development mode with hot reloading (after running `icp deploy`):
-
-```bash
-npm run dev
-```
 
 ## Additional Resources
 

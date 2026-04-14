@@ -85,8 +85,8 @@ export class SymmetricRatchetState {
 	): Promise<Uint8Array> {
 		await this.evolveTo(symmetricKeyEpoch);
 		const domainSeparator = messageEncryptionDomainSeparator(sender, senderMessageId);
-		const derivedKeyMaterial = DerivedKeyMaterial.fromCryptoKey(this.#cryptoKey);
-		return await derivedKeyMaterial.decryptMessage(message, domainSeparator);
+		const derivedKeyMaterial = await DerivedKeyMaterial.fromCryptoKey(this.#cryptoKey);
+		return await derivedKeyMaterial.decryptMessage(message, domainSeparator, new Uint8Array());
 	}
 
 	async encryptNow(
@@ -101,10 +101,10 @@ export class SymmetricRatchetState {
 		const expectedEpoch = this.getExpectedEpochAtTime(now);
 		const neededSymmetricRatchetState = await this.peekAtEpoch(expectedEpoch);
 		const domainSeparator = messageEncryptionDomainSeparator(sender, senderMessageId);
-		const derivedKeyMaterial = DerivedKeyMaterial.fromCryptoKey(
+		const derivedKeyMaterial = await DerivedKeyMaterial.fromCryptoKey(
 			neededSymmetricRatchetState.#cryptoKey
 		);
-		const encryptedBytes = await derivedKeyMaterial.encryptMessage(message, domainSeparator);
+		const encryptedBytes = await derivedKeyMaterial.encryptMessage(message, domainSeparator, new Uint8Array());
 		console.log(
 			`SymmetricRatchetState.encryptNow: encrypted message symmetric ratchet epoch ${neededSymmetricRatchetState.#symmetricRatchetEpoch.toString()}`
 		);

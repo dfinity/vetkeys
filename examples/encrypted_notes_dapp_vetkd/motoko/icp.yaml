@@ -4,7 +4,6 @@ canisters:
       type: "@dfinity/motoko@v4.1.0"
       configuration:
         main: backend/main.mo
-        args: --enhanced-orthogonal-persistence
     init_args:
       type: text
       value: "(\"test_key_1\")"
