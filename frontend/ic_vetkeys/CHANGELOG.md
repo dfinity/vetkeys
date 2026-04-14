@@ -18,14 +18,15 @@
   created by the caller before being passed in — this avoids the deprecated
   `new HttpAgent(options)` constructor and allows full configuration upfront,
   including providing the network's root key for local development:
-  ```ts
-  const agent = await HttpAgent.create({
-    host,
-    identity,
-    ...(rootKey ? { rootKey } : {}), // rootKey from ic_env cookie in local dev
-  });
-  new DefaultEncryptedMapsClient(agent, canisterId);
-  ```
+
+    ```ts
+    const agent = await HttpAgent.create({
+        host,
+        identity,
+        ...(rootKey ? { rootKey } : {}), // rootKey from ic_env cookie in local dev
+    });
+    new DefaultEncryptedMapsClient(agent, canisterId);
+    ```
 
 - Make `DerivedKeyMaterial.deriveAesGcmCryptoKey` `@internal`.
 
@@ -41,7 +42,7 @@
 
 ### Changed
 
- - Bump `@dfinity` agent-related packages to major version `3`.
+- Bump `@dfinity` agent-related packages to major version `3`.
 
 ## [0.3.0] - 2025-06-30
 
@@ -58,9 +59,11 @@
 ## [0.2.0] - 2025-06-08
 
 ### Fixed
+
 - Links in code docs.
 
 ### Changed
+
 - The code docs now live on github.io.
 - Replaces some instances of `window` with `globalThis` in a few places for better node compatibility.
 

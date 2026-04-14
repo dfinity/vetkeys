@@ -26,7 +26,10 @@ async function newEncryptedMaps(
     });
     const canisterId =
         process.env.CANISTER_ID_IC_VETKEYS_ENCRYPTED_MAPS_CANISTER;
-    if (!canisterId) throw new Error("CANISTER_ID_IC_VETKEYS_ENCRYPTED_MAPS_CANISTER is not set");
+    if (!canisterId)
+        throw new Error(
+            "CANISTER_ID_IC_VETKEYS_ENCRYPTED_MAPS_CANISTER is not set",
+        );
     return new EncryptedMaps(new DefaultEncryptedMapsClient(agent, canisterId));
 }
 
