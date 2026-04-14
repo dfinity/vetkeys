@@ -29,7 +29,7 @@ jobs:
           bash .github/workflows/provision-darwin.sh
       - name: Deploy Basic IBE Rust Darwin
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ICP_CLI_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -eExuo pipefail
           cargo install candid-extractor
@@ -50,7 +50,7 @@ jobs:
         run: bash .github/workflows/provision-linux.sh
       - name: Deploy Basic IBE Rust Linux
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ICP_CLI_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -eExuo pipefail
           cargo install candid-extractor
@@ -72,7 +72,7 @@ jobs:
           bash .github/workflows/provision-darwin.sh
       - name: Deploy Basic IBE Motoko Darwin
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ICP_CLI_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -eExuo pipefail
           cargo install candid-extractor
@@ -93,7 +93,7 @@ jobs:
         run: bash .github/workflows/provision-linux.sh
       - name: Deploy Basic IBE Motoko Linux
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ICP_CLI_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -eExuo pipefail
           cargo install candid-extractor
