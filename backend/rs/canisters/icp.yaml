@@ -1,0 +1,19 @@
+canisters:
+  - name: ic_vetkeys_manager_canister
+    recipe:
+      type: "@dfinity/rust@v3.2.0"
+      configuration:
+        package: ic-vetkeys-manager-canister
+        candid: ic_vetkeys_manager_canister/ic_vetkeys_manager_canister.did
+    init_args:
+      type: text
+      value: "(\"test_key_1\")"
+  - name: ic_vetkeys_encrypted_maps_canister
+    recipe:
+      type: "@dfinity/rust@v3.2.0"
+      configuration:
+        package: ic-vetkeys-encrypted-maps-canister
+        candid: ic_vetkeys_encrypted_maps_canister/ic_vetkeys_encrypted_maps_canister.did
+    init_args:
+      type: text
+      value: "(\"test_key_1\")"

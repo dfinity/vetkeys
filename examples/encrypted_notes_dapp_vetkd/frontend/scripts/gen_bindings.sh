@@ -1,16 +1,18 @@
 #!/bin/bash
 
-cd ../.. && dfx generate encrypted_notes || exit 1
+# Bindings are always generated from the Rust backend since both backends
+# expose the same Candid interface.
 
-rm -r frontend/src/declarations/encrypted_notes > /dev/null 2>&1 || true
+# Resolve the physical path of this script so that navigating up works
+# correctly even when frontend/ is reached via a symlink (e.g. motoko/frontend).
+SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd -P)
+if command -v candid-extractor >/dev/null 2>&1; then
+    cd "$SCRIPT_DIR/../../rust/backend" && make extract-candid
+fi
+
+cd "$SCRIPT_DIR/../.."
+
+rm -rf frontend/src/declarations/encrypted_notes
 
 mkdir -p frontend/src/declarations/encrypted_notes
-mv src/declarations/encrypted_notes frontend/src/declarations
-rmdir -p src/declarations > /dev/null 2>&1 || true
-
-# Rewrite @dfinity/* imports to @icp-sdk/core/* in generated declarations
-find frontend/src/declarations -type f \( -name '*.ts' -o -name '*.js' \) -exec sed -i '' \
-  -e 's|@dfinity/agent|@icp-sdk/core/agent|g' \
-  -e 's|@dfinity/principal|@icp-sdk/core/principal|g' \
-  -e 's|@dfinity/candid|@icp-sdk/core/candid|g' \
-  {} +
+npx @icp-sdk/bindgen --did-file rust/backend/src/encrypted_notes_rust.did --out-dir frontend/src/declarations/encrypted_notes --declarations-flat --force

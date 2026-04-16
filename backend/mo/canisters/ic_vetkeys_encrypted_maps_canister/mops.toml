@@ -1,3 +1,6 @@
+[toolchain]
+moc = "1.5.0"
+
 [package]
 name = "ic-vetkeys-encrypted-maps-canister"
 version = "0.1.0"

@@ -10,8 +10,8 @@ if command -v candid-extractor >/dev/null 2>&1; then
 fi
 
 cd "$SCRIPT_DIR/../.."
-rm -rf frontend/src/declarations/encrypted_chat
-mkdir -p frontend/src/declarations/encrypted_chat
-npx @icp-sdk/bindgen --did-file rust/backend/backend.did \
-    --out-dir frontend/src/declarations/encrypted_chat \
+rm -rf frontend/src/declarations/ic_vetkeys_encrypted_maps_canister
+mkdir -p frontend/src/declarations/ic_vetkeys_encrypted_maps_canister
+npx @icp-sdk/bindgen --did-file rust/backend/ic_vetkeys_encrypted_maps_canister.did \
+    --out-dir frontend/src/declarations/ic_vetkeys_encrypted_maps_canister \
     --declarations-flat --force
