@@ -26,6 +26,6 @@
   "dependencies": {
     "@dfinity/vetkeys": "file:../../../frontend/ic_vetkeys",
     "@icp-sdk/auth": "^5.0.0",
-    "@icp-sdk/core": "^5.0.0"
+    "@icp-sdk/core": "^5.2.1"
   }
 }

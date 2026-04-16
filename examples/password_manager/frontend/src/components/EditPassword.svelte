@@ -185,8 +185,8 @@
         ) {
             const split = currentRoute.split("/");
             vaultOwner = split[split.length - 3];
-            const parentVaultName = split[split.length - 2];
-            const passwordName = split[split.length - 1];
+            const parentVaultName = decodeURIComponent(split[split.length - 2]);
+            const passwordName = decodeURIComponent(split[split.length - 1]);
             const searchedForPassword = $vaultsStore.list
                 .find(
                     (v) =>

@@ -1,4 +1,4 @@
-import type { ChatId } from '../../declarations/encrypted_chat/encrypted_chat.did';
+import type { ChatId } from '../../declarations/encrypted_chat/backend.did';
 import { Principal } from '@icp-sdk/core/principal';
 
 export function chatIdToString(chatId: ChatId): string {

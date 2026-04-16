@@ -144,7 +144,12 @@
 		<div
 			class="message-bubble {getMessageBubbleClasses()} inline-block max-w-full break-words rounded-2xl px-3 py-2"
 		>
-			{#if message.fileData === undefined}
+			{#if message.decryptionFailed}
+				<p class="decryption-failed-text flex items-center gap-1 text-sm italic">
+					<span>🔐</span>
+					<span>Message could not be decrypted</span>
+				</p>
+			{:else if message.fileData === undefined}
 				<!-- eslint-disable-next-line svelte/no-at-html-tags -->
 				<p class="whitespace-pre-wrap text-sm">{@html parseEmojis(message.content)}</p>
 			{:else if message.fileData !== undefined}
@@ -302,6 +307,15 @@
 	}
 	:global(.dark) .message-bubble.bg-rose-500 {
 		background: #e11d48;
+	}
+
+	.decryption-failed-text {
+		color: #b45309; /* amber-700 */
+		opacity: 0.85;
+	}
+
+	:global(.dark) .decryption-failed-text {
+		color: #fcd34d; /* amber-300 */
 	}
 
 	.file-message {

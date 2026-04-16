@@ -7,7 +7,7 @@ import {
 	TransportSecretKey,
 	EncryptedVetKey
 } from '@dfinity/vetkeys';
-import type { ChatId } from '../../declarations/encrypted_chat/encrypted_chat.did';
+import type { ChatId } from '../../declarations/encrypted_chat/backend.did';
 import { keyStorageService } from './keyStorage';
 import type { Principal } from '@icp-sdk/core/principal';
 import { getActor, getMyPrincipal } from '$lib/stores/auth.svelte';
@@ -33,7 +33,7 @@ export class VetKeyResharingService {
 			return await Promise.all(
 				otherParticipants.map(async (p) => {
 					const ibePublicKey = DerivedPublicKey.deserialize(
-						new Uint8Array(await getActor().get_vetkey_resharing_ibe_encryption_key(p))
+						new Uint8Array(await (await getActor()).get_vetkey_resharing_ibe_encryption_key(p))
 					);
 					const ibeIdentity = IbeIdentity.fromBytes(new Uint8Array());
 					const ibeSeed = IbeSeed.random();
@@ -48,7 +48,7 @@ export class VetKeyResharingService {
 					return result;
 				})
 			).then(async (ibeEncryptedVetKeysPromise) => {
-				await getActor()
+				await (await getActor())
 					.reshare_ibe_encrypted_vetkeys(chatId, vetkeyEpoch, ibeEncryptedVetKeysPromise)
 					.then((result) => {
 						if ('Ok' in result) {
@@ -71,7 +71,7 @@ export class VetKeyResharingService {
 	async fetchResharedIbeEncryptedVetKey(chatId: ChatId, vetkeyEpoch: bigint): Promise<Uint8Array> {
 		console.log('fetchResharedIbeEncryptedVetKeys: ', chatId, vetkeyEpoch, getMyPrincipal());
 		const tsk = TransportSecretKey.random();
-		const myResharedIbeEncryptedVetkey = await getActor().get_my_reshared_ibe_encrypted_vetkey(
+		const myResharedIbeEncryptedVetkey = await (await getActor()).get_my_reshared_ibe_encrypted_vetkey(
 			chatId,
 			vetkeyEpoch
 		);
@@ -87,7 +87,7 @@ export class VetKeyResharingService {
 		);
 
 		const publicIbeKeyBytes =
-			await getActor().get_vetkey_resharing_ibe_encryption_key(getMyPrincipal());
+			await (await getActor()).get_vetkey_resharing_ibe_encryption_key(getMyPrincipal());
 		const publicIbeKey = DerivedPublicKey.deserialize(new Uint8Array(publicIbeKeyBytes));
 
 		const maybeIbeDecryptionKeyFromStorage = await keyStorageService.getIbeDecryptionKey();
@@ -95,7 +95,7 @@ export class VetKeyResharingService {
 		const privateEncryptedIbeKeyBytes =
 			maybeIbeDecryptionKeyFromStorage ??
 			new Uint8Array(
-				await getActor().get_vetkey_resharing_ibe_decryption_key(tsk.publicKeyBytes())
+				await (await getActor()).get_vetkey_resharing_ibe_decryption_key(tsk.publicKeyBytes())
 			);
 		if (!maybeIbeDecryptionKeyFromStorage) {
 			console.log(

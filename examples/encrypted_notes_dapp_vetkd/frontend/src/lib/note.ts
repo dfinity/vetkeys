@@ -1,4 +1,4 @@
-import type { EncryptedNote } from '../lib/backend';
+import type { EncryptedNote } from '../declarations/encrypted_notes/encrypted_notes_rust.did';
 import type { CryptoService } from './crypto';
 import type { Principal } from '@icp-sdk/core/principal';
 

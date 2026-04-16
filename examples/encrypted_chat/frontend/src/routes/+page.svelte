@@ -29,11 +29,12 @@
 	});
 
 	onMount(() => {
+		// Periodically sync the chat list with the canister (handles added/removed chats).
+		// Message delivery is push-based via the background worker callbacks — no polling needed here.
 		const interval = setInterval(() => {
 			(async () => {
 				if (auth.state.label === 'initialized') {
 					await chatUIActions.refreshChats();
-					await chatUIActions.loadChatMessages();
 				}
 			})().catch(console.error);
 		}, 500);
