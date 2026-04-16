@@ -15,8 +15,6 @@ on:
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
-env:
-  DFX_VERSION: 0.29.1
 jobs:
   examples-basic-bls-signing-rust-darwin:
     runs-on: macos-15
@@ -24,20 +22,22 @@ jobs:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
         with:
           persist-credentials: false
-      - name: Provision Darwin
-        run: |
-          bash .github/workflows/provision-darwin.sh
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: '22'
+      - name: Provision Darwin
+        run: |
+          bash .github/workflows/provision-darwin.sh
       - name: Install workspace dependencies
         run: npm install
       - name: Deploy Basic BLS Signing Rust Darwin
+        env:
+          ICP_CLI_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -eExuo pipefail
           cargo install candid-extractor
           pushd examples/basic_bls_signing/rust
-          dfx start --background && dfx deploy
+          icp network start -d && icp deploy
           cd frontend
           npm run lint
   examples-basic-bls-signing-rust-linux:
@@ -46,19 +46,21 @@ jobs:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
         with:
           persist-credentials: false
-      - name: Provision Linux
-        run: bash .github/workflows/provision-linux.sh
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: '22'
+      - name: Provision Linux
+        run: bash .github/workflows/provision-linux.sh
       - name: Install workspace dependencies
         run: npm install
       - name: Deploy Basic BLS Signing Rust Linux
+        env:
+          ICP_CLI_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -eExuo pipefail
           cargo install candid-extractor
           pushd examples/basic_bls_signing/rust
-          dfx start --background && dfx deploy
+          icp network start -d && icp deploy
           cd frontend
           npm run lint
   examples-basic-bls-signing-motoko-darwin:
@@ -67,20 +69,22 @@ jobs:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
         with:
           persist-credentials: false
-      - name: Provision Darwin
-        run: |
-          bash .github/workflows/provision-darwin.sh
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: '22'
+      - name: Provision Darwin
+        run: |
+          bash .github/workflows/provision-darwin.sh
       - name: Install workspace dependencies
         run: npm install
       - name: Deploy Basic BLS Signing Motoko Darwin
+        env:
+          ICP_CLI_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -eExuo pipefail
           cargo install candid-extractor
           pushd examples/basic_bls_signing/motoko
-          dfx start --background && dfx deploy
+          icp network start -d && icp deploy
           cd frontend
           npm run lint
   examples-basic-bls-signing-motoko-linux:
@@ -89,18 +93,20 @@ jobs:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
         with:
           persist-credentials: false
-      - name: Provision Linux
-        run: bash .github/workflows/provision-linux.sh
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: '22'
+      - name: Provision Linux
+        run: bash .github/workflows/provision-linux.sh
       - name: Install workspace dependencies
         run: npm install
       - name: Deploy Basic BLS Signing Motoko Linux
+        env:
+          ICP_CLI_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -eExuo pipefail
           cargo install candid-extractor
           pushd examples/basic_bls_signing/motoko
-          dfx start --background && dfx deploy
+          icp network start -d && icp deploy
           cd frontend
           npm run lint
