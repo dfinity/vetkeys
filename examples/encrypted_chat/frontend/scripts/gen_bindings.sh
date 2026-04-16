@@ -1,15 +1,17 @@
 #!/bin/bash
+# Bindings are always generated from the Rust backend since both backends
+# expose the same Candid interface.
 
-cd ../../backend && make extract-candid
+# Resolve the physical path of this script so that navigating up works
+# correctly even when frontend/ is reached via a symlink (e.g. motoko/frontend).
+SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd -P)
+if command -v candid-extractor >/dev/null 2>&1; then
+    cd "$SCRIPT_DIR/../../rust/backend" && make extract-candid
+fi
 
-cd .. && dfx generate encrypted_chat || exit 1
-
-rm -r frontend/src/declarations/encrypted_chat > /dev/null 2>&1 || true
-
+cd "$SCRIPT_DIR/../.."
+rm -rf frontend/src/declarations/encrypted_chat
 mkdir -p frontend/src/declarations/encrypted_chat
-mv src/declarations/encrypted_chat frontend/src/declarations
-rmdir -p src/declarations > /dev/null 2>&1 || true
-
-# Rewrite @dfinity/* imports to @icp-sdk/core/* in generated declarations
-find $(dirname "$0")/../src/declarations -type f \( -name "*.ts" -o -name "*.js" \) -exec \
-  perl -i -pe "s|\@dfinity/agent|\@icp-sdk/core/agent|g; s|\@dfinity/principal|\@icp-sdk/core/principal|g; s|\@dfinity/candid|\@icp-sdk/core/candid|g" {} +
+npx @icp-sdk/bindgen --did-file rust/backend/backend.did \
+    --out-dir frontend/src/declarations/encrypted_chat \
+    --declarations-flat --force

@@ -1,8 +1,13 @@
 #!/bin/bash
 
-cd ../../backend && make extract-candid && dfx generate basic_timelock_ibe && cd ../frontend && rm -r ./src/declarations >> /dev/null 2>&1
-mv ../src/declarations ./src && rmdir ../src
+if command -v candid-extractor >/dev/null 2>&1; then
+    cd ../../backend && make extract-candid
+    cd ..
+else
+    cd ..
+fi
 
-# Rewrite @dfinity/* imports to @icp-sdk/core/* in generated declarations
-find $(dirname "$0")/../src/declarations -type f \( -name "*.ts" -o -name "*.js" \) -exec \
-  perl -i -pe "s|\@dfinity/agent|\@icp-sdk/core/agent|g; s|\@dfinity/principal|\@icp-sdk/core/principal|g; s|\@dfinity/candid|\@icp-sdk/core/candid|g" {} +
+rm -rf frontend/src/declarations/basic_timelock_ibe
+
+mkdir -p frontend/src/declarations/basic_timelock_ibe
+npx @icp-sdk/bindgen --did-file backend/backend.did --out-dir frontend/src/declarations/basic_timelock_ibe --declarations-flat --force
