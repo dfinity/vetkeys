@@ -24,8 +24,8 @@
     "vite-plugin-environment": "^1.1.3"
   },
   "dependencies": {
-    "@dfinity/auth-client": "^2.4.1",
-    "@dfinity/principal": "^2.4.1",
-    "@dfinity/vetkeys": "^0.3.0"
+    "@dfinity/vetkeys": "file:../../../frontend/ic_vetkeys",
+    "@icp-sdk/auth": "^5.0.0",
+    "@icp-sdk/core": "^5.0.0"
   }
 }

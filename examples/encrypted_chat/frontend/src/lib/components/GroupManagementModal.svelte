@@ -3,7 +3,7 @@
 	import { UserMinus, X, Save, Users } from 'lucide-svelte';
 	import type { GroupChat } from '../types';
 	import { getMyPrincipal } from '$lib/stores/auth.svelte';
-	import { Principal } from '@dfinity/principal';
+	import { Principal } from '@icp-sdk/core/principal';
 	import Card from './ui/Card.svelte';
 	import Button from './ui/Button.svelte';
 

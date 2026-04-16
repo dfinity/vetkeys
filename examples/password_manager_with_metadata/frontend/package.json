@@ -36,12 +36,9 @@
         "vite-plugin-eslint": "^1.8.1"
     },
     "dependencies": {
-        "@dfinity/agent": "^2.3.0",
-        "@dfinity/auth-client": "^2.3.0",
-        "@dfinity/candid": "^2.3.0",
-        "@dfinity/identity": "^2.3.0",
-        "@dfinity/principal": "^2.3.0",
-        "@dfinity/vetkeys": "^0.3.0",
+        "@dfinity/vetkeys": "file:../../../frontend/ic_vetkeys",
+        "@icp-sdk/auth": "^5.0.0",
+        "@icp-sdk/core": "^5.0.0",
         "@sveltejs/vite-plugin-svelte": "^3.0.2",
         "daisyui": "^4.12.23",
         "save": "^2.9.0",

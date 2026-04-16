@@ -5,9 +5,9 @@ if (!window.global) {
 
 import "./style.css";
 import { createActor } from "./declarations/basic_bls_signing";
-import { Principal } from "@dfinity/principal";
-import { AuthClient } from "@dfinity/auth-client";
-import type { ActorSubclass } from "@dfinity/agent";
+import { Principal } from "@icp-sdk/core/principal";
+import { AuthClient } from "@icp-sdk/auth/client";
+import type { ActorSubclass } from "@icp-sdk/core/agent";
 import { _SERVICE } from "./declarations/basic_bls_signing/basic_bls_signing.did";
 import { DerivedPublicKey, verifyBlsSignature } from "@dfinity/vetkeys";
 import type { Signature } from "./declarations/basic_bls_signing/basic_bls_signing.did";

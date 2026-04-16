@@ -4,7 +4,7 @@ import {
 	u8ByteUint8ArrayBigEndianToUBigInt,
 	uBigIntTo8ByteUint8ArrayBigEndian
 } from '../utils';
-import { Principal } from '@dfinity/principal';
+import { Principal } from '@icp-sdk/core/principal';
 
 const DOMAIN_RATCHET_INIT = sizePrefixedBytesFromString('ic-vetkeys-chat-ratchet-init');
 const DOMAIN_RATCHET_STEP = sizePrefixedBytesFromString('ic-vetkeys-chat-ratchet-step');

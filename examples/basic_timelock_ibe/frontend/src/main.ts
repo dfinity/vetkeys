@@ -5,7 +5,7 @@ if (!window.global) {
 
 import "./style.css";
 import { createActor } from "./declarations/basic_timelock_ibe";
-import { Principal } from "@dfinity/principal";
+import { Principal } from "@icp-sdk/core/principal";
 import {
     DerivedPublicKey,
     IbeCiphertext,
@@ -16,8 +16,8 @@ import {
     _SERVICE,
     LotInformation,
 } from "./declarations/basic_timelock_ibe/basic_timelock_ibe.did";
-import { AuthClient } from "@dfinity/auth-client";
-import type { ActorSubclass } from "@dfinity/agent";
+import { AuthClient } from "@icp-sdk/auth/client";
+import type { ActorSubclass } from "@icp-sdk/core/agent";
 
 let ibePublicKey: DerivedPublicKey | undefined = undefined;
 let myPrincipal: Principal | undefined = undefined;

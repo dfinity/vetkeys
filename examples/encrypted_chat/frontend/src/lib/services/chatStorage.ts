@@ -3,7 +3,7 @@ import type { Message, Chat, UserConfig } from '../types';
 import { storagePrefixes } from '../types';
 import * as cbor from 'cbor-x';
 import { fromHex, toHex } from '$lib/utils';
-import { Principal } from '@dfinity/principal';
+import { Principal } from '@icp-sdk/core/principal';
 
 // IndexedDB storage service for persistent chat data
 export class ChatStorageService {

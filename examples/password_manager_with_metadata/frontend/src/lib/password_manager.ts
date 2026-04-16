@@ -1,8 +1,8 @@
 import "./init.ts";
-import { type ActorSubclass, type HttpAgentOptions } from "@dfinity/agent";
+import { type ActorSubclass, type HttpAgentOptions } from "@icp-sdk/core/agent";
 import { EncryptedMaps } from "@dfinity/vetkeys/encrypted_maps";
 import { createEncryptedMaps } from "./encrypted_maps";
-import type { Principal } from "@dfinity/principal";
+import type { Principal } from "@icp-sdk/core/principal";
 import { createActor } from "../declarations/password_manager_with_metadata";
 import type { _SERVICE } from "../declarations/password_manager_with_metadata/password_manager_with_metadata.did";
 import { passwordFromContent, type PasswordModel } from "../lib/password";

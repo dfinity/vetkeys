@@ -1,8 +1,8 @@
-import { HttpAgent } from "@dfinity/agent";
+import { HttpAgent } from "@icp-sdk/core/agent";
 import { DefaultEncryptedMapsClient } from "./encrypted_maps_canister";
 import { expect, test } from "vitest";
 import fetch from "isomorphic-fetch";
-import { Ed25519KeyIdentity } from "@dfinity/identity";
+import { Ed25519KeyIdentity } from "@icp-sdk/core/identity";
 import { EncryptedMaps } from "./index";
 import { randomBytes } from "node:crypto";
 

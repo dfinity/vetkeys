@@ -1,5 +1,5 @@
-import { Principal } from "@dfinity/principal";
-import { ActorSubclass, HttpAgent } from "@dfinity/agent";
+import { Principal } from "@icp-sdk/core/principal";
+import { ActorSubclass, HttpAgent } from "@icp-sdk/core/agent";
 import { createActor } from "../declarations/ic_vetkeys_manager_canister/index.js";
 import {
     _SERVICE as _DEFAULT_KEY_MANAGER_SERVICE,

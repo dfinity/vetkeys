@@ -1,5 +1,5 @@
 import { auth, getActor, getMyPrincipal } from '$lib/stores/auth.svelte';
-import type { ActorSubclass } from '@dfinity/agent';
+import type { ActorSubclass } from '@icp-sdk/core/agent';
 import type {
 	_SERVICE,
 	ChatId,

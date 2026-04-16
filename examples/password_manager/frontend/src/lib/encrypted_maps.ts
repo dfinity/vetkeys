@@ -1,5 +1,5 @@
 import "./init.ts";
-import { HttpAgent, type HttpAgentOptions } from "@dfinity/agent";
+import { HttpAgent, type HttpAgentOptions } from "@icp-sdk/core/agent";
 import {
     DefaultEncryptedMapsClient,
     EncryptedMaps,

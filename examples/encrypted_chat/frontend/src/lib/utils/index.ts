@@ -1,5 +1,5 @@
 import type { ChatId } from '../../declarations/encrypted_chat/encrypted_chat.did';
-import { Principal } from '@dfinity/principal';
+import { Principal } from '@icp-sdk/core/principal';
 
 export function chatIdToString(chatId: ChatId): string {
 	if ('Group' in chatId) return `group/${chatId.Group.toString()}`;

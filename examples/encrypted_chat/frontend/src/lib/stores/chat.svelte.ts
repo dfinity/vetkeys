@@ -13,7 +13,7 @@ import type {
 	ChatId,
 	GroupModification
 } from '../../declarations/encrypted_chat/encrypted_chat.did';
-import { Principal } from '@dfinity/principal';
+import { Principal } from '@icp-sdk/core/principal';
 import { chatIdFromString, chatIdToString } from '$lib/utils';
 import { EncryptedMessagingService } from '$lib/services/encryptedMessagingService';
 import * as cbor from 'cbor-x';

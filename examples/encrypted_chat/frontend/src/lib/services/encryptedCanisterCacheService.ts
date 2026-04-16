@@ -12,7 +12,7 @@ import {
 	type EncryptedMapsClient
 } from '@dfinity/vetkeys/encrypted_maps';
 import type { ChatId } from '../../declarations/encrypted_chat/encrypted_chat.did';
-import type { Principal } from '@dfinity/principal';
+import type { Principal } from '@icp-sdk/core/principal';
 import { getActor, getMyPrincipal } from '$lib/stores/auth.svelte';
 
 export class EncryptedCanisterCacheService {

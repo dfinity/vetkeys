@@ -1,4 +1,4 @@
-import type { Principal } from "@dfinity/principal";
+import type { Principal } from "@icp-sdk/core/principal";
 import type { PasswordMetadata } from "../declarations/password_manager_with_metadata/password_manager_with_metadata.did";
 
 export interface PasswordModel {

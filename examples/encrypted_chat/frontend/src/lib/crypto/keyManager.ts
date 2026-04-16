@@ -1,5 +1,5 @@
 import { SymmetricRatchetState } from './symmetricRatchet';
-import { Principal } from '@dfinity/principal';
+import { Principal } from '@icp-sdk/core/principal';
 
 export class KeyManager {
 	#symmetricRatchetStates: Map<string, Map<bigint, SymmetricRatchetState>> = new Map();

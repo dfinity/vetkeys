@@ -1,7 +1,7 @@
 import { chatStorageService } from '$lib/services/chatStorage';
-import { HttpAgent, type ActorSubclass } from '@dfinity/agent';
-import { AuthClient } from '@dfinity/auth-client';
-import type { Principal } from '@dfinity/principal';
+import { HttpAgent, type ActorSubclass } from '@icp-sdk/core/agent';
+import { AuthClient } from '@icp-sdk/auth/client';
+import type { Principal } from '@icp-sdk/core/principal';
 import type { _SERVICE } from '../../declarations/encrypted_chat/encrypted_chat.did';
 import { createActor } from '../../declarations/encrypted_chat';
 import fetch from 'isomorphic-fetch';

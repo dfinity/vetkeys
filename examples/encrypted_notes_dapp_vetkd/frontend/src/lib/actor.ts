@@ -4,7 +4,7 @@ import {
   ActorSubclass,
   HttpAgent,
   HttpAgentOptions,
-} from "@dfinity/agent";
+} from "@icp-sdk/core/agent";
 import {
   idlFactory,
   _SERVICE,

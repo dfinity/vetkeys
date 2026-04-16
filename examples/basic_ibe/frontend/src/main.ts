@@ -1,6 +1,6 @@
 import "./style.css";
 import { createActor } from "./declarations/basic_ibe";
-import { Principal } from "@dfinity/principal";
+import { Principal } from "@icp-sdk/core/principal";
 import {
     TransportSecretKey,
     DerivedPublicKey,
@@ -11,8 +11,8 @@ import {
     IbeSeed,
 } from "@dfinity/vetkeys";
 import { Inbox, _SERVICE } from "./declarations/basic_ibe/basic_ibe.did";
-import { AuthClient } from "@dfinity/auth-client";
-import type { ActorSubclass } from "@dfinity/agent";
+import { AuthClient } from "@icp-sdk/auth/client";
+import type { ActorSubclass } from "@icp-sdk/core/agent";
 
 let ibePrivateKey: VetKey | undefined = undefined;
 let ibePublicKey: DerivedPublicKey | undefined = undefined;

@@ -1,4 +1,4 @@
-import type { ActorSubclass } from '@dfinity/agent';
+import type { ActorSubclass } from '@icp-sdk/core/agent';
 import type { SymmetricRatchetStats } from '../types';
 import type {
 	_SERVICE,
@@ -8,7 +8,7 @@ import type {
 	UserMessage,
 	VetKeyEpochMetadata
 } from '../../declarations/encrypted_chat/encrypted_chat.did';
-import { Principal } from '@dfinity/principal';
+import { Principal } from '@icp-sdk/core/principal';
 import { stringifyBigInt } from '$lib/utils';
 import { TransportSecretKey, EncryptedVetKey, DerivedPublicKey, VetKey } from '@dfinity/vetkeys';
 

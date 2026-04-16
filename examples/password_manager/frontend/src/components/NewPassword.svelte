@@ -8,7 +8,7 @@
     import { addNotification, showError } from "../store/notifications";
     import Header from "./Header.svelte";
     import PasswordEditor from "./PasswordEditor.svelte";
-    import { Principal } from "@dfinity/principal";
+    import { Principal } from "@icp-sdk/core/principal";
 
     let creating = false;
     let vaultOwner =

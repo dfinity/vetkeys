@@ -3,7 +3,7 @@
     import { link, location } from "svelte-spa-router";
     import { onDestroy } from "svelte";
     import { vaultsStore } from "../store/vaults";
-    import { Principal } from "@dfinity/principal";
+    import { Principal } from "@icp-sdk/core/principal";
     import Header from "./Header.svelte";
     import Spinner from "./Spinner.svelte";
     // @ts-expect-error: svelte-icons have some problems with ts declarations

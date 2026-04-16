@@ -1,10 +1,10 @@
 import { get, writable } from "svelte/store";
 import { BackendActor, createActor } from "../lib/actor";
-import { AuthClient } from "@dfinity/auth-client";
+import { AuthClient } from "@icp-sdk/auth/client";
 import { CryptoService } from "../lib/crypto";
 import { addNotification, showError } from "./notifications";
 import { sleep } from "../lib/sleep";
-import type { JsonnableDelegationChain } from "@dfinity/identity/lib/cjs/identity/delegation";
+import type { JsonnableDelegationChain } from "@icp-sdk/core/identity";
 import { navigateTo } from "svelte-router-spa";
 
 export type AuthState =
