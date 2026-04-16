@@ -431,3 +431,5 @@ fn key_id() -> VetKDKeyId {
         name: KEY_NAME.with_borrow(|key_name| key_name.get().clone()),
     }
 }
+
+ic_cdk::export_candid!();

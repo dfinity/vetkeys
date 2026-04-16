@@ -3,4 +3,3 @@ moc = "1.5.0"
 
 [dependencies]
 base = "0.14.9"
-ic-vetkeys = "0.4.0"
