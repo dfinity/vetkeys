@@ -5,7 +5,7 @@ import type {
 	ChatId,
 	EncryptedMessage,
 	EncryptedMessageMetadata
-} from '../../declarations/encrypted_chat/encrypted_chat.did';
+} from '../../declarations/encrypted_chat/backend.did';
 import { KeyManager } from '$lib/crypto/keyManager';
 import { RatchetInitializationService } from './ratchetInitializationService';
 import { SymmetricRatchetEpochError, VetKeyEpochError, type Message } from '$lib/types';
@@ -30,12 +30,19 @@ export class EncryptedMessagingService {
 
 	#sendingQueue: Map<string, Uint8Array[]>;
 
-	#receivingQueue: Map<string, Message[]>;
 	#receivingQueueToDecrypt: Map<string, EncryptedMessage[]>;
 	#chatIdToCurrentNumberOfRemoteMessages: Map<string, bigint>;
 	#chatIdToCurrentNumberOfFetchedMessages: Map<string, bigint>;
 
 	#backgroundWorker: BackgroundWorker;
+
+	// Callbacks set by start() — push-based delivery instead of polling a queue.
+	#onMessagesDecrypted: ((chatIdStr: string, messages: Message[]) => void) | null = null;
+	#onNewChatDiscovered: ((chatId: ChatId) => void) | null = null;
+
+	// Resolves after the first full receiver poll completes.
+	#firstPollCompleteResolve: (() => void) | null = null;
+	firstPollComplete: Promise<void>;
 
 	constructor() {
 		this.#ratchetInitializationService = new RatchetInitializationService();
@@ -43,17 +50,26 @@ export class EncryptedMessagingService {
 
 		// Initialize sending and receiving queues
 		this.#sendingQueue = new Map();
-		this.#receivingQueue = new Map();
 		this.#receivingQueueToDecrypt = new Map();
 
 		this.#chatIdToCurrentNumberOfRemoteMessages = new Map();
 		this.#chatIdToCurrentNumberOfFetchedMessages = new Map();
 
+		this.firstPollComplete = new Promise<void>((resolve) => {
+			this.#firstPollCompleteResolve = resolve;
+		});
+
 		// Start the background worker to handle encryption, sending, polling, and decryption
 		this.#backgroundWorker = new BackgroundWorker();
 	}
 
-	start() {
+	start(
+		onMessagesDecrypted: (chatIdStr: string, messages: Message[]) => void,
+		onNewChatDiscovered: (chatId: ChatId) => void
+	) {
+		this.#onMessagesDecrypted = onMessagesDecrypted;
+		this.#onNewChatDiscovered = onNewChatDiscovered;
+
 		// Start the worker loop
 		// The worker will periodically:
 		// 1. Take outgoing messages from the sending queue, encrypt using RatchetInitializationService, and send via the actor.
@@ -62,6 +78,10 @@ export class EncryptedMessagingService {
 		void this.#backgroundWorker.start(
 			async () => {
 				await this.#pollForNewMessages();
+				// Resolve firstPollComplete after fetching — before decryption.
+				// This unblocks the loading screen even if some messages fail to decrypt.
+				this.#firstPollCompleteResolve?.();
+				this.#firstPollCompleteResolve = null;
 				await this.#decryptReceivedMessages();
 			},
 			async () => this.#handleOutgoingMessages()
@@ -95,12 +115,6 @@ export class EncryptedMessagingService {
 			...(this.#sendingQueue.get(chatIdToString(chatId)) || []),
 			content
 		]);
-	}
-
-	takeReceivedMessages(): Map<string, Message[]> {
-		const messages = this.#receivingQueue;
-		this.#receivingQueue = new Map();
-		return messages;
 	}
 
 	signalStopWorker() {
@@ -137,7 +151,7 @@ export class EncryptedMessagingService {
 					content
 				);
 				await sendMessage(
-					getActor(),
+					await getActor(),
 					chatIdFromString(chatIdStr),
 					encrypted.vetKeyEpoch,
 					encrypted.symmetricRatchetEpoch,
@@ -175,21 +189,37 @@ export class EncryptedMessagingService {
 	async #pollForNewMessages(): Promise<void> {
 		if (auth.state.label !== 'initialized') return;
 
+		// Capture map references so we can detect a reset() call that happens while we
+		// are awaiting IC responses. If reset() fires mid-poll, the maps are replaced;
+		// any write we make would contaminate the fresh maps with stale data.
+		const currentQueue = this.#receivingQueueToDecrypt;
+		const currentFetchedMap = this.#chatIdToCurrentNumberOfFetchedMessages;
+
 		// Get chat IDs and check for new messages
-		const chatIds = await canisterAPI.getChatIdsAndCurrentNumbersOfMessages(getActor());
+		const chatIds = await canisterAPI.getChatIdsAndCurrentNumbersOfMessages(await getActor());
+
+		// Abort if reset() was called while we were awaiting.
+		if (
+			this.#receivingQueueToDecrypt !== currentQueue ||
+			this.#chatIdToCurrentNumberOfFetchedMessages !== currentFetchedMap
+		) {
+			console.log('#pollForNewMessages: stale poll detected after getChatIds, aborting');
+			return;
+		}
 
 		const summary = chatIdsNumMessagesToSummary(chatIds);
 		console.log('fetched ' + chatIds.length + ' chats: ' + summary);
 
 		for (const { chatId, numMessages } of chatIds) {
-			if (!this.#keyManager.doesChatHaveKeys(chatIdToString(chatId))) {
+			const isNewChat = !this.#keyManager.doesChatHaveKeys(chatIdToString(chatId));
+			if (isNewChat) {
 				console.log(
 					'#pollForNewMessages: chatId',
 					chatIdToString(chatId),
 					'does not have keys, initializing'
 				);
 				const latestVetKeyEpoch = (
-					await canisterAPI.getLatestVetKeyEpochMetadata(getActor(), chatId)
+					await canisterAPI.getLatestVetKeyEpochMetadata(await getActor(), chatId)
 				).epoch_id;
 				const ratchetState =
 					await this.#ratchetInitializationService.initializeRatchetStateAndReshareAndCacheIfNeeded(
@@ -201,6 +231,7 @@ export class EncryptedMessagingService {
 					latestVetKeyEpoch,
 					ratchetState
 				);
+				this.#onNewChatDiscovered?.(chatId);
 			}
 
 			const currentNumberOfFetchedMessages =
@@ -216,7 +247,7 @@ export class EncryptedMessagingService {
 
 			try {
 				const messages = await canisterAPI.fetchEncryptedMessages(
-					getActor(),
+					await getActor(),
 					chatId,
 					startId,
 					undefined
@@ -232,6 +263,15 @@ export class EncryptedMessagingService {
 					'#pollForNewMessages: old map this.#chatIdToCurrentNumberOfFetchedMessages ',
 					this.#chatIdToCurrentNumberOfFetchedMessages
 				);
+
+				// Abort if reset() fired during any of the awaits above.
+				if (
+					this.#receivingQueueToDecrypt !== currentQueue ||
+					this.#chatIdToCurrentNumberOfFetchedMessages !== currentFetchedMap
+				) {
+					console.log('#pollForNewMessages: stale poll detected after fetchMessages, aborting');
+					return;
+				}
 
 				this.#chatIdToCurrentNumberOfFetchedMessages.set(
 					chatIdToString(chatId),
@@ -254,7 +294,15 @@ export class EncryptedMessagingService {
 					'Failed to poll for new messages, trying again to pull just one message...',
 					error
 				);
-				const messages = await canisterAPI.fetchEncryptedMessages(getActor(), chatId, startId, 1n);
+				const messages = await canisterAPI.fetchEncryptedMessages(await getActor(), chatId, startId, 1n);
+
+				if (
+					this.#receivingQueueToDecrypt !== currentQueue ||
+					this.#chatIdToCurrentNumberOfFetchedMessages !== currentFetchedMap
+				) {
+					console.log('#pollForNewMessages: stale poll detected after fallback fetch, aborting');
+					return;
+				}
 
 				this.#chatIdToCurrentNumberOfFetchedMessages.set(
 					chatIdToString(chatId),
@@ -270,26 +318,38 @@ export class EncryptedMessagingService {
 	}
 
 	/**
-	 * Decrypt received messages and put into receiving queue
+	 * Decrypt received messages and deliver them immediately via callback.
 	 */
 	async #decryptReceivedMessages(): Promise<void> {
 		if (this.#receivingQueueToDecrypt.size !== 0) {
 			console.log(
 				'#decryptReceivedMessages: decrypting',
 				this.#receivingQueueToDecrypt.size,
-				'messages'
+				'chats with pending messages'
 			);
 		}
 		for (const [chatIdStr, encryptedMessages] of this.#receivingQueueToDecrypt.entries()) {
+			const decryptedBatch: Message[] = [];
 			for (const encryptedMessage of encryptedMessages) {
-				const decrypted = await this.#decryptMessage(chatIdStr, encryptedMessage);
-				this.#receivingQueueToDecrypt.get(chatIdStr)?.shift();
-				this.#receivingQueue.set(chatIdStr, [
-					...(this.#receivingQueue.get(chatIdStr) || []),
-					decrypted
-				]);
+				try {
+					const decrypted = await this.#decryptMessage(chatIdStr, encryptedMessage);
+					decryptedBatch.push(decrypted);
+				} catch (error) {
+					// A single undecryptable message must not block the rest of the queue.
+					// Show a placeholder in the UI so the user knows a message exists but
+					// couldn't be decrypted. Placeholders are NOT persisted to IndexedDB so
+					// that the next session can retry.
+					console.error(
+						`#decryptReceivedMessages: failed to decrypt message ${encryptedMessage.metadata.chat_message_id.toString()} for chat ${chatIdStr}:`,
+						error
+					);
+					decryptedBatch.push(this.#makePlaceholderMessage(chatIdStr, encryptedMessage.metadata));
+				}
 			}
 			this.#receivingQueueToDecrypt.delete(chatIdStr);
+			if (decryptedBatch.length > 0) {
+				this.#onMessagesDecrypted?.(chatIdStr, decryptedBatch);
+			}
 		}
 	}
 
@@ -302,13 +362,13 @@ export class EncryptedMessagingService {
 		);
 		for (let i = 0; i < 2; i++) {
 			try {
-				const decrypted = await this.#keyManager.decryptAtTimeAndEvolveIfNeeded(
+				const decrypted = await this.#keyManager.decryptAtEpochAndEvolveIfNeeded(
 					chatIdStr,
 					encryptedMessage.metadata.sender,
 					encryptedMessage.metadata.nonce,
 					encryptedMessage.metadata.vetkey_epoch,
-					new Uint8Array(encryptedMessage.content),
-					new Date(Number(encryptedMessage.metadata.timestamp / 1_000_000n))
+					encryptedMessage.metadata.symmetric_key_epoch,
+					new Uint8Array(encryptedMessage.content)
 				);
 
 				return this.#parseMessage(chatIdStr, encryptedMessage.metadata, decrypted);
@@ -340,6 +400,19 @@ export class EncryptedMessagingService {
 		}
 
 		throw Error('unreachable code');
+	}
+
+	#makePlaceholderMessage(chatIdStr: string, metadata: EncryptedMessageMetadata): Message {
+		return {
+			messageId: metadata.chat_message_id.toString(),
+			chatId: chatIdStr,
+			senderId: metadata.sender.toText(),
+			content: '',
+			timestamp: new Date(Number(metadata.timestamp / 1_000_000n)),
+			vetkeyEpoch: Number(metadata.vetkey_epoch),
+			symmetricRatchetEpoch: Number(metadata.symmetric_key_epoch),
+			decryptionFailed: true
+		};
 	}
 
 	#parseMessage(

@@ -5,7 +5,7 @@
 	import { SvelteDate } from 'svelte/reactivity';
 	import { auth, getMyPrincipal } from '$lib/stores/auth.svelte';
 	import { chatIdToString } from '$lib/utils';
-	import type { ChatId } from '../../declarations/encrypted_chat/encrypted_chat.did';
+	import type { ChatId } from '../../declarations/encrypted_chat/backend.did';
 
 	let messagesContainer: HTMLDivElement | undefined = $state(undefined);
 	let autoScroll = $state(true);

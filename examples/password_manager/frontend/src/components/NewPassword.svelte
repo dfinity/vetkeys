@@ -30,6 +30,14 @@
             return;
         }
 
+        if (vaultName.trim() === "" || passwordName.trim() === "") {
+            addNotification({
+                type: "error",
+                message: "Vault name and password name must not be empty.",
+            });
+            return;
+        }
+
         creating = true;
 
         await addPassword(
@@ -102,7 +110,9 @@
     <PasswordEditor {editor} class="mb-3" disabled={creating} />
     <button
         class="btn mt-6 btn-primary {creating ? 'loading' : ''}"
-        disabled={creating}
+        disabled={creating ||
+            vaultName.trim() === "" ||
+            passwordName.trim() === ""}
         on:click={add}>{creating ? "Adding..." : "Add password"}</button
     >
 </main>

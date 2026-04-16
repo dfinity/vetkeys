@@ -148,7 +148,7 @@ auth.subscribe((auth) => {
                             (e: Error) =>
                                 showError(e, "Could not poll vaults."),
                         );
-                    });
+                    })();
                 }, 3000);
             } catch {
                 vaultsStore.set({

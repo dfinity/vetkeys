@@ -1,5 +1,5 @@
 import { deriveRootKeyBytes, SymmetricRatchetState } from '$lib/crypto/symmetricRatchet';
-import type { ChatId } from '../../declarations/encrypted_chat/encrypted_chat.did';
+import type { ChatId } from '../../declarations/encrypted_chat/backend.did';
 import { getActor, getMyPrincipal } from '$lib/stores/auth.svelte';
 import { stringifyBigInt, chatIdToString } from '$lib/utils';
 import { canisterAPI } from './canisterApi';
@@ -20,7 +20,7 @@ export class RatchetInitializationService {
 		chatId: ChatId,
 		vetKeyEpoch: bigint
 	): Promise<SymmetricRatchetState> {
-		const metadata = await canisterAPI.getVetKeyEpochMetadata(getActor(), chatId, vetKeyEpoch);
+		const metadata = await canisterAPI.getVetKeyEpochMetadata(await getActor(), chatId, vetKeyEpoch);
 		const creationTime = new Date(Number(metadata.creation_timestamp / 1_000_000n));
 		const rotationDuration = new Date(
 			Number(metadata.symmetric_key_rotation_duration / 1_000_000n)
@@ -157,11 +157,11 @@ export class RatchetInitializationService {
 		chatId: ChatId,
 		vetKeyEpoch: bigint
 	): Promise<{ key: CryptoKey; symmetricKeyEpoch: bigint }> {
-		const vetKey = await canisterAPI.getVetKey(getActor(), chatId, vetKeyEpoch);
+		const vetKey = await canisterAPI.getVetKey(await getActor(), chatId, vetKeyEpoch);
 		while (true) {
 			console.log('waiting for vetKey epoch metadata in a loop');
 
-			const meta = await canisterAPI.getVetKeyEpochMetadata(getActor(), chatId, vetKeyEpoch);
+			const meta = await canisterAPI.getVetKeyEpochMetadata(await getActor(), chatId, vetKeyEpoch);
 
 			const otherParticipants = meta.participants.filter(
 				(p) => p.toString() !== getMyPrincipal().toString()
