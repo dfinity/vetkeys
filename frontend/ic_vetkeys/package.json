@@ -57,7 +57,7 @@
     "module": "dist/lib/index.es.js",
     "typings": "dist/types/index.d.ts",
     "dependencies": {
-        "@icp-sdk/core": "^5.0.0",
+        "@icp-sdk/core": "^5.2.1",
         "idb-keyval": "^6.2.1"
     },
     "devDependencies": {
@@ -81,15 +81,15 @@
     "scripts": {
         "build": "tsc && vite build",
         "prepare": "test -d dist || (npx vite --version >/dev/null 2>&1 && npm run build) || echo 'dist/ not found and vite not available — run npm install && npm run build in frontend/ic_vetkeys'",
-        "coverage": "npm run test:deploy_all && export $(cat .test1.env .test2.env | xargs) && vitest run --coverage",
+        "coverage": "npm run test:deploy_all && CANISTER_ID_IC_VETKEYS_MANAGER_CANISTER=$(cd $(git rev-parse --show-toplevel)/backend/rs/canisters && icp canister status ic_vetkeys_manager_canister -e local --id-only) CANISTER_ID_IC_VETKEYS_ENCRYPTED_MAPS_CANISTER=$(cd $(git rev-parse --show-toplevel)/backend/rs/canisters && icp canister status ic_vetkeys_encrypted_maps_canister -e local --id-only) vitest run --coverage",
         "lint": "eslint",
         "make:docs": "mkdir -p $(git rev-parse --show-toplevel)/docs/key_manager && mkdir -p $(git rev-parse --show-toplevel)/docs/encrypted_maps && typedoc --out $(git rev-parse --show-toplevel)/docs",
         "prettier": "prettier --write .",
         "prettier-check": "prettier --check .",
         "test_utils": "vitest utils",
-        "test": "npm run test:deploy_all && export $(cat .test1.env .test2.env | xargs) && vitest --sequence.concurrent",
-        "test:deploy_all": "npm run test:deploy_key_manager_canister && npm run test:deploy_encrypted_maps_canister",
-        "test:deploy_key_manager_canister": "cd $(git rev-parse --show-toplevel)/backend/rs/canisters/ic_vetkeys_manager_canister && dfx start --clean --background; dfx deploy --argument '(\"dfx_test_key\")' ic_vetkeys_manager_canister && grep CANISTER_ID .env > $(git rev-parse --show-toplevel)/frontend/ic_vetkeys/.test1.env",
-        "test:deploy_encrypted_maps_canister": "cd $(git rev-parse --show-toplevel)/backend/rs/canisters/ic_vetkeys_encrypted_maps_canister && dfx start --clean --background; dfx deploy --argument '(\"dfx_test_key\")' ic_vetkeys_encrypted_maps_canister && grep CANISTER_ID .env > $(git rev-parse --show-toplevel)/frontend/ic_vetkeys/.test2.env"
+        "test": "npm run test:deploy_all && CANISTER_ID_IC_VETKEYS_MANAGER_CANISTER=$(cd $(git rev-parse --show-toplevel)/backend/rs/canisters && icp canister status ic_vetkeys_manager_canister -e local --id-only) CANISTER_ID_IC_VETKEYS_ENCRYPTED_MAPS_CANISTER=$(cd $(git rev-parse --show-toplevel)/backend/rs/canisters && icp canister status ic_vetkeys_encrypted_maps_canister -e local --id-only) vitest run --sequence.concurrent",
+        "test:deploy_all": "cd $(git rev-parse --show-toplevel)/backend/rs/canisters && (icp network stop || true) && icp network start -d && icp deploy ic_vetkeys_manager_canister -e local && icp deploy ic_vetkeys_encrypted_maps_canister -e local",
+        "test:deploy_key_manager_canister": "cd $(git rev-parse --show-toplevel)/backend/rs/canisters && (icp network stop || true) && icp network start -d && icp deploy ic_vetkeys_manager_canister -e local",
+        "test:deploy_encrypted_maps_canister": "cd $(git rev-parse --show-toplevel)/backend/rs/canisters && (icp network stop || true) && icp network start -d && icp deploy ic_vetkeys_encrypted_maps_canister -e local"
     }
 }
