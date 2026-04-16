@@ -25,6 +25,11 @@ jobs:
       - name: Provision Darwin
         run: |
           bash .github/workflows/provision-darwin.sh
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '22'
+      - name: Install workspace dependencies
+        run: npm install
       - name: Deploy Basic Timelock IBE Darwin
         run: |
           set -eExuo pipefail
@@ -41,6 +46,11 @@ jobs:
           persist-credentials: false
       - name: Provision Linux
         run: bash .github/workflows/provision-linux.sh
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '22'
+      - name: Install workspace dependencies
+        run: npm install
       - name: Deploy Basic Timelock IBE Linux
         run: |
           set -eExuo pipefail
@@ -48,4 +58,4 @@ jobs:
           pushd examples/basic_timelock_ibe
           dfx start --background && dfx deploy
           cd frontend
-          npm run lint 
+          npm run lint
