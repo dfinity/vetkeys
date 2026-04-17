@@ -22,7 +22,8 @@ export const createActor = (canisterId, options = {}) => {
   }
 
   // Fetch root key for certificate validation during development
-  if (process.env.DFX_NETWORK !== "ic") {
+  // Skip if agent was provided by caller (they handle root key themselves)
+  if (!options.agent && process.env.DFX_NETWORK !== "ic") {
     agent.fetchRootKey().catch((err) => {
       console.warn(
         "Unable to fetch root key. Check to ensure that your local replica is running"
