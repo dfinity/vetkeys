@@ -1,3 +1,6 @@
+[toolchain]
+moc = "1.5.0"
+
 [package]
 name = "ic-vetkeys-manager-canister"
 version = "0.1.0"
@@ -10,4 +13,4 @@ license = "Apache-2.0"
 
 [dependencies]
 base = "0.14.6"
-ic-vetkeys = "0.3.0"
+ic-vetkeys = "0.4.0"

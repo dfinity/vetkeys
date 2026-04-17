@@ -13,8 +13,8 @@ on:
       - backend/rs/canisters/**
       - Cargo.toml
       - Cargo.lock
-      - .github/workflows/provision-linux.sh
-      - .github/workflows/provision-darwin.sh
+      - .github/workflows/provision-frontend-linux.sh
+      - .github/workflows/provision-frontend-darwin.sh
       - .github/workflows/backend-motoko.yml
 
 jobs:
@@ -24,12 +24,17 @@ jobs:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
         with:
           persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '22'
       - uses: ZenVoich/setup-mops@3e94e453352269b34137b5ce49f09a8df81bed7d # v1.4.1
         with:
           mops-version: 1
       - name: Provision Linux
-        run: bash .github/workflows/provision-linux.sh
+        run: bash .github/workflows/provision-frontend-linux.sh
       - name: Run MOPS Test Linux
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -eExuo pipefail
           cd backend/mo/ic_vetkeys
@@ -45,12 +50,17 @@ jobs:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
         with:
           persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '22'
       - uses: ZenVoich/setup-mops@3e94e453352269b34137b5ce49f09a8df81bed7d # v1.4.1
         with:
           mops-version: 1
       - name: Provision Darwin
-        run: bash .github/workflows/provision-darwin.sh
+        run: bash .github/workflows/provision-frontend-darwin.sh
       - name: Run MOPS Test Darwin
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -eExuo pipefail
           cd backend/mo/ic_vetkeys

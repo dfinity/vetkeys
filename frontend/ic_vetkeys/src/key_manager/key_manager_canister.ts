@@ -1,7 +1,7 @@
-import { Principal } from "@dfinity/principal";
-import { ActorSubclass, HttpAgent } from "@dfinity/agent";
-import { createActor } from "../declarations/ic_vetkeys_manager_canister/index.js";
-import {
+import { Principal } from "@icp-sdk/core/principal";
+import { Actor, ActorSubclass, HttpAgent } from "@icp-sdk/core/agent";
+import { idlFactory } from "../declarations/ic_vetkeys_manager_canister/ic_vetkeys_manager_canister.did.js";
+import type {
     _SERVICE as _DEFAULT_KEY_MANAGER_SERVICE,
     AccessRights,
     ByteBuf,
@@ -15,7 +15,10 @@ export class DefaultKeyManagerClient implements KeyManagerClient {
 
     constructor(agent: HttpAgent, canisterId: string) {
         this.canisterId = canisterId;
-        this.actor = createActor(canisterId, { agent });
+        this.actor = Actor.createActor(idlFactory, {
+            agent,
+            canisterId,
+        });
     }
 
     get_accessible_shared_key_ids(): Promise<[Principal, ByteBuf][]> {

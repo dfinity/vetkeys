@@ -665,7 +665,7 @@ fn should_access_map_values() {
     let map_name = random_map_name(rng);
 
     let mut authorized_users = vec![(caller, AccessRights::ReadWriteManage)];
-    let mut keyvals = vec![];
+    let mut keyvals: BTreeMap<ByteBuf, ByteBuf> = BTreeMap::new();
 
     for _ in 0..3 {
         let map_key = random_map_key(rng);
@@ -697,7 +697,7 @@ fn should_access_map_values() {
             authorized_users.push((user_to_be_added, access_rights));
         }
 
-        keyvals.push((map_key, encrypted_value));
+        keyvals.insert(map_key, encrypted_value);
     }
 
     for (map_key, encrypted_value) in keyvals.clone() {
@@ -714,7 +714,7 @@ fn should_access_map_values() {
     }
 
     for (user, _access_rights) in authorized_users.clone() {
-        let expected_map = BTreeMap::from_iter(keyvals.clone());
+        let expected_map = keyvals.clone();
         let computed_map_single = BTreeMap::from_iter(
             env.query::<Result<Vec<(ByteBuf, ByteBuf)>, String>>(
                 user,
@@ -984,7 +984,7 @@ impl TestEnvironment {
         pic.install_canister(
             example_canister_id,
             example_wasm_bytes,
-            encode_one("dfx_test_key").unwrap(),
+            encode_one("test_key_1").unwrap(),
             None,
         );
 
@@ -1032,14 +1032,20 @@ impl TestEnvironment {
 
 fn load_encrypted_maps_example_canister_wasm() -> Vec<u8> {
     let wasm_path_string = match std::env::var("CUSTOM_WASM_PATH") {
-        Ok(path) if !path.is_empty() => path,
+        Ok(path) if !path.is_empty() => {
+            assert!(
+                Path::new(&path).exists(),
+                "CUSTOM_WASM_PATH is set to '{}' but the file does not exist; run `make compile-wasm` first",
+                path
+            );
+            path
+        }
         _ => format!(
             "{}/target/wasm32-unknown-unknown/release/ic_vetkeys_encrypted_maps_canister.wasm",
             git_root_dir()
         ),
     };
-    let wasm_path = Path::new(&wasm_path_string);
-    std::fs::read(wasm_path)
+    std::fs::read(&wasm_path_string)
         .expect("wasm does not exist - run `cargo build --release --target wasm32-unknown-unknown`")
 }
 
