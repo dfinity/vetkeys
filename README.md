@@ -43,6 +43,4 @@ Tools for frontend developers to interact with VetKD enabled canisters.
 
 ### **3. vetKeys Example Applications**
 
-Most example applications have moved to the [dfinity/examples](https://github.com/dfinity/examples/tree/master/rust/vetkeys) repository.
-
-- **[Encrypted Chat](examples/encrypted_chat)** - An *unfinished prototype* for an end-to-end encrypted messaging application based on vetKeys.
+Example applications have moved to the [dfinity/examples](https://github.com/dfinity/examples/tree/master/rust/vetkeys) repository.
