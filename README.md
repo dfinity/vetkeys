@@ -43,4 +43,12 @@ Tools for frontend developers to interact with VetKD enabled canisters.
 
 ### **3. vetKeys Example Applications**
 
-Example applications have moved to the [dfinity/examples](https://github.com/dfinity/examples/tree/master/rust/vetkeys) repository.
+Example applications are available in the [dfinity/examples](https://github.com/dfinity/examples/tree/master/rust/vetkeys) repository:
+
+- **[Threshold BLS Signatures](https://github.com/dfinity/examples/tree/master/rust/vetkeys/basic_bls_signing)** - Demonstrates how to use vetKeys to create a threshold BLS signing service.
+- **[Identity-Based Encryption (IBE)](https://github.com/dfinity/examples/tree/master/rust/vetkeys/basic_ibe)** - Shows how to implement secure messaging using Identity Based Encryption using Internet Identity Principals as encryption IDs.
+- **[Timelock Encryption](https://github.com/dfinity/examples/tree/master/rust/vetkeys/basic_timelock_ibe)** - Implements a secret-bid auction system where bids remain encrypted until the auction is opened.
+- **[Password Manager](https://github.com/dfinity/examples/tree/master/rust/vetkeys/password_manager)** - A secure, decentralized password manager using Encrypted Maps for vault-based password storage and sharing.
+- **[Password Manager with Metadata](https://github.com/dfinity/examples/tree/master/rust/vetkeys/password_manager_with_metadata)** - Extends the basic password manager to support unencrypted metadata alongside encrypted passwords.
+- **[Encrypted Notes](https://github.com/dfinity/examples/tree/master/rust/vetkeys/encrypted_notes_dapp_vetkd)** - A secure note-taking application that uses vetKeys for encryption and enables sharing notes between users without device management.
+- **[Encrypted Chat](https://github.com/dfinity/examples/tree/master/rust/vetkeys/encrypted_chat)** - An *unfinished prototype* for an end-to-end encrypted messaging application based on vetKeys.
