@@ -14,6 +14,9 @@ keywords = [
 ]
 license = "Apache-2.0"
 
+[canisters.ic_vetkeys_encrypted_maps_canister]
+main = "src/Main.mo"
+
 [dependencies]
 core = "2.4.0"
 ic-vetkeys = "0.4.0"

@@ -33,16 +33,13 @@ jobs:
         run: |
           set -eExuo pipefail
           cd backend/mo/ic_vetkeys
-          mops toolchain init
           mops install
           mops test
           cd ../canisters/ic_vetkeys_manager_canister
           mops install
-          mops toolchain init
           make test
           cd ../ic_vetkeys_encrypted_maps_canister
           mops install
-          mops toolchain init
           make test
   backend-motoko-tests-darwin:
     runs-on: macos-15
@@ -59,14 +56,11 @@ jobs:
         run: |
           set -eExuo pipefail
           cd backend/mo/ic_vetkeys
-          mops toolchain init
           mops install
           mops test
           cd ../canisters/ic_vetkeys_manager_canister
           mops install
-          mops toolchain init
           make test
           cd ../ic_vetkeys_encrypted_maps_canister
           mops install
-          mops toolchain init
           make test
