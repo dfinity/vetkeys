@@ -12,8 +12,8 @@ on:
       - package.json
       - package-lock.json
       - .github/workflows/frontend.yml
-      - .github/workflows/provision-frontend-darwin.sh
-      - .github/workflows/provision-frontend-linux.sh
+      - .github/workflows/provision-darwin.sh
+      - .github/workflows/provision-linux.sh
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
@@ -28,7 +28,7 @@ jobs:
         with:
           node-version: '22'
       - name: Provision Linux
-        run: bash .github/workflows/provision-frontend-linux.sh
+        run: bash .github/workflows/provision-linux.sh
       - name: Frontend Tests and Lint
         env:
           ICP_CLI_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -50,7 +50,7 @@ jobs:
           node-version: '22'
       - name: Provision Darwin
         run: |
-          bash .github/workflows/provision-frontend-darwin.sh
+          bash .github/workflows/provision-darwin.sh
       - name: Frontend Tests and Lint
         env:
           ICP_CLI_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
