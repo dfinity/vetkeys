@@ -158,11 +158,11 @@ module {
                 case (#err(msg)) { #err(msg) };
                 case (#ok(_)) {
                     let principalBytes = keyId.0.toBlob().toArray();
-                    let input = Array.flatten([
+                    let input = [
                         [Nat8.fromNat(principalBytes.size())],
                         principalBytes,
                         keyId.1.toArray(),
-                    ]);
+                    ].flatten();
 
                     #ok(await ManagementCanister.vetKdDeriveKey(Blob.fromArray(input), domainSeparatorBytes, keyManagerState.vetKdKeyId, transportKey));
                 };
@@ -181,10 +181,10 @@ module {
                                 accessRightsOperations.ownerRights();
                             } else {
                                 let entries = keyManagerState.accessControl.get(user)!;
-                                let (k, rights) = entries.find(
-                                    func((k, rights) : (KeyId, T)) : Bool = compareKeyIds(k, keyId) == #equal,
+                                let (_k, foundRights) = entries.find(
+                                    func((_k, _rights) : (KeyId, T)) : Bool = compareKeyIds(_k, keyId) == #equal,
                                 )!;
-                                rights;
+                                foundRights;
                             };
                         }
                     );
