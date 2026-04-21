@@ -1,3 +1,9 @@
+[toolchain]
+moc = "1.6.0"
+
+[moc]
+args = ["-W=M0236,M0237,M0223"]
+
 [package]
 name = "ic-vetkeys-encrypted-maps-canister"
 version = "0.1.0"
@@ -9,5 +15,5 @@ keywords = [
 license = "Apache-2.0"
 
 [dependencies]
-base = "0.14.6"
+core = "2.4.0"
 ic-vetkeys = "0.4.0"

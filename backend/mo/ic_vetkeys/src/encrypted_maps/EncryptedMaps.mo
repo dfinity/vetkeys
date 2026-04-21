@@ -11,7 +11,7 @@
 /// - **Encrypted Key-Value Storage:** Securely store and manage encrypted key-value pairs within named maps.
 /// - **User-Specific Map Access:** Control precisely which users can read or modify entries in an encrypted map.
 /// - **Integrated Access Control:** Leverages the **KeyManager** library to manage and enforce user permissions.
-/// - **Stable Storage:** Utilizes **OrderedMap** for reliable, persistent storage across canister upgrades.
+/// - **Stable Storage:** Utilizes **Map** for reliable, persistent storage across canister upgrades.
 ///
 /// ## EncryptedMaps Architecture
 ///
@@ -36,17 +36,17 @@
 /// ## Summary
 /// **EncryptedMaps** simplifies secure storage, retrieval, and controlled sharing of encrypted data on the Internet Computer, complementing the robust security and permissions management provided by **KeyManager**.
 
-import Principal "mo:base/Principal";
-import Blob "mo:base/Blob";
-import Buffer "mo:base/Buffer";
-import Array "mo:base/Array";
-import Iter "mo:base/Iter";
-import Option "mo:base/Option";
-import Debug "mo:base/Debug";
-import OrderedMap "mo:base/OrderedMap";
-import Result "mo:base/Result";
+import Principal "mo:core/Principal";
+import Blob "mo:core/Blob";
+import List "mo:core/List";
+import Array "mo:core/Array";
+import Iter "mo:core/Iter";
+import Option "mo:core/Option";
+import Runtime "mo:core/Runtime";
+import Map "mo:core/pure/Map";
+import Result "mo:core/Result";
 import Types "../Types";
-import Text "mo:base/Text";
+import Text "mo:core/Text";
 import KeyManager "../key_manager/KeyManager";
 import ManagementCanister "../ManagementCanister";
 
@@ -75,51 +75,39 @@ module {
     };
 
     func compareMapIds(a : MapId, b : MapId) : { #less; #greater; #equal } {
-        let ownersCompare = Principal.compare(a.0, b.0);
-        if (ownersCompare == #equal) {
+        KeyManager.compareKeyIds(a, b);
+    };
+
+    func compareMapKeyValKeys(a : (MapId, MapKey), b : (MapId, MapKey)) : {
+        #less;
+        #greater;
+        #equal;
+    } {
+        let mapIdCompare = compareMapIds(a.0, b.0);
+        if (mapIdCompare == #equal) {
             Blob.compare(a.1, b.1);
         } else {
-            ownersCompare;
+            mapIdCompare;
         };
-    };
-
-    func mapKeyValsMapOps() : OrderedMap.Operations<(MapId, MapKey)> {
-        let compare = func(a : (MapId, MapKey), b : (MapId, MapKey)) : {
-            #less;
-            #greater;
-            #equal;
-        } {
-            let mapIdCompare = compareMapIds(a.0, b.0);
-            if (mapIdCompare == #equal) {
-                Blob.compare(a.1, b.1);
-            } else {
-                mapIdCompare;
-            };
-        };
-        return OrderedMap.Make<(MapId, MapKey)>(compare);
-    };
-
-    func mapKeysMapOps() : OrderedMap.Operations<MapId> {
-        return OrderedMap.Make<MapId>(compareMapIds);
     };
 
     public type EncryptedMapsState<T> = {
         var keyManager : KeyManager.KeyManagerState<T>;
-        var mapKeyVals : OrderedMap.Map<(MapId, MapKey), EncryptedMapValue>;
-        var mapKeys : OrderedMap.Map<MapId, [MapKey]>;
+        var mapKeyVals : Map.Map<(MapId, MapKey), EncryptedMapValue>;
+        var mapKeys : Map.Map<MapId, [MapKey]>;
     };
 
     public func newEncryptedMapsState<T>(vetKdKeyId : ManagementCanister.VetKdKeyid, domainSeparator : Text) : EncryptedMapsState<T> {
         {
             var keyManager = KeyManager.newKeyManagerState<T>(vetKdKeyId, domainSeparator);
-            var mapKeyVals = mapKeyValsMapOps().empty();
-            var mapKeys = mapKeysMapOps().empty();
+            var mapKeyVals = Map.empty<(MapId, MapKey), EncryptedMapValue>();
+            var mapKeys = Map.empty<MapId, [MapKey]>();
         };
     };
 
     /// See the module documentation for more information.
     public class EncryptedMaps<T>(encryptedMapsState : EncryptedMapsState<T>, accessRightsOperations : Types.AccessControlOperations<T>) {
-        let keyManager = KeyManager.KeyManager<T>(encryptedMapsState.keyManager, accessRightsOperations);
+        let keyManager = KeyManager.KeyManager(encryptedMapsState.keyManager, accessRightsOperations);
 
         /// Lists all map names shared with the caller.
         /// Returns a vector of map IDs that the caller has access to.
@@ -140,14 +128,14 @@ module {
             switch (keyManager.ensureUserCanWrite(caller, mapId)) {
                 case (#err(msg)) { #err(msg) };
                 case (#ok(_)) {
-                    let keys = switch (mapKeysMapOps().get(encryptedMapsState.mapKeys, mapId)) {
+                    let keys = switch (encryptedMapsState.mapKeys.get(compareMapIds, mapId)) {
                         case (null) { [] };
                         case (?ks) { ks };
                     };
-                    for (key in keys.vals()) {
-                        encryptedMapsState.mapKeyVals := mapKeyValsMapOps().delete(encryptedMapsState.mapKeyVals, (mapId, key));
+                    for (key in keys.values()) {
+                        encryptedMapsState.mapKeyVals := encryptedMapsState.mapKeyVals.remove(compareMapKeyValKeys, (mapId, key));
                     };
-                    encryptedMapsState.mapKeys := mapKeysMapOps().delete(encryptedMapsState.mapKeys, mapId);
+                    encryptedMapsState.mapKeys := encryptedMapsState.mapKeys.remove(compareMapIds, mapId);
                     #ok(keys);
                 };
             };
@@ -159,20 +147,20 @@ module {
             switch (keyManager.ensureUserCanRead(caller, mapId)) {
                 case (#err(msg)) { #err(msg) };
                 case (#ok(_)) {
-                    let values = Buffer.Buffer<(MapKey, EncryptedMapValue)>(0);
-                    let keys = switch (mapKeysMapOps().get(encryptedMapsState.mapKeys, mapId)) {
+                    let values = List.empty<(MapKey, EncryptedMapValue)>();
+                    let keys = switch (encryptedMapsState.mapKeys.get(compareMapIds, mapId)) {
                         case (null) { [] };
                         case (?ks) { ks };
                     };
-                    for (key in keys.vals()) {
-                        switch (mapKeyValsMapOps().get(encryptedMapsState.mapKeyVals, (mapId, key))) {
+                    for (key in keys.values()) {
+                        switch (encryptedMapsState.mapKeyVals.get(compareMapKeyValKeys, (mapId, key))) {
                             case (null) {};
                             case (?value) {
                                 values.add((key, value));
                             };
                         };
                     };
-                    #ok(Buffer.toArray(values));
+                    #ok(values.toArray());
                 };
             };
         };
@@ -183,38 +171,37 @@ module {
             switch (keyManager.ensureUserCanRead(caller, mapId)) {
                 case (#err(msg)) { #err(msg) };
                 case (#ok(_)) {
-                    #ok(mapKeyValsMapOps().get(encryptedMapsState.mapKeyVals, (mapId, key)));
+                    #ok(encryptedMapsState.mapKeyVals.get(compareMapKeyValKeys, (mapId, key)));
                 };
             };
         };
 
         /// Retrieves the non-empty map names owned by the caller.
         public func getAllAccessibleEncryptedValues(caller : Caller) : [(MapId, [(MapKey, EncryptedMapValue)])] {
-            let result = Buffer.Buffer<(MapId, [(MapKey, EncryptedMapValue)])>(0);
+            let result = List.empty<(MapId, [(MapKey, EncryptedMapValue)])>();
             for (mapId in getAccessibleMapIdsIter(caller)) {
                 switch (getEncryptedValuesForMap(caller, mapId)) {
                     case (#err(_)) {
-                        Debug.trap("bug: failed to get encrypted values");
+                        Runtime.trap("bug: failed to get encrypted values");
                     };
                     case (#ok(mapValues)) {
                         result.add((mapId, mapValues));
                     };
                 };
             };
-            Buffer.toArray(result);
+            result.toArray();
         };
 
         /// Retrieves all accessible encrypted maps and their data for the caller.
         public func getAllAccessibleEncryptedMaps(caller : Caller) : [EncryptedMapData<T>] {
-            let result = Buffer.Buffer<EncryptedMapData<T>>(0);
+            let result = List.empty<EncryptedMapData<T>>();
             for (mapId in getAccessibleMapIdsIter(caller)) {
                 let keyvals = switch (getEncryptedValuesForMap(caller, mapId)) {
                     case (#err(_)) {
-                        Debug.trap("bug: failed to get encrypted values");
+                        Runtime.trap("bug: failed to get encrypted values");
                     };
                     case (#ok(mapValues)) {
-                        Array.map<(MapKey, EncryptedMapValue), (Blob, EncryptedMapValue)>(
-                            mapValues,
+                        mapValues.map(
                             func((key, value)) = (key, value),
                         );
                     };
@@ -230,19 +217,19 @@ module {
                 };
                 result.add(map);
             };
-            Buffer.toArray(result);
+            result.toArray();
         };
 
         /// Retrieves the non-empty map names owned by the caller.
         /// Returns a list of map names that contain at least one key-value pair.
         public func getOwnedNonEmptyMapNames(caller : Caller) : [MapName] {
-            let mapNames = Buffer.Buffer<MapName>(0);
-            for ((mapId, _) in mapKeysMapOps().entries(encryptedMapsState.mapKeys)) {
+            let mapNames = List.empty<MapName>();
+            for ((mapId, _) in encryptedMapsState.mapKeys.entries()) {
                 if (Principal.equal(mapId.0, caller)) {
                     mapNames.add(mapId.1);
                 };
             };
-            Buffer.toArray(mapNames);
+            mapNames.toArray();
         };
 
         /// Inserts or updates an encrypted value in a map.
@@ -256,16 +243,16 @@ module {
             switch (keyManager.ensureUserCanWrite(caller, mapId)) {
                 case (#err(msg)) { #err(msg) };
                 case (#ok(_)) {
-                    let oldValue = mapKeyValsMapOps().get(encryptedMapsState.mapKeyVals, (mapId, key));
-                    encryptedMapsState.mapKeyVals := mapKeyValsMapOps().put(encryptedMapsState.mapKeyVals, (mapId, key), encryptedValue);
+                    let oldValue = encryptedMapsState.mapKeyVals.get(compareMapKeyValKeys, (mapId, key));
+                    encryptedMapsState.mapKeyVals := encryptedMapsState.mapKeyVals.add(compareMapKeyValKeys, (mapId, key), encryptedValue);
 
                     // Update mapKeys
-                    let currentKeys = switch (mapKeysMapOps().get(encryptedMapsState.mapKeys, mapId)) {
+                    let currentKeys = switch (encryptedMapsState.mapKeys.get(compareMapIds, mapId)) {
                         case (null) { [] };
                         case (?ks) { ks };
                     };
-                    if (Option.isNull(Array.find<MapKey>(currentKeys, func(k) = Blob.equal(k, key)))) {
-                        encryptedMapsState.mapKeys := mapKeysMapOps().put(encryptedMapsState.mapKeys, mapId, Array.append<MapKey>(currentKeys, [key]));
+                    if (currentKeys.find(func(k : MapKey) : Bool = Blob.equal(k, key)).isNull()) {
+                        encryptedMapsState.mapKeys := encryptedMapsState.mapKeys.add(compareMapIds, mapId, currentKeys.concat([key]));
                     };
 
                     #ok(oldValue);
@@ -283,19 +270,19 @@ module {
             switch (keyManager.ensureUserCanWrite(caller, mapId)) {
                 case (#err(msg)) { #err(msg) };
                 case (#ok(_)) {
-                    let oldValue = mapKeyValsMapOps().get(encryptedMapsState.mapKeyVals, (mapId, key));
-                    encryptedMapsState.mapKeyVals := mapKeyValsMapOps().delete(encryptedMapsState.mapKeyVals, (mapId, key));
+                    let oldValue = encryptedMapsState.mapKeyVals.get(compareMapKeyValKeys, (mapId, key));
+                    encryptedMapsState.mapKeyVals := encryptedMapsState.mapKeyVals.remove(compareMapKeyValKeys, (mapId, key));
 
                     // Update mapKeys
-                    let currentKeys = switch (mapKeysMapOps().get(encryptedMapsState.mapKeys, mapId)) {
+                    let currentKeys = switch (encryptedMapsState.mapKeys.get(compareMapIds, mapId)) {
                         case (null) { [] };
                         case (?ks) { ks };
                     };
-                    let newKeys = Array.filter<MapKey>(currentKeys, func(k) = not Blob.equal(k, key));
+                    let newKeys = currentKeys.filter(func(k : MapKey) : Bool = not Blob.equal(k, key));
                     if (newKeys.size() == 0) {
-                        encryptedMapsState.mapKeys := mapKeysMapOps().delete(encryptedMapsState.mapKeys, mapId);
+                        encryptedMapsState.mapKeys := encryptedMapsState.mapKeys.remove(compareMapIds, mapId);
                     } else {
-                        encryptedMapsState.mapKeys := mapKeysMapOps().put(encryptedMapsState.mapKeys, mapId, newKeys);
+                        encryptedMapsState.mapKeys := encryptedMapsState.mapKeys.add(compareMapIds, mapId, newKeys);
                     };
 
                     #ok(oldValue);
@@ -345,11 +332,10 @@ module {
         // Private helper functions
         func getAccessibleMapIdsIter(caller : Caller) : Iter.Iter<MapId> {
             let accessibleMapIds = Iter.fromArray(getAccessibleSharedMapNames(caller));
-            let ownedMapIds = Iter.map<MapName, MapId>(
-                Iter.fromArray(getOwnedNonEmptyMapNames(caller)),
+            let ownedMapIds = Iter.fromArray(getOwnedNonEmptyMapNames(caller)).map(
                 func(mapName) = (caller, mapName),
             );
-            return Iter.concat(accessibleMapIds, ownedMapIds);
+            return accessibleMapIds.concat(ownedMapIds);
         };
     };
 };

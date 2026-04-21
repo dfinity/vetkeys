@@ -1,14 +1,14 @@
 import IcVetkeys "mo:ic-vetkeys";
 import Types "mo:ic-vetkeys/Types";
-import Principal "mo:base/Principal";
-import Text "mo:base/Text";
-import Blob "mo:base/Blob";
-import Result "mo:base/Result";
-import Array "mo:base/Array";
+import Principal "mo:core/Principal";
+import Text "mo:core/Text";
+import Blob "mo:core/Blob";
+import Result "mo:core/Result";
+import Array "mo:core/Array";
 
 persistent actor class (keyName : Text) {
     let encryptedMapsState = IcVetkeys.EncryptedMaps.newEncryptedMapsState<Types.AccessRights>({ curve = #bls12_381_g2; name = keyName }, "password_manager_example_dapp");
-    transient let encryptedMaps = IcVetkeys.EncryptedMaps.EncryptedMaps<Types.AccessRights>(encryptedMapsState, Types.accessRightsOperations());
+    transient let encryptedMaps = IcVetkeys.EncryptedMaps.EncryptedMaps(encryptedMapsState, Types.accessRightsOperations());
 
     /// In this canister, we use the `ByteBuf` type to represent blobs. The reason is that we want to be consistent with the Rust canister implementation.
     /// Unfortunately, the `Blob` type cannot be serialized/deserialized in the current Rust implementation efficiently without nesting it in another type.
@@ -28,9 +28,7 @@ persistent actor class (keyName : Text) {
     };
 
     public query (msg) func get_accessible_shared_map_names() : async [(Principal, ByteBuf)] {
-        Array.map<(Principal, Blob), (Principal, ByteBuf)>(
-            encryptedMaps.getAccessibleSharedMapNames(msg.caller),
-
+        encryptedMaps.getAccessibleSharedMapNames(msg.caller).map<(Principal, Blob), (Principal, ByteBuf)>(
             func((principal, blob) : (Principal, Blob)) {
                 (principal, { inner = blob });
             },
@@ -53,8 +51,7 @@ persistent actor class (keyName : Text) {
             case (#err(e)) { #Err(e) };
             case (#ok(values)) {
                 #Ok(
-                    Array.map<(Blob, Blob), (ByteBuf, ByteBuf)>(
-                        values,
+                    values.map<(Blob, Blob), (ByteBuf, ByteBuf)>(
                         func((blob1, blob2) : (Blob, Blob)) {
                             ({ inner = blob1 }, { inner = blob2 });
                         },
@@ -65,13 +62,11 @@ persistent actor class (keyName : Text) {
     };
 
     public query (msg) func get_all_accessible_encrypted_values() : async [((Principal, ByteBuf), [(ByteBuf, ByteBuf)])] {
-        Array.map<((Principal, Blob), [(Blob, Blob)]), ((Principal, ByteBuf), [(ByteBuf, ByteBuf)])>(
-            encryptedMaps.getAllAccessibleEncryptedValues(msg.caller),
+        encryptedMaps.getAllAccessibleEncryptedValues(msg.caller).map<((Principal, Blob), [(Blob, Blob)]), ((Principal, ByteBuf), [(ByteBuf, ByteBuf)])>(
             func(((owner, map_name), values) : ((Principal, Blob), [(Blob, Blob)])) {
                 (
                     (owner, { inner = map_name }),
-                    Array.map<(Blob, Blob), (ByteBuf, ByteBuf)>(
-                        values,
+                    values.map<(Blob, Blob), (ByteBuf, ByteBuf)>(
                         func((blob1, blob2) : (Blob, Blob)) {
                             ({ inner = blob1 }, { inner = blob2 });
                         },
@@ -82,14 +77,12 @@ persistent actor class (keyName : Text) {
     };
 
     public query (msg) func get_all_accessible_encrypted_maps() : async [EncryptedMapData] {
-        Array.map<IcVetkeys.EncryptedMaps.EncryptedMapData<Types.AccessRights>, EncryptedMapData>(
-            encryptedMaps.getAllAccessibleEncryptedMaps(msg.caller),
+        encryptedMaps.getAllAccessibleEncryptedMaps(msg.caller).map<IcVetkeys.EncryptedMaps.EncryptedMapData<Types.AccessRights>, EncryptedMapData>(
             func(map : IcVetkeys.EncryptedMaps.EncryptedMapData<Types.AccessRights>) : EncryptedMapData {
                 {
                     map_owner = map.map_owner;
                     map_name = { inner = map.map_name };
-                    keyvals = Array.map<(Blob, Blob), (ByteBuf, ByteBuf)>(
-                        map.keyvals,
+                    keyvals = map.keyvals.map<(Blob, Blob), (ByteBuf, ByteBuf)>(
                         func((blob1, blob2) : (Blob, Blob)) {
                             ({ inner = blob1 }, { inner = blob2 });
                         },
@@ -122,8 +115,7 @@ persistent actor class (keyName : Text) {
             case (#err(e)) { #Err(e) };
             case (#ok(values)) {
                 #Ok(
-                    Array.map<Blob, ByteBuf>(
-                        values,
+                    values.map<Blob, ByteBuf>(
                         func(blob : Blob) : ByteBuf {
                             { inner = blob };
                         },
@@ -134,8 +126,7 @@ persistent actor class (keyName : Text) {
     };
 
     public query (msg) func get_owned_non_empty_map_names() : async [ByteBuf] {
-        Array.map<Blob, ByteBuf>(
-            encryptedMaps.getOwnedNonEmptyMapNames(msg.caller),
+        encryptedMaps.getOwnedNonEmptyMapNames(msg.caller).map<Blob, ByteBuf>(
             func(blob : Blob) : ByteBuf {
                 { inner = blob };
             },

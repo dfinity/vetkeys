@@ -1,13 +1,14 @@
 import IcVetkeys "mo:ic-vetkeys";
 import Types "mo:ic-vetkeys/Types";
-import Principal "mo:base/Principal";
-import Text "mo:base/Text";
-import Blob "mo:base/Blob";
-import Result "mo:base/Result";
-import Array "mo:base/Array";
+import Principal "mo:core/Principal";
+import Text "mo:core/Text";
+import Blob "mo:core/Blob";
+import Result "mo:core/Result";
+import Array "mo:core/Array";
 
-actor class (keyName : Text) {
-    var keyManager = IcVetkeys.KeyManager.KeyManager<Types.AccessRights>({ curve = #bls12_381_g2; name = keyName }, "key manager", Types.accessRightsOperations());
+persistent actor class (keyName : Text) {
+    transient let keyManagerState = IcVetkeys.KeyManager.newKeyManagerState<Types.AccessRights>({ curve = #bls12_381_g2; name = keyName }, "key manager");
+    transient var keyManager = IcVetkeys.KeyManager.KeyManager(keyManagerState, Types.accessRightsOperations());
     /// In this canister, we use the `ByteBuf` type to represent blobs. The reason is that we want to be consistent with the Rust canister implementation.
     /// Unfortunately, the `Blob` type cannot be serialized/deserialized in the current Rust implementation efficiently without nesting it in another type.
     public type ByteBuf = { inner : Blob };
@@ -19,8 +20,7 @@ actor class (keyName : Text) {
     };
 
     public query (msg) func get_accessible_shared_key_ids() : async [(Principal, ByteBuf)] {
-        Array.map<(Principal, Blob), (Principal, ByteBuf)>(
-            keyManager.getAccessibleSharedKeyIds(msg.caller),
+        keyManager.getAccessibleSharedKeyIds(msg.caller).map<(Principal, Blob), (Principal, ByteBuf)>(
             func((principal, blob) : (Principal, Blob)) {
                 (principal, { inner = blob });
             },

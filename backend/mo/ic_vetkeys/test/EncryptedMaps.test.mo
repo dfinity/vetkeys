@@ -1,9 +1,9 @@
 import VetKey "../src";
 import { EncryptedMaps } "../src";
-import Principal "mo:base/Principal";
-import Debug "mo:base/Debug";
-import Text "mo:base/Text";
-import Blob "mo:base/Blob";
+import Principal "mo:core/Principal";
+import Runtime "mo:core/Runtime";
+import Text "mo:core/Text";
+import Blob "mo:core/Blob";
 import { test } "mo:test";
 
 type EncryptedMaps = VetKey.EncryptedMaps.EncryptedMaps<VetKey.AccessRights>;
@@ -14,9 +14,9 @@ func newEncryptedMaps() : EncryptedMaps {
 
 let p1 = Principal.fromText("2vxsx-fae");
 let p2 = Principal.fromText("aaaaa-aa");
-let mapName = Text.encodeUtf8("some map");
-let mapKey = Text.encodeUtf8("some key");
-let mapValue = Text.encodeUtf8("some value");
+let mapName = "some map".encodeUtf8();
+let mapKey = "some key".encodeUtf8();
+let mapValue = "some value".encodeUtf8();
 
 test(
     "can remove map values",
@@ -28,7 +28,7 @@ test(
                 assert keys == [];
             };
             case (#err(e)) {
-                Debug.trap("Failed to remove map values: " # e);
+                Runtime.trap("Failed to remove map values: " # e);
             };
         };
     },
@@ -41,7 +41,7 @@ test(
 
         // Insert a value first
         switch (encryptedMaps.insertEncryptedValue(p1, (p1, mapName), mapKey, mapValue)) {
-            case (#err(e)) { Debug.trap("Failed to insert value: " # e) };
+            case (#err(e)) { Runtime.trap("Failed to insert value: " # e) };
             case (#ok(_)) {};
         };
 
@@ -60,7 +60,7 @@ test(
         switch (encryptedMaps.getUserRights(p1, (p1, mapName), p2)) {
             case (#ok(null)) {};
             case (unexpected) {
-                Debug.trap("Unexpected initial state: " # debug_show (unexpected));
+                Runtime.trap("Unexpected initial state: " # debug_show (unexpected));
             };
         };
 
@@ -68,7 +68,7 @@ test(
         switch (encryptedMaps.setUserRights(p1, (p1, mapName), p2, #ReadWriteManage)) {
             case (#ok(null)) {};
             case (unexpected) {
-                Debug.trap("Failed to set user rights: " # debug_show (unexpected));
+                Runtime.trap("Failed to set user rights: " # debug_show (unexpected));
             };
         };
 
@@ -76,7 +76,7 @@ test(
         switch (encryptedMaps.getUserRights(p1, (p1, mapName), p2)) {
             case (#ok(?#ReadWriteManage)) {};
             case (unexpected) {
-                Debug.trap("Failed to verify user rights: " # debug_show (unexpected));
+                Runtime.trap("Failed to verify user rights: " # debug_show (unexpected));
             };
         };
     },
@@ -100,7 +100,7 @@ test(
         // Give read access and verify still can't write
         switch (encryptedMaps.setUserRights(p1, (p1, mapName), p2, #Read)) {
             case (#ok(_)) {};
-            case (#err(e)) { Debug.trap("Failed to set read access: " # e) };
+            case (#err(e)) { Runtime.trap("Failed to set read access: " # e) };
         };
 
         assert encryptedMaps.insertEncryptedValue(p2, (p1, mapName), mapKey, mapValue) == #err("unauthorized");
@@ -118,7 +118,7 @@ test(
         switch (encryptedMaps.setUserRights(p1, (p1, mapName), p2, #ReadWriteManage)) {
             case (#ok(null)) {};
             case (unexpected) {
-                Debug.trap("Failed to add user: " # debug_show (unexpected));
+                Runtime.trap("Failed to add user: " # debug_show (unexpected));
             };
         };
 
@@ -126,7 +126,7 @@ test(
         switch (encryptedMaps.removeUser(p1, (p1, mapName), p2)) {
             case (#ok(?#ReadWriteManage)) {};
             case (unexpected) {
-                Debug.trap("Failed to remove user: " # debug_show (unexpected));
+                Runtime.trap("Failed to remove user: " # debug_show (unexpected));
             };
         };
     },
@@ -140,7 +140,7 @@ test(
         switch (encryptedMaps.insertEncryptedValue(p1, (p1, mapName), mapKey, mapValue)) {
             case (#ok(null)) {};
             case (unexpected) {
-                Debug.trap("Failed to add key: " # debug_show (unexpected));
+                Runtime.trap("Failed to add key: " # debug_show (unexpected));
             };
         };
     },
@@ -154,14 +154,14 @@ test(
         // Add key first
         switch (encryptedMaps.insertEncryptedValue(p1, (p1, mapName), mapKey, mapValue)) {
             case (#ok(_)) {};
-            case (#err(e)) { Debug.trap("Failed to add key: " # e) };
+            case (#err(e)) { Runtime.trap("Failed to add key: " # e) };
         };
 
         // Remove key
         switch (encryptedMaps.removeEncryptedValue(p1, (p1, mapName), mapKey)) {
             case (#ok(?_)) {};
             case (unexpected) {
-                Debug.trap("Failed to remove key: " # debug_show (unexpected));
+                Runtime.trap("Failed to remove key: " # debug_show (unexpected));
             };
         };
     },
@@ -175,21 +175,21 @@ test(
         // Add a key-value pair
         switch (encryptedMaps.insertEncryptedValue(p1, (p1, mapName), mapKey, mapValue)) {
             case (#ok(_)) {};
-            case (#err(e)) { Debug.trap("Failed to add key-value pair: " # e) };
+            case (#err(e)) { Runtime.trap("Failed to add key-value pair: " # e) };
         };
 
         for (accessRights in [#Read, #ReadWrite, #ReadWriteManage].vals()) {
             // Give read access to p2
             switch (encryptedMaps.setUserRights(p1, (p1, mapName), p2, accessRights)) {
                 case (#ok(_)) {};
-                case (#err(e)) { Debug.trap("Failed to set read access: " # e) };
+                case (#err(e)) { Runtime.trap("Failed to set read access: " # e) };
             };
 
             // Verify p2 can read
             switch (encryptedMaps.getEncryptedValue(p2, (p1, mapName), mapKey)) {
                 case (#ok(?_)) {};
                 case (unexpected) {
-                    Debug.trap("Failed to read value: " # debug_show (unexpected));
+                    Runtime.trap("Failed to read value: " # debug_show (unexpected));
                 };
             };
         };
@@ -200,19 +200,19 @@ test(
     "can modify a key value in map",
     func() {
         let encryptedMaps = newEncryptedMaps();
-        let newValue = Text.encodeUtf8("new value");
+        let newValue = "new value".encodeUtf8();
 
         // Add initial value
         switch (encryptedMaps.insertEncryptedValue(p1, (p1, mapName), mapKey, mapValue)) {
             case (#ok(_)) {};
-            case (#err(e)) { Debug.trap("Failed to add initial value: " # e) };
+            case (#err(e)) { Runtime.trap("Failed to add initial value: " # e) };
         };
 
         // Modify value
         switch (encryptedMaps.insertEncryptedValue(p1, (p1, mapName), mapKey, newValue)) {
             case (#ok(?_)) {};
             case (unexpected) {
-                Debug.trap("Failed to modify value: " # debug_show (unexpected));
+                Runtime.trap("Failed to modify value: " # debug_show (unexpected));
             };
         };
 
@@ -221,7 +221,7 @@ test(
                 assert returnedNewValue == newValue;
             };
             case (unexpected) {
-                Debug.trap("Failed to get value: " # debug_show (unexpected));
+                Runtime.trap("Failed to get value: " # debug_show (unexpected));
             };
         };
     },
@@ -238,7 +238,7 @@ test(
         // Add a key-value pair
         switch (encryptedMaps.insertEncryptedValue(p1, (p1, mapName), mapKey, mapValue)) {
             case (#ok(_)) {};
-            case (#err(e)) { Debug.trap("Failed to add key-value pair: " # e) };
+            case (#err(e)) { Runtime.trap("Failed to add key-value pair: " # e) };
         };
 
         // Verify map appears in owned maps
