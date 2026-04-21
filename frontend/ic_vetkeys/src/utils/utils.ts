@@ -5,7 +5,7 @@ import { hash_to_field, Opts } from "@noble/curves/abstract/hash-to-curve";
 import { shake256 } from "@noble/hashes/sha3";
 import { hkdf } from "@noble/hashes/hkdf";
 import { sha256 } from "@noble/hashes/sha256";
-import type { Principal } from "@dfinity/principal";
+import type { Principal } from "@icp-sdk/core/principal";
 
 export type G1Point = ProjPointType<Fp>;
 export type G2Point = ProjPointType<Fp2>;

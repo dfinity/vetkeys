@@ -1,8 +1,8 @@
-import { HttpAgent } from "@dfinity/agent";
 import { DefaultEncryptedMapsClient } from "./encrypted_maps_canister";
 import { expect, test } from "vitest";
 import fetch from "isomorphic-fetch";
-import { Ed25519KeyIdentity } from "@dfinity/identity";
+import { Ed25519KeyIdentity } from "@icp-sdk/core/identity";
+import { HttpAgent } from "@icp-sdk/core/agent";
 import { EncryptedMaps } from "./index";
 import { randomBytes } from "node:crypto";
 
@@ -17,16 +17,19 @@ function ids(): [Ed25519KeyIdentity, Ed25519KeyIdentity] {
 async function newEncryptedMaps(
     id: Ed25519KeyIdentity,
 ): Promise<EncryptedMaps> {
-    const host = "http://localhost:4943";
     const agent = await HttpAgent.create({
         // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         fetch,
-        host,
+        host: "http://localhost:8000",
         identity: id,
         shouldFetchRootKey: true,
     });
     const canisterId =
         process.env.CANISTER_ID_IC_VETKEYS_ENCRYPTED_MAPS_CANISTER;
+    if (!canisterId)
+        throw new Error(
+            "CANISTER_ID_IC_VETKEYS_ENCRYPTED_MAPS_CANISTER is not set",
+        );
     return new EncryptedMaps(new DefaultEncryptedMapsClient(agent, canisterId));
 }
 

@@ -14,7 +14,7 @@ fn bls_signature_should_be_valid_and_equal_to_decrypted_vetkey() {
     let context = random_bytes(rng, 10);
     let key_id = VetKDKeyId {
         curve: VetKDCurve::Bls12_381_G2,
-        name: "dfx_test_key".to_string(),
+        name: "test_key_1".to_string(),
     };
     let transport_secret_key = random_transport_key(rng);
     let transport_public_key = transport_secret_key.public_key();
@@ -56,7 +56,7 @@ fn bls_public_key_should_be_equal_to_verification_key() {
     let context = random_bytes(rng, 10);
     let key_id = VetKDKeyId {
         curve: VetKDCurve::Bls12_381_G2,
-        name: "dfx_test_key".to_string(),
+        name: "test_key_1".to_string(),
     };
     let bls_public_key: Vec<u8> = env.update(
         Principal::anonymous(),
@@ -114,14 +114,20 @@ impl TestEnvironment {
 
 fn load_canister_wasm() -> Vec<u8> {
     let wasm_path_string = match std::env::var("CUSTOM_WASM_PATH") {
-        Ok(path) if !path.is_empty() => path,
+        Ok(path) if !path.is_empty() => {
+            assert!(
+                Path::new(&path).exists(),
+                "CUSTOM_WASM_PATH is set to '{}' but the file does not exist; run `make compile-wasm` first",
+                path
+            );
+            path
+        }
         _ => format!(
             "{}/target/wasm32-unknown-unknown/release/ic_vetkeys_canisters_tests.wasm",
             git_root_dir()
         ),
     };
-    let wasm_path = Path::new(&wasm_path_string);
-    std::fs::read(wasm_path)
+    std::fs::read(&wasm_path_string)
         .expect("wasm does not exist - run `cargo build --release --target wasm32-unknown-unknown`")
 }
 
