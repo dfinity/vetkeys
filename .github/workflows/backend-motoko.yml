@@ -30,6 +30,8 @@ jobs:
       - name: Provision Linux
         run: bash .github/workflows/provision-linux.sh
       - name: Run MOPS Test Linux
+        env:
+          ICP_CLI_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -eExuo pipefail
           cd backend/mo/ic_vetkeys
@@ -53,6 +55,8 @@ jobs:
       - name: Provision Darwin
         run: bash .github/workflows/provision-darwin.sh
       - name: Run MOPS Test Darwin
+        env:
+          ICP_CLI_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -eExuo pipefail
           cd backend/mo/ic_vetkeys

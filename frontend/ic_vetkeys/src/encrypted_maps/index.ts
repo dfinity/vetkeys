@@ -4,7 +4,7 @@
  * @description See { @link EncryptedMaps }.
  */
 
-import { Principal } from "@dfinity/principal";
+import { Principal } from "@icp-sdk/core/principal";
 import { get, set } from "idb-keyval";
 import {
     TransportSecretKey,
@@ -12,16 +12,16 @@ import {
     EncryptedVetKey,
     DerivedPublicKey,
 } from "../utils/utils";
-import {
+import type {
     AccessRights,
     ByteBuf,
-} from "../declarations/ic_vetkeys_manager_canister/ic_vetkeys_manager_canister.did";
+} from "../declarations/ic_vetkeys_manager_canister/ic_vetkeys_manager_canister.did.js";
 
 export { DefaultEncryptedMapsClient } from "./encrypted_maps_canister";
 export type {
     AccessRights,
     ByteBuf,
-} from "../declarations/ic_vetkeys_manager_canister/ic_vetkeys_manager_canister.did";
+} from "../declarations/ic_vetkeys_manager_canister/ic_vetkeys_manager_canister.did.js";
 
 /**
  * The **EncryptedMaps** frontend library facilitates interaction with an [**EncryptedMaps-enabled canister**](https://docs.rs/ic-vetkeys/latest/ic_vetkeys/encrypted_maps/struct.EncryptedMaps.html) on the **Internet Computer (ICP)**.
