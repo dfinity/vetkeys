@@ -11,7 +11,7 @@
 /// - **Request an Encrypted Key:** Users can derive any number of **encrypted cryptographic keys**, secured using a user-provided **public transport key**. Each vetKey is associated with a unique **key id**.
 /// - **Manage vetKey Sharing:** A user can **share their vetKeys** with other users while controlling access rights.
 /// - **Access Control Management:** Users can define and enforce **fine-grained permissions** (read, write, manage) for each vetKey.
-/// - **Uses Stable Storage:** The library persists key access information using **OrderedMap**, ensuring reliability across canister upgrades.
+/// - **Uses Stable Storage:** The library persists key access information using **Map**, ensuring reliability across canister upgrades.
 ///
 /// ## KeyManager Architecture
 ///
@@ -37,16 +37,16 @@
 /// ## Summary
 /// `KeyManager` simplifies the usage of **vetKeys** on the ICP, providing a secure and efficient mechanism for **cryptographic key derivation, sharing, and management**.
 
-import Principal "mo:base/Principal";
-import Blob "mo:base/Blob";
-import Buffer "mo:base/Buffer";
-import Array "mo:base/Array";
-import Debug "mo:base/Debug";
-import OrderedMap "mo:base/OrderedMap";
-import Result "mo:base/Result";
+import Principal "mo:core/Principal";
+import Blob "mo:core/Blob";
+import List "mo:core/List";
+import Array "mo:core/Array";
+import Runtime "mo:core/Runtime";
+import Map "mo:core/pure/Map";
+import Result "mo:core/Result";
 import Types "../Types";
-import Text "mo:base/Text";
-import Nat8 "mo:base/Nat8";
+import Text "mo:core/Text";
+import Nat8 "mo:core/Nat8";
 import ManagementCanister "../ManagementCanister";
 
 module {
@@ -71,7 +71,11 @@ module {
     /// The public transport key used to encrypt vetKeys for secure transmission.
     public type TransportKey = Blob;
 
-    func compareKeyIds(a : KeyId, b : KeyId) : { #less; #greater; #equal } {
+    public func compareKeyIds(a : KeyId, b : KeyId) : {
+        #less;
+        #greater;
+        #equal;
+    } {
         let ownersCompare = Principal.compare(a.0, b.0);
         if (ownersCompare == #equal) {
             Blob.compare(a.1, b.1);
@@ -80,25 +84,17 @@ module {
         };
     };
 
-    func accessControlMapOps() : OrderedMap.Operations<Caller> {
-        OrderedMap.Make<Caller>(Principal.compare);
-    };
-
-    func sharedKeysMapOps() : OrderedMap.Operations<KeyId> {
-        OrderedMap.Make<KeyId>(compareKeyIds);
-    };
-
     public type KeyManagerState<T> = {
-        var accessControl : OrderedMap.Map<Principal, [(KeyId, T)]>;
-        var sharedKeys : OrderedMap.Map<KeyId, [Principal]>;
+        var accessControl : Map.Map<Principal, [(KeyId, T)]>;
+        var sharedKeys : Map.Map<KeyId, [Principal]>;
         var vetKdKeyId : ManagementCanister.VetKdKeyid;
         domainSeparator : Text;
     };
 
     public func newKeyManagerState<T>(vetKdKeyId : ManagementCanister.VetKdKeyid, domainSeparator : Text) : KeyManagerState<T> {
         {
-            var accessControl = accessControlMapOps().empty();
-            var sharedKeys = sharedKeysMapOps().empty();
+            var accessControl = Map.empty<Principal, [(KeyId, T)]>();
+            var sharedKeys = Map.empty<KeyId, [Principal]>();
             var vetKdKeyId = vetKdKeyId;
             domainSeparator;
         };
@@ -106,15 +102,15 @@ module {
 
     /// See the module documentation for more information.
     public class KeyManager<T>(keyManagerState : KeyManagerState<T>, accessRightsOperations : Types.AccessControlOperations<T>) {
-        let domainSeparatorBytes = Text.encodeUtf8(keyManagerState.domainSeparator);
+        let domainSeparatorBytes = keyManagerState.domainSeparator.encodeUtf8();
 
         /// Retrieves all vetKey IDs shared with the given caller.
         /// This method returns a list of all vetKeys that the caller has access to.
         public func getAccessibleSharedKeyIds(caller : Caller) : [KeyId] {
-            switch (accessControlMapOps().get(keyManagerState.accessControl, caller)) {
+            switch (keyManagerState.accessControl.get(caller)) {
                 case (null) { [] };
                 case (?entries) {
-                    Array.map<(KeyId, T), KeyId>(entries, func((keyId, _)) = keyId);
+                    entries.map<(KeyId, T), KeyId>(func((keyId, _)) = keyId);
                 };
             };
         };
@@ -128,19 +124,19 @@ module {
                 case (_) {};
             };
 
-            let users = switch (sharedKeysMapOps().get(keyManagerState.sharedKeys, keyId)) {
+            let users = switch (keyManagerState.sharedKeys.get(compareKeyIds, keyId)) {
                 case (null) { return #ok([]) };
                 case (?users) users;
             };
 
-            let results = Buffer.Buffer<(Caller, T)>(0);
-            for (user in users.vals()) {
+            let results = List.empty<(Caller, T)>();
+            for (user in users.values()) {
                 switch (getUserRights(caller, keyId, user)) {
                     case (#err(msg)) { return #err(msg) };
                     case (#ok(optRights)) {
                         switch (optRights) {
                             case (null) {
-                                Debug.trap("bug: missing access rights");
+                                Runtime.trap("bug: missing access rights");
                             };
                             case (?rights) {
                                 results.add((user, rights));
@@ -149,7 +145,7 @@ module {
                     };
                 };
             };
-            #ok(Buffer.toArray(results));
+            #ok(results.toArray());
         };
 
         /// Retrieves the vetKD verification key for this canister.
@@ -165,12 +161,12 @@ module {
             switch (ensureUserCanRead(caller, keyId)) {
                 case (#err(msg)) { #err(msg) };
                 case (#ok(_)) {
-                    let principalBytes = Blob.toArray(Principal.toBlob(keyId.0));
-                    let input = Array.flatten<Nat8>([
-                        [Nat8.fromNat(Array.size<Nat8>(principalBytes))],
+                    let principalBytes = keyId.0.toBlob().toArray();
+                    let input = [
+                        [Nat8.fromNat(principalBytes.size())],
                         principalBytes,
-                        Blob.toArray(keyId.1),
-                    ]);
+                        keyId.1.toArray(),
+                    ].flatten();
 
                     #ok(await ManagementCanister.vetKdDeriveKey(Blob.fromArray(input), domainSeparatorBytes, keyManagerState.vetKdKeyId, transportKey));
                 };
@@ -188,12 +184,11 @@ module {
                             if (Principal.equal(user, keyId.0)) {
                                 accessRightsOperations.ownerRights();
                             } else {
-                                let entries = accessControlMapOps().get(keyManagerState.accessControl, user)!;
-                                let (k, rights) = Array.find<(KeyId, T)>(
-                                    entries,
-                                    func((k, rights)) = compareKeyIds(k, keyId) == #equal,
+                                let entries = keyManagerState.accessControl.get(user)!;
+                                let (_k, foundRights) = entries.find(
+                                    func((_k, _rights) : (KeyId, T)) : Bool = compareKeyIds(_k, keyId) == #equal
                                 )!;
-                                rights;
+                                foundRights;
                             };
                         }
                     );
@@ -213,43 +208,42 @@ module {
                     };
 
                     // Update sharedKeys
-                    let currentUsers = switch (sharedKeysMapOps().get(keyManagerState.sharedKeys, keyId)) {
+                    let currentUsers = switch (keyManagerState.sharedKeys.get(compareKeyIds, keyId)) {
                         case (null) { [] };
                         case (?users) { users };
                     };
 
-                    let newUsers = switch (Array.indexOf<Principal>(user, currentUsers, Principal.equal)) {
+                    let newUsers = switch (currentUsers.indexOf(user)) {
                         case (?_) currentUsers;
-                        case (null) Array.append<Principal>(currentUsers, [user]);
+                        case (null) currentUsers.concat([user]);
                     };
 
-                    keyManagerState.sharedKeys := sharedKeysMapOps().put(keyManagerState.sharedKeys, keyId, newUsers);
+                    keyManagerState.sharedKeys := keyManagerState.sharedKeys.add(compareKeyIds, keyId, newUsers);
 
                     // Update accessControl
-                    let currentEntries = switch (accessControlMapOps().get(keyManagerState.accessControl, user)) {
+                    let currentEntries = switch (keyManagerState.accessControl.get(user)) {
                         case (null) { [] };
                         case (?entries) { entries };
                     };
 
                     var oldRights : ?T = null;
                     let newEntries = switch (
-                        Array.indexOf<(KeyId, T)>(
+                        currentEntries.indexOf(
+                            func(a : (KeyId, T), b : (KeyId, T)) : Bool = compareKeyIds(a.0, b.0) == #equal,
                             (keyId, accessRightsOperations.ownerRights()),
-                            currentEntries,
-                            func(a, b) = compareKeyIds(a.0, b.0) == #equal,
                         )
                     ) {
                         case (?index) {
-                            let mutCurrentEntries = Array.thaw<(KeyId, T)>(currentEntries);
+                            let mutCurrentEntries = currentEntries.toVarArray();
                             oldRights := ?mutCurrentEntries[index].1;
                             mutCurrentEntries[index] := (keyId, accessRights);
-                            Array.freeze(mutCurrentEntries);
+                            Array.fromVarArray(mutCurrentEntries);
                         };
                         case (null) {
-                            Array.append<(KeyId, T)>(currentEntries, [(keyId, accessRights)]);
+                            currentEntries.concat([(keyId, accessRights)]);
                         };
                     };
-                    keyManagerState.accessControl := accessControlMapOps().put(keyManagerState.accessControl, user, newEntries);
+                    keyManagerState.accessControl := keyManagerState.accessControl.add(user, newEntries);
                     #ok(oldRights);
                 };
             };
@@ -267,30 +261,29 @@ module {
                     };
 
                     // Update sharedKeys
-                    let currentUsers = switch (sharedKeysMapOps().get(keyManagerState.sharedKeys, keyId)) {
+                    let currentUsers = switch (keyManagerState.sharedKeys.get(compareKeyIds, keyId)) {
                         case (null) { [] };
                         case (?users) { users };
                     };
-                    let newUsers = Array.filter<Caller>(currentUsers, func(u) = not Principal.equal(u, user));
-                    keyManagerState.sharedKeys := sharedKeysMapOps().put(keyManagerState.sharedKeys, keyId, newUsers);
+                    let newUsers = currentUsers.filter(func(u : Caller) : Bool = not Principal.equal(u, user));
+                    keyManagerState.sharedKeys := keyManagerState.sharedKeys.add(compareKeyIds, keyId, newUsers);
 
                     // Update accessControl
-                    let currentEntries = switch (accessControlMapOps().get(keyManagerState.accessControl, user)) {
+                    let currentEntries = switch (keyManagerState.accessControl.get(user)) {
                         case (null) { [] };
                         case (?entries) { entries };
                     };
-                    let (newEntries, oldRights) = Array.foldRight<(KeyId, T), ([(KeyId, T)], ?T)>(
-                        currentEntries,
+                    let (newEntries, oldRights) = currentEntries.foldRight<(KeyId, T), ([(KeyId, T)], ?T)>(
                         ([], null),
                         func((k, r), (entries, rights)) {
                             if (compareKeyIds(k, keyId) == #equal) {
                                 (entries, ?r);
                             } else {
-                                (Array.append<(KeyId, T)>(entries, [(k, r)]), rights);
+                                (entries.concat([(k, r)]), rights);
                             };
                         },
                     );
-                    keyManagerState.accessControl := accessControlMapOps().put(keyManagerState.accessControl, user, newEntries);
+                    keyManagerState.accessControl := keyManagerState.accessControl.add(user, newEntries);
                     #ok(oldRights);
                 };
             };
@@ -303,10 +296,10 @@ module {
                 return #ok(accessRightsOperations.ownerRights());
             };
 
-            switch (accessControlMapOps().get(keyManagerState.accessControl, user)) {
+            switch (keyManagerState.accessControl.get(user)) {
                 case (null) { #err("unauthorized") };
                 case (?entries) {
-                    for ((k, rights) in entries.vals()) {
+                    for ((k, rights) in entries.values()) {
                         if (compareKeyIds(k, keyId) == #equal) {
                             if (accessRightsOperations.canRead(rights)) {
                                 return #ok(rights);
@@ -327,10 +320,10 @@ module {
                 return #ok(accessRightsOperations.ownerRights());
             };
 
-            switch (accessControlMapOps().get(keyManagerState.accessControl, user)) {
+            switch (keyManagerState.accessControl.get(user)) {
                 case (null) { #err("unauthorized") };
                 case (?entries) {
-                    for ((k, rights) in entries.vals()) {
+                    for ((k, rights) in entries.values()) {
                         if (compareKeyIds(k, keyId) == #equal) {
                             if (accessRightsOperations.canWrite(rights)) {
                                 return #ok(rights);
@@ -351,10 +344,10 @@ module {
                 return #ok(accessRightsOperations.ownerRights());
             };
 
-            switch (accessControlMapOps().get(keyManagerState.accessControl, user)) {
+            switch (keyManagerState.accessControl.get(user)) {
                 case (null) { #err("unauthorized") };
                 case (?entries) {
-                    for ((k, rights) in entries.vals()) {
+                    for ((k, rights) in entries.values()) {
                         if (compareKeyIds(k, keyId) == #equal) {
                             if (accessRightsOperations.canGetUserRights(rights)) {
                                 return #ok(rights);
@@ -375,10 +368,10 @@ module {
                 return #ok(accessRightsOperations.ownerRights());
             };
 
-            switch (accessControlMapOps().get(keyManagerState.accessControl, user)) {
+            switch (keyManagerState.accessControl.get(user)) {
                 case (null) { #err("unauthorized") };
                 case (?entries) {
-                    for ((k, rights) in entries.vals()) {
+                    for ((k, rights) in entries.values()) {
                         if (compareKeyIds(k, keyId) == #equal) {
                             if (accessRightsOperations.canSetUserRights(rights)) {
                                 return #ok(rights);

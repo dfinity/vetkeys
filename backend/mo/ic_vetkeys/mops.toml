@@ -15,8 +15,14 @@ keywords = [
 ]
 license = "Apache-2.0"
 
+[toolchain]
+moc = "1.6.0"
+
+[moc]
+args = [ "-W=M0236,M0237,M0223" ]
+
 [dependencies]
-base = "0.14.9"
+core = "2.4.0"
 
 [dev-dependencies]
 test = "2.1.1"
