@@ -26,7 +26,7 @@ jobs:
           persist-credentials: false
       - uses: ZenVoich/setup-mops@3e94e453352269b34137b5ce49f09a8df81bed7d # v1.4.1
         with:
-          mops-version: 1
+          mops-version: 2
       - name: Provision Linux
         run: bash .github/workflows/provision-linux.sh
       - name: Run MOPS Test Linux
@@ -49,7 +49,7 @@ jobs:
           persist-credentials: false
       - uses: ZenVoich/setup-mops@3e94e453352269b34137b5ce49f09a8df81bed7d # v1.4.1
         with:
-          mops-version: 1
+          mops-version: 2
       - name: Provision Darwin
         run: bash .github/workflows/provision-darwin.sh
       - name: Run MOPS Test Darwin
