@@ -31,7 +31,7 @@ persistent actor class (keyName : Text) {
         encryptedMaps.getAccessibleSharedMapNames(msg.caller).map<(Principal, Blob), (Principal, ByteBuf)>(
             func((principal, blob) : (Principal, Blob)) {
                 (principal, { inner = blob });
-            },
+            }
         );
     };
 
@@ -54,7 +54,7 @@ persistent actor class (keyName : Text) {
                     values.map<(Blob, Blob), (ByteBuf, ByteBuf)>(
                         func((blob1, blob2) : (Blob, Blob)) {
                             ({ inner = blob1 }, { inner = blob2 });
-                        },
+                        }
                     )
                 );
             };
@@ -69,10 +69,10 @@ persistent actor class (keyName : Text) {
                     values.map<(Blob, Blob), (ByteBuf, ByteBuf)>(
                         func((blob1, blob2) : (Blob, Blob)) {
                             ({ inner = blob1 }, { inner = blob2 });
-                        },
+                        }
                     ),
                 );
-            },
+            }
         );
     };
 
@@ -85,11 +85,11 @@ persistent actor class (keyName : Text) {
                     keyvals = map.keyvals.map<(Blob, Blob), (ByteBuf, ByteBuf)>(
                         func((blob1, blob2) : (Blob, Blob)) {
                             ({ inner = blob1 }, { inner = blob2 });
-                        },
+                        }
                     );
                     access_control = map.access_control;
                 };
-            },
+            }
         );
     };
 
@@ -118,7 +118,7 @@ persistent actor class (keyName : Text) {
                     values.map<Blob, ByteBuf>(
                         func(blob : Blob) : ByteBuf {
                             { inner = blob };
-                        },
+                        }
                     )
                 );
             };
@@ -129,7 +129,7 @@ persistent actor class (keyName : Text) {
         encryptedMaps.getOwnedNonEmptyMapNames(msg.caller).map<Blob, ByteBuf>(
             func(blob : Blob) : ByteBuf {
                 { inner = blob };
-            },
+            }
         );
     };
 

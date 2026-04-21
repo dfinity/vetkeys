@@ -23,7 +23,7 @@ persistent actor class (keyName : Text) {
         keyManager.getAccessibleSharedKeyIds(msg.caller).map<(Principal, Blob), (Principal, ByteBuf)>(
             func((principal, blob) : (Principal, Blob)) {
                 (principal, { inner = blob });
-            },
+            }
         );
     };
 
