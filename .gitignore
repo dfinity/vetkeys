@@ -93,3 +93,4 @@ docs/
 *.mops
 
 **/.canbench
+frontend/ic_vetkeys/.test*.env
