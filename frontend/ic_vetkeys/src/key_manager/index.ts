@@ -5,22 +5,22 @@
  *
  */
 
-import { Principal } from "@dfinity/principal";
+import { Principal } from "@icp-sdk/core/principal";
 import {
     TransportSecretKey,
     EncryptedVetKey,
     DerivedPublicKey,
 } from "../utils/utils";
-import {
+import type {
     AccessRights,
     ByteBuf,
-} from "../declarations/ic_vetkeys_manager_canister/ic_vetkeys_manager_canister.did";
+} from "../declarations/ic_vetkeys_manager_canister/ic_vetkeys_manager_canister.did.js";
 
 export { DefaultKeyManagerClient } from "./key_manager_canister";
 export type {
     AccessRights,
     ByteBuf,
-} from "../declarations/ic_vetkeys_manager_canister/ic_vetkeys_manager_canister.did";
+} from "../declarations/ic_vetkeys_manager_canister/ic_vetkeys_manager_canister.did.js";
 
 /**
  * The **`KeyManager`** frontend library facilitates interaction with a [**`KeyManager`-enabled canister**](https://docs.rs/ic-vetkeys/latest/ic_vetkeys/key_manager/struct.KeyManager.html) on the **Internet Computer (ICP)**.
@@ -367,5 +367,5 @@ export interface KeyManagerClient {
 }
 
 function arrayToByteBuf(a: Uint8Array): ByteBuf {
-    return { inner: Array.from(a) };
+    return { inner: a };
 }

@@ -17,6 +17,7 @@ target/
 .idea/
 
 **/.dfx/*
+**/.icp/cache
 **/deps/*
 backend/**/declarations
 examples/**/declarations
@@ -93,3 +94,4 @@ docs/
 *.mops
 
 **/.canbench
+frontend/ic_vetkeys/.test*.env
