@@ -8,7 +8,7 @@ import Array "mo:core/Array";
 
 persistent actor class (keyName : Text) {
     transient let keyManagerState = IcVetkeys.KeyManager.newKeyManagerState<Types.AccessRights>({ curve = #bls12_381_g2; name = keyName }, "key manager");
-    transient var keyManager = IcVetkeys.KeyManager.KeyManager(keyManagerState, Types.accessRightsOperations());
+    transient let keyManager = IcVetkeys.KeyManager.KeyManager(keyManagerState, Types.accessRightsOperations());
     /// In this canister, we use the `ByteBuf` type to represent blobs. The reason is that we want to be consistent with the Rust canister implementation.
     /// Unfortunately, the `Blob` type cannot be serialized/deserialized in the current Rust implementation efficiently without nesting it in another type.
     public type ByteBuf = { inner : Blob };
