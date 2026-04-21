@@ -71,7 +71,11 @@ module {
     /// The public transport key used to encrypt vetKeys for secure transmission.
     public type TransportKey = Blob;
 
-    public func compareKeyIds(a : KeyId, b : KeyId) : { #less; #greater; #equal } {
+    public func compareKeyIds(a : KeyId, b : KeyId) : {
+        #less;
+        #greater;
+        #equal;
+    } {
         let ownersCompare = Principal.compare(a.0, b.0);
         if (ownersCompare == #equal) {
             Blob.compare(a.1, b.1);
@@ -182,7 +186,7 @@ module {
                             } else {
                                 let entries = keyManagerState.accessControl.get(user)!;
                                 let (_k, foundRights) = entries.find(
-                                    func((_k, _rights) : (KeyId, T)) : Bool = compareKeyIds(_k, keyId) == #equal,
+                                    func((_k, _rights) : (KeyId, T)) : Bool = compareKeyIds(_k, keyId) == #equal
                                 )!;
                                 foundRights;
                             };

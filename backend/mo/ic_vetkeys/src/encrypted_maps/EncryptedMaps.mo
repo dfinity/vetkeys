@@ -202,7 +202,7 @@ module {
                     };
                     case (#ok(mapValues)) {
                         mapValues.map(
-                            func((key, value)) = (key, value),
+                            func((key, value)) = (key, value)
                         );
                     };
                 };
@@ -333,7 +333,7 @@ module {
         func getAccessibleMapIdsIter(caller : Caller) : Iter.Iter<MapId> {
             let accessibleMapIds = Iter.fromArray(getAccessibleSharedMapNames(caller));
             let ownedMapIds = Iter.fromArray(getOwnedNonEmptyMapNames(caller)).map(
-                func(mapName) = (caller, mapName),
+                func(mapName) = (caller, mapName)
             );
             return accessibleMapIds.concat(ownedMapIds);
         };

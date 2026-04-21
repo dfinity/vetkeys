@@ -175,14 +175,18 @@ test(
         // Add a key-value pair
         switch (encryptedMaps.insertEncryptedValue(p1, (p1, mapName), mapKey, mapValue)) {
             case (#ok(_)) {};
-            case (#err(e)) { Runtime.trap("Failed to add key-value pair: " # e) };
+            case (#err(e)) {
+                Runtime.trap("Failed to add key-value pair: " # e);
+            };
         };
 
         for (accessRights in [#Read, #ReadWrite, #ReadWriteManage].vals()) {
             // Give read access to p2
             switch (encryptedMaps.setUserRights(p1, (p1, mapName), p2, accessRights)) {
                 case (#ok(_)) {};
-                case (#err(e)) { Runtime.trap("Failed to set read access: " # e) };
+                case (#err(e)) {
+                    Runtime.trap("Failed to set read access: " # e);
+                };
             };
 
             // Verify p2 can read
@@ -238,7 +242,9 @@ test(
         // Add a key-value pair
         switch (encryptedMaps.insertEncryptedValue(p1, (p1, mapName), mapKey, mapValue)) {
             case (#ok(_)) {};
-            case (#err(e)) { Runtime.trap("Failed to add key-value pair: " # e) };
+            case (#err(e)) {
+                Runtime.trap("Failed to add key-value pair: " # e);
+            };
         };
 
         // Verify map appears in owned maps

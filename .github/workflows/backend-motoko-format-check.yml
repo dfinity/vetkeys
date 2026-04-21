@@ -30,6 +30,7 @@ jobs:
           for d in $(find . -type d -name '.mops' -prune -o -type f -name 'mops.toml' -printf '%h\n'); do
             if [ -d "$d/src" ]; then
               cd $d
+              mops install
               echo "Checking directory: $(pwd)" && mops format --check
               cd -
             else
