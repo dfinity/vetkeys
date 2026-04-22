@@ -552,7 +552,6 @@ export class VetKey {
     constructor(pt: G1Point) {
         this.#pt = pt;
 
-
         this.#bytes = pt.toBytes(true) as Uint8Array<ArrayBuffer>;
     }
 }
