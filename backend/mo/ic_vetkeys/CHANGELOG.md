@@ -6,10 +6,10 @@
 
 - Migrated the library from the deprecated `mo:base` to `mo:core` 2.4.0. Public types such as `KeyManagerState` and `EncryptedMapsState` now reference `mo:core/pure/Map.Map` instead of `mo:base/OrderedMap`; downstream code that constructs or inspects these state records must be updated accordingly.
 - Now requires `moc` 1.6.0 and `mo:core` 2.4.0, declared via the new `[toolchain]` section in `mops.toml`.
-
+ 
 ### Changed
 
-- Internal refactors to align with `mo:core` conventions: `Buffer` → `List`, `Debug.trap` → `Runtime.trap`, `Array.subArray` → `Array.sliceToArray`, and modern Motoko style applied via `mops check --fix` (dot notation, removal of redundant type instantiations and implicit arguments).
+- Internal refactoring to align with `mo:core` conventions and modern Motoko style.
 
 ## [0.4.0] - 2025-09-29
 
