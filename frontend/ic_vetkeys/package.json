@@ -62,6 +62,8 @@
         "idb-keyval": "^6.2.1"
     },
     "devDependencies": {
+        "@noble/curves": "^1.9.7",
+        "@noble/hashes": "^1.8.0",
         "@eslint/js": "^9.22.0",
         "@types/node": "^24.0.4",
         "@vitest/coverage-v8": "^3.0.5",
