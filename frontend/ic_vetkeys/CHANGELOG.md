@@ -30,6 +30,12 @@
 
 - Make `DerivedKeyMaterial.deriveAesGcmCryptoKey` `@internal`.
 
+### Fixed
+
+- Updated `@noble/curves` and `@noble/hashes` usages to current non-deprecated APIs.
+  The exported `G1Point` and `G2Point` types now resolve to `WeierstrassPoint` instead
+  of the deprecated `ProjPointType` alias.
+
 ## [0.4.0] - 2025-08-04
 
 ### Added
