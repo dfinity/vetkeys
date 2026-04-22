@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
     inputs:
       dry-run:
-        description: "Build and pack but do not publish to npm or create a GitHub release"
+        description: "Run pnpm publish --dry-run and skip GitHub release creation"
         required: false
         default: true
         type: boolean
@@ -56,7 +56,6 @@ jobs:
         run: pnpm pack
 
       - name: Publish to npm
-        if: ${{ github.event.inputs.dry-run != 'true' }}
         working-directory: frontend/ic_vetkeys
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
@@ -65,6 +64,9 @@ jobs:
           release_cmd="pnpm publish --verbose --access public --no-git-checks"
           if [ "${{ steps.ver.outputs.is_beta }}" = 'true' ]; then
             release_cmd="$release_cmd --tag beta"
+          fi
+          if [ "${{ github.event.inputs.dry-run }}" = 'true' ]; then
+            release_cmd="$release_cmd --dry-run"
           fi
           $release_cmd
 
