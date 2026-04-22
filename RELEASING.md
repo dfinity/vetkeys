@@ -32,7 +32,11 @@ npm and creates a GitHub release automatically.
    "version": "X.Y.Z"
    ```
 
-3. **Update [`frontend/ic_vetkeys/CHANGELOG.md`](frontend/ic_vetkeys/CHANGELOG.md)** — add a new `## [X.Y.Z] - YYYY-MM-DD` section at the top.
+3. **Update [`frontend/ic_vetkeys/CHANGELOG.md`](frontend/ic_vetkeys/CHANGELOG.md)** — the top section is typically developed as `## [X.Y.Z] - Unreleased` during the release cycle. Before tagging, update the date to today:
+   ```markdown
+   ## [X.Y.Z] - YYYY-MM-DD
+   ```
+   The CI extracts this section verbatim as the GitHub release body, so "Unreleased" must not remain.
 
 4. **Commit, push, and open a PR** targeting `main`:
    ```bash
@@ -40,14 +44,17 @@ npm and creates a GitHub release automatically.
    git push -u origin release/npm-X.Y.Z
    ```
 
-5. **After the PR is merged**, tag the merge commit on `main` and push the tag:
+5. **After the PR is merged**, optionally run a dry-run first to verify the build and package before tagging:
+   - Go to **Actions → release-npm → Run workflow**, leave `dry-run` checked.
+
+6. **Tag the merge commit on `main`** and push the tag:
    ```bash
    git checkout main && git pull
    git tag npm/X.Y.Z
    git push origin npm/X.Y.Z
    ```
 
-   The CI workflow triggers on the tag push and handles publishing.
+   The CI workflow triggers on the tag push, publishes to npm, and creates a GitHub release.
 
 ### Beta releases
 
