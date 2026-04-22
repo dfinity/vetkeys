@@ -3,6 +3,10 @@
 This repo ships three independent libraries. Each has its own versioning,
 changelog, and release process.
 
+- [`@icp-sdk/vetkeys` (npm)](#icp-sdkvetkeys-npm)
+- [`ic-vetkeys` (Rust crate)](#ic-vetkeys-rust-crate)
+- [`ic-vetkeys` (Motoko / mops)](#ic-vetkeys-motoko--mops)
+
 ---
 
 ## `@icp-sdk/vetkeys` (npm)
