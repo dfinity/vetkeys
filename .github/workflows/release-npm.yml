@@ -5,14 +5,18 @@ on:
     tags:
       - 'npm/[0-9]+.[0-9]+.[0-9]+'
       - 'npm/[0-9]+.[0-9]+.[0-9]+-beta.[0-9]+'
+  workflow_dispatch:
+    inputs:
+      dry-run:
+        description: "Build and pack but do not publish to npm or create a GitHub release"
+        required: false
+        default: true
+        type: boolean
 
 jobs:
   release:
     name: release-npm
     runs-on: ubuntu-latest
-    outputs:
-      is_beta: ${{ steps.is_beta.outputs.is_beta_tag }}
-      major_minor_patch_version_tag: ${{ steps.ver.outputs.major_minor_patch_version_tag }}
     environment:
       name: release
       url: https://www.npmjs.com/package/@icp-sdk/vetkeys
@@ -26,51 +30,57 @@ jobs:
       - name: Setup PNPM
         uses: dfinity/ci-tools/actions/setup-pnpm@main
 
-      - name: Determine if Beta Release
-        id: is_beta
-        uses: dfinity/ci-tools/actions/is-beta-tag@main
-
-      - name: Extract version (strip npm/ prefix)
-        id: extract-version
-        run: |
-          VERSION="${GITHUB_REF_NAME#npm/}"
-          echo "major=$(echo $VERSION | cut -d. -f1)" >> $GITHUB_OUTPUT
-          echo "minor=$(echo $VERSION | cut -d. -f2)" >> $GITHUB_OUTPUT
-          echo "patch=$(echo $VERSION | cut -d. -f3 | cut -d- -f1)" >> $GITHUB_OUTPUT
-
-      - name: Prepare version
+      - name: Determine version
         id: ver
         run: |
-          echo "major_minor_patch_version_tag=${{ steps.extract-version.outputs.major }}.${{ steps.extract-version.outputs.minor }}.${{ steps.extract-version.outputs.patch }}" >> $GITHUB_OUTPUT
+          if [[ "$GITHUB_REF_NAME" == npm/* ]]; then
+            VERSION="${GITHUB_REF_NAME#npm/}"
+          else
+            VERSION=$(jq -r '.version' frontend/ic_vetkeys/package.json)
+          fi
+          MAJOR=$(echo $VERSION | cut -d. -f1)
+          MINOR=$(echo $VERSION | cut -d. -f2)
+          PATCH=$(echo $VERSION | cut -d. -f3 | cut -d- -f1)
+          echo "major_minor_patch=${MAJOR}.${MINOR}.${PATCH}" >> $GITHUB_OUTPUT
+          if [[ "$VERSION" == *-beta.* ]]; then
+            echo "is_beta=true" >> $GITHUB_OUTPUT
+          else
+            echo "is_beta=false" >> $GITHUB_OUTPUT
+          fi
 
       - name: Build NPM package
         run: pnpm build
 
+      - name: Pack
+        working-directory: frontend/ic_vetkeys
+        run: pnpm pack
+
       - name: Publish to npm
+        if: ${{ github.event.inputs.dry-run != 'true' }}
         working-directory: frontend/ic_vetkeys
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
           NPM_CONFIG_PROVENANCE: 'true'
         run: |
-          pnpm pack
-
           release_cmd="pnpm publish --verbose --access public --no-git-checks"
-          if [ "${{ steps.is_beta.outputs.is_beta_tag }}" = 'true' ]; then
+          if [ "${{ steps.ver.outputs.is_beta }}" = 'true' ]; then
             release_cmd="$release_cmd --tag beta"
           fi
           $release_cmd
 
       - name: Extract release notes from CHANGELOG
+        if: ${{ github.event.inputs.dry-run != 'true' }}
         run: |
           awk '/^## \[/{count++; if(count==2){exit}} count==1{print}' \
             frontend/ic_vetkeys/CHANGELOG.md > RELEASE_NOTES.md
 
       - name: Create Github release
+        if: ${{ github.event.inputs.dry-run != 'true' }}
         uses: ncipollo/release-action@v1.16.0
         with:
-          artifacts: 'frontend/ic_vetkeys/icp-sdk-vetkeys-${{ steps.ver.outputs.major_minor_patch_version_tag }}.tgz'
+          artifacts: 'frontend/ic_vetkeys/icp-sdk-vetkeys-${{ steps.ver.outputs.major_minor_patch }}.tgz'
           bodyFile: 'RELEASE_NOTES.md'
           tag: '${{ github.ref_name }}'
           commit: 'main'
-          prerelease: ${{ steps.is_beta.outputs.is_beta_tag == 'true' }}
-          makeLatest: ${{ steps.is_beta.outputs.is_beta_tag == 'false' }}
+          prerelease: ${{ steps.ver.outputs.is_beta == 'true' }}
+          makeLatest: ${{ steps.ver.outputs.is_beta == 'false' }}

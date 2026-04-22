@@ -62,7 +62,7 @@ Follow the same steps but use a `npm/X.Y.Z-beta.N` tag (e.g. `npm/0.5.0-beta.1`)
 
 ## `ic-vetkeys` (Rust crate)
 
-> **TODO:** Document and verify the release process for the Rust crate.
+> **TODO:** Document and verify the release process for the Rust crate. See [`.github/workflows/release-rust.yml`](.github/workflows/release-rust.yml).
 
 ---
 
