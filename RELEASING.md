@@ -57,10 +57,6 @@ Follow the same steps but use a `npm/X.Y.Z-beta.N` tag (e.g. `npm/0.5.0-beta.1`)
 
 - The `npm/` prefix scopes JS/TS release tags from Rust and Motoko release tags in this repo.
 - Publishing requires the `NPM_TOKEN` secret and the `release` GitHub environment to be configured.
-- After publishing a new version under a new package name, deprecate the old one on npm (requires npm org access):
-  ```bash
-  npm deprecate @dfinity/vetkeys "Moved to @icp-sdk/vetkeys"
-  ```
 
 ---
 
