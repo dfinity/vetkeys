@@ -1,5 +1,16 @@
 # Change Log
 
+## [0.5.0] - 2026-04-22
+
+### Breaking changes
+
+- Migrated the library from the deprecated `mo:base` to `mo:core` 2.4.0. Public types such as `KeyManagerState` and `EncryptedMapsState` now reference `mo:core/pure/Map.Map` instead of `mo:base/OrderedMap`; downstream code that constructs or inspects these state records must be updated accordingly.
+- Now requires `moc` 1.6.0 and `mo:core` 2.4.0, declared via the new `[toolchain]` section in `mops.toml`.
+ 
+### Changed
+
+- Internal refactoring to align with `mo:core` conventions and modern Motoko style.
+
 ## [0.4.0] - 2025-09-29
 
 ### Breaking changes
