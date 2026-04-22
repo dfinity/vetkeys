@@ -78,7 +78,7 @@ jobs:
 
       - name: Create Github release
         if: ${{ github.event.inputs.dry-run != 'true' }}
-        uses: ncipollo/release-action@v1.16.0
+        uses: ncipollo/release-action@440c8c1cb0ed28b9f43e4d1d670870f059653174 # v1.16.0
         with:
           artifacts: 'frontend/ic_vetkeys/icp-sdk-vetkeys-${{ steps.ver.outputs.major_minor_patch }}.tgz'
           bodyFile: 'RELEASE_NOTES.md'
