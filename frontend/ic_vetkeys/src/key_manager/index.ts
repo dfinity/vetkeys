@@ -38,26 +38,6 @@ export type {
  * - **Access Rights** should be carefully managed to prevent unauthorized access.
  * - VetKeys should be decrypted **only in trusted environments** such as user browsers to prevent leaks.
  *
- * @example
- * ```ts
- * import { KeyManager } from "@dfinity/vetkeys/key_manager";
- *
- * // Initialize the KeyManager
- * const keyManager = new KeyManager(keyManagerClientInstance);
- *
- * // Retrieve shared keys
- * const sharedKeys = await keyManager.getAccessibleSharedKeyIds();
- *
- * // Request and decrypt a VetKey
- * const keyOwner = Principal.fromText("aaaaa-aa");
- * const vetkeyName = "my_secure_key";
- * const vetkey = await keyManager.getVetKey(keyOwner, vetkeyName);
- *
- * // Manage user access rights
- * const user = Principal.fromText("bbbbbb-bb");
- * const accessRights = { ReadWrite: null };
- * const result = await keyManager.setUserRights(keyOwner, vetkeyName, user, accessRights);
- * ```
  */
 export class KeyManager {
     /**
@@ -224,7 +204,7 @@ export class KeyManager {
      *
      * @example
      * ```ts
-     * const userRights = await keyManager.get_user_rights(owner, keyName, user);
+     * const userRights = await keyManager.getUserRights(owner, keyName, user);
      * console.log("User Access Rights:", userRights);
      * ```
      *
