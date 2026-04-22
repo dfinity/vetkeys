@@ -1,14 +1,13 @@
 import { bls12_381 } from "@noble/curves/bls12-381";
-import { ProjPointType } from "@noble/curves/abstract/weierstrass";
+import { WeierstrassPoint } from "@noble/curves/abstract/weierstrass";
 import { Fp, Fp2, Fp12 } from "@noble/curves/abstract/tower";
-import { hash_to_field, Opts } from "@noble/curves/abstract/hash-to-curve";
 import { shake256 } from "@noble/hashes/sha3";
 import { hkdf } from "@noble/hashes/hkdf";
-import { sha256 } from "@noble/hashes/sha256";
+import { sha256 } from "@noble/hashes/sha2";
 import type { Principal } from "@icp-sdk/core/principal";
 
-export type G1Point = ProjPointType<Fp>;
-export type G2Point = ProjPointType<Fp2>;
+export type G1Point = WeierstrassPoint<Fp>;
+export type G2Point = WeierstrassPoint<Fp2>;
 
 const G1_BYTES = 48;
 const G2_BYTES = 96;
@@ -28,7 +27,7 @@ export class TransportSecretKey {
      * Create a random transport secret key
      */
     static random() {
-        return new TransportSecretKey(bls12_381.utils.randomPrivateKey());
+        return new TransportSecretKey(bls12_381.utils.randomSecretKey());
     }
 
     /**
@@ -50,7 +49,7 @@ export class TransportSecretKey {
      * sent to the IC
      */
     publicKeyBytes(): Uint8Array {
-        return this.#pk.toRawBytes(true);
+        return this.#pk.toBytes(true);
     }
 
     /**
@@ -67,7 +66,9 @@ export class TransportSecretKey {
      */
     private constructor(sk: Uint8Array) {
         this.#sk = sk;
-        const pk = bls12_381.G1.ProjectivePoint.fromPrivateKey(this.#sk);
+        const pk = bls12_381.G1.Point.BASE.multiply(
+            bls12_381.G1.Point.Fn.fromBytes(this.#sk),
+        );
         this.#pk = pk;
     }
 }
@@ -85,7 +86,7 @@ export function isValidTransportPublicKey(tpk: Uint8Array): boolean {
     }
 
     try {
-        bls12_381.G1.ProjectivePoint.fromHex(tpk);
+        bls12_381.G1.Point.fromHex(tpk);
         return true;
     } catch {
         return false;
@@ -157,7 +158,7 @@ export class MasterPublicKey {
      * the `vetkd_public_key` management canister interface.
      */
     static deserialize(bytes: Uint8Array): MasterPublicKey {
-        return new MasterPublicKey(bls12_381.G2.ProjectivePoint.fromHex(bytes));
+        return new MasterPublicKey(bls12_381.G2.Point.fromHex(bytes));
     }
 
     /**
@@ -179,7 +180,7 @@ export class MasterPublicKey {
             ...prefixWithLen(canisterId),
         ]);
         const offset = hashToScalar(randomOracleInput, dst);
-        const g2offset = bls12_381.G2.ProjectivePoint.BASE.multiply(offset);
+        const g2offset = bls12_381.G2.Point.BASE.multiply(offset);
         return new DerivedPublicKey(this.#pk.add(g2offset));
     }
 
@@ -187,7 +188,7 @@ export class MasterPublicKey {
      * Return the bytestring encoding of the master public key
      */
     publicKeyBytes(): Uint8Array {
-        return this.#pk.toRawBytes(true);
+        return this.#pk.toBytes(true);
     }
 
     /**
@@ -274,9 +275,7 @@ export class DerivedPublicKey {
      * the `vetkd_public_key` management canister interface.
      */
     static deserialize(bytes: Uint8Array): DerivedPublicKey {
-        return new DerivedPublicKey(
-            bls12_381.G2.ProjectivePoint.fromHex(bytes),
-        );
+        return new DerivedPublicKey(bls12_381.G2.Point.fromHex(bytes));
     }
 
     /**
@@ -306,7 +305,7 @@ export class DerivedPublicKey {
                 ...prefixWithLen(context),
             ]);
             const offset = hashToScalar(randomOracleInput, dst);
-            const g2offset = bls12_381.G2.ProjectivePoint.BASE.multiply(offset);
+            const g2offset = bls12_381.G2.Point.BASE.multiply(offset);
             return new DerivedPublicKey(this.getPoint().add(g2offset));
         }
     }
@@ -319,7 +318,7 @@ export class DerivedPublicKey {
      * these bytes are used by anyone verifying the beacon.
      */
     publicKeyBytes(): Uint8Array {
-        return this.#pk.toRawBytes(true);
+        return this.#pk.toBytes(true);
     }
 
     /**
@@ -349,22 +348,7 @@ export class DerivedPublicKey {
  * input data, but this is not a common operation.
  */
 export function hashToScalar(input: Uint8Array, domainSep: string): bigint {
-    const params = {
-        p: bls12_381.params.r,
-        m: 1,
-        DST: domainSep,
-    };
-
-    const options = Object.assign(
-        {},
-        // @ts-expect-error (https://github.com/paulmillr/noble-curves/issues/179)
-        bls12_381.G2.CURVE.htfDefaults,
-        params,
-    ) as Opts;
-
-    const scalars = hash_to_field(input, 1, options);
-
-    return scalars[0][0];
+    return bls12_381.G2.hashToScalar(input, { DST: domainSep });
 }
 
 /**
@@ -425,7 +409,7 @@ export function augmentedHashToG1(
     const domainSep = "BLS_SIG_BLS12381G1_XMD:SHA-256_SSWU_RO_AUG_";
     const pkbytes = pk.publicKeyBytes();
     const input = new Uint8Array([...pkbytes, ...message]);
-    const pt = bls12_381.G1.ProjectivePoint.fromAffine(
+    const pt = bls12_381.G1.Point.fromAffine(
         bls12_381.G1.hashToCurve(input, {
             DST: domainSep,
         }).toAffine(),
@@ -465,20 +449,14 @@ export function verifyBlsSignature(
     // The standard domain separator defined in section 4.2.2 of draft-irtf-cfrg-bls-signature
     const domainSep = "BLS_SIG_BLS12381G1_XMD:SHA-256_SSWU_RO_AUG_";
 
-    const options = Object.assign(
-        {},
-        // @ts-expect-error (https://github.com/paulmillr/noble-curves/issues/179)
-        bls12_381.G1.CURVE.htfDefaults,
-        {
-            DST: domainSep,
-        },
-    ) as Opts;
-
-    return bls12_381.verifyShortSignature(
-        signature,
+    const hashedMessage = bls12_381.shortSignatures.hash(
         publicKeyAndMessage,
+        domainSep,
+    );
+    return bls12_381.shortSignatures.verify(
+        signature,
+        hashedMessage,
         pk.getPoint(),
-        options,
     );
 }
 
@@ -553,7 +531,7 @@ export class VetKey {
      * This deserializes the same value as returned by serialize (or signatureBytes)
      */
     static deserialize(bytes: Uint8Array): VetKey {
-        return new VetKey(bls12_381.G1.ProjectivePoint.fromHex(bytes));
+        return new VetKey(bls12_381.G1.Point.fromHex(bytes));
     }
 
     /**
@@ -573,7 +551,8 @@ export class VetKey {
      */
     constructor(pt: G1Point) {
         this.#pt = pt;
-        this.#bytes = pt.toRawBytes(true);
+
+        this.#bytes = pt.toBytes(true) as Uint8Array<ArrayBuffer>;
     }
 }
 
@@ -892,13 +871,11 @@ export class EncryptedVetKey {
             throw new Error("Invalid EncryptedVetKey serialization");
         }
 
-        const c1 = bls12_381.G1.ProjectivePoint.fromHex(
-            bytes.subarray(0, G1_BYTES),
-        );
-        const c2 = bls12_381.G2.ProjectivePoint.fromHex(
+        const c1 = bls12_381.G1.Point.fromHex(bytes.subarray(0, G1_BYTES));
+        const c2 = bls12_381.G2.Point.fromHex(
             bytes.subarray(G1_BYTES, G1_BYTES + G2_BYTES),
         );
-        const c3 = bls12_381.G1.ProjectivePoint.fromHex(
+        const c3 = bls12_381.G1.Point.fromHex(
             bytes.subarray(G1_BYTES + G2_BYTES),
         );
         return new EncryptedVetKey(c1, c2, c3);
@@ -914,8 +891,8 @@ export class EncryptedVetKey {
     ): VetKey {
         // Check that c1 and c2 have the same discrete logarithm, ie that e(c1, g2) == e(g1, c2)
 
-        const g1 = bls12_381.G1.ProjectivePoint.BASE;
-        const negG2 = bls12_381.G2.ProjectivePoint.BASE.negate();
+        const g1 = bls12_381.G1.Point.BASE;
+        const negG2 = bls12_381.G2.Point.BASE.negate();
         const oneGt = bls12_381.fields.Fp12.ONE;
 
         const c1c2 = bls12_381.pairingBatch([
@@ -929,9 +906,7 @@ export class EncryptedVetKey {
 
         // Compute the purported vetKey k
         const k = this.#c3.subtract(
-            this.#c1.multiply(
-                bls12_381.G1.normPrivateKeyToScalar(tsk.serialize()),
-            ),
+            this.#c1.multiply(bls12_381.G1.Point.Fn.fromBytes(tsk.serialize())),
         );
 
         // Verify that k is a valid BLS signature
@@ -1203,7 +1178,7 @@ export class IbeCiphertext {
      * Serialize the IBE ciphertext to a bytestring
      */
     serialize(): Uint8Array {
-        const c1bytes = this.#c1.toRawBytes(true);
+        const c1bytes = this.#c1.toBytes(true);
         return new Uint8Array([
             ...this.#header,
             ...c1bytes,
@@ -1221,7 +1196,7 @@ export class IbeCiphertext {
         }
 
         const header = bytes.subarray(0, IBE_HEADER_LEN);
-        const c1 = bls12_381.G2.ProjectivePoint.fromHex(
+        const c1 = bls12_381.G2.Point.fromHex(
             bytes.subarray(IBE_HEADER_LEN, IBE_HEADER_LEN + G2_BYTES),
         );
         const c2 = bytes.subarray(
@@ -1270,7 +1245,7 @@ export class IbeCiphertext {
             t,
         );
 
-        const c1 = bls12_381.G2.ProjectivePoint.BASE.multiply(t);
+        const c1 = bls12_381.G2.Point.BASE.multiply(t);
         const c2 = maskSeed(seed.getBytes(), serializeGtElem(tsig));
         const c3 = maskMsg(msg, seed.getBytes());
 
@@ -1296,8 +1271,8 @@ export class IbeCiphertext {
         const t = hashToMask(this.#header, seed, msg);
 
         const valid = isEqual(
-            bls12_381.G2.ProjectivePoint.BASE.multiply(t).toRawBytes(true),
-            this.#c1.toRawBytes(true),
+            bls12_381.G2.Point.BASE.multiply(t).toBytes(true),
+            this.#c1.toBytes(true),
         );
 
         if (valid) {

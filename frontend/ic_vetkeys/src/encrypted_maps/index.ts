@@ -40,32 +40,6 @@ export type {
  * - **Access Rights** should be carefully managed to prevent unauthorized access.
  * - VetKeys should be decrypted **only in trusted environments** such as user browsers to prevent leaks.
  *
- * @example
- * ```ts
- * import { EncryptedMaps } from "@dfinity/vetkeys/encrypted_maps";
- *
- * // Initialize the EncryptedMaps Client
- * const encryptedMaps = new EncryptedMaps(encryptedMapsClientInstance);
- *
- * // Retrieve shared maps
- * const sharedMaps = await encryptedMaps.getAccessibleSharedMapNames();
- *
- * const mapOwner = Principal.fromText("aaaaa-aa");
- * const mapName = "passwords";
- * const mapKey = "email_account";
- *
- * // Store an encrypted value
- * const value = new TextEncoder().encode("my_secure_password");
- * const result = await encryptedMaps.setValue(mapOwner, mapName, mapKey, value);
- *
- * // Retrieve a stored value
- * const storedValue = await encryptedMaps.getValue(mapOwner, mapName, mapKey);
- *
- * // Manage user access rights
- * const user = Principal.fromText("bbbbbb-bb");
- * const accessRights = { ReadWrite: null };
- * const result = await encryptedMaps.setUserRights(mapOwner, mapName, user, accessRights);
- * ```
  */
 export class EncryptedMaps {
     /**
@@ -459,7 +433,7 @@ export class EncryptedMaps {
      *
      * @example
      * ```ts
-     * const userRights = await encryptedMaps.get_user_rights(owner, mapName, user);
+     * const userRights = await encryptedMaps.getUserRights(owner, mapName, user);
      * console.log("User Access Rights:", userRights);
      * ```
      *
@@ -514,7 +488,7 @@ export class EncryptedMaps {
      *
      * @example
      * ```ts
-     * const removalResult = await encryptedMaps.remove_user(owner, mapName, user);
+     * const removalResult = await encryptedMaps.removeUser(owner, mapName, user);
      * console.log("User Removed:", removalResult);
      * ```
      *
