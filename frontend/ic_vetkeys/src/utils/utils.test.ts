@@ -422,7 +422,7 @@ test("AES-GCM encryption", async () => {
     for (let trial = 0; trial < msg3.length * 8; trial++) {
         const modMsg = new Uint8Array(msg3);
 
-        const flip = 0x80 >> trial % 8;
+        const flip = 0x80 >> (trial % 8);
         const byteToFlip = Math.floor(trial / 8);
         modMsg[byteToFlip] ^= flip;
 
@@ -444,7 +444,7 @@ test("AES-GCM encryption", async () => {
     for (let trial = 0; trial < associatedData.length * 8; trial++) {
         const modAad = new TextEncoder().encode(associatedData);
 
-        const flip = 0x80 >> trial % 8;
+        const flip = 0x80 >> (trial % 8);
         const byteToFlip = Math.floor(trial / 8);
         modAad[byteToFlip] ^= flip;
 

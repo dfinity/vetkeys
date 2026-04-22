@@ -10,10 +10,11 @@ on:
       - frontend/ic_vetkeys/**
       - backend/**/canisters/**
       - package.json
-      - package-lock.json
+      - pnpm-workspace.yaml
       - .github/workflows/frontend.yml
       - .github/workflows/provision-darwin.sh
       - .github/workflows/provision-linux.sh
+      - pnpm-lock.yaml
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
@@ -27,6 +28,9 @@ jobs:
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: '22'
+      - uses: pnpm/action-setup@a7487ba4cb7cf3eff6d41e04e57d22b9ed31a2fc # v4.1.0
+        with:
+          version: 10
       - name: Provision Linux
         run: bash .github/workflows/provision-linux.sh
       - name: Frontend Tests and Lint
@@ -34,11 +38,11 @@ jobs:
           ICP_CLI_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -eExuo pipefail
-          npm install
+          pnpm install
           cd frontend/ic_vetkeys
-          npm run build
-          npm run test
-          npm run lint
+          pnpm run build
+          pnpm run test
+          pnpm run lint
   frontend_ic_vetkeys_mac:
     runs-on: macos-15
     steps:
@@ -48,6 +52,9 @@ jobs:
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: '22'
+      - uses: pnpm/action-setup@a7487ba4cb7cf3eff6d41e04e57d22b9ed31a2fc # v4.1.0
+        with:
+          version: 10
       - name: Provision Darwin
         run: |
           bash .github/workflows/provision-darwin.sh
@@ -56,8 +63,8 @@ jobs:
           ICP_CLI_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -eExuo pipefail
-          npm install
+          pnpm install
           cd frontend/ic_vetkeys
-          npm run build
-          npm run test
-          npm run lint
+          pnpm run build
+          pnpm run test
+          pnpm run lint

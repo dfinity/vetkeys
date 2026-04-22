@@ -1,0 +1,80 @@
+name: release-npm
+
+on:
+  push:
+    tags:
+      - 'npm/[0-9]+.[0-9]+.[0-9]+'
+      - 'npm/[0-9]+.[0-9]+.[0-9]+-beta.[0-9]+'
+
+jobs:
+  release:
+    name: release-npm
+    runs-on: ubuntu-latest
+    outputs:
+      is_beta: ${{ steps.is_beta.outputs.is_beta_tag }}
+      major_minor_patch_version_tag: ${{ steps.ver.outputs.major_minor_patch_version_tag }}
+    environment:
+      name: release
+      url: https://www.npmjs.com/package/@icp-sdk/vetkeys
+    permissions:
+      contents: write
+      id-token: write
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+
+      - name: Setup Python
+        uses: dfinity/ci-tools/actions/setup-python@main
+
+      - name: Setup Commitizen
+        uses: dfinity/ci-tools/actions/setup-commitizen@main
+
+      - name: Setup PNPM
+        uses: dfinity/ci-tools/actions/setup-pnpm@main
+
+      - name: Determine if Beta Release
+        id: is_beta
+        uses: dfinity/ci-tools/actions/is-beta-tag@main
+
+      - name: Extract version (strip npm/ prefix)
+        id: extract-version
+        run: |
+          VERSION="${GITHUB_REF_NAME#npm/}"
+          echo "major=$(echo $VERSION | cut -d. -f1)" >> $GITHUB_OUTPUT
+          echo "minor=$(echo $VERSION | cut -d. -f2)" >> $GITHUB_OUTPUT
+          echo "patch=$(echo $VERSION | cut -d. -f3 | cut -d- -f1)" >> $GITHUB_OUTPUT
+
+      - name: Prepare version
+        id: ver
+        run: |
+          echo "major_minor_patch_version_tag=${{ steps.extract-version.outputs.major }}.${{ steps.extract-version.outputs.minor }}.${{ steps.extract-version.outputs.patch }}" >> $GITHUB_OUTPUT
+
+      - name: Build NPM package
+        run: pnpm build
+
+      - name: Publish to npm
+        working-directory: frontend/ic_vetkeys
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NPM_CONFIG_PROVENANCE: 'true'
+        run: |
+          pnpm pack
+
+          release_cmd="pnpm publish --verbose --access public --no-git-checks"
+          if [ "${{ steps.is_beta.outputs.is_beta_tag }}" = 'true' ]; then
+            release_cmd="$release_cmd --tag beta"
+          fi
+          $release_cmd
+
+      - name: Generate release notes
+        uses: dfinity/ci-tools/actions/generate-release-notes@main
+
+      - name: Create Github release
+        uses: ncipollo/release-action@v1.16.0
+        with:
+          artifacts: 'frontend/ic_vetkeys/icp-sdk-vetkeys-${{ steps.ver.outputs.major_minor_patch_version_tag }}.tgz'
+          bodyFile: 'RELEASE_NOTES.md'
+          tag: '${{ github.ref_name }}'
+          commit: 'main'
+          prerelease: ${{ steps.is_beta.outputs.is_beta_tag == 'true' }}
+          makeLatest: ${{ steps.is_beta.outputs.is_beta_tag == 'false' }}
