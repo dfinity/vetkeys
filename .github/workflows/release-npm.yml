@@ -23,12 +23,6 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
 
-      - name: Setup Python
-        uses: dfinity/ci-tools/actions/setup-python@main
-
-      - name: Setup Commitizen
-        uses: dfinity/ci-tools/actions/setup-commitizen@main
-
       - name: Setup PNPM
         uses: dfinity/ci-tools/actions/setup-pnpm@main
 
@@ -66,8 +60,10 @@ jobs:
           fi
           $release_cmd
 
-      - name: Generate release notes
-        uses: dfinity/ci-tools/actions/generate-release-notes@main
+      - name: Extract release notes from CHANGELOG
+        run: |
+          awk '/^## \[/{count++; if(count==2){exit}} count==1{print}' \
+            frontend/ic_vetkeys/CHANGELOG.md > RELEASE_NOTES.md
 
       - name: Create Github release
         uses: ncipollo/release-action@v1.16.0

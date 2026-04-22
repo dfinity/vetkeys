@@ -1,7 +1,0 @@
-[tool.commitizen]
-name = "cz_conventional_commits"
-tag_format = "npm/$version"
-version = "0.4.0"
-version_scheme = "semver2"
-version_files = ["frontend/ic_vetkeys/package.json:version"]
-changelog_file = "frontend/ic_vetkeys/CHANGELOG.md"
