@@ -88,6 +88,6 @@ jobs:
           artifacts: 'frontend/ic_vetkeys/icp-sdk-vetkeys-${{ steps.ver.outputs.version }}.tgz'
           bodyFile: 'RELEASE_NOTES.md'
           tag: '${{ github.ref_name }}'
-          commit: 'main'
+          commit: ${{ github.sha }}
           prerelease: ${{ steps.ver.outputs.is_beta == 'true' }}
           makeLatest: ${{ steps.ver.outputs.is_beta == 'false' }}
