@@ -1,6 +1,6 @@
 {
     "private": true,
     "scripts": {
-        "build": "pnpm -r run build"
+        "build": "pnpm --recursive run build"
     }
 }

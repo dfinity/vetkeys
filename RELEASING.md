@@ -16,8 +16,7 @@ changelog, and release process.
 **Changelog:** [`frontend/ic_vetkeys/CHANGELOG.md`](frontend/ic_vetkeys/CHANGELOG.md)
 
 Releases are triggered by pushing a `npm/X.Y.Z` tag to `main`. The
-[`release-npm`](.github/workflows/release-npm.yml) workflow then publishes to
-npm and creates a GitHub release automatically.
+[`release-npm`](.github/workflows/release-npm.yml) workflow then publishes to npm automatically.
 
 ### Steps
 
@@ -32,11 +31,10 @@ npm and creates a GitHub release automatically.
    "version": "X.Y.Z"
    ```
 
-3. **Update [`frontend/ic_vetkeys/CHANGELOG.md`](frontend/ic_vetkeys/CHANGELOG.md)** — the top section is typically developed as `## [X.Y.Z] - Unreleased` during the release cycle. Before tagging, update the date to today:
+3. **Update [`frontend/ic_vetkeys/CHANGELOG.md`](frontend/ic_vetkeys/CHANGELOG.md)** — replace the `Unreleased` marker with today's date:
    ```markdown
    ## [X.Y.Z] - YYYY-MM-DD
    ```
-   The CI extracts this section verbatim as the GitHub release body, so "Unreleased" must not remain.
 
 4. **Commit, push, and open a PR** targeting `main`:
    ```bash
@@ -54,11 +52,7 @@ npm and creates a GitHub release automatically.
    git push origin npm/X.Y.Z
    ```
 
-   The CI workflow triggers on the tag push, publishes to npm, and creates a GitHub release.
-
-### Beta releases
-
-Follow the same steps but use a `npm/X.Y.Z-beta.N` tag (e.g. `npm/0.5.0-beta.1`). The package will be published to npm with the `beta` dist-tag.
+   The CI workflow triggers on the tag push and publishes to npm.
 
 ### Notes
 

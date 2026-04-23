@@ -4,11 +4,10 @@ on:
   push:
     tags:
       - 'npm/[0-9]+.[0-9]+.[0-9]+'
-      - 'npm/[0-9]+.[0-9]+.[0-9]+-beta.[0-9]+'
   workflow_dispatch:
     inputs:
       dry-run:
-        description: "Run pnpm publish --dry-run and skip GitHub release creation"
+        description: "Run pnpm publish --dry-run"
         required: false
         default: true
         type: boolean
@@ -21,32 +20,26 @@ jobs:
       name: release
       url: https://www.npmjs.com/package/@icp-sdk/vetkeys
     permissions:
-      contents: write
       id-token: write
     steps:
       - name: Checkout Code
-        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
-      - name: Setup PNPM
-        uses: dfinity/ci-tools/actions/setup-pnpm@main
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '22'
 
-      - name: Determine version
-        id: ver
+      - uses: pnpm/action-setup@a7487c7e89a18df4991f7f222e4898a00d66ddda # v4.1.0
+
+      - name: Check package version matches tag
+        if: ${{ github.event_name == 'push' }}
         run: |
-          if [[ "$GITHUB_REF_NAME" == npm/* ]]; then
-            VERSION="${GITHUB_REF_NAME#npm/}"
-          else
-            VERSION=$(jq -r '.version' frontend/ic_vetkeys/package.json)
-          fi
-          MAJOR=$(echo $VERSION | cut -d. -f1)
-          MINOR=$(echo $VERSION | cut -d. -f2)
-          PATCH=$(echo $VERSION | cut -d. -f3 | cut -d- -f1)
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
-          echo "major_minor_patch=${MAJOR}.${MINOR}.${PATCH}" >> $GITHUB_OUTPUT
-          if [[ "$VERSION" == *-beta.* ]]; then
-            echo "is_beta=true" >> $GITHUB_OUTPUT
-          else
-            echo "is_beta=false" >> $GITHUB_OUTPUT
+          set -euo pipefail
+          pkg_version=$(jq -r '.version' frontend/ic_vetkeys/package.json)
+          tag_version="${GITHUB_REF_NAME#npm/}"
+          if [ "$pkg_version" != "$tag_version" ]; then
+            echo "Version mismatch: package.json has $pkg_version but tag is npm/$tag_version"
+            exit 1
           fi
 
       - name: Build NPM package
@@ -66,28 +59,8 @@ jobs:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
           NPM_CONFIG_PROVENANCE: 'true'
         run: |
-          release_cmd="pnpm publish --verbose --access public --no-git-checks"
-          if [ "${{ steps.ver.outputs.is_beta }}" = 'true' ]; then
-            release_cmd="$release_cmd --tag beta"
-          fi
           if [ "${{ github.event.inputs.dry-run }}" = 'true' ]; then
-            release_cmd="$release_cmd --dry-run"
+            pnpm publish --verbose --access public --no-git-checks --dry-run
+          else
+            pnpm publish --verbose --access public --no-git-checks
           fi
-          $release_cmd
-
-      - name: Extract release notes from CHANGELOG
-        if: ${{ github.event.inputs.dry-run != 'true' }}
-        run: |
-          awk '/^## \[/{count++; if(count==2){exit}} count==1{print}' \
-            frontend/ic_vetkeys/CHANGELOG.md > RELEASE_NOTES.md
-
-      - name: Create Github release
-        if: ${{ github.event.inputs.dry-run != 'true' }}
-        uses: ncipollo/release-action@440c8c1cb0ed28b9f43e4d1d670870f059653174 # v1.16.0
-        with:
-          artifacts: 'frontend/ic_vetkeys/icp-sdk-vetkeys-${{ steps.ver.outputs.version }}.tgz'
-          bodyFile: 'RELEASE_NOTES.md'
-          tag: '${{ github.ref_name }}'
-          commit: ${{ github.sha }}
-          prerelease: ${{ steps.ver.outputs.is_beta == 'true' }}
-          makeLatest: ${{ steps.ver.outputs.is_beta == 'false' }}

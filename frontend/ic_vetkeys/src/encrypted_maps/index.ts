@@ -612,9 +612,10 @@ export class EncryptedMaps {
         mapOwner: Principal,
         mapName: Uint8Array,
     ): Promise<DerivedKeyMaterial> {
+        const safeMapName = new Uint8Array(mapName);
         const cachedRawDerivedKeyMaterial: CryptoKey | undefined = await get([
             mapOwner.toString(),
-            mapName as Uint8Array<ArrayBuffer>,
+            safeMapName,
         ]);
         if (cachedRawDerivedKeyMaterial) {
             return await DerivedKeyMaterial.fromCryptoKey(
@@ -627,7 +628,7 @@ export class EncryptedMaps {
             mapName,
         );
         await set(
-            [mapOwner.toString(), mapName as Uint8Array<ArrayBuffer>],
+            [mapOwner.toString(), safeMapName],
             derivedKeyMaterial.getCryptoKey(),
         );
         return derivedKeyMaterial;

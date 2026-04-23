@@ -357,9 +357,10 @@ export function hashToScalar(input: Uint8Array, domainSep: string): bigint {
 function asBytes(input: Uint8Array | string): Uint8Array<ArrayBuffer> {
     if (typeof input === "string") {
         return new TextEncoder().encode(input);
-    } else {
-        return input as Uint8Array<ArrayBuffer>;
     }
+    const out = new Uint8Array(input.length);
+    out.set(input);
+    return out;
 }
 
 /**
