@@ -54,6 +54,8 @@ Releases are triggered by pushing a `npm/X.Y.Z` tag to `main`. The
 
    The CI workflow triggers on the tag push and publishes to npm.
 
+7. **Deploy the API docs** — go to **Actions → Deploy docs to GitHub Pages → Run workflow** and enter the tag `npm/X.Y.Z`. This updates the [online docs](https://dfinity.github.io/vetkeys/) to reflect the new release.
+
 ### Notes
 
 - The `npm/` prefix scopes JS/TS release tags from Rust and Motoko release tags in this repo.
