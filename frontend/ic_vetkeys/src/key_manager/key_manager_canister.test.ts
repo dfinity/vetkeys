@@ -1,5 +1,4 @@
 import { Ed25519KeyIdentity } from "@icp-sdk/core/identity";
-import fetch from "isomorphic-fetch";
 import { expect, test } from "vitest";
 import { KeyManager } from "./index";
 import { DefaultKeyManagerClient } from "./key_manager_canister";
@@ -16,8 +15,6 @@ function ids(): [Ed25519KeyIdentity, Ed25519KeyIdentity] {
 
 async function newKeyManager(id: Ed25519KeyIdentity): Promise<KeyManager> {
     const agent = await HttpAgent.create({
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-        fetch,
         host: "http://127.0.0.1:8000",
         identity: id,
         shouldFetchRootKey: true,

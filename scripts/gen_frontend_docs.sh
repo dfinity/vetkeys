@@ -2,5 +2,5 @@
 
 set -e
 
-npm i
-npm run make:docs -w $(git rev-parse --show-toplevel)/frontend/ic_vetkeys
+pnpm install
+pnpm --filter @icp-sdk/vetkeys run make:docs

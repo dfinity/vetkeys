@@ -354,18 +354,22 @@ export function hashToScalar(input: Uint8Array, domainSep: string): bigint {
 /**
  * @internal helper for data encoding
  */
-function asBytes(input: Uint8Array | string): Uint8Array {
+function asBytes(input: Uint8Array | string): Uint8Array<ArrayBuffer> {
     if (typeof input === "string") {
         return new TextEncoder().encode(input);
-    } else {
-        return input;
     }
+    const out = new Uint8Array(input.length);
+    out.set(input);
+    return out;
 }
 
 /**
  * @internal helper for data encoding
  */
-function withPrefix(prefix: string, input: Uint8Array | string): Uint8Array {
+function withPrefix(
+    prefix: string,
+    input: Uint8Array | string,
+): Uint8Array<ArrayBuffer> {
     const prefixBytes = new TextEncoder().encode(prefix);
     const inputBytes = asBytes(input);
 
@@ -475,7 +479,7 @@ export function verifyBlsSignature(
  */
 export class VetKey {
     readonly #pt: G1Point;
-    readonly #bytes: Uint8Array;
+    readonly #bytes: Uint8Array<ArrayBuffer>;
 
     /**
      * Return the VetKey bytes, aka the BLS signature
@@ -552,7 +556,7 @@ export class VetKey {
     constructor(pt: G1Point) {
         this.#pt = pt;
 
-        this.#bytes = pt.toBytes(true) as Uint8Array<ArrayBuffer>;
+        this.#bytes = new Uint8Array(pt.toBytes(true));
     }
 }
 
@@ -649,7 +653,7 @@ export class DerivedKeyMaterial {
     /**
      * @internal constructor
      */
-    static async setup(vetkey: Uint8Array) {
+    static async setup(vetkey: Uint8Array<ArrayBuffer>) {
         const exportable = false;
 
         /*

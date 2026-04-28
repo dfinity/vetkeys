@@ -1,5 +1,5 @@
 /**
- * @module @dfinity/vetkeys/key_manager
+ * @module @icp-sdk/vetkeys/key_manager
  *
  * @description See { @link KeyManager }.
  *
@@ -50,7 +50,7 @@ export class KeyManager {
      *
      * @example
      * ```ts
-     * import { KeyManager } from "@dfinity/vetkeys/key_manager";
+     * import { KeyManager } from "@icp-sdk/vetkeys/key_manager";
      *
      * const keyManager = new KeyManager(keyManagerClientInstance);
      * ```

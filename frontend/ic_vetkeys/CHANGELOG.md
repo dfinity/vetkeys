@@ -2,6 +2,9 @@
 
 ## [0.5.0] - Unreleased
 
+> **Note:** Starting with this version, the package is published as `@icp-sdk/vetkeys`.
+> Versions 0.1.0–0.4.0 were published as [`@dfinity/vetkeys`](https://www.npmjs.com/package/@dfinity/vetkeys).
+
 ### Added
 
 - Make `deriveSymmetricKey` non-`@internal`.
@@ -35,6 +38,7 @@
 - Updated `@noble/curves` and `@noble/hashes` usages to current non-deprecated APIs.
   The exported `G1Point` and `G2Point` types now resolve to `WeierstrassPoint` instead
   of the deprecated `ProjPointType` alias.
+- Resolved TypeScript 5.9 compatibility: tightened internal `Uint8Array` generics (`Uint8Array<ArrayBuffer>`) to satisfy the stricter Web Crypto and IndexedDB type definitions shipped in TypeScript 5.9.
 
 ## [0.4.0] - 2025-08-04
 

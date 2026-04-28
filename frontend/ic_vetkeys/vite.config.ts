@@ -25,7 +25,7 @@ export default defineConfig({
         emptyOutDir: true,
     },
     test: {
-        environment: "happy-dom",
+        environment: "node",
         setupFiles: ["test/setup.ts"],
         testTimeout: 120000,
     },

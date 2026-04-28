@@ -1,5 +1,5 @@
 /**
- * @module @dfinity/vetkeys/encrypted_maps
+ * @module @icp-sdk/vetkeys/encrypted_maps
  *
  * @description See { @link EncryptedMaps }.
  */
@@ -57,7 +57,7 @@ export class EncryptedMaps {
      *
      * @example
      * ```ts
-     * import { EncryptedMaps } from "@dfinity/vetkeys/encrypted_maps";
+     * import { EncryptedMaps } from "@icp-sdk/vetkeys/encrypted_maps";
      *
      * const encryptedMaps = new EncryptedMaps(encryptedMapsClientInstance);
      * ```
@@ -612,9 +612,10 @@ export class EncryptedMaps {
         mapOwner: Principal,
         mapName: Uint8Array,
     ): Promise<DerivedKeyMaterial> {
+        const safeMapName = new Uint8Array(mapName);
         const cachedRawDerivedKeyMaterial: CryptoKey | undefined = await get([
             mapOwner.toString(),
-            mapName,
+            safeMapName,
         ]);
         if (cachedRawDerivedKeyMaterial) {
             return await DerivedKeyMaterial.fromCryptoKey(
@@ -627,7 +628,7 @@ export class EncryptedMaps {
             mapName,
         );
         await set(
-            [mapOwner.toString(), mapName],
+            [mapOwner.toString(), safeMapName],
             derivedKeyMaterial.getCryptoKey(),
         );
         return derivedKeyMaterial;

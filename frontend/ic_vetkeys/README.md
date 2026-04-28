@@ -8,7 +8,7 @@ This package contains three entry points:
 
 <br>
 
-[`ic_vetkeys`](https://dfinity.github.io/vetkeys/modules/_dfinity_vetkeys.html)
+[`@icp-sdk/vetkeys`](https://dfinity.github.io/vetkeys/modules/_icp-sdk_vetkeys.html)
 
 ---
 
@@ -16,7 +16,7 @@ Provides frontend utilities for the low-level use of VetKeys such as decryption 
 
 <br>
 
-[`ic_vetkeys/key_manager`](https://dfinity.github.io/vetkeys/modules/_dfinity_vetkeys_key_manager.html)
+[`@icp-sdk/vetkeys/key_manager`](https://dfinity.github.io/vetkeys/modules/_icp-sdk_vetkeys_key_manager.html)
 
 ---
 
@@ -24,7 +24,7 @@ A frontend library facilitating communication with a [key manager enabled canist
 
 <br>
 
-[`ic_vetkeys/encrypted_maps`](https://dfinity.github.io/vetkeys/modules/_dfinity_vetkeys_encrypted_maps.html)
+[`@icp-sdk/vetkeys/encrypted_maps`](https://dfinity.github.io/vetkeys/modules/_icp-sdk_vetkeys_encrypted_maps.html)
 
 ---
 

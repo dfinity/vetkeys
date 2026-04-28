@@ -1,6 +1,5 @@
 import { DefaultEncryptedMapsClient } from "./encrypted_maps_canister";
 import { expect, test } from "vitest";
-import fetch from "isomorphic-fetch";
 import { Ed25519KeyIdentity } from "@icp-sdk/core/identity";
 import { HttpAgent } from "@icp-sdk/core/agent";
 import { EncryptedMaps } from "./index";
@@ -18,8 +17,6 @@ async function newEncryptedMaps(
     id: Ed25519KeyIdentity,
 ): Promise<EncryptedMaps> {
     const agent = await HttpAgent.create({
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-        fetch,
         host: "http://localhost:8000",
         identity: id,
         shouldFetchRootKey: true,
