@@ -1,6 +1,6 @@
 use hex_literal::hex;
 use ic_bls12_381::*;
-use ic_cdk::management_canister::{VetKDCurve, VetKDKeyId};
+use ic_cdk_management_canister::{VetKDCurve, VetKDKeyId};
 use ic_vetkeys::*;
 use ic_vetkeys_test_utils::*;
 use rand::Rng;

@@ -11,7 +11,7 @@ use ic_bls12_381::{
     hash_to_curve::{ExpandMsgXmd, HashToCurve},
     G1Affine, G1Projective, G2Affine, G2Prepared, Gt, Scalar,
 };
-use ic_cdk::management_canister::{VetKDCurve, VetKDDeriveKeyArgs, VetKDKeyId};
+use ic_cdk_management_canister::{VetKDCurve, VetKDDeriveKeyArgs, VetKDKeyId};
 use rand::SeedableRng;
 use rand_chacha::ChaCha20Rng;
 use std::array::TryFromSliceError;
@@ -1425,7 +1425,8 @@ fn deserialize_g2(bytes: &[u8]) -> Result<G2Affine, String> {
 
 /// This module contains functions for calling the ICP management canister's `vetkd_derive_key` endpoint from within a canister.
 pub mod management_canister {
-    use ic_cdk::{call::CallResult, management_canister::VetKDPublicKeyArgs};
+    use ic_cdk::call::CallResult;
+    use ic_cdk_management_canister::VetKDPublicKeyArgs;
 
     use crate::types::CanisterId;
 
@@ -1466,7 +1467,7 @@ pub mod management_canister {
             transport_public_key: G1Affine::identity().to_compressed().to_vec(),
         };
 
-        let reply = ic_cdk::management_canister::vetkd_derive_key(&request)
+        let reply = ic_cdk_management_canister::vetkd_derive_key(&request)
             .await
             .map_err(VetKDDeriveKeyCallError::CallFailed)?;
 
@@ -1485,7 +1486,7 @@ pub mod management_canister {
         /// The curve is currently not supported
         UnsupportedCurve,
         /// The canister call failed
-        CallFailed(ic_cdk::management_canister::SignCallError),
+        CallFailed(ic_cdk_management_canister::SignCallError),
         /// Invalid reply from the management canister
         InvalidReply,
     }
@@ -1531,7 +1532,7 @@ pub mod management_canister {
         context: Vec<u8>,
         key_id: VetKDKeyId,
     ) -> CallResult<Vec<u8>> {
-        ic_cdk::management_canister::vetkd_public_key(&VetKDPublicKeyArgs {
+        ic_cdk_management_canister::vetkd_public_key(&VetKDPublicKeyArgs {
             canister_id,
             context,
             key_id,
@@ -1584,7 +1585,7 @@ pub mod management_canister {
                 // If the key id is not known we must instead perform an online query
                 // for the relevant key
                 let dpk_bytes =
-                    ic_cdk::management_canister::vetkd_public_key(&VetKDPublicKeyArgs {
+                    ic_cdk_management_canister::vetkd_public_key(&VetKDPublicKeyArgs {
                         canister_id: Some(canister_id),
                         context,
                         key_id,

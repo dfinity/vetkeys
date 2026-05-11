@@ -7,7 +7,7 @@ use ic_stable_structures::storable::Blob;
 use ic_stable_structures::{DefaultMemoryImpl, StableBTreeMap, StableCell, Storable};
 use std::future::Future;
 
-use ic_cdk::management_canister::{VetKDDeriveKeyArgs, VetKDKeyId, VetKDPublicKeyArgs};
+use ic_cdk_management_canister::{VetKDDeriveKeyArgs, VetKDKeyId, VetKDPublicKeyArgs};
 
 pub type VetKeyVerificationKey = ByteBuf;
 pub type VetKey = ByteBuf;
@@ -68,7 +68,7 @@ impl<T: AccessControl> KeyManager<T> {
     ///
     /// ```rust
     /// use ic_cdk::init;
-    /// use ic_cdk::management_canister::{VetKDCurve, VetKDKeyId};
+    /// use ic_cdk_management_canister::{VetKDCurve, VetKDKeyId};
     /// use ic_stable_structures::{
     ///     memory_manager::{MemoryId, MemoryManager, VirtualMemory},
     ///     DefaultMemoryImpl,
@@ -181,7 +181,7 @@ impl<T: AccessControl> KeyManager<T> {
                 key_id,
             };
 
-            ic_cdk::management_canister::vetkd_public_key(&request).await
+            ic_cdk_management_canister::vetkd_public_key(&request).await
         };
 
         future.map(|call_result| {
@@ -213,7 +213,7 @@ impl<T: AccessControl> KeyManager<T> {
                 transport_public_key: transport_key.into(),
             };
 
-            ic_cdk::management_canister::vetkd_derive_key(&request).await
+            ic_cdk_management_canister::vetkd_derive_key(&request).await
         };
 
         Ok(future.map(|call_result| {
