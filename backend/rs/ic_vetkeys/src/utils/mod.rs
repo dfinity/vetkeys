@@ -1584,14 +1584,13 @@ pub mod management_canister {
             None => {
                 // If the key id is not known we must instead perform an online query
                 // for the relevant key
-                let dpk_bytes =
-                    ic_cdk_management_canister::vetkd_public_key(&VetKDPublicKeyArgs {
-                        canister_id: Some(canister_id),
-                        context,
-                        key_id,
-                    })
-                    .await
-                    .map_err(|_| VetKDDeriveKeyCallError::InvalidReply)?;
+                let dpk_bytes = ic_cdk_management_canister::vetkd_public_key(&VetKDPublicKeyArgs {
+                    canister_id: Some(canister_id),
+                    context,
+                    key_id,
+                })
+                .await
+                .map_err(|_| VetKDDeriveKeyCallError::InvalidReply)?;
 
                 DerivedPublicKey::deserialize(&dpk_bytes.public_key)
                     .map_err(|_| VetKDDeriveKeyCallError::InvalidReply)?
