@@ -1,5 +1,11 @@
 # Change Log
 
+## [Unreleased]
+
+### Changed
+
+- Bumped `ic-cdk` dependency to `0.20.1` and migrated management canister types to the new `ic-cdk-management-canister` crate.
+
 ## [0.6.0] - 2025-11-24
 
 ### Added
