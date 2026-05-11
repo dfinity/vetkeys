@@ -1,7 +1,7 @@
 use std::collections::BTreeSet;
 
 use assert_matches::assert_matches;
-use ic_cdk::management_canister::{VetKDCurve, VetKDKeyId};
+use ic_cdk_management_canister::{VetKDCurve, VetKDKeyId};
 use ic_stable_structures::{
     memory_manager::{MemoryId, MemoryManager},
     DefaultMemoryImpl,

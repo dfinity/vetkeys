@@ -1,7 +1,5 @@
-use ic_cdk::{
-    management_canister::{VetKDDeriveKeyArgs, VetKDKeyId, VetKDPublicKeyArgs},
-    update,
-};
+use ic_cdk::update;
+use ic_cdk_management_canister::{VetKDDeriveKeyArgs, VetKDKeyId, VetKDPublicKeyArgs};
 
 #[update]
 async fn sign_with_bls(input: Vec<u8>, context: Vec<u8>, key_id: VetKDKeyId) -> Vec<u8> {
@@ -31,7 +29,7 @@ async fn vetkd_derive_key(
         transport_public_key,
     };
 
-    let reply = ic_cdk::management_canister::vetkd_derive_key(&request)
+    let reply = ic_cdk_management_canister::vetkd_derive_key(&request)
         .await
         .expect("vetkd_derive_key call failed");
 
@@ -46,7 +44,7 @@ async fn vetkd_public_key(context: Vec<u8>, key_id: VetKDKeyId) -> Vec<u8> {
         key_id,
     };
 
-    let reply = ic_cdk::management_canister::vetkd_public_key(&request)
+    let reply = ic_cdk_management_canister::vetkd_public_key(&request)
         .await
         .expect("vetkd_public_key call failed");
 
