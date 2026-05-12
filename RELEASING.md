@@ -70,8 +70,8 @@ Releases are triggered by pushing a `npm/X.Y.Z` tag to `main`. The
 **Changelog:** [`backend/rs/ic_vetkeys/CHANGELOG.md`](backend/rs/ic_vetkeys/CHANGELOG.md)
 
 Publishing is triggered manually via the
-[`publish`](.github/workflows/publish.yml) workflow. There is no release tag
-required — the workflow validates the version at publish time.
+[`publish`](.github/workflows/publish.yml) workflow. After publishing, a
+`rust/X.Y.Z` tag must be pushed to `main` to mark the release commit.
 
 ### Steps
 
@@ -105,6 +105,12 @@ required — the workflow validates the version at publish time.
 
    The workflow checks that the version in `Cargo.toml` matches the input, builds and tests the crate, then publishes to crates.io.
 
+7. **Tag the merge commit on `main`** and push the tag:
+   ```bash
+   git checkout main && git pull
+   git tag rust/X.Y.Z
+   git push origin rust/X.Y.Z
+   ```
 
 ---
 
