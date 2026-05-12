@@ -904,7 +904,7 @@ fn should_get_owned_map_names() {
     let rng = &mut reproducible_rng();
     let env = TestEnvironment::new(rng);
     let caller = random_self_authenticating_principal(rng);
-    let mut expected_map_names = std::collections::HashSet::new();
+    let mut expected_map_names = std::collections::BTreeSet::new();
 
     for _ in 0..7 {
         let map_names = env.query::<Vec<ByteBuf>>(
