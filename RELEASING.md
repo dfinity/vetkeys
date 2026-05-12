@@ -65,7 +65,7 @@ Releases are triggered by pushing a `npm/X.Y.Z` tag to `main`. The
 
 ## `ic-vetkeys` (Rust crate)
 
-> **TODO:** Document and verify the release process for the Rust crate. See [`.github/workflows/release-rust.yml`](.github/workflows/release-rust.yml).
+> **TODO:** Document and verify the release process for the Rust crate. See [`.github/workflows/publish.yml`](.github/workflows/publish.yml).
 
 ---
 
