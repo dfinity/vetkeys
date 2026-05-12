@@ -918,7 +918,9 @@ fn should_get_owned_map_names() {
         }
 
         let map_name = random_map_name(rng);
-        expected_map_names.push(map_name.clone());
+        if !expected_map_names.contains(&map_name) {
+            expected_map_names.push(map_name.clone());
+        }
 
         for _ in 1..3 {
             let map_key = random_map_key(rng);
@@ -950,7 +952,7 @@ fn should_get_owned_map_names() {
                 encode_args((caller, map_name.clone())).unwrap(),
             )
             .unwrap();
-            expected_map_names.pop();
+            expected_map_names.retain(|n| n != &map_name);
         }
     }
 }
