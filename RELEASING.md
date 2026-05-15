@@ -65,7 +65,52 @@ Releases are triggered by pushing a `npm/X.Y.Z` tag to `main`. The
 
 ## `ic-vetkeys` (Rust crate)
 
-> **TODO:** Document and verify the release process for the Rust crate. See [`.github/workflows/publish.yml`](.github/workflows/publish.yml).
+**Source:** [`backend/rs/ic_vetkeys/`](backend/rs/ic_vetkeys/)  
+**Registry:** [crates.io/crates/ic-vetkeys](https://crates.io/crates/ic-vetkeys)  
+**Changelog:** [`backend/rs/ic_vetkeys/CHANGELOG.md`](backend/rs/ic_vetkeys/CHANGELOG.md)
+
+Publishing is triggered manually via the
+[`publish`](.github/workflows/publish.yml) workflow. After publishing, a
+`rust/X.Y.Z` tag must be pushed to `main` to mark the release commit.
+
+### Steps
+
+1. **Create a release branch** off `main`:
+   ```bash
+   git checkout main && git pull
+   git checkout -b release/rust-X.Y.Z
+   ```
+
+2. **Bump the version** in [`backend/rs/ic_vetkeys/Cargo.toml`](backend/rs/ic_vetkeys/Cargo.toml):
+   ```toml
+   version = "X.Y.Z"
+   ```
+
+3. **Update [`backend/rs/ic_vetkeys/CHANGELOG.md`](backend/rs/ic_vetkeys/CHANGELOG.md)** — replace the `Unreleased` marker with today's date:
+   ```markdown
+   ## [X.Y.Z] - YYYY-MM-DD
+   ```
+
+4. **Commit, push, and open a PR** targeting `main`:
+   ```bash
+   git commit -am "chore: release ic-vetkeys at vX.Y.Z"
+   git push -u origin release/rust-X.Y.Z
+   ```
+
+5. **After the PR is merged**, optionally run a dry run to verify the crate builds and packages correctly before publishing:
+   - Go to **Actions → Publish ic-vetkeys to crates.io → Run workflow**, enter `X.Y.Z` as the crate version, and enable `dry-run`.
+
+6. **Publish the crate**:
+   - Go to **Actions → Publish ic-vetkeys to crates.io → Run workflow**, enter `X.Y.Z` as the crate version, and leave `dry-run` disabled.
+
+   The workflow checks that the version in `Cargo.toml` matches the input, builds and tests the crate, then publishes to crates.io.
+
+7. **Tag the merge commit on `main`** and push the tag:
+   ```bash
+   git checkout main && git pull
+   git tag rust/X.Y.Z
+   git push origin rust/X.Y.Z
+   ```
 
 ---
 
