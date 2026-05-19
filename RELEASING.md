@@ -59,7 +59,7 @@ Releases are triggered by pushing a `npm/X.Y.Z` tag to `main`. The
 ### Notes
 
 - The `npm/` prefix scopes JS/TS release tags from Rust and Motoko release tags in this repo.
-- Publishing requires the `NPM_TOKEN` secret and the `release` GitHub environment to be configured.
+- Publishing uses the org-level `NODE_AUTH_TOKEN` secret (shared across `@icp-sdk/*` packages). The `release` GitHub environment must be configured, but no per-repo secret is needed.
 
 ---
 
