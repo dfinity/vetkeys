@@ -25,7 +25,7 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
-      - uses: dfinity/ci-tools/actions/setup-pnpm@main
+      - uses: dfinity/ci-tools/actions/setup-pnpm@7bf36670eaa358cc9fec366965858e4ea84bcc66 # main
         with:
           node_version: '22'
 
