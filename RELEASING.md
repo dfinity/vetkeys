@@ -56,10 +56,23 @@ Releases are triggered by pushing a `npm/X.Y.Z` tag to `main`. The
 
 7. **Deploy the API docs** — go to **Actions → Deploy docs to GitHub Pages → Run workflow** and enter the tag `npm/X.Y.Z`. This updates the [online docs](https://dfinity.github.io/vetkeys/) to reflect the new release.
 
+### First-time setup (one-off, before the very first release)
+
+Publishing uses GitHub OIDC — the npm CLI exchanges the GitHub Actions OIDC token for a short-lived publish token at runtime. No stored npm secret is needed. However, because `@icp-sdk/vetkeys` does not yet exist on npm, an **`@icp-sdk` npm org admin** must authorise this repo before the first publish:
+
+1. Log into [npmjs.com](https://www.npmjs.com) as an `@icp-sdk` org admin.
+2. Go to **`@icp-sdk` org settings → Publishing Access** (or the equivalent OIDC / Trusted Publishers section).
+3. Check whether publishing new packages from `dfinity/*` GitHub repos is already permitted org-wide.
+   - If yes: no action needed — the dry-run in step 5 above will confirm everything works.
+   - If no: add `dfinity/vetkeys` as a trusted publisher (repository: `dfinity/vetkeys`, workflow: `.github/workflows/release-npm.yml`, environment: `release`).
+4. Confirm by running the dry-run workflow (step 5) — a successful dry-run means auth is wired correctly and the real publish will work.
+
+> This setup is identical to what was done for `@icp-sdk/core` (`dfinity/icp-js-core`) and `@icp-sdk/bindgen` (`dfinity/icp-js-bindgen`). Once `@icp-sdk/vetkeys` exists on npm after the first release, all future releases are fully automated with no further admin steps.
+
 ### Notes
 
 - The `npm/` prefix scopes JS/TS release tags from Rust and Motoko release tags in this repo.
-- Publishing uses the org-level `NODE_AUTH_TOKEN` secret (shared across `@icp-sdk/*` packages). The `release` GitHub environment must be configured, but no per-repo secret is needed.
+- Publishing uses GitHub OIDC (`id-token: write` + `NPM_CONFIG_PROVENANCE=true`): the npm CLI exchanges the GitHub Actions OIDC token for a short-lived publish token at runtime. No stored npm secret is needed. The `release` GitHub environment must exist on this repo (already configured).
 
 ---
 
