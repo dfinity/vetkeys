@@ -25,11 +25,9 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+      - uses: dfinity/ci-tools/actions/setup-pnpm@7bf36670eaa358cc9fec366965858e4ea84bcc66 # main
         with:
-          node-version: '22'
-
-      - uses: pnpm/action-setup@a7487c7e89a18df4991f7f222e4898a00d66ddda # v4.1.0
+          node_version: '22'
 
       - name: Check package version matches tag
         if: ${{ github.event_name == 'push' }}
@@ -56,7 +54,6 @@ jobs:
       - name: Publish to npm
         working-directory: frontend/ic_vetkeys
         env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
           NPM_CONFIG_PROVENANCE: 'true'
         run: |
           if [ "${{ github.event.inputs.dry-run }}" = 'true' ]; then
