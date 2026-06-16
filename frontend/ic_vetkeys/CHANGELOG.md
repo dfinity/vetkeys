@@ -12,6 +12,32 @@
 - `DerivedKeyMaterial` encryption uses a different format for encryption now.
   Decryption of old messages is supported, however older versions of this library
   will not be able to read messages encrypted by this or newer versions.
+- `EncryptedMaps` now accepts an optional `{ cache }` option to control how
+  derived key material is cached. New exports `DerivedKeyMaterialCache`,
+  `InMemoryDerivedKeyMaterialCache`, and `IndexedDbDerivedKeyMaterialCache` from
+  `@icp-sdk/vetkeys/encrypted_maps`.
+- `EncryptedMaps.clearCache()` to drop cached derived key material. Strongly
+  recommended on logout or identity change to drop usable decryption capability
+  — especially with `IndexedDbDerivedKeyMaterialCache`, where it persists across
+  sessions otherwise. Not required for correctness, since cached keys are scoped
+  to the caller.
+
+### Security
+
+- **BREAKING** `EncryptedMaps` no longer persists derived key material to
+  IndexedDB by default; it now caches in memory only
+  (`InMemoryDerivedKeyMaterialCache`), so secret-bearing key handles are
+  discarded on page reload instead of remaining usable at rest indefinitely.
+  Opt back into persistence with
+  `new EncryptedMaps(client, { cache: new IndexedDbDerivedKeyMaterialCache() })`,
+  accepting that a persisted handle can be used by any same-origin code to
+  decrypt without an authenticated session. The one-time cost of the default is
+  an extra key derivation per map per page load.
+- Cached derived key material is now scoped to the authenticated caller's
+  principal. Previously the cache key was only `[mapOwner, mapName]`, so after an
+  identity switch on the same origin a different principal could receive key
+  material cached by a prior one. `EncryptedMapsClient` gains a
+  `getCallerPrincipal()` method to support this; custom implementations must add it.
 
 ### Changed
 

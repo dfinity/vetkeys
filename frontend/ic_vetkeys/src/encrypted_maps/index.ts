@@ -5,19 +5,27 @@
  */
 
 import { Principal } from "@icp-sdk/core/principal";
-import { get, set } from "idb-keyval";
 import {
     TransportSecretKey,
     DerivedKeyMaterial,
     EncryptedVetKey,
     DerivedPublicKey,
 } from "../utils/utils";
+import {
+    type DerivedKeyMaterialCache,
+    InMemoryDerivedKeyMaterialCache,
+} from "./cache";
 import type {
     AccessRights,
     ByteBuf,
 } from "../declarations/ic_vetkeys_manager_canister/ic_vetkeys_manager_canister.did.js";
 
 export { DefaultEncryptedMapsClient } from "./encrypted_maps_canister";
+export {
+    type DerivedKeyMaterialCache,
+    InMemoryDerivedKeyMaterialCache,
+    IndexedDbDerivedKeyMaterialCache,
+} from "./cache";
 export type {
     AccessRights,
     ByteBuf,
@@ -39,6 +47,15 @@ export type {
  *
  * - **Access Rights** should be carefully managed to prevent unauthorized access.
  * - VetKeys should be decrypted **only in trusted environments** such as user browsers to prevent leaks.
+ * - Derived key material is cached **in memory by default** ({@link InMemoryDerivedKeyMaterialCache}),
+ *   so it never touches disk and is discarded on page reload. Persisting it across
+ *   reloads with {@link IndexedDbDerivedKeyMaterialCache} is an explicit, opt-in trade-off:
+ *   the persisted handle is non-extractable, but any same-origin code can use it to decrypt
+ *   without an authenticated session for as long as it is stored.
+ * - Cached key material is scoped to the authenticated caller, so it is never served to a
+ *   different identity. Even so, calling {@link EncryptedMaps.clearCache} on logout or identity
+ *   change is strongly recommended to drop the still-usable decryption capability — especially
+ *   with {@link IndexedDbDerivedKeyMaterialCache}, where it otherwise persists across sessions.
  *
  */
 export class EncryptedMaps {
@@ -53,7 +70,19 @@ export class EncryptedMaps {
     verificationKey: Uint8Array | undefined = undefined;
 
     /**
+     * Cache backing the per-map derived key material handles.
+     */
+    readonly #derivedKeyMaterialCache: DerivedKeyMaterialCache;
+
+    /**
      * Creates a new instance of the EncryptedMaps client.
+     *
+     * @param canisterClient - The client used to talk to the EncryptedMaps canister.
+     * @param options - Optional configuration.
+     * @param options.cache - Strategy for caching derived key material. Defaults to
+     *   {@link InMemoryDerivedKeyMaterialCache} (in-memory only, never persisted).
+     *   Pass {@link IndexedDbDerivedKeyMaterialCache} to persist across page reloads —
+     *   see the security note in the class description.
      *
      * @example
      * ```ts
@@ -61,9 +90,27 @@ export class EncryptedMaps {
      *
      * const encryptedMaps = new EncryptedMaps(encryptedMapsClientInstance);
      * ```
+     *
+     * @example Opt into persistent caching
+     * ```ts
+     * import {
+     *     EncryptedMaps,
+     *     IndexedDbDerivedKeyMaterialCache,
+     * } from "@icp-sdk/vetkeys/encrypted_maps";
+     *
+     * const encryptedMaps = new EncryptedMaps(encryptedMapsClientInstance, {
+     *     cache: new IndexedDbDerivedKeyMaterialCache(),
+     * });
+     * // Remember to call encryptedMaps.clearCache() on logout / identity change.
+     * ```
      */
-    constructor(canisterClient: EncryptedMapsClient) {
+    constructor(
+        canisterClient: EncryptedMapsClient,
+        options?: { cache?: DerivedKeyMaterialCache },
+    ) {
         this.canisterClient = canisterClient;
+        this.#derivedKeyMaterialCache =
+            options?.cache ?? new InMemoryDerivedKeyMaterialCache();
     }
 
     /**
@@ -612,11 +659,12 @@ export class EncryptedMaps {
         mapOwner: Principal,
         mapName: Uint8Array,
     ): Promise<DerivedKeyMaterial> {
-        const safeMapName = new Uint8Array(mapName);
-        const cachedRawDerivedKeyMaterial: CryptoKey | undefined = await get([
-            mapOwner.toString(),
-            safeMapName,
-        ]);
+        const cacheKey = await this.#derivedKeyMaterialCacheKey(
+            mapOwner,
+            mapName,
+        );
+        const cachedRawDerivedKeyMaterial =
+            await this.#derivedKeyMaterialCache.get(cacheKey);
         if (cachedRawDerivedKeyMaterial) {
             return await DerivedKeyMaterial.fromCryptoKey(
                 cachedRawDerivedKeyMaterial,
@@ -627,12 +675,50 @@ export class EncryptedMaps {
             mapOwner,
             mapName,
         );
-        await set(
-            [mapOwner.toString(), safeMapName],
+        await this.#derivedKeyMaterialCache.set(
+            cacheKey,
             derivedKeyMaterial.getCryptoKey(),
         );
         return derivedKeyMaterial;
     }
+
+    /**
+     * Clears all cached derived key material.
+     *
+     * Strongly recommended on logout or whenever the authenticated identity
+     * changes: it is not required for correctness — cached keys are already
+     * scoped to the caller, so they are never served to another identity — but
+     * clearing drops the still-usable decryption capability that otherwise
+     * lingers. This matters most with {@link IndexedDbDerivedKeyMaterialCache},
+     * where cached key handles persist across sessions until cleared.
+     */
+    async clearCache(): Promise<void> {
+        await this.#derivedKeyMaterialCache.clear();
+    }
+
+    /**
+     * Builds the cache key for a map's derived key material, scoped to the
+     * authenticated caller so a key cached by one identity is never served to
+     * another on the same origin.
+     */
+    async #derivedKeyMaterialCacheKey(
+        mapOwner: Principal,
+        mapName: Uint8Array,
+    ): Promise<string> {
+        const caller = await this.canisterClient.getCallerPrincipal();
+        return `${caller.toString()}|${mapOwner.toString()}|${bytesToHex(mapName)}`;
+    }
+}
+
+/**
+ * @internal helper to perform hex encoding
+ */
+function bytesToHex(bytes: Uint8Array): string {
+    let hex = "";
+    for (const byte of bytes) {
+        hex += byte.toString(16).padStart(2, "0");
+    }
+    return hex;
 }
 
 /**
@@ -824,6 +910,16 @@ export interface EncryptedMapsClient {
      * @returns Promise resolving to the verification key bytes
      */
     get_vetkey_verification_key(): Promise<ByteBuf>;
+
+    /**
+     * Returns the principal of the authenticated caller.
+     *
+     * Used to scope cached derived key material to the current identity so that
+     * a key cached by one identity is never served to another on the same origin.
+     *
+     * @returns Promise resolving to the caller's principal
+     */
+    getCallerPrincipal(): Promise<Principal>;
 }
 
 /**

@@ -11,12 +11,18 @@ import { EncryptedMapsClient } from "./index";
 
 export class DefaultEncryptedMapsClient implements EncryptedMapsClient {
     actor: ActorSubclass<_DEFAULT_ENCRYPTED_MAPS_SERVICE>;
+    #agent: HttpAgent;
 
     constructor(agent: HttpAgent, canisterId: string) {
+        this.#agent = agent;
         this.actor = Actor.createActor(idlFactory, {
             agent,
             canisterId,
         });
+    }
+
+    getCallerPrincipal(): Promise<Principal> {
+        return this.#agent.getPrincipal();
     }
 
     get_accessible_shared_map_names(): Promise<[Principal, ByteBuf][]> {
