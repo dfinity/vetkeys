@@ -52,10 +52,14 @@ export type {
  *   reloads with {@link IndexedDbDerivedKeyMaterialCache} is an explicit, opt-in trade-off:
  *   the persisted handle is non-extractable, but any same-origin code can use it to decrypt
  *   without an authenticated session for as long as it is stored.
- * - Cached key material is scoped to the authenticated caller, so it is never served to a
- *   different identity. Even so, calling {@link EncryptedMaps.clearCache} on logout or identity
- *   change is strongly recommended to drop the still-usable decryption capability — especially
- *   with {@link IndexedDbDerivedKeyMaterialCache}, where it otherwise persists across sessions.
+ * - The cache belongs to a single authenticated identity. Identity lifecycle is the
+ *   caller's responsibility, so to avoid serving one identity's key material to another
+ *   on the same origin:
+ *   - with the in-memory default, use a **fresh `EncryptedMaps` instance per identity**
+ *     (or call {@link EncryptedMaps.clearCache} on logout / identity change);
+ *   - with {@link IndexedDbDerivedKeyMaterialCache}, give the store a **per-identity
+ *     namespace** (e.g. include the caller's principal in the database name) so entries
+ *     are physically separated, and call {@link EncryptedMaps.clearCache} on logout.
  *
  */
 export class EncryptedMaps {
@@ -91,7 +95,7 @@ export class EncryptedMaps {
      * const encryptedMaps = new EncryptedMaps(encryptedMapsClientInstance);
      * ```
      *
-     * @example Opt into persistent caching
+     * @example Opt into persistent caching, namespaced per identity
      * ```ts
      * import {
      *     EncryptedMaps,
@@ -99,7 +103,9 @@ export class EncryptedMaps {
      * } from "@icp-sdk/vetkeys/encrypted_maps";
      *
      * const encryptedMaps = new EncryptedMaps(encryptedMapsClientInstance, {
-     *     cache: new IndexedDbDerivedKeyMaterialCache(),
+     *     // Namespace the store per identity so one identity's cached keys are
+     *     // never served to another on the same origin.
+     *     cache: new IndexedDbDerivedKeyMaterialCache(`vetkeys-${myPrincipal}`),
      * });
      * // Remember to call encryptedMaps.clearCache() on logout / identity change.
      * ```
@@ -659,10 +665,7 @@ export class EncryptedMaps {
         mapOwner: Principal,
         mapName: Uint8Array,
     ): Promise<DerivedKeyMaterial> {
-        const cacheKey = await this.#derivedKeyMaterialCacheKey(
-            mapOwner,
-            mapName,
-        );
+        const cacheKey = derivedKeyMaterialCacheKey(mapOwner, mapName);
         const cachedRawDerivedKeyMaterial =
             await this.#derivedKeyMaterialCache.get(cacheKey);
         if (cachedRawDerivedKeyMaterial) {
@@ -686,28 +689,31 @@ export class EncryptedMaps {
      * Clears all cached derived key material.
      *
      * Strongly recommended on logout or whenever the authenticated identity
-     * changes: it is not required for correctness — cached keys are already
-     * scoped to the caller, so they are never served to another identity — but
-     * clearing drops the still-usable decryption capability that otherwise
-     * lingers. This matters most with {@link IndexedDbDerivedKeyMaterialCache},
-     * where cached key handles persist across sessions until cleared.
+     * changes: the cache belongs to a single identity, so clearing it (or
+     * discarding the `EncryptedMaps` instance) prevents one identity's key
+     * material from being served to another, and drops the still-usable
+     * decryption capability that otherwise lingers. This matters most with
+     * {@link IndexedDbDerivedKeyMaterialCache}, where cached key handles persist
+     * across sessions until cleared.
      */
     async clearCache(): Promise<void> {
         await this.#derivedKeyMaterialCache.clear();
     }
+}
 
-    /**
-     * Builds the cache key for a map's derived key material, scoped to the
-     * authenticated caller so a key cached by one identity is never served to
-     * another on the same origin.
-     */
-    async #derivedKeyMaterialCacheKey(
-        mapOwner: Principal,
-        mapName: Uint8Array,
-    ): Promise<string> {
-        const caller = await this.canisterClient.get_caller_principal();
-        return `${caller.toString()}|${mapOwner.toString()}|${bytesToHex(mapName)}`;
-    }
+/**
+ * Builds the cache key for a map's derived key material.
+ *
+ * Derived key material is per map (owner + name), not per caller, so the key
+ * does not include the caller. Cross-identity isolation is instead provided by
+ * the cache itself — a per-identity {@link InMemoryDerivedKeyMaterialCache}
+ * instance, or a per-identity-namespaced {@link IndexedDbDerivedKeyMaterialCache}.
+ */
+function derivedKeyMaterialCacheKey(
+    mapOwner: Principal,
+    mapName: Uint8Array,
+): string {
+    return `${mapOwner.toString()}|${bytesToHex(mapName)}`;
 }
 
 /**
@@ -910,16 +916,6 @@ export interface EncryptedMapsClient {
      * @returns Promise resolving to the verification key bytes
      */
     get_vetkey_verification_key(): Promise<ByteBuf>;
-
-    /**
-     * Returns the principal of the authenticated caller.
-     *
-     * Used to scope cached derived key material to the current identity so that
-     * a key cached by one identity is never served to another on the same origin.
-     *
-     * @returns Promise resolving to the caller's principal
-     */
-    get_caller_principal(): Promise<Principal>;
 }
 
 /**

@@ -19,8 +19,7 @@
 - `EncryptedMaps.clearCache()` to drop cached derived key material. Strongly
   recommended on logout or identity change to drop usable decryption capability
   — especially with `IndexedDbDerivedKeyMaterialCache`, where it persists across
-  sessions otherwise. Not required for correctness, since cached keys are scoped
-  to the caller.
+  sessions otherwise.
 
 ### Security
 
@@ -33,11 +32,14 @@
   accepting that a persisted handle can be used by any same-origin code to
   decrypt without an authenticated session. The one-time cost of the default is
   an extra key derivation per map per page load.
-- Cached derived key material is now scoped to the authenticated caller's
-  principal. Previously the cache key was only `[mapOwner, mapName]`, so after an
-  identity switch on the same origin a different principal could receive key
-  material cached by a prior one. `EncryptedMapsClient` gains a
-  `get_caller_principal()` method to support this; custom implementations must add it.
+- The derived key material cache now belongs to a single identity rather than
+  being shared in a fixed IndexedDB store across identities. Because derived key
+  material is per map (`[mapOwner, mapName]`), cross-identity isolation is a
+  property of the cache instance: use a fresh `EncryptedMaps` instance per
+  identity with the in-memory default, or give `IndexedDbDerivedKeyMaterialCache`
+  a per-identity namespace (e.g. include the caller's principal in the database
+  name). This closes the prior behaviour where, after an identity switch on the
+  same origin, key material cached by one principal could be served to another.
 - **Upgrade note:** versions `0.1.0`–`0.4.0` persisted derived key material to
   IndexedDB's default `idb-keyval` store. After upgrading, those entries remain
   at rest and are neither used nor cleared by this version (the new cache uses a

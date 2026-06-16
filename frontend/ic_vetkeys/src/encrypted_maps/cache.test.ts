@@ -26,17 +26,15 @@ async function newDerivedKeyMaterial(
     return DerivedKeyMaterial.fromCryptoKey(raw);
 }
 
-const PRINCIPAL_A = Principal.fromText("aaaaa-aa");
-const PRINCIPAL_B = Principal.fromText("rrkah-fqaaa-aaaaa-aaaaq-cai");
+const OWNER_A = Principal.fromText("aaaaa-aa");
+const OWNER_B = Principal.fromText("rrkah-fqaaa-aaaaa-aaaaq-cai");
 
 /**
- * Minimal client that only supports the calls the caching path needs. The
- * remaining `EncryptedMapsClient` methods are never invoked in these tests.
+ * The caching path never calls the canister client (key derivation is stubbed
+ * via `getDerivedKeyMaterial`), so a bare object suffices.
  */
-function mockClient(caller: Principal): EncryptedMapsClient {
-    return {
-        get_caller_principal: vi.fn(() => Promise.resolve(caller)),
-    } as unknown as EncryptedMapsClient;
+function emptyClient(): EncryptedMapsClient {
+    return {} as unknown as EncryptedMapsClient;
 }
 
 describe("InMemoryDerivedKeyMaterialCache", () => {
@@ -87,92 +85,121 @@ describe("IndexedDbDerivedKeyMaterialCache", () => {
         await cache.clear();
         expect(await cache.get("k")).toBeUndefined();
     });
+
+    test("different namespaces are isolated", async () => {
+        // Per-identity namespacing (e.g. `vetkeys-<principal>`) is how persisted
+        // key material is kept separate between identities on the same origin.
+        const a = new IndexedDbDerivedKeyMaterialCache(
+            "ic-vetkeys-test-ns-a",
+            "store",
+        );
+        const b = new IndexedDbDerivedKeyMaterialCache(
+            "ic-vetkeys-test-ns-b",
+            "store",
+        );
+        await a.set("k", (await newDerivedKeyMaterial(7)).getCryptoKey());
+
+        expect(await a.get("k")).toBeDefined();
+        expect(await b.get("k")).toBeUndefined();
+    });
 });
 
 describe("EncryptedMaps derived key caching", () => {
     test("fetches once, then serves subsequent calls from cache", async () => {
-        const maps = new EncryptedMaps(mockClient(PRINCIPAL_A));
+        const maps = new EncryptedMaps(emptyClient());
         const fetchSpy = vi
             .spyOn(maps, "getDerivedKeyMaterial")
             .mockImplementation(() => newDerivedKeyMaterial(1));
         const mapName = new TextEncoder().encode("some map");
 
-        await maps.getDerivedKeyMaterialOrFetchIfNeeded(PRINCIPAL_A, mapName);
-        await maps.getDerivedKeyMaterialOrFetchIfNeeded(PRINCIPAL_A, mapName);
+        await maps.getDerivedKeyMaterialOrFetchIfNeeded(OWNER_A, mapName);
+        await maps.getDerivedKeyMaterialOrFetchIfNeeded(OWNER_A, mapName);
 
         expect(fetchSpy).toHaveBeenCalledTimes(1);
     });
 
-    test("does not serve a key cached by a different caller (caller-scoped)", async () => {
-        const client = mockClient(PRINCIPAL_A);
-        const maps = new EncryptedMaps(client);
+    test("distinguishes maps by owner", async () => {
+        const maps = new EncryptedMaps(emptyClient());
         const fetchSpy = vi
             .spyOn(maps, "getDerivedKeyMaterial")
             .mockImplementation(() => newDerivedKeyMaterial(1));
         const mapName = new TextEncoder().encode("some map");
 
-        // Caller A populates the cache.
-        await maps.getDerivedKeyMaterialOrFetchIfNeeded(PRINCIPAL_A, mapName);
-        expect(fetchSpy).toHaveBeenCalledTimes(1);
+        await maps.getDerivedKeyMaterialOrFetchIfNeeded(OWNER_A, mapName);
+        await maps.getDerivedKeyMaterialOrFetchIfNeeded(OWNER_B, mapName);
 
-        // The authenticated identity changes to B on the same instance.
-        (
-            client.get_caller_principal as ReturnType<typeof vi.fn>
-        ).mockResolvedValue(PRINCIPAL_B);
-
-        // Same map owner + name, but B must NOT get A's cached key.
-        await maps.getDerivedKeyMaterialOrFetchIfNeeded(PRINCIPAL_A, mapName);
         expect(fetchSpy).toHaveBeenCalledTimes(2);
     });
 
     test("distinguishes maps that share a prefix in their names", async () => {
-        const maps = new EncryptedMaps(mockClient(PRINCIPAL_A));
+        const maps = new EncryptedMaps(emptyClient());
         const fetchSpy = vi
             .spyOn(maps, "getDerivedKeyMaterial")
             .mockImplementation(() => newDerivedKeyMaterial(1));
 
         await maps.getDerivedKeyMaterialOrFetchIfNeeded(
-            PRINCIPAL_A,
+            OWNER_A,
             Uint8Array.from([1]),
         );
         await maps.getDerivedKeyMaterialOrFetchIfNeeded(
-            PRINCIPAL_A,
+            OWNER_A,
             Uint8Array.from([1, 2]),
         );
 
         expect(fetchSpy).toHaveBeenCalledTimes(2);
     });
 
+    test("separate instances do not share an in-memory cache", async () => {
+        // Distinct identities are expected to use distinct EncryptedMaps
+        // instances; their in-memory caches must be independent so one
+        // identity's key material is never served to another.
+        const first = new EncryptedMaps(emptyClient());
+        const second = new EncryptedMaps(emptyClient());
+        const firstSpy = vi
+            .spyOn(first, "getDerivedKeyMaterial")
+            .mockImplementation(() => newDerivedKeyMaterial(1));
+        const secondSpy = vi
+            .spyOn(second, "getDerivedKeyMaterial")
+            .mockImplementation(() => newDerivedKeyMaterial(2));
+        const mapName = new TextEncoder().encode("some map");
+
+        await first.getDerivedKeyMaterialOrFetchIfNeeded(OWNER_A, mapName);
+        await second.getDerivedKeyMaterialOrFetchIfNeeded(OWNER_A, mapName);
+
+        expect(firstSpy).toHaveBeenCalledTimes(1);
+        expect(secondSpy).toHaveBeenCalledTimes(1);
+    });
+
     test("clearCache() forces a re-fetch", async () => {
-        const maps = new EncryptedMaps(mockClient(PRINCIPAL_A));
+        const maps = new EncryptedMaps(emptyClient());
         const fetchSpy = vi
             .spyOn(maps, "getDerivedKeyMaterial")
             .mockImplementation(() => newDerivedKeyMaterial(1));
         const mapName = new TextEncoder().encode("some map");
 
-        await maps.getDerivedKeyMaterialOrFetchIfNeeded(PRINCIPAL_A, mapName);
+        await maps.getDerivedKeyMaterialOrFetchIfNeeded(OWNER_A, mapName);
         await maps.clearCache();
-        await maps.getDerivedKeyMaterialOrFetchIfNeeded(PRINCIPAL_A, mapName);
+        await maps.getDerivedKeyMaterialOrFetchIfNeeded(OWNER_A, mapName);
 
         expect(fetchSpy).toHaveBeenCalledTimes(2);
     });
 
     test("a cache hit still yields working key material", async () => {
         const shared = await newDerivedKeyMaterial(42);
-        const maps = new EncryptedMaps(mockClient(PRINCIPAL_A));
+        const maps = new EncryptedMaps(emptyClient());
         vi.spyOn(maps, "getDerivedKeyMaterial").mockResolvedValue(shared);
         const mapName = new TextEncoder().encode("some map");
 
         const plaintext = new TextEncoder().encode("hello");
         const ciphertext = await maps.encryptFor(
-            PRINCIPAL_A,
+            OWNER_A,
             mapName,
             new TextEncoder().encode("k"),
             plaintext,
         );
         // Second call resolves the key material from cache, not the fetch.
         const decrypted = await maps.decryptFor(
-            PRINCIPAL_A,
+            OWNER_A,
             mapName,
             new TextEncoder().encode("k"),
             ciphertext,

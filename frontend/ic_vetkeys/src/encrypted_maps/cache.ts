@@ -24,9 +24,13 @@ import {
  * to decrypt. Where that handle lives therefore matters for security — see the
  * provided implementations.
  *
- * Cache entries are keyed by an opaque string that {@link EncryptedMaps} scopes
- * to the authenticated caller, the map owner, and the map name, so a key cached
- * by one identity is never served to another.
+ * Cache entries are keyed by an opaque string derived from the map owner and
+ * map name. Derived key material is per map, not per caller, so the key does
+ * not encode the identity. Isolating one identity's cached keys from another's
+ * on the same origin is therefore a property of the cache instance: use a fresh
+ * cache per identity (the in-memory default is naturally per-instance), or give
+ * a persistent cache a per-identity namespace (see
+ * {@link IndexedDbDerivedKeyMaterialCache}).
  */
 export interface DerivedKeyMaterialCache {
     /**
@@ -87,10 +91,10 @@ export class InMemoryDerivedKeyMaterialCache implements DerivedKeyMaterialCache 
  * cross-reload persistence and accept this exposure. When using this cache, be
  * sure to call {@link EncryptedMaps.clearCache} on logout or identity change.
  *
- * Note that an unauthenticated agent resolves to the anonymous principal, so
- * key material derived while anonymous is cached under a shared key and reused
- * across anonymous sessions on the same origin — consistent with the canister's
- * anonymous-access model.
+ * Because the cache key does not encode the identity, **give the store a
+ * per-identity namespace** to keep one identity's persisted keys from being
+ * served to another on the same origin — e.g. include the caller's principal in
+ * the database name: `new IndexedDbDerivedKeyMaterialCache(`vetkeys-${principal}`)`.
  *
  * A dedicated IndexedDB store is used, so {@link clear} only removes entries
  * written by this cache and never touches other application data.
