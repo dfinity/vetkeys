@@ -94,7 +94,11 @@ export class InMemoryDerivedKeyMaterialCache implements DerivedKeyMaterialCache 
  * Because the cache key does not encode the identity, **give the store a
  * per-identity namespace** to keep one identity's persisted keys from being
  * served to another on the same origin — e.g. include the caller's principal in
- * the database name: `new IndexedDbDerivedKeyMaterialCache(`vetkeys-${principal}`)`.
+ * the database name:
+ *
+ * ```ts
+ * new IndexedDbDerivedKeyMaterialCache(`vetkeys-${principal}`);
+ * ```
  *
  * A dedicated IndexedDB store is used, so {@link clear} only removes entries
  * written by this cache and never touches other application data.
