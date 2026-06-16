@@ -21,7 +21,7 @@ export class DefaultEncryptedMapsClient implements EncryptedMapsClient {
         });
     }
 
-    getCallerPrincipal(): Promise<Principal> {
+    get_caller_principal(): Promise<Principal> {
         return this.#agent.getPrincipal();
     }
 

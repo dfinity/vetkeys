@@ -35,7 +35,7 @@ const PRINCIPAL_B = Principal.fromText("rrkah-fqaaa-aaaaa-aaaaq-cai");
  */
 function mockClient(caller: Principal): EncryptedMapsClient {
     return {
-        getCallerPrincipal: vi.fn(() => Promise.resolve(caller)),
+        get_caller_principal: vi.fn(() => Promise.resolve(caller)),
     } as unknown as EncryptedMapsClient;
 }
 
@@ -117,7 +117,7 @@ describe("EncryptedMaps derived key caching", () => {
 
         // The authenticated identity changes to B on the same instance.
         (
-            client.getCallerPrincipal as ReturnType<typeof vi.fn>
+            client.get_caller_principal as ReturnType<typeof vi.fn>
         ).mockResolvedValue(PRINCIPAL_B);
 
         // Same map owner + name, but B must NOT get A's cached key.

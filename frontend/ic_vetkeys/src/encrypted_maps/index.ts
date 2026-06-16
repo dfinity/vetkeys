@@ -705,7 +705,7 @@ export class EncryptedMaps {
         mapOwner: Principal,
         mapName: Uint8Array,
     ): Promise<string> {
-        const caller = await this.canisterClient.getCallerPrincipal();
+        const caller = await this.canisterClient.get_caller_principal();
         return `${caller.toString()}|${mapOwner.toString()}|${bytesToHex(mapName)}`;
     }
 }
@@ -919,7 +919,7 @@ export interface EncryptedMapsClient {
      *
      * @returns Promise resolving to the caller's principal
      */
-    getCallerPrincipal(): Promise<Principal>;
+    get_caller_principal(): Promise<Principal>;
 }
 
 /**

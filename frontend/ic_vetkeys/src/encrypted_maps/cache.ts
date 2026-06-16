@@ -19,7 +19,7 @@ import {
  *
  * Deriving key material requires a canister round-trip and threshold
  * cryptography, so it is cached and reused. The cached value is a
- * non-extractable {@link !CryptoKey} handle: its raw bytes can never be read
+ * non-extractable {@link CryptoKey} handle: its raw bytes can never be read
  * back (`crypto.subtle.exportKey` throws), but the handle can still be *used*
  * to decrypt. Where that handle lives therefore matters for security — see the
  * provided implementations.
