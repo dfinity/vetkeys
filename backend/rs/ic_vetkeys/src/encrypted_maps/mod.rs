@@ -1,5 +1,9 @@
 //! See [`EncryptedMaps`] for the main documentation.
 
+/// Defines [`export_encrypted_maps_canister!`], a macro that generates a full
+/// EncryptedMaps canister from this library.
+mod canister;
+
 use candid::Principal;
 use ic_stable_structures::memory_manager::VirtualMemory;
 use ic_stable_structures::storable::Blob;
