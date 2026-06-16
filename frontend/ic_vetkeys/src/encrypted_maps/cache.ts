@@ -58,16 +58,18 @@ export interface DerivedKeyMaterialCache {
 export class InMemoryDerivedKeyMaterialCache implements DerivedKeyMaterialCache {
     readonly #entries = new Map<string, CryptoKey>();
 
-    async get(key: string): Promise<CryptoKey | undefined> {
-        return this.#entries.get(key);
+    get(key: string): Promise<CryptoKey | undefined> {
+        return Promise.resolve(this.#entries.get(key));
     }
 
-    async set(key: string, value: CryptoKey): Promise<void> {
+    set(key: string, value: CryptoKey): Promise<void> {
         this.#entries.set(key, value);
+        return Promise.resolve();
     }
 
-    async clear(): Promise<void> {
+    clear(): Promise<void> {
         this.#entries.clear();
+        return Promise.resolve();
     }
 }
 

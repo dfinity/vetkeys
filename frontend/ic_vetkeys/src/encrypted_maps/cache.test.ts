@@ -35,7 +35,7 @@ const PRINCIPAL_B = Principal.fromText("rrkah-fqaaa-aaaaa-aaaaq-cai");
  */
 function mockClient(caller: Principal): EncryptedMapsClient {
     return {
-        getCallerPrincipal: vi.fn(async () => caller),
+        getCallerPrincipal: vi.fn(() => Promise.resolve(caller)),
     } as unknown as EncryptedMapsClient;
 }
 
@@ -69,11 +69,11 @@ describe("IndexedDbDerivedKeyMaterialCache", () => {
 
         await cache.set("k", key);
         const restored = await cache.get("k");
-        expect(restored).toBeDefined();
-        expect(restored?.extractable).toBe(false);
+        if (!restored) throw new Error("expected a cached key handle");
+        expect(restored.extractable).toBe(false);
         // The raw bytes must remain unrecoverable even after persistence.
         await expect(
-            crypto.subtle.exportKey("raw", restored as CryptoKey),
+            crypto.subtle.exportKey("raw", restored),
         ).rejects.toThrow();
     });
 
