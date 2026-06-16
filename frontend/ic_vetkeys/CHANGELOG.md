@@ -38,6 +38,22 @@
   identity switch on the same origin a different principal could receive key
   material cached by a prior one. `EncryptedMapsClient` gains a
   `getCallerPrincipal()` method to support this; custom implementations must add it.
+- **Upgrade note:** versions `0.1.0`–`0.4.0` persisted derived key material to
+  IndexedDB's default `idb-keyval` store. After upgrading, those entries remain
+  at rest and are neither used nor cleared by this version (the new cache uses a
+  dedicated store). To remove the residual decryption capability, clear the
+  legacy entries once after upgrading — e.g. via the already-bundled `idb-keyval`:
+
+    ```ts
+    import { entries, del } from "idb-keyval";
+    // Delete only the legacy vetkeys entries (array key -> CryptoKey value)
+    // from idb-keyval's default store, leaving any other app data untouched.
+    for (const [key, value] of await entries()) {
+        if (Array.isArray(key) && value instanceof CryptoKey) {
+            await del(key);
+        }
+    }
+    ```
 
 ### Changed
 
