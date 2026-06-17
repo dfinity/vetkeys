@@ -13,20 +13,43 @@
 
 /// Generates a complete EncryptedMaps canister in the calling crate.
 ///
-/// The `#[init]` takes the vetKD key name (e.g. `"test_key_1"` locally,
-/// `"key_1"` on mainnet) and the canister uses memory ids `0..=3` of a
-/// dedicated [`MemoryManager`](ic_stable_structures::memory_manager::MemoryManager).
+/// A canister may have only one
+/// [`MemoryManager`](ic_stable_structures::memory_manager::MemoryManager), so
+/// the macro does **not** create one. Instead you pass the four `Memory`
+/// instances EncryptedMaps needs, in this order:
+/// `[domain_separator, access_control, shared_keys, encrypted_maps]`. This lets
+/// the canister keep its own additional stable state in the same manager under
+/// other memory ids.
 ///
-/// The macro brings `Principal` and the EncryptedMaps types into scope, so
-/// invoke it in a module that does not import conflicting names. It does not
-/// emit the Candid interface, because `ic_cdk::export_candid!()` cannot be
-/// expanded from within another macro — call it yourself after the macro.
+/// The `#[init]` takes the vetKD key name (e.g. `"test_key_1"` locally,
+/// `"key_1"` on mainnet). The macro brings `Principal` and the EncryptedMaps
+/// types into scope, so invoke it in a module that does not import conflicting
+/// names. It does not emit the Candid interface, because
+/// `ic_cdk::export_candid!()` cannot be expanded from within another macro —
+/// call it yourself after the macro.
 ///
 /// # Example
 ///
 /// ```ignore
-/// // lib.rs of an EncryptedMaps canister:
-/// ic_vetkeys::export_encrypted_maps_canister!("my_app_domain_separator");
+/// use ic_stable_structures::memory_manager::{MemoryId, MemoryManager, VirtualMemory};
+/// use ic_stable_structures::DefaultMemoryImpl;
+/// use std::cell::RefCell;
+///
+/// type Memory = VirtualMemory<DefaultMemoryImpl>;
+///
+/// thread_local! {
+///     static MEMORY_MANAGER: RefCell<MemoryManager<DefaultMemoryImpl>> =
+///         RefCell::new(MemoryManager::init(DefaultMemoryImpl::default()));
+/// }
+///
+/// fn memory(id: u8) -> Memory {
+///     MEMORY_MANAGER.with(|m| m.borrow().get(MemoryId::new(id)))
+/// }
+///
+/// ic_vetkeys::export_encrypted_maps_canister!(
+///     "my_app_domain_separator",
+///     [memory(0), memory(1), memory(2), memory(3)],
+/// );
 /// ic_cdk::export_candid!();
 /// ```
 ///
@@ -34,36 +57,24 @@
 /// other vetKeys deployments and must stay stable for the life of the canister.
 #[macro_export]
 macro_rules! export_encrypted_maps_canister {
-    ($domain_separator:expr) => {
+    (
+        $domain_separator:expr,
+        [
+            $memory_domain_separator:expr,
+            $memory_access_control:expr,
+            $memory_shared_keys:expr,
+            $memory_encrypted_maps:expr $(,)?
+        ] $(,)?
+    ) => {
         use ::candid::Principal;
         use $crate::encrypted_maps::{
             EncryptedMapData, EncryptedMaps, VetKey, VetKeyVerificationKey,
         };
         use $crate::types::{AccessRights, ByteBuf, EncryptedMapValue, TransportKey};
 
-        type EncryptedMapsCanisterMemory = ::ic_stable_structures::memory_manager::VirtualMemory<
-            ::ic_stable_structures::DefaultMemoryImpl,
-        >;
-
         thread_local! {
-            static MEMORY_MANAGER: ::std::cell::RefCell<
-                ::ic_stable_structures::memory_manager::MemoryManager<
-                    ::ic_stable_structures::DefaultMemoryImpl,
-                >,
-            > = ::std::cell::RefCell::new(
-                ::ic_stable_structures::memory_manager::MemoryManager::init(
-                    ::ic_stable_structures::DefaultMemoryImpl::default(),
-                ),
-            );
             static ENCRYPTED_MAPS: ::std::cell::RefCell<Option<EncryptedMaps<AccessRights>>> =
                 const { ::std::cell::RefCell::new(None) };
-        }
-
-        fn __encrypted_maps_memory(id: u8) -> EncryptedMapsCanisterMemory {
-            MEMORY_MANAGER.with(|m| {
-                m.borrow()
-                    .get(::ic_stable_structures::memory_manager::MemoryId::new(id))
-            })
         }
 
         fn __encrypted_maps_bytebuf_to_blob(
@@ -83,10 +94,10 @@ macro_rules! export_encrypted_maps_canister {
                 encrypted_maps.replace(EncryptedMaps::init(
                     $domain_separator,
                     key_id,
-                    __encrypted_maps_memory(0),
-                    __encrypted_maps_memory(1),
-                    __encrypted_maps_memory(2),
-                    __encrypted_maps_memory(3),
+                    $memory_domain_separator,
+                    $memory_access_control,
+                    $memory_shared_keys,
+                    $memory_encrypted_maps,
                 ))
             });
         }
