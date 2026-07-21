@@ -227,6 +227,51 @@ fn should_fail_to_delete_map_values_by_unauthorized() {
 }
 
 #[test]
+fn should_preserve_state_across_upgrade() {
+    let rng = &mut reproducible_rng();
+    let env = TestEnvironment::new(rng);
+    let caller = random_self_authenticating_principal(rng);
+    let map_name = random_map_name(rng);
+    let map_key = random_map_key(rng);
+    let encrypted_value = random_encrypted_value(rng);
+
+    env.update::<Result<Option<ByteBuf>, String>>(
+        caller,
+        "insert_encrypted_value",
+        encode_args((
+            caller,
+            map_name.clone(),
+            map_key.clone(),
+            encrypted_value.clone(),
+        ))
+        .unwrap(),
+    )
+    .unwrap();
+
+    // Upgrade the canister with the same wasm. This exercises the generated
+    // `#[post_upgrade]`, which re-attaches the in-memory wrapper to the
+    // persisted stable state — without it, every endpoint would trap on the
+    // `unwrap()` of a `None` thread-local after the upgrade.
+    env.pic
+        .upgrade_canister(
+            env.example_canister_id,
+            load_encrypted_maps_example_canister_wasm(),
+            encode_one("test_key_1").unwrap(),
+            None,
+        )
+        .expect("canister upgrade failed");
+    fast_forward(&env.pic, 5);
+
+    // The value inserted before the upgrade is still readable afterwards.
+    let result = env.query::<Result<Option<ByteBuf>, String>>(
+        caller,
+        "get_encrypted_value",
+        encode_args((caller, map_name, map_key)).unwrap(),
+    );
+    assert_eq!(result, Ok(Some(encrypted_value)));
+}
+
+#[test]
 fn should_add_user_to_map() {
     let rng = &mut reproducible_rng();
     let env = TestEnvironment::new(rng);
