@@ -49,14 +49,16 @@
     ```ts
     import { entries, del } from "idb-keyval";
     // Delete only the legacy vetkeys entries from idb-keyval's default store,
-    // matching the exact legacy key shape `[mapOwner: string, mapName: Uint8Array]`
-    // with a CryptoKey value, leaving any other app data untouched.
+    // matching the legacy key shape `[mapOwner: string, mapName: bytes]` with a
+    // CryptoKey value, leaving any other app data untouched. IndexedDB does not
+    // preserve the exact JS type of binary *keys* (a Uint8Array stored as a key
+    // is read back as an ArrayBuffer), so match any binary key element.
     for (const [key, value] of await entries()) {
         if (
             Array.isArray(key) &&
             key.length === 2 &&
             typeof key[0] === "string" &&
-            key[1] instanceof Uint8Array &&
+            (key[1] instanceof ArrayBuffer || ArrayBuffer.isView(key[1])) &&
             value instanceof CryptoKey
         ) {
             await del(key);

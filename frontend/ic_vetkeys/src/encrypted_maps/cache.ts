@@ -107,11 +107,14 @@ export class IndexedDbDerivedKeyMaterialCache implements DerivedKeyMaterialCache
     readonly #store: UseStore;
 
     /**
-     * @param dbName - IndexedDB database name. Defaults to `"ic-vetkeys"`.
-     * @param storeName - Object store name. Defaults to `"derived-key-material"`.
+     * @param dbName - IndexedDB database name. Defaults to `"ic-vetkeys"`. This
+     *   is the isolation knob: give each identity its own database name (e.g.
+     *   `` `vetkeys-${principal}` ``) so one identity's persisted keys are never
+     *   served to another. The object store name is fixed, because `idb-keyval`
+     *   supports only a single object store per database.
      */
-    constructor(dbName = "ic-vetkeys", storeName = "derived-key-material") {
-        this.#store = createStore(dbName, storeName);
+    constructor(dbName = "ic-vetkeys") {
+        this.#store = createStore(dbName, "derived-key-material");
     }
 
     async get(key: string): Promise<CryptoKey | undefined> {

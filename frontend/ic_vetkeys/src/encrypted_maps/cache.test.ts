@@ -61,7 +61,6 @@ describe("IndexedDbDerivedKeyMaterialCache", () => {
         // Use a unique database per test to avoid cross-test interference.
         const cache = new IndexedDbDerivedKeyMaterialCache(
             "ic-vetkeys-test-persist",
-            "store",
         );
         const key = (await newDerivedKeyMaterial(7)).getCryptoKey();
 
@@ -78,7 +77,6 @@ describe("IndexedDbDerivedKeyMaterialCache", () => {
     test("clear() empties the store", async () => {
         const cache = new IndexedDbDerivedKeyMaterialCache(
             "ic-vetkeys-test-clear",
-            "store",
         );
         await cache.set("k", (await newDerivedKeyMaterial(7)).getCryptoKey());
         expect(await cache.get("k")).toBeDefined();
@@ -89,14 +87,8 @@ describe("IndexedDbDerivedKeyMaterialCache", () => {
     test("different namespaces are isolated", async () => {
         // Per-identity namespacing (e.g. `vetkeys-<principal>`) is how persisted
         // key material is kept separate between identities on the same origin.
-        const a = new IndexedDbDerivedKeyMaterialCache(
-            "ic-vetkeys-test-ns-a",
-            "store",
-        );
-        const b = new IndexedDbDerivedKeyMaterialCache(
-            "ic-vetkeys-test-ns-b",
-            "store",
-        );
+        const a = new IndexedDbDerivedKeyMaterialCache("ic-vetkeys-test-ns-a");
+        const b = new IndexedDbDerivedKeyMaterialCache("ic-vetkeys-test-ns-b");
         await a.set("k", (await newDerivedKeyMaterial(7)).getCryptoKey());
 
         expect(await a.get("k")).toBeDefined();
