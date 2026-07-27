@@ -22,11 +22,14 @@
 /// other memory ids.
 ///
 /// The `#[init]` takes the vetKD key name (e.g. `"test_key_1"` locally,
-/// `"key_1"` on mainnet). The macro brings `Principal` and the EncryptedMaps
-/// types into scope, so invoke it in a module that does not import conflicting
-/// names. It does not emit the Candid interface, because
-/// `ic_cdk::export_candid!()` cannot be expanded from within another macro —
-/// call it yourself after the macro.
+/// `"key_1"` on mainnet). The macro injects the canister entry points into the
+/// invoking module — the `#[init]`/`#[post_upgrade]` and every `#[query]`/
+/// `#[update]` endpoint (plus a private thread-local and helpers) — but it does
+/// **not** bind any common names in your scope (all library types are imported
+/// under unique aliases), so it won't clash with your own `use` imports. It
+/// does not emit the Candid interface, because `ic_cdk::export_candid!()`
+/// cannot be expanded from within another macro — call it yourself after the
+/// macro.
 ///
 /// # Example
 ///
