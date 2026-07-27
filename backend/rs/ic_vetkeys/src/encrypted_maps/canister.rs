@@ -66,19 +66,26 @@ macro_rules! export_encrypted_maps_canister {
             $memory_encrypted_maps:expr $(,)?
         ] $(,)?
     ) => {
-        use ::candid::Principal;
-        use $crate::encrypted_maps::{
-            EncryptedMapData, EncryptedMaps, VetKey, VetKeyVerificationKey,
-        };
-        use $crate::types::{AccessRights, ByteBuf, EncryptedMapValue, TransportKey};
+        // Import everything under unique aliases so the expansion never binds a
+        // common name (`Principal`, `ByteBuf`, …) in the caller's module — that
+        // would collide (E0252) with the adopter's own imports.
+        use ::candid::Principal as __EmPrincipal;
+        use $crate::encrypted_maps::EncryptedMapData as __EmEncryptedMapData;
+        use $crate::encrypted_maps::EncryptedMaps as __EmEncryptedMaps;
+        use $crate::encrypted_maps::VetKey as __EmVetKey;
+        use $crate::encrypted_maps::VetKeyVerificationKey as __EmVetKeyVerificationKey;
+        use $crate::types::AccessRights as __EmAccessRights;
+        use $crate::types::ByteBuf as __EmByteBuf;
+        use $crate::types::EncryptedMapValue as __EmEncryptedMapValue;
+        use $crate::types::TransportKey as __EmTransportKey;
 
         ::std::thread_local! {
-            static ENCRYPTED_MAPS: ::std::cell::RefCell<Option<EncryptedMaps<AccessRights>>> =
+            static ENCRYPTED_MAPS: ::std::cell::RefCell<Option<__EmEncryptedMaps<__EmAccessRights>>> =
                 const { ::std::cell::RefCell::new(None) };
         }
 
         fn __encrypted_maps_bytebuf_to_blob(
-            buf: ByteBuf,
+            buf: __EmByteBuf,
         ) -> Result<::ic_stable_structures::storable::Blob<32>, String> {
             ::ic_stable_structures::storable::Blob::try_from(buf.as_ref())
                 .map_err(|_| "too large input".to_string())
@@ -106,7 +113,7 @@ macro_rules! export_encrypted_maps_canister {
                 name: key_name,
             };
             ENCRYPTED_MAPS.with_borrow_mut(|encrypted_maps| {
-                encrypted_maps.replace(EncryptedMaps::init(
+                encrypted_maps.replace(__EmEncryptedMaps::init(
                     $domain_separator,
                     key_id,
                     $memory_domain_separator,
@@ -118,23 +125,23 @@ macro_rules! export_encrypted_maps_canister {
         }
 
         #[::ic_cdk::query]
-        fn get_accessible_shared_map_names() -> Vec<(Principal, ByteBuf)> {
+        fn get_accessible_shared_map_names() -> Vec<(__EmPrincipal, __EmByteBuf)> {
             ENCRYPTED_MAPS.with_borrow(|encrypted_maps| {
                 encrypted_maps
                     .as_ref()
                     .unwrap()
                     .get_accessible_shared_map_names(::ic_cdk::api::msg_caller())
                     .into_iter()
-                    .map(|map_id| (map_id.0, ByteBuf::from(map_id.1.as_ref().to_vec())))
+                    .map(|map_id| (map_id.0, __EmByteBuf::from(map_id.1.as_ref().to_vec())))
                     .collect()
             })
         }
 
         #[::ic_cdk::query]
         fn get_shared_user_access_for_map(
-            key_owner: Principal,
-            key_name: ByteBuf,
-        ) -> Result<Vec<(Principal, AccessRights)>, String> {
+            key_owner: __EmPrincipal,
+            key_name: __EmByteBuf,
+        ) -> Result<Vec<(__EmPrincipal, __EmAccessRights)>, String> {
             let key_name = __encrypted_maps_bytebuf_to_blob(key_name)?;
             let key_id = (key_owner, key_name);
             ENCRYPTED_MAPS.with_borrow(|encrypted_maps| {
@@ -147,9 +154,9 @@ macro_rules! export_encrypted_maps_canister {
 
         #[::ic_cdk::query]
         fn get_encrypted_values_for_map(
-            map_owner: Principal,
-            map_name: ByteBuf,
-        ) -> Result<Vec<(ByteBuf, EncryptedMapValue)>, String> {
+            map_owner: __EmPrincipal,
+            map_name: __EmByteBuf,
+        ) -> Result<Vec<(__EmByteBuf, __EmEncryptedMapValue)>, String> {
             let map_name = __encrypted_maps_bytebuf_to_blob(map_name)?;
             let map_id = (map_owner, map_name);
             let result = ENCRYPTED_MAPS.with_borrow(|encrypted_maps| {
@@ -161,14 +168,14 @@ macro_rules! export_encrypted_maps_canister {
             result.map(|map_values| {
                 map_values
                     .into_iter()
-                    .map(|(key, value)| (ByteBuf::from(key.as_slice().to_vec()), value))
+                    .map(|(key, value)| (__EmByteBuf::from(key.as_slice().to_vec()), value))
                     .collect()
             })
         }
 
         #[::ic_cdk::query]
         fn get_all_accessible_encrypted_values(
-        ) -> Vec<((Principal, ByteBuf), Vec<(ByteBuf, EncryptedMapValue)>)> {
+        ) -> Vec<((__EmPrincipal, __EmByteBuf), Vec<(__EmByteBuf, __EmEncryptedMapValue)>)> {
             ENCRYPTED_MAPS
                 .with_borrow(|encrypted_maps| {
                     encrypted_maps
@@ -179,10 +186,10 @@ macro_rules! export_encrypted_maps_canister {
                 .into_iter()
                 .map(|((owner, map_name), encrypted_values)| {
                     (
-                        (owner, ByteBuf::from(map_name.as_ref().to_vec())),
+                        (owner, __EmByteBuf::from(map_name.as_ref().to_vec())),
                         encrypted_values
                             .into_iter()
-                            .map(|(key, value)| (ByteBuf::from(key.as_ref().to_vec()), value))
+                            .map(|(key, value)| (__EmByteBuf::from(key.as_ref().to_vec()), value))
                             .collect(),
                     )
                 })
@@ -190,7 +197,7 @@ macro_rules! export_encrypted_maps_canister {
         }
 
         #[::ic_cdk::query]
-        fn get_all_accessible_encrypted_maps() -> Vec<EncryptedMapData<AccessRights>> {
+        fn get_all_accessible_encrypted_maps() -> Vec<__EmEncryptedMapData<__EmAccessRights>> {
             ENCRYPTED_MAPS.with_borrow(|encrypted_maps| {
                 encrypted_maps
                     .as_ref()
@@ -201,10 +208,10 @@ macro_rules! export_encrypted_maps_canister {
 
         #[::ic_cdk::query]
         fn get_encrypted_value(
-            map_owner: Principal,
-            map_name: ByteBuf,
-            map_key: ByteBuf,
-        ) -> Result<Option<EncryptedMapValue>, String> {
+            map_owner: __EmPrincipal,
+            map_name: __EmByteBuf,
+            map_key: __EmByteBuf,
+        ) -> Result<Option<__EmEncryptedMapValue>, String> {
             let map_name = __encrypted_maps_bytebuf_to_blob(map_name)?;
             let map_id = (map_owner, map_name);
             ENCRYPTED_MAPS.with_borrow(|encrypted_maps| {
@@ -218,9 +225,9 @@ macro_rules! export_encrypted_maps_canister {
 
         #[::ic_cdk::update]
         fn remove_map_values(
-            map_owner: Principal,
-            map_name: ByteBuf,
-        ) -> Result<Vec<EncryptedMapValue>, String> {
+            map_owner: __EmPrincipal,
+            map_name: __EmByteBuf,
+        ) -> Result<Vec<__EmEncryptedMapValue>, String> {
             let map_name = __encrypted_maps_bytebuf_to_blob(map_name)?;
             let map_id = (map_owner, map_name);
             let result = ENCRYPTED_MAPS.with_borrow_mut(|encrypted_maps| {
@@ -232,31 +239,31 @@ macro_rules! export_encrypted_maps_canister {
             result.map(|removed| {
                 removed
                     .into_iter()
-                    .map(|key| ByteBuf::from(key.as_ref().to_vec()))
+                    .map(|key| __EmByteBuf::from(key.as_ref().to_vec()))
                     .collect()
             })
         }
 
         #[::ic_cdk::query]
-        fn get_owned_non_empty_map_names() -> Vec<ByteBuf> {
+        fn get_owned_non_empty_map_names() -> Vec<__EmByteBuf> {
             ENCRYPTED_MAPS.with_borrow(|encrypted_maps| {
                 encrypted_maps
                     .as_ref()
                     .unwrap()
                     .get_owned_non_empty_map_names(::ic_cdk::api::msg_caller())
                     .into_iter()
-                    .map(|map_name| ByteBuf::from(map_name.as_slice().to_vec()))
+                    .map(|map_name| __EmByteBuf::from(map_name.as_slice().to_vec()))
                     .collect()
             })
         }
 
         #[::ic_cdk::update]
         fn insert_encrypted_value(
-            map_owner: Principal,
-            map_name: ByteBuf,
-            map_key: ByteBuf,
-            value: EncryptedMapValue,
-        ) -> Result<Option<EncryptedMapValue>, String> {
+            map_owner: __EmPrincipal,
+            map_name: __EmByteBuf,
+            map_key: __EmByteBuf,
+            value: __EmEncryptedMapValue,
+        ) -> Result<Option<__EmEncryptedMapValue>, String> {
             let map_name = __encrypted_maps_bytebuf_to_blob(map_name)?;
             let map_id = (map_owner, map_name);
             ENCRYPTED_MAPS.with_borrow_mut(|encrypted_maps| {
@@ -271,10 +278,10 @@ macro_rules! export_encrypted_maps_canister {
 
         #[::ic_cdk::update]
         fn remove_encrypted_value(
-            map_owner: Principal,
-            map_name: ByteBuf,
-            map_key: ByteBuf,
-        ) -> Result<Option<EncryptedMapValue>, String> {
+            map_owner: __EmPrincipal,
+            map_name: __EmByteBuf,
+            map_key: __EmByteBuf,
+        ) -> Result<Option<__EmEncryptedMapValue>, String> {
             let map_name = __encrypted_maps_bytebuf_to_blob(map_name)?;
             let map_id = (map_owner, map_name);
             ENCRYPTED_MAPS.with_borrow_mut(|encrypted_maps| {
@@ -287,7 +294,7 @@ macro_rules! export_encrypted_maps_canister {
         }
 
         #[::ic_cdk::update]
-        async fn get_vetkey_verification_key() -> VetKeyVerificationKey {
+        async fn get_vetkey_verification_key() -> __EmVetKeyVerificationKey {
             ENCRYPTED_MAPS
                 .with_borrow(|encrypted_maps| {
                     encrypted_maps
@@ -300,10 +307,10 @@ macro_rules! export_encrypted_maps_canister {
 
         #[::ic_cdk::update]
         async fn get_encrypted_vetkey(
-            map_owner: Principal,
-            map_name: ByteBuf,
-            transport_key: TransportKey,
-        ) -> Result<VetKey, String> {
+            map_owner: __EmPrincipal,
+            map_name: __EmByteBuf,
+            transport_key: __EmTransportKey,
+        ) -> Result<__EmVetKey, String> {
             let map_name = __encrypted_maps_bytebuf_to_blob(map_name)?;
             let map_id = (map_owner, map_name);
             Ok(ENCRYPTED_MAPS
@@ -319,10 +326,10 @@ macro_rules! export_encrypted_maps_canister {
 
         #[::ic_cdk::query]
         fn get_user_rights(
-            map_owner: Principal,
-            map_name: ByteBuf,
-            user: Principal,
-        ) -> Result<Option<AccessRights>, String> {
+            map_owner: __EmPrincipal,
+            map_name: __EmByteBuf,
+            user: __EmPrincipal,
+        ) -> Result<Option<__EmAccessRights>, String> {
             let map_name = __encrypted_maps_bytebuf_to_blob(map_name)?;
             let map_id = (map_owner, map_name);
             ENCRYPTED_MAPS.with_borrow(|encrypted_maps| {
@@ -336,11 +343,11 @@ macro_rules! export_encrypted_maps_canister {
 
         #[::ic_cdk::update]
         fn set_user_rights(
-            map_owner: Principal,
-            map_name: ByteBuf,
-            user: Principal,
-            access_rights: AccessRights,
-        ) -> Result<Option<AccessRights>, String> {
+            map_owner: __EmPrincipal,
+            map_name: __EmByteBuf,
+            user: __EmPrincipal,
+            access_rights: __EmAccessRights,
+        ) -> Result<Option<__EmAccessRights>, String> {
             let map_name = __encrypted_maps_bytebuf_to_blob(map_name)?;
             let map_id = (map_owner, map_name);
             ENCRYPTED_MAPS.with_borrow_mut(|encrypted_maps| {
@@ -355,10 +362,10 @@ macro_rules! export_encrypted_maps_canister {
 
         #[::ic_cdk::update]
         fn remove_user(
-            map_owner: Principal,
-            map_name: ByteBuf,
-            user: Principal,
-        ) -> Result<Option<AccessRights>, String> {
+            map_owner: __EmPrincipal,
+            map_name: __EmByteBuf,
+            user: __EmPrincipal,
+        ) -> Result<Option<__EmAccessRights>, String> {
             let map_name = __encrypted_maps_bytebuf_to_blob(map_name)?;
             let map_id = (map_owner, map_name);
             ENCRYPTED_MAPS.with_borrow_mut(|encrypted_maps| {
