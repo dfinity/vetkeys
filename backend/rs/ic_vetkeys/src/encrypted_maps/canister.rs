@@ -72,7 +72,7 @@ macro_rules! export_encrypted_maps_canister {
         };
         use $crate::types::{AccessRights, ByteBuf, EncryptedMapValue, TransportKey};
 
-        thread_local! {
+        ::std::thread_local! {
             static ENCRYPTED_MAPS: ::std::cell::RefCell<Option<EncryptedMaps<AccessRights>>> =
                 const { ::std::cell::RefCell::new(None) };
         }
