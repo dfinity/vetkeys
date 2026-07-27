@@ -58,7 +58,7 @@
     "module": "dist/lib/index.es.js",
     "typings": "dist/types/index.d.ts",
     "dependencies": {
-        "@icp-sdk/core": "^5.2.1",
+        "@icp-sdk/core": "^5.4.0",
         "idb-keyval": "^6.2.1"
     },
     "devDependencies": {

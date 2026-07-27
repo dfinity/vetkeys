@@ -1,0 +1,131 @@
+/**
+ * @module @icp-sdk/vetkeys/encrypted_maps
+ *
+ * @description Caching strategies for derived key material. See
+ * {@link DerivedKeyMaterialCache}.
+ */
+
+import {
+    clear as idbClear,
+    createStore,
+    get as idbGet,
+    set as idbSet,
+    type UseStore,
+} from "idb-keyval";
+
+/**
+ * Strategy for caching the per-map derived key material handles used by
+ * {@link EncryptedMaps}.
+ *
+ * Deriving key material requires a canister round-trip and threshold
+ * cryptography, so it is cached and reused. The cached value is a
+ * non-extractable {@link CryptoKey} handle: its raw bytes can never be read
+ * back (`crypto.subtle.exportKey` throws), but the handle can still be *used*
+ * to decrypt. Where that handle lives therefore matters for security — see the
+ * provided implementations.
+ *
+ * Cache entries are keyed by an opaque string derived from the map owner and
+ * map name. Derived key material is per map, not per caller, so the key does
+ * not encode the identity. Isolating one identity's cached keys from another's
+ * on the same origin is therefore a property of the cache instance: use a fresh
+ * cache per identity (the in-memory default is naturally per-instance), or give
+ * a persistent cache a per-identity namespace (see
+ * {@link IndexedDbDerivedKeyMaterialCache}).
+ */
+export interface DerivedKeyMaterialCache {
+    /**
+     * Returns the cached key handle for the given key, or `undefined` on a miss.
+     */
+    get(key: string): Promise<CryptoKey | undefined>;
+
+    /**
+     * Stores a key handle under the given key.
+     */
+    set(key: string, value: CryptoKey): Promise<void>;
+
+    /**
+     * Removes every cached key handle.
+     *
+     * Call this on logout or whenever the authenticated identity changes to
+     * avoid leaving usable decryption capability behind.
+     */
+    clear(): Promise<void>;
+}
+
+/**
+ * Default {@link DerivedKeyMaterialCache} that keeps key handles in memory only.
+ *
+ * Nothing is written to disk, so the cache is discarded when the page is
+ * reloaded or the tab is closed and there is no at-rest exposure. The trade-off
+ * is one extra key derivation per map per page load.
+ */
+export class InMemoryDerivedKeyMaterialCache implements DerivedKeyMaterialCache {
+    readonly #entries = new Map<string, CryptoKey>();
+
+    get(key: string): Promise<CryptoKey | undefined> {
+        return Promise.resolve(this.#entries.get(key));
+    }
+
+    set(key: string, value: CryptoKey): Promise<void> {
+        this.#entries.set(key, value);
+        return Promise.resolve();
+    }
+
+    clear(): Promise<void> {
+        this.#entries.clear();
+        return Promise.resolve();
+    }
+}
+
+/**
+ * Opt-in {@link DerivedKeyMaterialCache} that persists key handles in IndexedDB.
+ *
+ * Key handles survive page reloads, avoiding repeated key derivation, but this
+ * is a deliberate security trade-off: the persisted handle is non-extractable
+ * (its raw bytes cannot be stolen), yet any same-origin code — e.g. via XSS, a
+ * malicious extension, or a shared browser profile — can read the handle and
+ * use it to decrypt the user's data without an authenticated session, for as
+ * long as it remains stored.
+ *
+ * Prefer {@link InMemoryDerivedKeyMaterialCache} (the default) unless you need
+ * cross-reload persistence and accept this exposure. When using this cache, be
+ * sure to call {@link EncryptedMaps.clearCache} on logout or identity change.
+ *
+ * Because the cache key does not encode the identity, **give the store a
+ * per-identity namespace** to keep one identity's persisted keys from being
+ * served to another on the same origin — e.g. include the caller's principal in
+ * the database name:
+ *
+ * ```ts
+ * new IndexedDbDerivedKeyMaterialCache(`vetkeys-${principal}`);
+ * ```
+ *
+ * A dedicated IndexedDB store is used, so {@link clear} only removes entries
+ * written by this cache and never touches other application data.
+ */
+export class IndexedDbDerivedKeyMaterialCache implements DerivedKeyMaterialCache {
+    readonly #store: UseStore;
+
+    /**
+     * @param dbName - IndexedDB database name. Defaults to `"ic-vetkeys"`. This
+     *   is the isolation knob: give each identity its own database name (e.g.
+     *   `` `vetkeys-${principal}` ``) so one identity's persisted keys are never
+     *   served to another. The object store name is fixed, because `idb-keyval`
+     *   supports only a single object store per database.
+     */
+    constructor(dbName = "ic-vetkeys") {
+        this.#store = createStore(dbName, "derived-key-material");
+    }
+
+    async get(key: string): Promise<CryptoKey | undefined> {
+        return idbGet<CryptoKey>(key, this.#store);
+    }
+
+    async set(key: string, value: CryptoKey): Promise<void> {
+        await idbSet(key, value, this.#store);
+    }
+
+    async clear(): Promise<void> {
+        await idbClear(this.#store);
+    }
+}

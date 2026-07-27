@@ -12,6 +12,59 @@
 - `DerivedKeyMaterial` encryption uses a different format for encryption now.
   Decryption of old messages is supported, however older versions of this library
   will not be able to read messages encrypted by this or newer versions.
+- `EncryptedMaps` now accepts an optional `{ cache }` option to control how
+  derived key material is cached. New exports `DerivedKeyMaterialCache`,
+  `InMemoryDerivedKeyMaterialCache`, and `IndexedDbDerivedKeyMaterialCache` from
+  `@icp-sdk/vetkeys/encrypted_maps`.
+- `EncryptedMaps.clearCache()` to drop cached derived key material. Strongly
+  recommended on logout or identity change to drop usable decryption capability
+  — especially with `IndexedDbDerivedKeyMaterialCache`, where it persists across
+  sessions otherwise.
+
+### Security
+
+- **BREAKING** `EncryptedMaps` no longer persists derived key material to
+  IndexedDB by default; it now caches in memory only
+  (`InMemoryDerivedKeyMaterialCache`), so secret-bearing key handles are
+  discarded on page reload instead of remaining usable at rest indefinitely.
+  Opt back into persistence with
+  `new EncryptedMaps(client, { cache: new IndexedDbDerivedKeyMaterialCache() })`,
+  accepting that a persisted handle can be used by any same-origin code to
+  decrypt without an authenticated session. The one-time cost of the default is
+  an extra key derivation per map per page load.
+- The derived key material cache now belongs to a single identity rather than
+  being shared in a fixed IndexedDB store across identities. Because derived key
+  material is per map (`[mapOwner, mapName]`), cross-identity isolation is a
+  property of the cache instance: use a fresh `EncryptedMaps` instance per
+  identity with the in-memory default, or give `IndexedDbDerivedKeyMaterialCache`
+  a per-identity namespace (e.g. include the caller's principal in the database
+  name). This closes the prior behaviour where, after an identity switch on the
+  same origin, key material cached by one principal could be served to another.
+- **Upgrade note:** versions `0.1.0`–`0.4.0` persisted derived key material to
+  IndexedDB's default `idb-keyval` store. After upgrading, those entries remain
+  at rest and are neither used nor cleared by this version (the new cache uses a
+  dedicated store). To remove the residual decryption capability, clear the
+  legacy entries once after upgrading — e.g. via the already-bundled `idb-keyval`:
+
+    ```ts
+    import { entries, del } from "idb-keyval";
+    // Delete only the legacy vetkeys entries from idb-keyval's default store,
+    // matching the legacy key shape `[mapOwner: string, mapName: bytes]` with a
+    // CryptoKey value, leaving any other app data untouched. IndexedDB does not
+    // preserve the exact JS type of binary *keys* (a Uint8Array stored as a key
+    // is read back as an ArrayBuffer), so match any binary key element.
+    for (const [key, value] of await entries()) {
+        if (
+            Array.isArray(key) &&
+            key.length === 2 &&
+            typeof key[0] === "string" &&
+            (key[1] instanceof ArrayBuffer || ArrayBuffer.isView(key[1])) &&
+            value instanceof CryptoKey
+        ) {
+            await del(key);
+        }
+    }
+    ```
 
 ### Changed
 
