@@ -1496,7 +1496,7 @@ pub mod management_canister {
     /// The `context` parameter defines signer's identity.
     /// The returned signature can be verified with the public key retrieved via [`bls_public_key`] with the same `context` and `key_id`.
     /// Having the public key, message, and signature, we now can verify that the signature is valid.
-    /// For that, we can call [`verify_bls_signature`] from this crate in Rust or `verifyBlsSignature` from the `@dfinity/vetkeys` package in TypeScript/JavaScript.
+    /// For that, we can call [`verify_bls_signature`] from this crate in Rust or `verifyBlsSignature` from the `@icp-sdk/vetkeys` package in TypeScript/JavaScript.
     ///
     /// This function will use `ic0_cost_vetkd_derive_key` to calculate the precise number of cycles to attach.
     ///
