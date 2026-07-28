@@ -1,5 +1,14 @@
 # Change Log
 
+## [0.8.1] - 2026-07-28
+
+### Fixed
+
+- Corrected the frontend-library links in the crate README (the docs.rs front
+  page): they pointed at the old `@dfinity/vetkeys` TypeDoc paths, which now
+  404, and now point at the current `@icp-sdk/vetkeys` pages. Also updated a
+  `@dfinity/vetkeys` package-name mention in the `verify_bls_signature` docs.
+
 ## [0.8.0] - 2026-07-28
 
 ### Added
