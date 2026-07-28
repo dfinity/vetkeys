@@ -29,8 +29,6 @@ jobs:
         with:
           node-version: '22'
       - uses: pnpm/action-setup@a7487c7e89a18df4991f7f222e4898a00d66ddda # v4.1.0
-        with:
-          version: 10
       - name: Provision Linux
         run: bash .github/workflows/provision-linux.sh
       - name: Frontend Tests and Lint
@@ -53,8 +51,6 @@ jobs:
         with:
           node-version: '22'
       - uses: pnpm/action-setup@a7487c7e89a18df4991f7f222e4898a00d66ddda # v4.1.0
-        with:
-          version: 10
       - name: Provision Darwin
         run: |
           bash .github/workflows/provision-darwin.sh
