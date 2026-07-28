@@ -1,5 +1,5 @@
 [toolchain]
-moc = "1.6.0"
+moc = "1.9.0"
 
 [moc]
 args = ["-W=M0236,M0237,M0223"]
@@ -19,4 +19,4 @@ main = "src/Main.mo"
 
 [dependencies]
 core = "2.4.0"
-ic-vetkeys = "0.4.0"
+ic-vetkeys = "../../ic_vetkeys"

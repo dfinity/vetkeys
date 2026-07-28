@@ -1,5 +1,21 @@
 # Change Log
 
+## [0.6.0] - Unreleased
+
+### Breaking changes
+
+- Now requires `moc` 1.9.0 (raised from 1.6.0), for actor mixin support.
+
+### Added
+
+- `EncryptedMapsCanister` mixin (`mo:ic-vetkeys/encrypted_maps/Canister`) that
+  provides a complete EncryptedMaps canister interface. `include` it into a
+  `persistent actor` to get the state plus every shared/query endpoint, so an
+  adopter's `Main.mo` is a few lines instead of ~200 lines of hand-written
+  delegation. Because the mixin is the single source of the endpoint set, the
+  exposed Candid matches what the `@icp-sdk/vetkeys` frontend expects by
+  construction.
+
 ## [0.5.0] - 2026-04-22
 
 ### Breaking changes
