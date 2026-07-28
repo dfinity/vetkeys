@@ -27,7 +27,11 @@ jobs:
 
       - uses: dfinity/ci-tools/actions/setup-pnpm@7bf36670eaa358cc9fec366965858e4ea84bcc66 # main
         with:
-          node_version: '22'
+          # Node 24 bundles npm >= 11.5.1, which is required for OIDC trusted
+          # publishing. Node 22 ships npm 10.9, which silently skips the OIDC
+          # credential exchange and fails the publish with a masked 404. This
+          # matches the sibling @icp-sdk repos that publish over OIDC.
+          node_version: '24'
 
       - name: Check package version matches tag
         if: ${{ github.event_name == 'push' }}
@@ -55,15 +59,18 @@ jobs:
 
       - name: Pack
         working-directory: frontend/ic_vetkeys
-        run: pnpm pack
+        run: npm pack
 
       - name: Publish to npm
         working-directory: frontend/ic_vetkeys
+        # Publish with `npm` (not `pnpm publish`): OIDC trusted publishing is
+        # implemented by the npm CLI, and `npm publish` is the path the sibling
+        # @icp-sdk repos use successfully. `pnpm publish` has known OIDC issues.
         env:
           NPM_CONFIG_PROVENANCE: 'true'
         run: |
           if [ "${{ github.event.inputs.dry-run }}" = 'true' ]; then
-            pnpm publish --verbose --access public --no-git-checks --dry-run
+            npm publish --verbose --access public --dry-run
           else
-            pnpm publish --verbose --access public --no-git-checks
+            npm publish --verbose --access public
           fi
