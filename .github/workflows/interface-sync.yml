@@ -1,0 +1,52 @@
+name: Interface Sync Guard
+
+permissions: {}
+
+# Guards the cross-language interface contract:
+#
+# The frontend SDK bundles generated Candid declarations (idlFactory + types)
+# that MUST stay in sync with the canister .did files. This job regenerates the
+# declarations from the committed .did using the pinned bindgen version and
+# fails if the result differs from what is checked in — i.e. someone changed a
+# .did but forgot to regenerate the frontend declarations (or edited the
+# generated files by hand).
+#
+# Note: the Rust <-> Motoko backend interface contract is already enforced
+# behaviorally — the Motoko canister is compiled to wasm and the Rust canister's
+# integration tests run against it (see backend/mo/canisters/*/Makefile and
+# backend-motoko.yml), so this guard deliberately focuses on the
+# frontend <-> canister seam, which is otherwise unguarded.
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  pull_request:
+    paths:
+      - backend/rs/canisters/*/*.did
+      - frontend/ic_vetkeys/src/declarations/**
+      - frontend/ic_vetkeys/make_did_bindings.sh
+      - .github/workflows/interface-sync.yml
+
+jobs:
+  declarations-in-sync:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '22'
+      - name: Regenerate frontend declarations from committed .did files
+        working-directory: frontend/ic_vetkeys
+        run: SKIP_EXTRACT_CANDID=1 bash make_did_bindings.sh
+      - name: Fail if declarations are out of sync
+        run: |
+          set -eEuo pipefail
+          if ! git diff --exit-code -- frontend/ic_vetkeys/src/declarations; then
+            echo "::error::Frontend declarations are out of sync with the canister .did files."
+            echo "Run 'bash make_did_bindings.sh' in frontend/ic_vetkeys and commit the result."
+            exit 1
+          fi
