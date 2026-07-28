@@ -1,6 +1,6 @@
 # Change Log
 
-## [0.5.0] - Unreleased
+## [0.5.0] - 2026-07-28
 
 > **Note:** Starting with this version, the package is published as `@icp-sdk/vetkeys`.
 > Versions 0.1.0–0.4.0 were published as [`@dfinity/vetkeys`](https://www.npmjs.com/package/@dfinity/vetkeys).
