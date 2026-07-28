@@ -1,5 +1,17 @@
 # Change Log
 
+## [0.8.0] - Unreleased
+
+### Added
+
+- `export_encrypted_maps_canister!` macro that generates a complete EncryptedMaps
+  canister — the `#[init]`/`#[post_upgrade]` plus every `#[query]`/`#[update]`
+  endpoint — so an adopter's canister is a few lines instead of ~200 lines of
+  hand-written boilerplate. The caller owns the `MemoryManager` and passes the
+  four `Memory` instances; because the macro is the single source of the endpoint
+  set, the exposed Candid matches what the `@icp-sdk/vetkeys` frontend expects by
+  construction. Call `ic_cdk::export_candid!()` after the macro.
+
 ## [0.7.0] - 2026-05-12
 
 ### Changed
