@@ -45,7 +45,13 @@ jobs:
 
       - name: Audit dependencies
         working-directory: frontend/ic_vetkeys
-        run: pnpm audit
+        # Only audit the production dependency tree — that is what consumers
+        # install (the published package ships `dist/` plus the runtime
+        # `dependencies`). devDependencies are the build/test/docs toolchain
+        # (vite, vite-plugin-dts, typedoc, vitest, eslint, …) and never reach
+        # consumers, so their advisories must not gate a release. Dev-tooling
+        # vulnerabilities are tracked separately via Dependabot / regular CI.
+        run: pnpm audit --prod
 
       - name: Pack
         working-directory: frontend/ic_vetkeys
