@@ -10,7 +10,7 @@ In slightly more detail, vetKeys enables use cases such as:
 - **Threshold BLS Signatures**, enabling secure, decentralized signing of messages.
 - **Identity Based Encryption (IBE)**, enabling secure communication between users without exchanging public keys.
 - **Verifiable Random Beacons**, providing a secure source of verifiable randomness for decentralized applications.
-- **Application defined vetKeys**, defining the constraints for obtaining derived keys/BLS signatures/verifiable randomness.
+- **Application-defined access control**, the application defines who may obtain which derived keys, BLS signatures, or verifiable randomness.
 
 The management canister API for vetKeys exposes two endpoints, one for retrieving a public key and another one for deriving encrypted keys.
 
