@@ -36,14 +36,18 @@
 /// other memory ids.
 ///
 /// The `#[init]` takes the vetKD key name (e.g. `"test_key_1"` locally,
-/// `"key_1"` on mainnet). The macro injects the canister entry points into the
-/// invoking module — the `#[init]`/`#[post_upgrade]` and the `#[query]`/
-/// `#[update]` endpoints (plus a private thread-local and helpers) — but it does
-/// **not** bind any common names in your scope (all library types are imported
-/// under unique aliases), so it won't clash with your own `use` imports. It
-/// does not emit the Candid interface, because `ic_cdk::export_candid!()`
-/// cannot be expanded from within another macro — call it yourself after the
-/// macro.
+/// `"key_1"` on mainnet). The macro injects items into the invoking module: the
+/// `#[init]`/`#[post_upgrade]`, the `#[query]`/`#[update]` endpoints, and the
+/// [`with_encrypted_maps`]/[`with_encrypted_maps_mut`] accessors (plus a private
+/// thread-local and helpers). Library *types* are imported under unique aliases,
+/// so they never clash with your own `use` imports; but the endpoint functions
+/// and the two accessors are ordinary items in your module — don't define items
+/// of your own with those names. It does not emit the Candid interface, because
+/// `ic_cdk::export_candid!()` cannot be expanded from within another macro —
+/// call it yourself after the macro.
+///
+/// [`with_encrypted_maps`]: #accessing-the-encryptedmaps-instance
+/// [`with_encrypted_maps_mut`]: #accessing-the-encryptedmaps-instance
 ///
 /// # Full canister
 ///
@@ -286,24 +290,34 @@ macro_rules! __export_encrypted_maps_common {
         /// Run `f` with a shared reference to the initialized `EncryptedMaps`.
         ///
         /// For hand-written endpoints that reuse the library's vetKD / crypto /
-        /// access-control logic. Traps if called before `#[init]` (it never is —
+        /// access-control logic. `pub(crate)` so it is reachable from submodules
+        /// of the invoking crate. Traps if called before `#[init]` (it never is —
         /// the state is set up in `#[init]`/`#[post_upgrade]`).
         #[allow(dead_code)]
-        fn with_encrypted_maps<__EmR>(
+        pub(crate) fn with_encrypted_maps<__EmR>(
             f: impl FnOnce(&__EmEncryptedMaps<__EmAccessRights>) -> __EmR,
         ) -> __EmR {
-            ENCRYPTED_MAPS.with_borrow(|encrypted_maps| f(encrypted_maps.as_ref().unwrap()))
+            ENCRYPTED_MAPS.with_borrow(|encrypted_maps| {
+                f(encrypted_maps
+                    .as_ref()
+                    .expect("EncryptedMaps is not initialized (called before #[init]/#[post_upgrade])"))
+            })
         }
 
         /// Run `f` with a mutable reference to the initialized `EncryptedMaps`.
         ///
         /// Gives access to the raw value mutators; when wrapping them, keep any
-        /// linked side-state updated in the same endpoint call.
+        /// linked side-state updated in the same endpoint call. `pub(crate)` so
+        /// it is reachable from submodules of the invoking crate.
         #[allow(dead_code)]
-        fn with_encrypted_maps_mut<__EmR>(
+        pub(crate) fn with_encrypted_maps_mut<__EmR>(
             f: impl FnOnce(&mut __EmEncryptedMaps<__EmAccessRights>) -> __EmR,
         ) -> __EmR {
-            ENCRYPTED_MAPS.with_borrow_mut(|encrypted_maps| f(encrypted_maps.as_mut().unwrap()))
+            ENCRYPTED_MAPS.with_borrow_mut(|encrypted_maps| {
+                f(encrypted_maps
+                    .as_mut()
+                    .expect("EncryptedMaps is not initialized (called before #[init]/#[post_upgrade])"))
+            })
         }
     };
 }
