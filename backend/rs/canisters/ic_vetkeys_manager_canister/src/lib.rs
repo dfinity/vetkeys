@@ -29,6 +29,13 @@ fn init(key_name: String) {
 // config `StableCell` and access-control/shared-keys `StableBTreeMap`s from
 // stable memory; the config cell already holds a value, so the key name passed
 // here is ignored after an upgrade.
+//
+// This takes no argument on purpose. The key name is pinned in stable state at
+// `init` and cannot change on upgrade, so there is nothing to read from the
+// upgrade payload. A zero-arg `post_upgrade` also accepts an upgrade whether or
+// not an argument is supplied — Candid drops the extra trailing argument. Do
+// NOT change this to take a mandatory `String`: that would trap on an upgrade
+// performed with no argument.
 #[post_upgrade]
 fn post_upgrade() {
     setup(String::new());
