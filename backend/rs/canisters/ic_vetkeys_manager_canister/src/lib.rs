@@ -1,7 +1,7 @@
 use std::cell::RefCell;
 
 use candid::Principal;
-use ic_cdk::{init, query, update};
+use ic_cdk::{init, post_upgrade, query, update};
 use ic_cdk_management_canister::{VetKDCurve, VetKDKeyId};
 use ic_stable_structures::memory_manager::{MemoryId, MemoryManager, VirtualMemory};
 use ic_stable_structures::storable::Blob;
@@ -20,6 +20,21 @@ thread_local! {
 
 #[init]
 fn init(key_name: String) {
+    setup(key_name);
+}
+
+// After an upgrade `#[init]` does not run, so the `KEY_MANAGER` thread-local
+// would be `None` and every endpoint would trap on `unwrap()`. Re-attach it to
+// the (persisted) stable state here. `KeyManager::init` loads the existing
+// config `StableCell` and access-control/shared-keys `StableBTreeMap`s from
+// stable memory; the config cell already holds a value, so the key name passed
+// here is ignored after an upgrade.
+#[post_upgrade]
+fn post_upgrade() {
+    setup(String::new());
+}
+
+fn setup(key_name: String) {
     let key_id = VetKDKeyId {
         curve: VetKDCurve::Bls12_381_G2,
         name: key_name,

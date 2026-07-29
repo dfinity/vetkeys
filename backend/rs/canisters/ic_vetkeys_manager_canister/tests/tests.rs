@@ -508,6 +508,45 @@ fn should_fail_add_or_remove_user_by_unauthorized() {
     }
 }
 
+#[test]
+fn should_preserve_state_across_upgrade() {
+    // Runs against both backends via the shared harness: the Rust manager
+    // canister (state in stable structures) and the Motoko manager canister
+    // (the KeyManager, state in main memory via enhanced orthogonal
+    // persistence). An access right granted before the upgrade must still be
+    // readable afterwards. `upgrade_example_canister` picks the matching
+    // upgrade mode for the wasm under test.
+    let rng = &mut reproducible_rng();
+    let env = TestEnvironment::new(rng);
+    let owner = random_self_authenticating_principal(rng);
+    let user = random_self_authenticating_principal(rng);
+    let key_name = random_key_name(rng);
+    let access_rights = AccessRights::Read;
+
+    // Grant `user` access to `owner`'s key; there were no prior rights.
+    assert_eq!(
+        env.update::<Result<Option<AccessRights>, String>>(
+            owner,
+            "set_user_rights",
+            encode_args((owner, key_name.clone(), user, access_rights)).unwrap(),
+        ),
+        Ok(None)
+    );
+
+    upgrade_example_canister(&env);
+    fast_forward(&env.pic, 5);
+
+    // The access right granted before the upgrade is still present afterwards.
+    assert_eq!(
+        env.query::<Result<Option<AccessRights>, String>>(
+            owner,
+            "get_user_rights",
+            encode_args((owner, key_name, user)).unwrap(),
+        ),
+        Ok(Some(access_rights))
+    );
+}
+
 struct TestEnvironment {
     pic: PocketIc,
     example_canister_id: Principal,
@@ -521,7 +560,7 @@ impl TestEnvironment {
             .with_application_subnet()
             .with_ii_subnet()
             .with_fiduciary_subnet()
-            .with_nonmainnet_features(true)
+            .with_test_threshold_keys_subnet()
             .build();
 
         let example_canister_id = pic.create_canister();
@@ -594,6 +633,33 @@ fn load_key_manager_example_canister_wasm() -> Vec<u8> {
     };
     std::fs::read(&wasm_path_string)
         .expect("wasm does not exist - run `cargo build --release --target wasm32-unknown-unknown`")
+}
+
+/// `true` when the shared harness runs against the Motoko wasm, which is
+/// injected via `CUSTOM_WASM_PATH`. The Motoko canister persists state in main
+/// memory via enhanced orthogonal persistence; the Rust canister uses stable
+/// structures. This decides which upgrade mode preserves state.
+fn running_motoko_wasm() -> bool {
+    std::env::var("CUSTOM_WASM_PATH")
+        .map(|p| !p.is_empty())
+        .unwrap_or(false)
+}
+
+/// Upgrade the example canister to the same wasm, exercising the post-upgrade
+/// hook. For the Motoko (EOP) canister the upgrade must keep main memory, which
+/// requires `upgrade_eop_canister`; the Rust canister keeps its state in stable
+/// memory, preserved by a plain `upgrade_canister` (which replaces wasm memory).
+fn upgrade_example_canister(env: &TestEnvironment) {
+    let wasm = load_key_manager_example_canister_wasm();
+    let arg = encode_one("test_key_1").unwrap();
+    let result = if running_motoko_wasm() {
+        env.pic
+            .upgrade_eop_canister(env.example_canister_id, wasm, arg, None)
+    } else {
+        env.pic
+            .upgrade_canister(env.example_canister_id, wasm, arg, None)
+    };
+    result.expect("canister upgrade failed");
 }
 
 fn random_transport_key<R: Rng + CryptoRng>(rng: &mut R) -> TransportSecretKey {

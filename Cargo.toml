@@ -29,7 +29,7 @@ ic-cdk-management-canister = "0.1.1"
 ic-stable-structures = "0.7.0"
 ic-vetkeys = { path = "backend/rs/ic_vetkeys" }
 lazy_static = "1.5.0"
-pocket-ic = "9.0.0"
+pocket-ic = "15.0.0"
 rand = "0.8.5"
 rand_chacha = "0.3.1"
 serde = "1.0.217"
