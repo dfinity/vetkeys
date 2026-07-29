@@ -3,6 +3,7 @@ members = [
     "backend/rs/ic_vetkeys",
     "backend/rs/ic_vetkeys_test_utils",
     "backend/rs/canisters/ic_vetkeys_encrypted_maps_canister",
+    "backend/rs/canisters/ic_vetkeys_encrypted_maps_custom_canister",
     "backend/rs/canisters/ic_vetkeys_manager_canister",
     "backend/rs/canisters/tests",
     "backend/rs/benchmarks",
