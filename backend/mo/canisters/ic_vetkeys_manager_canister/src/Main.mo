@@ -7,7 +7,12 @@ import Result "mo:core/Result";
 import Array "mo:core/Array";
 
 persistent actor class (keyName : Text) {
-    transient let keyManagerState = IcVetkeys.KeyManager.newKeyManagerState<Types.AccessRights>({ curve = #bls12_381_g2; name = keyName }, "key manager");
+    // `keyManagerState` must NOT be `transient`: it holds the access-control
+    // and key data, and enhanced orthogonal persistence keeps non-`transient`
+    // fields across upgrades. `keyManager` is a `transient` wrapper rebuilt from
+    // the persisted state on upgrade. (This mirrors the EncryptedMapsCanister
+    // mixin.)
+    let keyManagerState = IcVetkeys.KeyManager.newKeyManagerState<Types.AccessRights>({ curve = #bls12_381_g2; name = keyName }, "key manager");
     transient let keyManager = IcVetkeys.KeyManager.KeyManager(keyManagerState, Types.accessRightsOperations());
     /// In this canister, we use the `ByteBuf` type to represent blobs. The reason is that we want to be consistent with the Rust canister implementation.
     /// Unfortunately, the `Blob` type cannot be serialized/deserialized in the current Rust implementation efficiently without nesting it in another type.

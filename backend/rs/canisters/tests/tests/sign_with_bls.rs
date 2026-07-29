@@ -81,7 +81,7 @@ impl TestEnvironment {
             .with_application_subnet()
             .with_ii_subnet()
             .with_fiduciary_subnet()
-            .with_nonmainnet_features(true)
+            .with_test_threshold_keys_subnet()
             .build();
 
         let canister_id = pic.create_canister();
