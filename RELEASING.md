@@ -56,23 +56,31 @@ Releases are triggered by pushing a `npm/X.Y.Z` tag to `main`. The
 
 7. **Deploy the API docs** — go to **Actions → Deploy docs to GitHub Pages → Run workflow** and enter the tag `npm/X.Y.Z`. This updates the [online docs](https://dfinity.github.io/vetkeys/) to reflect the new release.
 
-### First-time setup (one-off, before the very first release)
+### Publishing setup (already configured — no per-release admin steps)
 
-Publishing uses GitHub OIDC — the npm CLI exchanges the GitHub Actions OIDC token for a short-lived publish token at runtime. No stored npm secret is needed. However, because `@icp-sdk/vetkeys` does not yet exist on npm, an **`@icp-sdk` npm org admin** must authorise this repo before the first publish:
+Publishing uses GitHub OIDC trusted publishing (`id-token: write` + `NPM_CONFIG_PROVENANCE=true`) — the npm CLI exchanges the GitHub Actions OIDC token for a short-lived publish token at runtime. **No stored npm secret is needed.** This is a one-time org setup and it is done: `@icp-sdk/vetkeys` is published and a **trusted publisher** is registered on npmjs.com, so the steps above are fully automated.
 
-1. Log into [npmjs.com](https://www.npmjs.com) as an `@icp-sdk` org admin.
-2. Go to **`@icp-sdk` org settings → Publishing Access** (or the equivalent OIDC / Trusted Publishers section).
-3. Check whether publishing new packages from `dfinity/*` GitHub repos is already permitted org-wide.
-   - If yes: no action needed — the dry-run in step 5 above will confirm everything works.
-   - If no: add `dfinity/vetkeys` as a trusted publisher (repository: `dfinity/vetkeys`, workflow: `.github/workflows/release-npm.yml`, environment: `release`).
-4. Confirm by running the dry-run workflow (step 5) — a successful dry-run means auth is wired correctly and the real publish will work.
+If the trusted publisher ever needs to be re-checked (an `@icp-sdk` npm org admin, under the package's *Settings → Trusted Publisher*), it must match this workflow **exactly** — all fields are case-sensitive:
 
-> This setup is identical to what was done for `@icp-sdk/core` (`dfinity/icp-js-core`) and `@icp-sdk/bindgen` (`dfinity/icp-js-bindgen`). Once `@icp-sdk/vetkeys` exists on npm after the first release, all future releases are fully automated with no further admin steps.
+| Field | Value |
+| --- | --- |
+| Repository | `dfinity/vetkeys` |
+| Workflow filename | `release-npm.yml` |
+| Environment | `release` |
+
+### Requirements the workflow must keep (do not regress)
+
+OIDC trusted publishing is implemented by the **npm CLI** and requires **npm ≥ 11.5.1** (Node ≥ 22.14). `release-npm.yml` therefore:
+
+- runs on **Node 24** (which bundles a new-enough npm), and
+- publishes with **`npm publish`**, not `pnpm publish` — pnpm does not perform the OIDC exchange, so it falls back to the placeholder auth token and the publish fails with a masked `404`.
+
+Downgrading Node below 24, or switching back to `pnpm publish`, will break publishing.
 
 ### Notes
 
-- The `npm/` prefix scopes JS/TS release tags from Rust and Motoko release tags in this repo.
-- Publishing uses GitHub OIDC (`id-token: write` + `NPM_CONFIG_PROVENANCE=true`): the npm CLI exchanges the GitHub Actions OIDC token for a short-lived publish token at runtime. No stored npm secret is needed. The `release` GitHub environment must exist on this repo (already configured).
+- The `npm/` prefix scopes JS/TS release tags apart from the Rust (`rust/`) and Motoko release tags in this repo.
+- The `release` GitHub environment must exist (already configured), and its deployment **tag** policy must allow `npm/*`. A plain `*` tag rule does **not** match a tag containing a slash (e.g. `npm/0.5.0`), so the prefixed pattern is required.
 
 ---
 
