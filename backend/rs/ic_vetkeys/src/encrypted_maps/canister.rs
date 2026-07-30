@@ -88,37 +88,20 @@
 ///
 /// ```ignore
 /// // Generates: #[init]/#[post_upgrade], the stable EncryptedMaps state, the
-/// // control-plane endpoints, and the `with_encrypted_maps`/`_mut` accessors.
-/// // Does NOT generate any value read/write endpoints.
+/// // control-plane endpoints, and the `with_encrypted_maps`/`_mut` accessors —
+/// // but no value read/write endpoints. Write your own against the accessor:
+/// //   with_encrypted_maps_mut(|em| em.insert_encrypted_value(caller, id, key, value))
 /// ic_vetkeys::export_encrypted_maps_canister!(
 ///     "my_app_domain_separator",
 ///     [memory(0), memory(1), memory(2), memory(3)],
 ///     custom_value_endpoints,
 /// );
-///
-/// thread_local! {
-///     // Adopter-owned side-state, in the same MemoryManager under another id.
-///     static METADATA: RefCell<MetadataMap> =
-///         RefCell::new(ic_stable_structures::StableBTreeMap::init(memory(4)));
-/// }
-///
-/// #[ic_cdk::update]
-/// fn insert_encrypted_value_with_metadata(
-///     map_owner: Principal, map_name: ByteBuf, map_key: ByteBuf,
-///     value: EncryptedMapValue, /* ...app fields... */
-/// ) -> Result<Option<EncryptedMapValue>, String> {
-///     // Reuse the library's crypto + access control via the accessor:
-///     let previous = with_encrypted_maps_mut(|em| em.insert_encrypted_value(
-///         ic_cdk::api::msg_caller(),
-///         (map_owner, blob(map_name)?),
-///         blob(map_key)?,
-///         value,
-///     ))?;
-///     // ...maintain the linked METADATA row in the same call...
-///     Ok(previous)
-/// }
 /// ic_cdk::export_candid!();
 /// ```
+///
+/// For a complete, compile-tested example see the `ic-vetkeys-encrypted-maps-custom-canister`
+/// reference canister in this repository, and `password_manager_with_metadata` in
+/// [dfinity/examples](https://github.com/dfinity/examples) for the full linked-metadata pattern.
 ///
 /// ## Which endpoints are omitted, and why
 ///
