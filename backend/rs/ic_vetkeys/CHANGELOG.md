@@ -1,5 +1,18 @@
 # Change Log
 
+## [Unreleased]
+
+### Added
+
+- `export_encrypted_maps_canister!` gained a `custom_value_endpoints` form. It
+  generates the control-plane endpoints, the stable state, the
+  `#[init]`/`#[post_upgrade]` hooks, and `with_encrypted_maps`/`_mut` accessors,
+  but omits every endpoint that reads or writes encrypted map values — for
+  canisters that keep state linked to each value (e.g. a metadata row per entry)
+  and must own the value endpoints to keep that state consistent. Reuse the
+  library's vetKD/crypto/access-control logic from your own endpoints via the
+  accessors. The full form is unchanged and its generated Candid is identical.
+
 ## [0.8.1] - 2026-07-28
 
 ### Fixed
