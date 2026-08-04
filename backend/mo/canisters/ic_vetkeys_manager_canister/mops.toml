@@ -1,5 +1,5 @@
 [toolchain]
-moc = "1.6.0"
+moc = "1.13.0"
 
 [moc]
 args = ["-W=M0236,M0237,M0223"]

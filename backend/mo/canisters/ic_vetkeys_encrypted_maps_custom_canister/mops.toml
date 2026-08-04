@@ -5,16 +5,16 @@ moc = "1.13.0"
 args = ["-W=M0236,M0237,M0223"]
 
 [package]
-name = "ic-vetkeys-encrypted-maps-canister"
+name = "ic-vetkeys-encrypted-maps-custom-canister"
 version = "0.1.0"
-repository = "https://github.com/dfinity/vetkeys/backend/mo/canisters/ic_vetkeys_encrypted_maps_canister"
+repository = "https://github.com/dfinity/vetkeys/backend/mo/canisters/ic_vetkeys_encrypted_maps_custom_canister"
 keywords = [
   "vetkeys,vetkd,encryption,privacy,signature,BLS,key ",
   "derivation,IBE"
 ]
 license = "Apache-2.0"
 
-[canisters.ic_vetkeys_encrypted_maps_canister]
+[canisters.ic_vetkeys_encrypted_maps_custom_canister]
 main = "src/Main.mo"
 
 [dependencies]

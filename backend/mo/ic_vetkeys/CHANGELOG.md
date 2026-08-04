@@ -4,7 +4,8 @@
 
 ### Breaking changes
 
-- Now requires `moc` 1.9.0 (raised from 1.6.0), for actor mixin support.
+- Now requires `moc` 1.13.0 (raised from 1.6.0), for actor mixin support
+  including mixin composition (nested `include`, fixed in `moc` 1.11.1).
 
 ### Added
 
@@ -15,6 +16,14 @@
   delegation. Because the mixin is the single source of the endpoint set, the
   exposed Candid matches what the `@icp-sdk/vetkeys` frontend expects by
   construction.
+- `EncryptedMapsControlPlaneCanister` mixin
+  (`mo:ic-vetkeys/encrypted_maps/ControlPlaneCanister`) for the "wrap-and-extend"
+  pattern: it provides the state, the `encryptedMaps` instance, and the
+  control-plane endpoints (vetKD keys, access control, map-name enumeration) but
+  **not** the value read/write endpoints. `include` it into a `persistent actor`
+  when the canister keeps state linked to each value (e.g. a metadata row per
+  entry) and must own the value endpoints to keep the two stores consistent. The
+  full `EncryptedMapsCanister` mixin is this mixin plus the value endpoints.
 
 ## [0.5.0] - 2026-04-22
 

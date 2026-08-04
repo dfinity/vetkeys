@@ -1,9 +1,9 @@
+import ControlPlaneCanister "ControlPlaneCanister";
 import EncryptedMaps "EncryptedMaps";
 import Types "../Types";
 import Principal "mo:core/Principal";
 import Text "mo:core/Text";
 import Blob "mo:core/Blob";
-import Result "mo:core/Result";
 import Array "mo:core/Array";
 
 /// Mixin that turns an actor into a complete EncryptedMaps canister.
@@ -13,6 +13,12 @@ import Array "mo:core/Array";
 /// of ~200 lines of hand-written delegation. Because the mixin is the single
 /// source of the endpoint set, the exposed Candid interface is exactly the one
 /// the `@icp-sdk/vetkeys` frontend expects, by construction.
+///
+/// This is the control-plane mixin
+/// [`EncryptedMapsControlPlaneCanister`](ControlPlaneCanister) plus the value
+/// read/write endpoints. If your canister keeps state linked to each value and
+/// must own the value endpoints, include the control-plane mixin instead and
+/// provide your own value endpoints.
 ///
 /// The mixin owns its stable state, so include it into a `persistent actor` for
 /// the encrypted maps to survive canister upgrades.
@@ -29,40 +35,16 @@ import Array "mo:core/Array";
 /// `domainSeparator` isolates the derived keys of this application from other
 /// vetKeys deployments and must stay stable for the life of the canister.
 mixin (keyName : Text, domainSeparator : Text) {
-    let encryptedMapsState = EncryptedMaps.newEncryptedMapsState<Types.AccessRights>({ curve = #bls12_381_g2; name = keyName }, domainSeparator);
-    transient let encryptedMaps = EncryptedMaps.EncryptedMaps(encryptedMapsState, Types.accessRightsOperations());
-
-    /// In this canister, we use the `ByteBuf` type to represent blobs. The reason is that we want to be consistent with the Rust canister implementation.
-    /// Unfortunately, the `Blob` type cannot be serialized/deserialized in the current Rust implementation efficiently without nesting it in another type.
-    public type ByteBuf = { inner : Blob };
+    // The control plane provides the stable state, the `encryptedMaps` instance,
+    // the `ByteBuf`/`Result` types, and the vetKD/access-control/enumeration
+    // endpoints. This mixin adds the value read/write endpoints on top.
+    include ControlPlaneCanister(keyName, domainSeparator);
 
     public type EncryptedMapData = {
         map_owner : Principal;
         map_name : ByteBuf;
         keyvals : [(ByteBuf, ByteBuf)];
         access_control : [(Principal, Types.AccessRights)];
-    };
-
-    /// The result type compatible with Rust's `Result`.
-    public type Result<Ok, Err> = {
-        #Ok : Ok;
-        #Err : Err;
-    };
-
-    public query (msg) func get_accessible_shared_map_names() : async [(Principal, ByteBuf)] {
-        Array.map<(Principal, Blob), (Principal, ByteBuf)>(
-            encryptedMaps.getAccessibleSharedMapNames(msg.caller),
-            func((principal, blob) : (Principal, Blob)) {
-                (principal, { inner = blob });
-            },
-        );
-    };
-
-    public query (msg) func get_shared_user_access_for_map(
-        map_owner : Principal,
-        map_name : ByteBuf,
-    ) : async Result<[(Principal, Types.AccessRights)], Text> {
-        convertResult(encryptedMaps.getSharedUserAccessForMap(msg.caller, (map_owner, map_name.inner)));
     };
 
     public query (msg) func get_encrypted_values_for_map(
@@ -154,15 +136,6 @@ mixin (keyName : Text, domainSeparator : Text) {
         };
     };
 
-    public query (msg) func get_owned_non_empty_map_names() : async [ByteBuf] {
-        Array.map<Blob, ByteBuf>(
-            encryptedMaps.getOwnedNonEmptyMapNames(msg.caller),
-            func(blob : Blob) : ByteBuf {
-                { inner = blob };
-            },
-        );
-    };
-
     public shared (msg) func insert_encrypted_value(
         map_owner : Principal,
         map_name : ByteBuf,
@@ -187,56 +160,6 @@ mixin (keyName : Text, domainSeparator : Text) {
             case (#err(e)) { #Err(e) };
             case (#ok(null)) { #Ok(null) };
             case (#ok(?blob)) { #Ok(?{ inner = blob }) };
-        };
-    };
-
-    public shared func get_vetkey_verification_key() : async ByteBuf {
-        let inner = await encryptedMaps.getVetkeyVerificationKey();
-        { inner };
-    };
-
-    public shared (msg) func get_encrypted_vetkey(
-        map_owner : Principal,
-        map_name : ByteBuf,
-        transport_key : ByteBuf,
-    ) : async Result<ByteBuf, Text> {
-        let result = await encryptedMaps.getEncryptedVetkey(msg.caller, (map_owner, map_name.inner), transport_key.inner);
-        switch (result) {
-            case (#err(e)) { #Err(e) };
-            case (#ok(vetkey)) { #Ok({ inner = vetkey }) };
-        };
-    };
-
-    public query (msg) func get_user_rights(
-        map_owner : Principal,
-        map_name : ByteBuf,
-        user : Principal,
-    ) : async Result<?Types.AccessRights, Text> {
-        convertResult(encryptedMaps.getUserRights(msg.caller, (map_owner, map_name.inner), user));
-    };
-
-    public shared (msg) func set_user_rights(
-        map_owner : Principal,
-        map_name : ByteBuf,
-        user : Principal,
-        access_rights : Types.AccessRights,
-    ) : async Result<?Types.AccessRights, Text> {
-        convertResult(encryptedMaps.setUserRights(msg.caller, (map_owner, map_name.inner), user, access_rights));
-    };
-
-    public shared (msg) func remove_user(
-        map_owner : Principal,
-        map_name : ByteBuf,
-        user : Principal,
-    ) : async Result<?Types.AccessRights, Text> {
-        convertResult(encryptedMaps.removeUser(msg.caller, (map_owner, map_name.inner), user));
-    };
-
-    /// Convert to the result type compatible with Rust's `Result`
-    private func convertResult<Ok, Err>(result : Result.Result<Ok, Err>) : Result<Ok, Err> {
-        switch (result) {
-            case (#err(e)) { #Err(e) };
-            case (#ok(o)) { #Ok(o) };
         };
     };
 };
