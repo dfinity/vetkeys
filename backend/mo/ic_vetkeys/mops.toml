@@ -22,7 +22,7 @@ moc = "1.13.0"
 args = [ "-W=M0236,M0237,M0223" ]
 
 [dependencies]
-core = "2.4.0"
+core = "2.6.1"
 
 [dev-dependencies]
 test = "2.1.1"

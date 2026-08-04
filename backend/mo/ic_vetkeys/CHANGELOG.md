@@ -6,6 +6,7 @@
 
 - Now requires `moc` 1.13.0 (raised from 1.6.0), for actor mixin support
   including mixin composition (nested `include`, fixed in `moc` 1.11.1).
+- Now requires `mo:core` 2.6.1 (raised from 2.4.0).
 
 ### Added
 
