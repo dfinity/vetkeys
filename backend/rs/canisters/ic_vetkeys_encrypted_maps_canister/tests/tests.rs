@@ -6,7 +6,7 @@ use ic_vetkeys::encrypted_maps::{VetKey, VetKeyVerificationKey};
 use ic_vetkeys::key_manager::key_id_to_vetkd_input;
 use ic_vetkeys::types::{AccessControl, AccessRights, ByteBuf, TransportKey};
 use ic_vetkeys::{DerivedPublicKey, EncryptedVetKey, TransportSecretKey};
-use pocket_ic::{PocketIc, PocketIcBuilder};
+use pocket_ic::{CanisterSettings, EnvironmentVariable, PocketIc, PocketIcBuilder};
 use rand::{CryptoRng, Rng, SeedableRng};
 use rand_chacha::ChaCha20Rng;
 use std::collections::BTreeMap;
@@ -1019,6 +1019,22 @@ impl TestEnvironment {
 
         let example_canister_id = pic.create_canister();
         pic.add_cycles(example_canister_id, 2_000_000_000_000);
+
+        // The Rust canister takes the key name as an install argument; the Motoko
+        // canister reads it from the `VETKD_KEY_NAME` environment variable and
+        // traps if unset. Set both so the same harness works for either wasm.
+        pic.update_canister_settings(
+            example_canister_id,
+            None,
+            CanisterSettings {
+                environment_variables: Some(vec![EnvironmentVariable {
+                    name: "VETKD_KEY_NAME".to_string(),
+                    value: "test_key_1".to_string(),
+                }]),
+                ..Default::default()
+            },
+        )
+        .expect("failed to set VETKD_KEY_NAME");
 
         let example_wasm_bytes = load_encrypted_maps_example_canister_wasm();
         pic.install_canister(

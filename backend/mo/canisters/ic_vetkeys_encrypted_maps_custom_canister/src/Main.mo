@@ -13,10 +13,11 @@ import EncryptedMapsControlPlaneCanister "mo:ic-vetkeys/encrypted_maps/ControlPl
 import Principal "mo:core/Principal";
 import Text "mo:core/Text";
 
-persistent actor class (keyName : Text) {
+persistent actor {
   // Brings the state, control-plane endpoints, and the `encryptedMaps`,
-  // `ByteBuf`, and `Result` names into scope.
-  include EncryptedMapsControlPlaneCanister(keyName, "encrypted_maps_custom_dapp");
+  // `ByteBuf`, and `Result` names into scope. The vetKD key name comes from the
+  // `VETKD_KEY_NAME` canister environment variable, so no actor class is needed.
+  include EncryptedMapsControlPlaneCanister<system>("encrypted_maps_custom_dapp");
 
   // A canister-owned value write, wrapping the library's own via `encryptedMaps`.
   // This is where linked side-state (metadata, counters, …) would be maintained

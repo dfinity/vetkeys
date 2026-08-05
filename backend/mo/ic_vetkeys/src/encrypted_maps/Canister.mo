@@ -8,11 +8,11 @@ import Array "mo:core/Array";
 
 /// Mixin that turns an actor into a complete EncryptedMaps canister.
 ///
-/// `include` this into a `persistent actor class` to get the init state plus
-/// every shared/query endpoint, so an adopter's `Main.mo` is a few lines instead
-/// of ~200 lines of hand-written delegation. Because the mixin is the single
-/// source of the endpoint set, the exposed Candid interface is exactly the one
-/// the `@icp-sdk/vetkeys` frontend expects, by construction.
+/// `include` this into a `persistent actor` to get the init state plus every
+/// shared/query endpoint, so an adopter's `Main.mo` is a few lines instead of
+/// ~200 lines of hand-written delegation. Because the mixin is the single source
+/// of the endpoint set, the exposed Candid interface is exactly the one the
+/// `@icp-sdk/vetkeys` frontend expects, by construction.
 ///
 /// This is the control-plane mixin
 /// [`EncryptedMapsControlPlaneCanister`](ControlPlaneCanister) plus the value
@@ -21,24 +21,29 @@ import Array "mo:core/Array";
 /// provide your own value endpoints.
 ///
 /// The mixin owns its stable state, so include it into a `persistent actor` for
-/// the encrypted maps to survive canister upgrades.
+/// the encrypted maps to survive canister upgrades. It requires the `<system>`
+/// capability, so annotate the `include` with `<system>`. The vetKD key name is
+/// read at initialization from the **`VETKD_KEY_NAME`** canister environment
+/// variable (chosen at deploy time via canister settings); the mixin traps if it
+/// is not set.
 ///
 /// Example (`Main.mo`):
 /// ```motoko
 /// import EncryptedMapsCanister "mo:ic-vetkeys/encrypted_maps/Canister";
 ///
-/// persistent actor class (keyName : Text) {
-///     include EncryptedMapsCanister(keyName, "my_app_domain_separator");
+/// persistent actor {
+///     include EncryptedMapsCanister<system>("my_app_domain_separator");
 /// };
 /// ```
 ///
 /// `domainSeparator` isolates the derived keys of this application from other
 /// vetKeys deployments and must stay stable for the life of the canister.
-mixin (keyName : Text, domainSeparator : Text) {
+mixin <system>(domainSeparator : Text) {
     // The control plane provides the stable state, the `encryptedMaps` instance,
-    // the `ByteBuf`/`Result` types, and the vetKD/access-control/enumeration
-    // endpoints. This mixin adds the value read/write endpoints on top.
-    include ControlPlaneCanister(keyName, domainSeparator);
+    // the `ByteBuf`/`Result` types, the vetKD key (from the environment), and the
+    // vetKD/access-control/enumeration endpoints. This mixin adds the value
+    // read/write endpoints on top.
+    include ControlPlaneCanister<system>(domainSeparator);
 
     public type EncryptedMapData = {
         map_owner : Principal;

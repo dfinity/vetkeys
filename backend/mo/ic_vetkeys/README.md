@@ -15,10 +15,12 @@ The `EncryptedMapsCanister` mixin (`mo:ic-vetkeys/encrypted_maps/Canister`) turn
 ```motoko
 import EncryptedMapsCanister "mo:ic-vetkeys/encrypted_maps/Canister";
 
-persistent actor class (keyName : Text) {
-    include EncryptedMapsCanister(keyName, "my_app_domain_separator");
+persistent actor {
+    include EncryptedMapsCanister<system>("my_app_domain_separator");
 };
 ```
+
+The vetKD key name is read from the `VETKD_KEY_NAME` canister environment variable (set at deploy time via canister settings; the mixin traps if it is unset), so no actor class or install argument is needed.
 
 If your canister keeps state linked to each value (e.g. a metadata row per entry) and must own the value read/write endpoints, `include` the `EncryptedMapsControlPlaneCanister` mixin (`mo:ic-vetkeys/encrypted_maps/ControlPlaneCanister`) instead: it provides the state, the `encryptedMaps` instance, and the control-plane endpoints, but omits the value endpoints so you can supply your own.
 

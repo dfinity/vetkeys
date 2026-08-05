@@ -11,12 +11,15 @@
 ### Added
 
 - `EncryptedMapsCanister` mixin (`mo:ic-vetkeys/encrypted_maps/Canister`) that
-  provides a complete EncryptedMaps canister interface. `include` it into a
-  `persistent actor` to get the state plus every shared/query endpoint, so an
+  provides a complete EncryptedMaps canister interface. `include<system>` it into
+  a `persistent actor` to get the state plus every shared/query endpoint, so an
   adopter's `Main.mo` is a few lines instead of ~200 lines of hand-written
   delegation. Because the mixin is the single source of the endpoint set, the
   exposed Candid matches what the `@icp-sdk/vetkeys` frontend expects by
-  construction.
+  construction. The vetKD key name is read from the `VETKD_KEY_NAME` canister
+  environment variable (set at deploy time via canister settings; the mixin traps
+  if it is unset), so the canister needs no actor class or install argument — a
+  plain `persistent actor` works, which is compatible with enhanced migration.
 - `EncryptedMapsControlPlaneCanister` mixin
   (`mo:ic-vetkeys/encrypted_maps/ControlPlaneCanister`) for the "wrap-and-extend"
   pattern: it provides the state, the `encryptedMaps` instance, and the
