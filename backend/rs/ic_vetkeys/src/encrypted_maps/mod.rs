@@ -96,7 +96,7 @@ impl<T: AccessControl> EncryptedMaps<T> {
     ///     };
     ///     ENCRYPTED_MAPS.with_borrow_mut(|encrypted_maps| {
     ///         encrypted_maps.replace(EncryptedMaps::init(
-    ///         "my encrypted maps dapp",
+    ///         "my encrypted maps app",
     ///         key_id,
     ///         id_to_memory(0),
     ///         id_to_memory(1),
