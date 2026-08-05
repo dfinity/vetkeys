@@ -9,7 +9,7 @@ interface, this canister includes only the control-plane mixin (state, vetKD /
 access-control / map-name endpoints, and the in-scope `encryptedMaps` object)
 and provides its own value read/write endpoints.
 
-This is the pattern for dapps that keep state linked to each encrypted value
+This is the pattern for apps that keep state linked to each encrypted value
 (e.g. a metadata row per entry) and therefore must own the value endpoints to
 keep the two stores consistent — see `password_manager_with_metadata` in
 [dfinity/examples](https://github.com/dfinity/examples). The endpoints here are

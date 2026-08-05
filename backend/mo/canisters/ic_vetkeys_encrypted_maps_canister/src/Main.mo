@@ -9,5 +9,5 @@ import EncryptedMapsCanister "mo:ic-vetkeys/encrypted_maps/Canister";
 // variable (set at deploy time via canister settings), so no actor class /
 // install argument is needed.
 persistent actor {
-    include EncryptedMapsCanister<system>("password_manager_example_dapp");
+    include EncryptedMapsCanister<system>("password_manager_example_app");
 };

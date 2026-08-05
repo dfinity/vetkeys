@@ -2,7 +2,7 @@
 // "wrap-and-extend" form). It includes the control-plane mixin — the state, the
 // vetKD/access-control/enumeration endpoints, and the in-scope `encryptedMaps`
 // object — but NOT the value read/write endpoints; the canister exposes its own.
-// This is the pattern a dapp uses when it keeps state linked to each value (e.g.
+// This is the pattern an app uses when it keeps state linked to each value (e.g.
 // a metadata row per entry) and must own the value endpoints to keep that state
 // consistent.
 //
@@ -17,7 +17,7 @@ persistent actor {
   // Brings the state, control-plane endpoints, and the `encryptedMaps`,
   // `ByteBuf`, and `Result` names into scope. The vetKD key name comes from the
   // `VETKD_KEY_NAME` canister environment variable, so no actor class is needed.
-  include EncryptedMapsControlPlaneCanister<system>("encrypted_maps_custom_dapp");
+  include EncryptedMapsControlPlaneCanister<system>("encrypted_maps_custom_app");
 
   // A canister-owned value write, wrapping the library's own via `encryptedMaps`.
   // This is where linked side-state (metadata, counters, …) would be maintained
