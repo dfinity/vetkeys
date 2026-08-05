@@ -5,5 +5,5 @@ import EncryptedMapsCanister "mo:ic-vetkeys/encrypted_maps/Canister";
 // library mixin, which guarantees the exposed Candid matches what the
 // `@icp-sdk/vetkeys` frontend expects.
 persistent actor class (keyName : Text) {
-    include EncryptedMapsCanister(keyName, "password_manager_example_dapp");
+    include EncryptedMapsCanister(keyName, "password_manager_example_app");
 };

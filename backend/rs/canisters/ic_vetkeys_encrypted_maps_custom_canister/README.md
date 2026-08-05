@@ -10,7 +10,7 @@ control-plane endpoints (vetKD keys, access control, map-name enumeration) plus
 the state, lifecycle hooks, and the `with_encrypted_maps`/`with_encrypted_maps_mut`
 accessors, and provides its own value read/write endpoints.
 
-This is the pattern for dapps that keep state linked to each encrypted value
+This is the pattern for apps that keep state linked to each encrypted value
 (e.g. a metadata row per entry) and therefore must own the value endpoints to
 keep the two stores consistent — see `password_manager_with_metadata` in
 [dfinity/examples](https://github.com/dfinity/examples). The endpoints here are

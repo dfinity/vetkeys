@@ -29,7 +29,7 @@ fn memory(id: u8) -> Memory {
 
 // Control plane + state + lifecycle + accessors; no value endpoints.
 ic_vetkeys::export_encrypted_maps_canister!(
-    "encrypted_maps_custom_dapp",
+    "encrypted_maps_custom_app",
     [memory(0), memory(1), memory(2), memory(3)],
     custom_value_endpoints,
 );
