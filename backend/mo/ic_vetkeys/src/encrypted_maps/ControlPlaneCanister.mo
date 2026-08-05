@@ -5,12 +5,11 @@ import Text "mo:core/Text";
 import Blob "mo:core/Blob";
 import Result "mo:core/Result";
 import Array "mo:core/Array";
-import Runtime "mo:core/Runtime";
 
 /// Mixin providing the EncryptedMaps **control plane** — the vetKD key,
-/// access-control, and map-name-enumeration endpoints — plus the stable state
-/// and the `encryptedMaps` instance, but **none** of the endpoints that read or
-/// write encrypted map *values*.
+/// access-control, and map-name-enumeration endpoints, plus the in-scope
+/// `encryptedMaps` instance — but **none** of the endpoints that read or write
+/// encrypted map *values*.
 ///
 /// Use this for the "wrap-and-extend" pattern: a canister that stores something
 /// *alongside* each value (e.g. a backend-authoritative metadata record per
@@ -24,22 +23,34 @@ import Runtime "mo:core/Runtime";
 /// [`EncryptedMapsCanister`](Canister) (`mo:ic-vetkeys/encrypted_maps/Canister`)
 /// instead, which is this mixin plus the value endpoints.
 ///
-/// The mixin owns its stable state, so include it into a `persistent actor` for
-/// the encrypted maps to survive canister upgrades. It requires the `<system>`
-/// capability (to read the canister environment), so the `include` must be
-/// annotated `<system>`.
+/// The mixin holds no stable state of its own: the caller declares the
+/// `EncryptedMapsState` in the actor body (so the state stays a plain, visible
+/// stable variable the canister owns and can migrate) and passes it in. The
+/// mixin only builds the `transient` `encryptedMaps` wrapper over it and adds the
+/// endpoints. Declare the state in a `persistent actor` so it survives upgrades.
 ///
-/// The vetKD key name is read at initialization from the **`VETKD_KEY_NAME`**
-/// canister environment variable (e.g. `test_key_1` or `key_1`, chosen at deploy
-/// time via canister settings — no rebuild needed). The mixin **traps** if it is
-/// not set, so a canister can never come up with an unintended key.
+/// Where the vetKD key name comes from is the caller's choice — the reference
+/// canisters read it from a `VETKD_KEY_NAME` canister environment variable so the
+/// key is picked at deploy time (via canister settings) without an actor class.
 ///
 /// Example (`Main.mo`) — wrap the value writes with your own side-state:
 /// ```motoko
 /// import EncryptedMapsControlPlaneCanister "mo:ic-vetkeys/encrypted_maps/ControlPlaneCanister";
+/// import EncryptedMaps "mo:ic-vetkeys/encrypted_maps/EncryptedMaps";
+/// import Types "mo:ic-vetkeys/Types";
+/// import Runtime "mo:core/Runtime";
 ///
 /// persistent actor {
-///     include EncryptedMapsControlPlaneCanister<system>("my_app_domain_separator");
+///     // The canister owns its stable state.
+///     let keyName = switch (Runtime.envVar<system>("VETKD_KEY_NAME")) {
+///         case (?name) { name };
+///         case null { Runtime.trap("VETKD_KEY_NAME is not set") };
+///     };
+///     let encryptedMapsState = EncryptedMaps.newEncryptedMapsState<Types.AccessRights>(
+///         { curve = #bls12_381_g2; name = keyName },
+///         "my_app_domain_separator",
+///     );
+///     include EncryptedMapsControlPlaneCanister(encryptedMapsState);
 ///
 ///     // `encryptedMaps`, `ByteBuf`, and `Result` are in scope from the mixin.
 ///     public shared (msg) func insert_encrypted_value_with_metadata(
@@ -58,19 +69,10 @@ import Runtime "mo:core/Runtime";
 /// are omitted too, for API-surface hygiene (you rarely want a metadata-less
 /// value view beside your wrapped one).
 ///
-/// `domainSeparator` isolates the derived keys of this application from other
-/// vetKeys deployments and must stay stable for the life of the canister.
-mixin <system>(domainSeparator : Text) {
-    // The vetKD key name comes from the canister environment (set at deploy
-    // time via canister settings), not from an install argument — so the
-    // canister needs no actor class. Trap rather than default to any key.
-    let keyName : Text = switch (Runtime.envVar<system>("VETKD_KEY_NAME")) {
-        case (?name) { name };
-        case null {
-            Runtime.trap("the VETKD_KEY_NAME canister environment variable is not set");
-        };
-    };
-    let encryptedMapsState = EncryptedMaps.newEncryptedMapsState<Types.AccessRights>({ curve = #bls12_381_g2; name = keyName }, domainSeparator);
+/// The `domainSeparator` passed to `newEncryptedMapsState` isolates the derived
+/// keys of this application from other vetKeys deployments and must stay stable
+/// for the life of the canister.
+mixin (encryptedMapsState : EncryptedMaps.EncryptedMapsState<Types.AccessRights>) {
     transient let encryptedMaps = EncryptedMaps.EncryptedMaps(encryptedMapsState, Types.accessRightsOperations());
 
     /// In this canister, we use the `ByteBuf` type to represent blobs. The reason is that we want to be consistent with the Rust canister implementation.

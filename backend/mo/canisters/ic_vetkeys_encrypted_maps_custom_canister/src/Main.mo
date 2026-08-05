@@ -10,14 +10,28 @@
 // `encryptedMaps` to exercise the surface; a full linked-metadata example lives
 // in `password_manager_with_metadata` in dfinity/examples.
 import EncryptedMapsControlPlaneCanister "mo:ic-vetkeys/encrypted_maps/ControlPlaneCanister";
+import EncryptedMaps "mo:ic-vetkeys/encrypted_maps/EncryptedMaps";
+import Types "mo:ic-vetkeys/Types";
 import Principal "mo:core/Principal";
 import Text "mo:core/Text";
+import Runtime "mo:core/Runtime";
 
 persistent actor {
-  // Brings the state, control-plane endpoints, and the `encryptedMaps`,
-  // `ByteBuf`, and `Result` names into scope. The vetKD key name comes from the
+  // The canister owns its stable state. The vetKD key name comes from the
   // `VETKD_KEY_NAME` canister environment variable, so no actor class is needed.
-  include EncryptedMapsControlPlaneCanister<system>("encrypted_maps_custom_app");
+  let keyName = switch (Runtime.envVar<system>("VETKD_KEY_NAME")) {
+    case (?name) { name };
+    case null {
+      Runtime.trap("the VETKD_KEY_NAME canister environment variable is not set");
+    };
+  };
+  let encryptedMapsState = EncryptedMaps.newEncryptedMapsState<Types.AccessRights>(
+    { curve = #bls12_381_g2; name = keyName },
+    "encrypted_maps_custom_app",
+  );
+  // Brings the control-plane endpoints and the `encryptedMaps`, `ByteBuf`, and
+  // `Result` names into scope, over the state the canister owns above.
+  include EncryptedMapsControlPlaneCanister(encryptedMapsState);
 
   // A canister-owned value write, wrapping the library's own via `encryptedMaps`.
   // This is where linked side-state (metadata, counters, …) would be maintained

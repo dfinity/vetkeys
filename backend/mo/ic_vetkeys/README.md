@@ -14,15 +14,26 @@ The `EncryptedMapsCanister` mixin (`mo:ic-vetkeys/encrypted_maps/Canister`) turn
 
 ```motoko
 import EncryptedMapsCanister "mo:ic-vetkeys/encrypted_maps/Canister";
+import EncryptedMaps "mo:ic-vetkeys/encrypted_maps/EncryptedMaps";
+import Types "mo:ic-vetkeys/Types";
+import Runtime "mo:core/Runtime";
 
 persistent actor {
-    include EncryptedMapsCanister<system>("my_app_domain_separator");
+    let keyName = switch (Runtime.envVar<system>("VETKD_KEY_NAME")) {
+        case (?name) { name };
+        case null { Runtime.trap("VETKD_KEY_NAME is not set") };
+    };
+    let encryptedMapsState = EncryptedMaps.newEncryptedMapsState<Types.AccessRights>(
+        { curve = #bls12_381_g2; name = keyName },
+        "my_app_domain_separator",
+    );
+    include EncryptedMapsCanister(encryptedMapsState);
 };
 ```
 
-The vetKD key name is read from the `VETKD_KEY_NAME` canister environment variable (set at deploy time via canister settings; the mixin traps if it is unset), so no actor class or install argument is needed.
+The canister declares its own `EncryptedMapsState` stable variable and passes it to the mixin, so the state stays a plain, visible stable variable the canister owns and can migrate. Where the vetKD key name comes from is your choice; here it is read from the `VETKD_KEY_NAME` canister environment variable (set at deploy time via canister settings, trapping if unset), so no actor class or install argument is needed.
 
-If your canister keeps state linked to each value (e.g. a metadata row per entry) and must own the value read/write endpoints, `include` the `EncryptedMapsControlPlaneCanister` mixin (`mo:ic-vetkeys/encrypted_maps/ControlPlaneCanister`) instead: it provides the state, the `encryptedMaps` instance, and the control-plane endpoints, but omits the value endpoints so you can supply your own.
+If your canister keeps state linked to each value (e.g. a metadata row per entry) and must own the value read/write endpoints, `include` the `EncryptedMapsControlPlaneCanister` mixin (`mo:ic-vetkeys/encrypted_maps/ControlPlaneCanister`) instead: given the same `encryptedMapsState`, it provides the `encryptedMaps` instance and the control-plane endpoints, but omits the value endpoints so you can supply your own.
 
 ## Cross-language library
 If Rust better suits your needs, take a look at the [Rust equivalent of this library](https://docs.rs/ic_vetkeys).

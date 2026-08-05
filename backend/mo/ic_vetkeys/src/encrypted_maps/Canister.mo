@@ -8,11 +8,11 @@ import Array "mo:core/Array";
 
 /// Mixin that turns an actor into a complete EncryptedMaps canister.
 ///
-/// `include` this into a `persistent actor` to get the init state plus every
-/// shared/query endpoint, so an adopter's `Main.mo` is a few lines instead of
-/// ~200 lines of hand-written delegation. Because the mixin is the single source
-/// of the endpoint set, the exposed Candid interface is exactly the one the
-/// `@icp-sdk/vetkeys` frontend expects, by construction.
+/// `include` this into a `persistent actor` to get every shared/query endpoint,
+/// so an adopter's `Main.mo` is a few lines instead of ~200 lines of hand-written
+/// delegation. Because the mixin is the single source of the endpoint set, the
+/// exposed Candid interface is exactly the one the `@icp-sdk/vetkeys` frontend
+/// expects, by construction.
 ///
 /// This is the control-plane mixin
 /// [`EncryptedMapsControlPlaneCanister`](ControlPlaneCanister) plus the value
@@ -20,30 +20,43 @@ import Array "mo:core/Array";
 /// must own the value endpoints, include the control-plane mixin instead and
 /// provide your own value endpoints.
 ///
-/// The mixin owns its stable state, so include it into a `persistent actor` for
-/// the encrypted maps to survive canister upgrades. It requires the `<system>`
-/// capability, so annotate the `include` with `<system>`. The vetKD key name is
-/// read at initialization from the **`VETKD_KEY_NAME`** canister environment
-/// variable (chosen at deploy time via canister settings); the mixin traps if it
-/// is not set.
+/// The mixin holds no stable state of its own: the caller declares the
+/// `EncryptedMapsState` in the actor body (so it stays a plain, visible stable
+/// variable the canister owns and can migrate) and passes it in. Declare it in a
+/// `persistent actor` so it survives upgrades. Where the vetKD key name comes
+/// from is the caller's choice — the reference canisters read it from a
+/// `VETKD_KEY_NAME` canister environment variable so it is picked at deploy time
+/// without an actor class.
 ///
 /// Example (`Main.mo`):
 /// ```motoko
 /// import EncryptedMapsCanister "mo:ic-vetkeys/encrypted_maps/Canister";
+/// import EncryptedMaps "mo:ic-vetkeys/encrypted_maps/EncryptedMaps";
+/// import Types "mo:ic-vetkeys/Types";
+/// import Runtime "mo:core/Runtime";
 ///
 /// persistent actor {
-///     include EncryptedMapsCanister<system>("my_app_domain_separator");
+///     let keyName = switch (Runtime.envVar<system>("VETKD_KEY_NAME")) {
+///         case (?name) { name };
+///         case null { Runtime.trap("VETKD_KEY_NAME is not set") };
+///     };
+///     let encryptedMapsState = EncryptedMaps.newEncryptedMapsState<Types.AccessRights>(
+///         { curve = #bls12_381_g2; name = keyName },
+///         "my_app_domain_separator",
+///     );
+///     include EncryptedMapsCanister(encryptedMapsState);
 /// };
 /// ```
 ///
-/// `domainSeparator` isolates the derived keys of this application from other
-/// vetKeys deployments and must stay stable for the life of the canister.
-mixin <system>(domainSeparator : Text) {
-    // The control plane provides the stable state, the `encryptedMaps` instance,
-    // the `ByteBuf`/`Result` types, the vetKD key (from the environment), and the
+/// The `domainSeparator` passed to `newEncryptedMapsState` isolates the derived
+/// keys of this application from other vetKeys deployments and must stay stable
+/// for the life of the canister.
+mixin (encryptedMapsState : EncryptedMaps.EncryptedMapsState<Types.AccessRights>) {
+    // The control plane builds the `encryptedMaps` instance over the caller's
+    // state and provides the `ByteBuf`/`Result` types and the
     // vetKD/access-control/enumeration endpoints. This mixin adds the value
     // read/write endpoints on top.
-    include ControlPlaneCanister<system>(domainSeparator);
+    include ControlPlaneCanister(encryptedMapsState);
 
     public type EncryptedMapData = {
         map_owner : Principal;
