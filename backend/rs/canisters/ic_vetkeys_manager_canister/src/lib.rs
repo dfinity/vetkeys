@@ -48,7 +48,7 @@ fn setup(key_name: String) {
     };
     KEY_MANAGER.with_borrow_mut(|km| {
         km.replace(KeyManager::init(
-            "key_manager_dapp",
+            "key_manager_app",
             key_id,
             id_to_memory(0),
             id_to_memory(1),

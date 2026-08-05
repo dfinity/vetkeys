@@ -4,4 +4,4 @@ The canister implemented in this folder directly exposes the methods of the key 
 This is useful for:
 
 1. running canister tests
-2. implementing dapps that only require a key manager
+2. implementing apps that only require a key manager

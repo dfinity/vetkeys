@@ -19,7 +19,7 @@ fn memory(id: u8) -> Memory {
 }
 
 ic_vetkeys::export_encrypted_maps_canister!(
-    "encrypted_maps_dapp",
+    "encrypted_maps_app",
     [memory(0), memory(1), memory(2), memory(3)],
 );
 
