@@ -5,9 +5,10 @@ A reference canister for the `EncryptedMapsControlPlaneCanister` mixin
 
 Unlike [`ic-vetkeys-encrypted-maps-canister`](../ic_vetkeys_encrypted_maps_canister),
 which includes the full `EncryptedMapsCanister` mixin and exposes the complete
-interface, this canister includes only the control-plane mixin (state, vetKD /
-access-control / map-name endpoints, and the in-scope `encryptedMaps` object)
-and provides its own value read/write endpoints.
+interface, this canister includes only the control-plane mixin (the vetKD /
+access-control / map-name endpoints and the in-scope `encryptedMaps` object, over
+the `EncryptedMapsState` the canister itself declares and passes in) and provides
+its own value read/write endpoints.
 
 This is the pattern for apps that keep state linked to each encrypted value
 (e.g. a metadata row per entry) and therefore must own the value endpoints to

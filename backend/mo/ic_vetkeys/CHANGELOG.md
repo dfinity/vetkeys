@@ -37,6 +37,18 @@
   consistent. The full `EncryptedMapsCanister` mixin is this mixin plus the value
   endpoints.
 
+### Changed
+
+- `KeyManagerState.vetKdKeyId` is now an immutable field (declared without
+  `var`). It is set once by `newKeyManagerState` and only ever read, so nothing
+  in the library needs it mutable; making it immutable turns "the vetKD key never
+  changes for the life of the canister's data" into a compile-time guarantee
+  rather than a convention (matching the effective behavior of the Rust macro,
+  whose key id lives behind an encapsulated, read-only handle). This only affects
+  code that reassigned the field directly — which would have orphaned every
+  already-encrypted value; constructing state via `newKeyManagerState` /
+  `newEncryptedMapsState` and reading the field are unchanged.
+
 ## [0.5.0] - 2026-04-22
 
 ### Breaking changes

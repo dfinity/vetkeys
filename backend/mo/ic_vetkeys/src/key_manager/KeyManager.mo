@@ -87,7 +87,12 @@ module {
     public type KeyManagerState<T> = {
         var accessControl : Map.Map<Principal, [(KeyId, T)]>;
         var sharedKeys : Map.Map<KeyId, [Principal]>;
-        var vetKdKeyId : ManagementCanister.VetKdKeyid;
+        // Immutable config, set once at construction. `vetKdKeyId` in particular
+        // must never change: it feeds vetKD key derivation, so reassigning it
+        // would make every already-encrypted value undecryptable. Declaring it
+        // (and `domainSeparator`) without `var` makes that a compile-time
+        // guarantee rather than a convention.
+        vetKdKeyId : ManagementCanister.VetKdKeyid;
         domainSeparator : Text;
     };
 
@@ -95,7 +100,7 @@ module {
         {
             var accessControl = Map.empty<Principal, [(KeyId, T)]>();
             var sharedKeys = Map.empty<KeyId, [Principal]>();
-            var vetKdKeyId = vetKdKeyId;
+            vetKdKeyId;
             domainSeparator;
         };
     };
