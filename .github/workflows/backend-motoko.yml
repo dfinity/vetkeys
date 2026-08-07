@@ -46,6 +46,9 @@ jobs:
           cd ../ic_vetkeys_encrypted_maps_canister
           mops install
           make test
+          cd ../ic_vetkeys_encrypted_maps_custom_canister
+          mops install
+          make compile-wasm
   backend-motoko-tests-darwin:
     runs-on: macos-15
     steps:
@@ -74,3 +77,6 @@ jobs:
           cd ../ic_vetkeys_encrypted_maps_canister
           mops install
           make test
+          cd ../ic_vetkeys_encrypted_maps_custom_canister
+          mops install
+          make compile-wasm

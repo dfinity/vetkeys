@@ -4,17 +4,50 @@
 
 ### Breaking changes
 
-- Now requires `moc` 1.9.0 (raised from 1.6.0), for actor mixin support.
+- Now requires `moc` 1.13.0 (raised from 1.6.0), for actor mixin support
+  including mixin composition (nested `include`, fixed in `moc` 1.11.1).
+- Now requires `mo:core` 2.6.1 (raised from 2.4.0).
 
 ### Added
 
 - `EncryptedMapsCanister` mixin (`mo:ic-vetkeys/encrypted_maps/Canister`) that
-  provides a complete EncryptedMaps canister interface. `include` it into a
-  `persistent actor` to get the state plus every shared/query endpoint, so an
-  adopter's `Main.mo` is a few lines instead of ~200 lines of hand-written
-  delegation. Because the mixin is the single source of the endpoint set, the
-  exposed Candid matches what the `@icp-sdk/vetkeys` frontend expects by
-  construction.
+  provides a complete EncryptedMaps canister interface. The canister declares its
+  own `EncryptedMapsState` stable variable and passes it to the mixin via
+  `include EncryptedMapsCanister(encryptedMapsState)`, which adds every
+  shared/query endpoint — so an adopter's `Main.mo` is a few lines instead of
+  ~200 lines of hand-written delegation. Because the mixin is the single source of
+  the endpoint set, the exposed Candid matches what the `@icp-sdk/vetkeys`
+  frontend expects by construction. Keeping the state in the actor body (rather
+  than inside the mixin) keeps it a plain, visible stable variable the canister
+  owns and can migrate. Where the vetKD key name comes from is the adopter's
+  choice; the reference canisters read it from a `VETKD_KEY_NAME` canister
+  environment variable (set at deploy time via canister settings, defaulting to
+  `test_key_1` so init stays total), so no actor class or install argument is
+  needed — a plain `persistent actor` works, which is compatible with enhanced
+  migration. The key name is immutable for the life of the canister's data
+  (changing it orphans every already-encrypted value), so it is resolved once at
+  install into the stable state.
+- `EncryptedMapsControlPlaneCanister` mixin
+  (`mo:ic-vetkeys/encrypted_maps/ControlPlaneCanister`) for the "wrap-and-extend"
+  pattern: given the caller's `EncryptedMapsState`, it provides the `encryptedMaps`
+  instance and the control-plane endpoints (vetKD keys, access control, map-name
+  enumeration) but **not** the value read/write endpoints. `include` it into a
+  `persistent actor` when the canister keeps state linked to each value (e.g. a
+  metadata row per entry) and must own the value endpoints to keep the two stores
+  consistent. The full `EncryptedMapsCanister` mixin is this mixin plus the value
+  endpoints.
+
+### Changed
+
+- `KeyManagerState.vetKdKeyId` is now an immutable field (declared without
+  `var`). It is set once by `newKeyManagerState` and only ever read, so nothing
+  in the library needs it mutable; making it immutable turns "the vetKD key never
+  changes for the life of the canister's data" into a compile-time guarantee
+  rather than a convention (matching the effective behavior of the Rust macro,
+  whose key id lives behind an encapsulated, read-only handle). This only affects
+  code that reassigned the field directly — which would have orphaned every
+  already-encrypted value; constructing state via `newKeyManagerState` /
+  `newEncryptedMapsState` and reading the field are unchanged.
 
 ## [0.5.0] - 2026-04-22
 

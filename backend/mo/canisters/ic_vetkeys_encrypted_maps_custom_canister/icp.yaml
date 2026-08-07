@@ -1,5 +1,5 @@
 canisters:
-  - name: ic_vetkeys_encrypted_maps_canister
+  - name: ic_vetkeys_encrypted_maps_custom_canister
     recipe:
       # v5.0.0 delegates the build to mops, which reads the canister entry point
       # and toolchain (moc, required for mixins) from mops.toml.
