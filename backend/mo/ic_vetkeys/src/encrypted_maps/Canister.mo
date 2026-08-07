@@ -36,10 +36,9 @@ import Array "mo:core/Array";
 /// import Runtime "mo:core/Runtime";
 ///
 /// persistent actor {
-///     let keyName = switch (Runtime.envVar<system>("VETKD_KEY_NAME")) {
-///         case (?name) { name };
-///         case null { Runtime.trap("VETKD_KEY_NAME is not set") };
-///     };
+///     // `transient` because the key name is only an install-time input: it is
+///     // baked into `encryptedMapsState` below and never read again.
+///     transient let keyName = Runtime.envVar<system>("VETKD_KEY_NAME") ?? "test_key_1";
 ///     let encryptedMapsState = EncryptedMaps.newEncryptedMapsState<Types.AccessRights>(
 ///         { curve = #bls12_381_g2; name = keyName },
 ///         "my_app_domain_separator",
@@ -51,6 +50,16 @@ import Array "mo:core/Array";
 /// The `domainSeparator` passed to `newEncryptedMapsState` isolates the derived
 /// keys of this application from other vetKeys deployments and must stay stable
 /// for the life of the canister.
+///
+/// The vetKD **key name is likewise immutable for the life of the canister's
+/// data**: it feeds vetKD key derivation, so changing it after any value has
+/// been encrypted makes every stored value undecryptable. Resolve it once at
+/// install (as above) and never change it under a running canister; the only way
+/// to switch keys is a `reinstall`, which drops all state. Keeping init total
+/// (the `?? "test_key_1"` default, rather than trapping on a missing env var)
+/// also means a misconfigured deploy can never leave the canister
+/// half-initialized. If a wrong key on mainnet would be worse than a failed
+/// deploy, assert the expected key instead of defaulting.
 mixin (encryptedMapsState : EncryptedMaps.EncryptedMapsState<Types.AccessRights>) {
     // The control plane builds the `encryptedMaps` instance over the caller's
     // state and provides the `ByteBuf`/`Result` types and the

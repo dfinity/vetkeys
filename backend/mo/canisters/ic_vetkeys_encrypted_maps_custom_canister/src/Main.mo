@@ -17,14 +17,14 @@ import Text "mo:core/Text";
 import Runtime "mo:core/Runtime";
 
 persistent actor {
-  // The canister owns its stable state. The vetKD key name comes from the
-  // `VETKD_KEY_NAME` canister environment variable, so no actor class is needed.
-  let keyName = switch (Runtime.envVar<system>("VETKD_KEY_NAME")) {
-    case (?name) { name };
-    case null {
-      Runtime.trap("the VETKD_KEY_NAME canister environment variable is not set");
-    };
-  };
+  // The canister owns its stable state. The vetKD key name is only an
+  // install-time input: it is captured into the (stable) `EncryptedMapsState`
+  // below and never read again, so it is `transient`. Do NOT change it once the
+  // canister holds data — changing the key name would make every already-
+  // encrypted value undecryptable; only a `reinstall` (which drops all state)
+  // can switch keys. Init stays total (no trap). Defaults to `test_key_1`; set
+  // the `VETKD_KEY_NAME` canister environment variable to pick another key.
+  transient let keyName = Runtime.envVar<system>("VETKD_KEY_NAME") ??"test_key_1";
   let encryptedMapsState = EncryptedMaps.newEncryptedMapsState<Types.AccessRights>(
     { curve = #bls12_381_g2; name = keyName },
     "encrypted_maps_custom_app",

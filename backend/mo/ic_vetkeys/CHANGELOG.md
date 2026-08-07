@@ -21,9 +21,12 @@
   than inside the mixin) keeps it a plain, visible stable variable the canister
   owns and can migrate. Where the vetKD key name comes from is the adopter's
   choice; the reference canisters read it from a `VETKD_KEY_NAME` canister
-  environment variable (set at deploy time via canister settings, trapping if
-  unset), so no actor class or install argument is needed — a plain `persistent
-  actor` works, which is compatible with enhanced migration.
+  environment variable (set at deploy time via canister settings, defaulting to
+  `test_key_1` so init stays total), so no actor class or install argument is
+  needed — a plain `persistent actor` works, which is compatible with enhanced
+  migration. The key name is immutable for the life of the canister's data
+  (changing it orphans every already-encrypted value), so it is resolved once at
+  install into the stable state.
 - `EncryptedMapsControlPlaneCanister` mixin
   (`mo:ic-vetkeys/encrypted_maps/ControlPlaneCanister`) for the "wrap-and-extend"
   pattern: given the caller's `EncryptedMapsState`, it provides the `encryptedMaps`
