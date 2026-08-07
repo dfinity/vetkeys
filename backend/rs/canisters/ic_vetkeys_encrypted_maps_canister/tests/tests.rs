@@ -1021,8 +1021,11 @@ impl TestEnvironment {
         pic.add_cycles(example_canister_id, 2_000_000_000_000);
 
         // The Rust canister takes the key name as an install argument; the Motoko
-        // canister reads it from the `VETKD_KEY_NAME` environment variable and
-        // traps if unset. Set both so the same harness works for either wasm.
+        // canister reads it from the `VETKD_KEY_NAME` environment variable
+        // (defaulting to `test_key_1` if unset). Set both so the same harness
+        // works for either wasm and the Motoko env-var path is exercised. (The
+        // install-arg text below is ignored by the Motoko wasm — Candid drops
+        // trailing args a `()`-expecting canister does not declare.)
         pic.update_canister_settings(
             example_canister_id,
             None,
