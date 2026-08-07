@@ -74,7 +74,9 @@ import Array "mo:core/Array";
 /// The vetKD **key name is likewise immutable for the life of the canister's
 /// data**: it feeds vetKD key derivation, so changing it after any value has
 /// been encrypted makes every stored value undecryptable. Resolve it once at
-/// install and never change it under a running canister; only a `reinstall`
+/// install and never change it under a running canister. Because the key lives
+/// in the stable state, changing `VETKD_KEY_NAME` on a later upgrade is silently
+/// ignored (the setting and the key in use can diverge); only a `reinstall`
 /// (which drops all state) can switch keys. Keeping init total (the
 /// `?? "test_key_1"` default rather than trapping on a missing env var) also
 /// means a misconfigured deploy can never leave the canister half-initialized.

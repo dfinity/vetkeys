@@ -54,12 +54,14 @@ import Array "mo:core/Array";
 /// The vetKD **key name is likewise immutable for the life of the canister's
 /// data**: it feeds vetKD key derivation, so changing it after any value has
 /// been encrypted makes every stored value undecryptable. Resolve it once at
-/// install (as above) and never change it under a running canister; the only way
-/// to switch keys is a `reinstall`, which drops all state. Keeping init total
-/// (the `?? "test_key_1"` default, rather than trapping on a missing env var)
-/// also means a misconfigured deploy can never leave the canister
-/// half-initialized. If a wrong key on mainnet would be worse than a failed
-/// deploy, assert the expected key instead of defaulting.
+/// install (as above) and never change it under a running canister. Because the
+/// key lives in the stable state, changing `VETKD_KEY_NAME` on a later upgrade
+/// is silently ignored — the canister keeps the key from install, so the setting
+/// and the key in use can diverge; only a `reinstall`, which drops all state,
+/// changes the key. Keeping init total (the `?? "test_key_1"` default, rather
+/// than trapping on a missing env var) also means a misconfigured deploy can
+/// never leave the canister half-initialized. If a wrong key on mainnet would be
+/// worse than a failed deploy, assert the expected key instead of defaulting.
 mixin (encryptedMapsState : EncryptedMaps.EncryptedMapsState<Types.AccessRights>) {
     // The control plane builds the `encryptedMaps` instance over the caller's
     // state and provides the `ByteBuf`/`Result` types and the
