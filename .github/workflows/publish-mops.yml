@@ -1,0 +1,58 @@
+name: Publish ic-vetkeys to Mops
+
+env:
+  PACKAGE_NAME: ic-vetkeys
+  PACKAGE_DIR: backend/mo/ic_vetkeys
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'The version of the package to publish (must match mops.toml)'
+        required: true
+
+run-name: Publish ic-vetkeys ${{ github.event.inputs.version }} to Mops
+
+permissions:
+  contents: read
+
+jobs:
+  publish-mops:
+    runs-on: ubuntu-latest
+    # The `mops-publish` environment holds the MOPS_IDENTITY_PEM secret and is
+    # scoped to `main`, so this workflow must be run from `main`.
+    environment:
+      name: mops-publish
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '22'
+
+      # `mops publish` currently shells out to dfx. This action has no tagged
+      # release, so it is pinned to its main HEAD commit.
+      - uses: dfinity/setup-dfx@e50c04f104ee4285ec010f10609483cf41e4d365 # main HEAD (no tagged release)
+
+      - uses: ZenVoich/setup-mops@3e94e453352269b34137b5ce49f09a8df81bed7d # v1.4.1
+        with:
+          identity-pem: ${{ secrets.MOPS_IDENTITY_PEM }}
+
+      - name: Check package version
+        working-directory: ${{ env.PACKAGE_DIR }}
+        run: |
+          set -euo pipefail
+          input_version="${{ github.event.inputs.version }}"
+          current_version=$(grep -E '^version *= *"' mops.toml | head -1 | sed -E 's/.*"([^"]+)".*/\1/')
+          if [ "$current_version" != "$input_version" ]; then
+            echo "Version mismatch: input '$input_version', mops.toml '$current_version'"
+            exit 1
+          fi
+
+      - name: Install dependencies
+        working-directory: ${{ env.PACKAGE_DIR }}
+        run: mops install
+
+      - name: Publish to Mops
+        working-directory: ${{ env.PACKAGE_DIR }}
+        run: mops publish

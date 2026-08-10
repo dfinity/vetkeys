@@ -137,4 +137,67 @@ Publishing is triggered manually via the
 
 ## `ic-vetkeys` (Motoko / mops)
 
-> **TODO:** Document and verify the release process for the Motoko mops package.
+**Source:** [`backend/mo/ic_vetkeys/`](backend/mo/ic_vetkeys/)  
+**Registry:** [mops.one/ic-vetkeys](https://mops.one/ic-vetkeys)  
+**Changelog:** [`backend/mo/ic_vetkeys/CHANGELOG.md`](backend/mo/ic_vetkeys/CHANGELOG.md)
+
+Publishing is triggered manually via the
+[`publish-mops`](.github/workflows/publish-mops.yml) workflow, **run from
+`main`**. After publishing, a `motoko/X.Y.Z` tag must be pushed to `main` to
+mark the release commit.
+
+### Steps
+
+1. **Create a release branch** off `main`:
+   ```bash
+   git checkout main && git pull
+   git checkout -b release/motoko-X.Y.Z
+   ```
+
+2. **Bump the version** in [`backend/mo/ic_vetkeys/mops.toml`](backend/mo/ic_vetkeys/mops.toml):
+   ```toml
+   version = "X.Y.Z"
+   ```
+
+3. **Update [`backend/mo/ic_vetkeys/CHANGELOG.md`](backend/mo/ic_vetkeys/CHANGELOG.md)** — replace the `Unreleased` marker with today's date:
+   ```markdown
+   ## [X.Y.Z] - YYYY-MM-DD
+   ```
+
+4. **Commit, push, and open a PR** targeting `main`:
+   ```bash
+   git commit -am "chore: release ic-vetkeys (Motoko) at vX.Y.Z"
+   git push -u origin release/motoko-X.Y.Z
+   ```
+
+5. **After the PR is merged, publish from `main`**:
+   - Go to **Actions → Publish ic-vetkeys to Mops → Run workflow**, keep the branch set to `main`, enter `X.Y.Z` as the version, and run.
+   - The workflow checks that `mops.toml` matches the entered version, installs dependencies, runs the package tests, and publishes to the mops registry.
+
+6. **Tag the merge commit on `main`** and push the tag:
+   ```bash
+   git checkout main && git pull
+   git tag motoko/X.Y.Z
+   git push origin motoko/X.Y.Z
+   ```
+
+### Publishing setup (already configured — no per-release admin steps)
+
+- The **`mops-publish`** GitHub Environment holds the `MOPS_IDENTITY_PEM` secret
+  (the mops publishing identity). The publish job declares `environment:
+  mops-publish` so the secret resolves.
+- The environment is scoped to the **`main`** branch, so the workflow must be run
+  from `main`. This is why publishing is a manual `workflow_dispatch` rather than
+  tag-triggered: a tag ref (e.g. `refs/tags/motoko/0.6.0`) is not the `main`
+  branch, so it would not satisfy the environment's branch scope. If you ever
+  switch to tag-triggered publishing, add a deployment-**tag** rule allowing
+  `motoko/*` to the environment (the same way `npm/*` is handled above — a plain
+  branch scope does not match a slashed tag).
+
+### Notes
+
+- The `motoko/` prefix scopes Motoko release tags apart from the Rust (`rust/`)
+  and JS/TS (`npm/`) tags.
+- Every action in the workflow is pinned to an exact commit SHA (with a version
+  comment), per repo convention. `dfinity/setup-dfx` has no tagged release, so it
+  is pinned to its `main` HEAD commit; bump that pin deliberately when updating.
