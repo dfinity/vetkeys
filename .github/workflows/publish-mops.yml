@@ -35,6 +35,9 @@ jobs:
 
       - uses: ZenVoich/setup-mops@3e94e453352269b34137b5ce49f09a8df81bed7d # v1.4.1
         with:
+          # Pin the mops major version to match the other Motoko CI workflows,
+          # so publish uses the same toolchain that builds and tests the package.
+          mops-version: 2
           identity-pem: ${{ secrets.MOPS_IDENTITY_PEM }}
 
       # The only pre-publish guard that is both useful and implementable for
