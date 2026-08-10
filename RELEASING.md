@@ -141,10 +141,9 @@ Publishing is triggered manually via the
 **Registry:** [mops.one/ic-vetkeys](https://mops.one/ic-vetkeys)  
 **Changelog:** [`backend/mo/ic_vetkeys/CHANGELOG.md`](backend/mo/ic_vetkeys/CHANGELOG.md)
 
-Publishing is triggered manually via the
-[`publish-mops`](.github/workflows/publish-mops.yml) workflow, **run from
-`main`**. After publishing, a `motoko/X.Y.Z` tag must be pushed to `main` to
-mark the release commit.
+Releases are triggered by pushing a `motoko/X.Y.Z` tag to `main`. The
+[`publish-mops`](.github/workflows/publish-mops.yml) workflow then publishes to
+the mops registry automatically.
 
 ### Steps
 
@@ -170,29 +169,34 @@ mark the release commit.
    git push -u origin release/motoko-X.Y.Z
    ```
 
-5. **After the PR is merged, publish from `main`**:
-   - Go to **Actions → Publish ic-vetkeys to Mops → Run workflow**, keep the branch set to `main`, enter `X.Y.Z` as the version, and run.
-   - The workflow checks that `mops.toml` matches the entered version, installs dependencies, runs the package tests, and publishes to the mops registry.
-
-6. **Tag the merge commit on `main`** and push the tag:
+5. **Tag the merge commit on `main`** and push the tag:
    ```bash
    git checkout main && git pull
    git tag motoko/X.Y.Z
    git push origin motoko/X.Y.Z
    ```
 
+   The workflow triggers on the tag push. It first checks that `mops.toml`
+   matches the tag version, then installs dependencies, runs the package tests,
+   and publishes to the mops registry.
+
+> **No publish dry-run:** unlike npm, `mops publish` has no `--dry-run`, so there
+> is no dry-run step before tagging. Build, compile, and `mops test` are already
+> validated by CI on `main` before you tag; the workflow's inline
+> version-matches-tag check is the only remaining pre-publish guard. The one
+> failure that cannot be caught ahead of time is publishing a version that
+> already exists — the registry rejects it, and it fails cleanly (bump the
+> version and re-tag).
+
 ### Publishing setup (already configured — no per-release admin steps)
 
 - The **`mops-publish`** GitHub Environment holds the `MOPS_IDENTITY_PEM` secret
   (the mops publishing identity). The publish job declares `environment:
   mops-publish` so the secret resolves.
-- The environment is scoped to the **`main`** branch, so the workflow must be run
-  from `main`. This is why publishing is a manual `workflow_dispatch` rather than
-  tag-triggered: a tag ref (e.g. `refs/tags/motoko/0.6.0`) is not the `main`
-  branch, so it would not satisfy the environment's branch scope. If you ever
-  switch to tag-triggered publishing, add a deployment-**tag** rule allowing
-  `motoko/*` to the environment (the same way `npm/*` is handled above — a plain
-  branch scope does not match a slashed tag).
+- Because publishing is **tag-triggered**, the environment's deployment-**tag**
+  policy must allow `motoko/*`. A plain `*` tag rule does **not** match a tag
+  containing a slash (e.g. `motoko/0.6.0`), so the prefixed pattern is required —
+  the same requirement as `npm/*` for the `release` environment above.
 
 ### Notes
 

@@ -1,17 +1,14 @@
 name: Publish ic-vetkeys to Mops
 
 env:
-  PACKAGE_NAME: ic-vetkeys
   PACKAGE_DIR: backend/mo/ic_vetkeys
 
 on:
-  workflow_dispatch:
-    inputs:
-      version:
-        description: 'The version of the package to publish (must match mops.toml)'
-        required: true
+  push:
+    tags:
+      - 'motoko/[0-9]+.[0-9]+.[0-9]+'
 
-run-name: Publish ic-vetkeys ${{ github.event.inputs.version }} to Mops
+run-name: Publish ic-vetkeys ${{ github.ref_name }} to Mops
 
 permissions:
   contents: read
@@ -19,8 +16,9 @@ permissions:
 jobs:
   publish-mops:
     runs-on: ubuntu-latest
-    # The `mops-publish` environment holds the MOPS_IDENTITY_PEM secret and is
-    # scoped to `main`, so this workflow must be run from `main`.
+    # The `mops-publish` environment holds the MOPS_IDENTITY_PEM secret. Because
+    # this workflow is tag-triggered, the environment's deployment-tag policy
+    # must allow `motoko/*` (a plain branch scope does not match a slashed tag).
     environment:
       name: mops-publish
     steps:
@@ -38,14 +36,18 @@ jobs:
         with:
           identity-pem: ${{ secrets.MOPS_IDENTITY_PEM }}
 
-      - name: Check package version
+      # The only pre-publish guard that is both useful and implementable for
+      # mops (which has no `mops publish --dry-run`): confirm mops.toml matches
+      # the tag being released. Build/compile/tests are already validated by CI
+      # on `main` before the tag is pushed.
+      - name: Check package version matches tag
         working-directory: ${{ env.PACKAGE_DIR }}
         run: |
           set -euo pipefail
-          input_version="${{ github.event.inputs.version }}"
-          current_version=$(grep -E '^version *= *"' mops.toml | head -1 | sed -E 's/.*"([^"]+)".*/\1/')
-          if [ "$current_version" != "$input_version" ]; then
-            echo "Version mismatch: input '$input_version', mops.toml '$current_version'"
+          tag_version="${GITHUB_REF_NAME#motoko/}"
+          pkg_version=$(grep -E '^version *= *"' mops.toml | head -1 | sed -E 's/.*"([^"]+)".*/\1/')
+          if [ "$pkg_version" != "$tag_version" ]; then
+            echo "Version mismatch: mops.toml has $pkg_version but tag is motoko/$tag_version"
             exit 1
           fi
 
