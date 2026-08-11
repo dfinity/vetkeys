@@ -66,12 +66,10 @@ jobs:
           MOPS_IDENTITY_PEM: ${{ secrets.MOPS_IDENTITY_PEM }}
         run: mops user import --no-encrypt -- "$MOPS_IDENTITY_PEM"
 
-      # Ensure the moc version pinned in mops.toml's [toolchain] is installed
-      # (run from the package dir so `mops toolchain` finds mops.toml — this is
-      # exactly the step that failed inside the action at the repo root).
-      - name: Ensure the Motoko compiler is installed
-        run: mops toolchain bin moc || mops toolchain use moc 1.13.0
-
+      # No explicit moc install: run from the package dir, `mops install` and
+      # `mops publish` auto-resolve and install the moc version pinned in
+      # mops.toml's [toolchain] — the same way `backend-motoko.yml` gets a
+      # compiler for `mops test` with no toolchain step.
       - name: Install dependencies
         run: mops install
 

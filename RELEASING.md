@@ -206,10 +206,11 @@ the mops registry automatically.
   comment), per repo convention. `dfinity/setup-dfx` has no tagged release, so it
   is pinned to its `main` HEAD commit; bump that pin deliberately when updating.
 - The package lives in a subdirectory, so the workflow installs only the mops CLI
-  via `setup-mops` and runs the identity import, toolchain, and publish steps
-  itself with `defaults.run.working-directory` pointed at the package. Passing
-  `identity-pem` to `setup-mops` instead would make it run `mops toolchain …` from
-  the repo root, where there is no `mops.toml`, and fail.
+  via `setup-mops` and runs the identity import and publish itself with
+  `defaults.run.working-directory` pointed at the package (from there,
+  `mops install` / `mops publish` auto-install the moc version pinned in
+  `[toolchain]`). Passing `identity-pem` to `setup-mops` instead would make it run
+  `mops toolchain …` from the repo root, where there is no `mops.toml`, and fail.
 
 ### Retrying a failed publish
 
