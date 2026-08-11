@@ -205,3 +205,22 @@ the mops registry automatically.
 - Every action in the workflow is pinned to an exact commit SHA (with a version
   comment), per repo convention. `dfinity/setup-dfx` has no tagged release, so it
   is pinned to its `main` HEAD commit; bump that pin deliberately when updating.
+- The package lives in a subdirectory, so the workflow installs only the mops CLI
+  via `setup-mops` and runs the identity import, toolchain, and publish steps
+  itself with `defaults.run.working-directory` pointed at the package. Passing
+  `identity-pem` to `setup-mops` instead would make it run `mops toolchain …` from
+  the repo root, where there is no `mops.toml`, and fail.
+
+### Retrying a failed publish
+
+If the run fails and the version was **not** published, fix the cause (merge any
+workflow fix to `main` first — the tag runs the workflow as it exists on the
+tagged commit), then re-point the tag at the corrected `main` commit:
+
+```bash
+git push origin :motoko/X.Y.Z   # delete the remote tag
+git tag -d motoko/X.Y.Z         # delete it locally
+git checkout main && git pull
+git tag motoko/X.Y.Z
+git push origin motoko/X.Y.Z    # re-triggers the workflow
+```

@@ -1,8 +1,5 @@
 name: Publish ic-vetkeys to Mops
 
-env:
-  PACKAGE_DIR: backend/mo/ic_vetkeys
-
 on:
   push:
     tags:
@@ -22,6 +19,12 @@ jobs:
     environment:
       name: mops-publish
       url: https://mops.one/ic-vetkeys
+    # The package lives in a subdirectory, so anchor every `run` step there. Note
+    # this does NOT apply to the composite `setup-mops` action's own steps — see
+    # the note on why we import the identity ourselves rather than via that action.
+    defaults:
+      run:
+        working-directory: backend/mo/ic_vetkeys
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
@@ -33,19 +36,22 @@ jobs:
       # release, so it is pinned to its main HEAD commit.
       - uses: dfinity/setup-dfx@e50c04f104ee4285ec010f10609483cf41e4d365 # main HEAD (no tagged release)
 
+      # Installs the mops CLI only. We deliberately do NOT pass `identity-pem`
+      # here: that input makes the action run `mops user import` and
+      # `mops toolchain …` from the repo root, but this package's mops.toml is in
+      # a subdirectory, so `mops toolchain` fails with "mops.toml not found". The
+      # action has no working-directory input and job `defaults` do not apply to a
+      # composite action's steps, so we run the identity import and toolchain/
+      # publish steps ourselves below, anchored at the package via `defaults`.
       - uses: ZenVoich/setup-mops@3e94e453352269b34137b5ce49f09a8df81bed7d # v1.4.1
         with:
-          # Pin the mops major version to match the other Motoko CI workflows,
-          # so publish uses the same toolchain that builds and tests the package.
           mops-version: 2
-          identity-pem: ${{ secrets.MOPS_IDENTITY_PEM }}
 
       # The only pre-publish guard that is both useful and implementable for
       # mops (which has no `mops publish --dry-run`): confirm mops.toml matches
       # the tag being released. Build/compile/tests are already validated by CI
       # on `main` before the tag is pushed.
       - name: Check package version matches tag
-        working-directory: ${{ env.PACKAGE_DIR }}
         run: |
           set -euo pipefail
           tag_version="${GITHUB_REF_NAME#motoko/}"
@@ -55,10 +61,19 @@ jobs:
             exit 1
           fi
 
+      - name: Import mops identity
+        env:
+          MOPS_IDENTITY_PEM: ${{ secrets.MOPS_IDENTITY_PEM }}
+        run: mops user import --no-encrypt -- "$MOPS_IDENTITY_PEM"
+
+      # Ensure the moc version pinned in mops.toml's [toolchain] is installed
+      # (run from the package dir so `mops toolchain` finds mops.toml — this is
+      # exactly the step that failed inside the action at the repo root).
+      - name: Ensure the Motoko compiler is installed
+        run: mops toolchain bin moc || mops toolchain use moc 1.13.0
+
       - name: Install dependencies
-        working-directory: ${{ env.PACKAGE_DIR }}
         run: mops install
 
       - name: Publish to Mops
-        working-directory: ${{ env.PACKAGE_DIR }}
         run: mops publish
