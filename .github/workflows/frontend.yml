@@ -64,3 +64,38 @@ jobs:
           pnpm run build
           pnpm run test
           pnpm run lint
+
+  # The published package declares `@icp-sdk/core` as a peerDependency spanning
+  # two majors (`^5.0.0 || ^6.0.0`). The jobs above only ever exercise the
+  # version pinned in devDependencies (the v6 end), so this job pins core to the
+  # floor of the supported range and runs the same suite against it. Without it,
+  # half of what the peer range promises consumers is never tested.
+  frontend_ic_vetkeys_core_floor:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '22'
+      - uses: pnpm/action-setup@a7487c7e89a18df4991f7f222e4898a00d66ddda # v4.1.0
+      - name: Provision Linux
+        run: bash .github/workflows/provision-linux.sh
+      - name: Frontend Tests against peer-range floor
+        env:
+          ICP_CLI_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -eExuo pipefail
+          pnpm install
+          pnpm --filter @icp-sdk/vetkeys add -D @icp-sdk/core@5.0.0
+          cd frontend/ic_vetkeys
+          # Fail loudly if the pin did not take, so a green run always means
+          # the floor was actually exercised.
+          node -p "require('./node_modules/@icp-sdk/core/package.json').version" | tee /dev/stderr | grep -q '^5\.0\.0$'
+          pnpm run build
+          pnpm run test
+          # Lint is type-aware (`recommendedTypeChecked` with a `project`), so
+          # rules like `no-unsafe-*` read core's typings and can legitimately
+          # differ between core versions in ways `tsc` alone does not catch.
+          pnpm run lint

@@ -1,5 +1,26 @@
 # Change Log
 
+## [0.7.0] - 2026-08-26
+
+### Changed
+
+- **BREAKING** `@icp-sdk/core` is now a **peer dependency** (`^5.0.0 || ^6.0.0`)
+  instead of a regular dependency. Install it alongside this package:
+
+    ```bash
+    npm install @icp-sdk/vetkeys @icp-sdk/core
+    ```
+
+    A core version outside that range is now reported at install time instead of
+    silently resolving to a second copy of core.
+
+- **BREAKING** Runtime dependencies (`@icp-sdk/core`, `@noble/curves`,
+  `@noble/hashes`, `idb-keyval`) are no longer bundled into `dist/`; they are
+  imported from your `node_modules`. `dist/lib` shrinks from ~430 kB to ~56 kB.
+
+- `@noble/curves` and `@noble/hashes` moved from `devDependencies` to
+  `dependencies`.
+
 ## [0.6.0] - 2026-08-26
 
 ### Changed
