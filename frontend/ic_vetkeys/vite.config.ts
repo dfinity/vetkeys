@@ -23,6 +23,21 @@ export default defineConfig({
         },
         outDir: "dist/lib",
         emptyOutDir: true,
+        rollupOptions: {
+            // Every runtime dependency stays external. `@icp-sdk/core` in
+            // particular is a shared singleton whose classes cross this
+            // package's public API (callers construct the `HttpAgent` they
+            // pass in), so bundling a private copy would put two `HttpAgent`
+            // / `Principal` identities in one application. It is declared as
+            // a peerDependency for the same reason. Externalising the rest
+            // keeps declared dependencies from being vendored twice, and lets
+            // consumers patch the crypto libraries themselves.
+            external: [
+                /^@icp-sdk\/core(\/|$)/,
+                /^@noble\/(curves|hashes)(\/|$)/,
+                /^idb-keyval(\/|$)/,
+            ],
+        },
     },
     test: {
         environment: "node",

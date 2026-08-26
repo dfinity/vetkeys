@@ -10,9 +10,12 @@ importers:
 
   frontend/ic_vetkeys:
     dependencies:
-      '@icp-sdk/core':
-        specifier: ^6.1.0
-        version: 6.1.0
+      '@noble/curves':
+        specifier: ^1.9.7
+        version: 1.9.7
+      '@noble/hashes':
+        specifier: ^1.8.0
+        version: 1.8.0
       idb-keyval:
         specifier: ^6.3.0
         version: 6.3.0
@@ -20,12 +23,9 @@ importers:
       '@eslint/js':
         specifier: ^9.39.5
         version: 9.39.5
-      '@noble/curves':
-        specifier: ^1.9.7
-        version: 1.9.7
-      '@noble/hashes':
-        specifier: ^1.8.0
-        version: 1.8.0
+      '@icp-sdk/core':
+        specifier: ^6.1.0
+        version: 6.1.0
       '@types/node':
         specifier: ^24.13.3
         version: 24.13.3

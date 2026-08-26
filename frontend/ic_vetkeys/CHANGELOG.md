@@ -1,5 +1,52 @@
 # Change Log
 
+## [0.7.0] - 2026-08-26
+
+### Changed
+
+- **BREAKING** `@icp-sdk/core` is now a **`peerDependency`** (`^5.0.0 || ^6.0.0`)
+  instead of a regular dependency. **You must now install `@icp-sdk/core`
+  yourself** alongside this package:
+
+    ```bash
+    npm install @icp-sdk/vetkeys @icp-sdk/core
+    ```
+
+    Core is a shared-singleton library whose classes cross this package's public
+    API — `DefaultKeyManagerClient` and `DefaultEncryptedMapsClient` take an
+    `HttpAgent` that _you_ construct. As a plain dependency, npm was free to
+    install a second copy of core nested under `@icp-sdk/vetkeys` without any
+    warning, which put two different `HttpAgent` / `Principal` identities in one
+    application. As a peer, that conflict is reported at install time instead.
+    This also matches `@icp-sdk/auth`, `@icp-sdk/signer` and `@icp-sdk/canisters`,
+    which already declare core as a peer.
+
+    The range deliberately spans both majors: this package uses only
+    `Actor.createActor` and the candid `IDL`, which are unchanged across core v5
+    and v6, so it can sit in an application that is still on core v5. CI runs the
+    full canister test suite against both ends of the range.
+
+- **BREAKING** Runtime dependencies are no longer bundled into `dist/`. The
+  build previously inlined `@icp-sdk/core`, `idb-keyval`, `@noble/curves` and
+  `@noble/hashes` into the published output, so every install shipped a private
+  copy of core regardless of what was in `node_modules`. They are now external
+  imports resolved from your `node_modules`. This shrinks `dist/lib` from
+  ~430 kB to ~56 kB, and means the candid `IDL` used to build the actor
+  interface now comes from the same core instance as the agent you pass in.
+
+- `@noble/curves` and `@noble/hashes` moved from `devDependencies` to
+  `dependencies`. They are imported by shipped code, so declaring them as dev
+  dependencies was incorrect — it only worked because the build inlined them.
+  As real dependencies they are installed normally and can be patched by
+  consumers, rather than being vendored into this package's output.
+
+### Notes
+
+- `idb-keyval` stays a regular dependency. It is a genuine implementation
+  detail: no idb-keyval value crosses the public API (the cache constructor
+  takes a database _name_), and IndexedDB is keyed by origin, database and
+  store name, so even two copies address the same physical store.
+
 ## [0.6.0] - 2026-08-26
 
 ### Changed
