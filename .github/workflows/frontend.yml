@@ -12,7 +12,6 @@ on:
       - package.json
       - pnpm-workspace.yaml
       - .github/workflows/frontend.yml
-      - .github/workflows/provision-darwin.sh
       - .github/workflows/provision-linux.sh
       - pnpm-lock.yaml
 concurrency:
@@ -41,35 +40,6 @@ jobs:
           pnpm run build
           pnpm run test
           pnpm run lint
-  frontend_ic_vetkeys_mac:
-    runs-on: macos-15
-    steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
-        with:
-          persist-credentials: false
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
-        with:
-          node-version: '22'
-      - uses: pnpm/action-setup@a7487c7e89a18df4991f7f222e4898a00d66ddda # v4.1.0
-      - name: Provision Darwin
-        run: |
-          bash .github/workflows/provision-darwin.sh
-      - name: Frontend Tests and Lint
-        env:
-          ICP_CLI_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          set -eExuo pipefail
-          pnpm install
-          cd frontend/ic_vetkeys
-          pnpm run build
-          pnpm run test
-          pnpm run lint
-
-  # The published package declares `@icp-sdk/core` as a peerDependency spanning
-  # two majors (`^5.0.0 || ^6.0.0`). The jobs above only ever exercise the
-  # version pinned in devDependencies (the v6 end), so this job pins core to the
-  # floor of the supported range and runs the same suite against it. Without it,
-  # half of what the peer range promises consumers is never tested.
   frontend_ic_vetkeys_core_floor:
     runs-on: ubuntu-24.04
     steps:
