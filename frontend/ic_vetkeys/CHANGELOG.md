@@ -1,5 +1,27 @@
 # Change Log
 
+## [0.6.0] - 2026-08-26
+
+### Changed
+
+- **BREAKING** `@icp-sdk/core` is now required at `^6.1.0` (was `^5.4.0`).
+  No `@icp-sdk/vetkeys` API changed, but the `HttpAgent` passed to
+  `DefaultKeyManagerClient` / `DefaultEncryptedMapsClient` must come from core
+  v6 — mixing a v5 agent with this version is not supported. Upgrade
+  `@icp-sdk/core` to `^6.1.0` in your application alongside this release.
+  See the [`@icp-sdk/core` changelog](https://github.com/dfinity/icp-js-core/blob/main/CHANGELOG.md)
+  for the core-side breaking changes (notably the revamped `Agent.readState`
+  and the narrowed `DerEncodedPublicKey` type); neither is used by this
+  package's public API.
+- Bumped `idb-keyval` to `^6.3.0`.
+
+### Security
+
+- Refreshed the dependency lockfile, clearing all 29 `pnpm audit` advisories
+  (`brace-expansion`, `esbuild`, `fast-uri`, `js-yaml`, `linkify-it`,
+  `markdown-it`, `nanoid`, `postcss`, `vite`). All were in build/test tooling
+  only and never reached the published `dist/`, so no shipped code changed.
+
 ## [0.5.0] - 2026-07-28
 
 > **Note:** Starting with this version, the package is published as `@icp-sdk/vetkeys`.
