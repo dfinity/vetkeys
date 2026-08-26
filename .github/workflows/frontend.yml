@@ -95,3 +95,7 @@ jobs:
           node -p "require('./node_modules/@icp-sdk/core/package.json').version" | tee /dev/stderr | grep -q '^5\.0\.0$'
           pnpm run build
           pnpm run test
+          # Lint is type-aware (`recommendedTypeChecked` with a `project`), so
+          # rules like `no-unsafe-*` read core's typings and can legitimately
+          # differ between core versions in ways `tsc` alone does not catch.
+          pnpm run lint
