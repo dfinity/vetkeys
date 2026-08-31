@@ -7,8 +7,8 @@
 
 import {
     clear as idbClear,
-    createStore,
     get as idbGet,
+    promisifyRequest,
     set as idbSet,
     type UseStore,
 } from "idb-keyval";
@@ -78,6 +78,51 @@ export class InMemoryDerivedKeyMaterialCache implements DerivedKeyMaterialCache 
 }
 
 /**
+ * An idb-keyval {@link UseStore} that opens a fresh connection for each
+ * operation and closes it as soon as the operation settles.
+ *
+ * idb-keyval's own `createStore` keeps one connection open for the lifetime of
+ * the page and registers no `versionchange` handler, so it never yields to
+ * `indexedDB.deleteDatabase`: the delete stays queued forever, and — per the
+ * IndexedDB spec's connection queue — every later `open` on that name queues
+ * behind it and never settles. A cache instance would thus make its database
+ * name undeletable until the page goes away (#440). With a per-operation
+ * connection a concurrent delete blocks at most for the duration of one
+ * in-flight operation.
+ *
+ * Concurrent operations each get their own connection, so one operation
+ * finishing (and closing) can never break another that is still running.
+ */
+function perOperationStore(dbName: string, storeName: string): UseStore {
+    return (txMode, callback) =>
+        openConnection(dbName, storeName).then((db) => {
+            try {
+                const operation = callback(
+                    db.transaction(storeName, txMode).objectStore(storeName),
+                );
+                // `close()` only sets the close-pending flag while a
+                // transaction is live; the connection actually closes once the
+                // transaction finishes, so closing here never aborts the work.
+                const close = () => db.close();
+                void Promise.resolve(operation).then(close, close);
+                return operation;
+            } catch (error) {
+                db.close();
+                throw error;
+            }
+        });
+}
+
+function openConnection(
+    dbName: string,
+    storeName: string,
+): Promise<IDBDatabase> {
+    const request = indexedDB.open(dbName);
+    request.onupgradeneeded = () => request.result.createObjectStore(storeName);
+    return promisifyRequest(request);
+}
+
+/**
  * Opt-in {@link DerivedKeyMaterialCache} that persists key handles in IndexedDB.
  *
  * Key handles survive page reloads, avoiding repeated key derivation, but this
@@ -102,6 +147,15 @@ export class InMemoryDerivedKeyMaterialCache implements DerivedKeyMaterialCache 
  *
  * A dedicated IndexedDB store is used, so {@link clear} only removes entries
  * written by this cache and never touches other application data.
+ *
+ * The cache opens a connection per operation and closes it when the operation
+ * settles, so it never blocks `indexedDB.deleteDatabase` beyond an in-flight
+ * operation. An application may therefore delete a per-identity database
+ * outright on logout — removing not just the entries ({@link clear}) but also
+ * the database name, which itself records that the identity has used the
+ * application on that browser profile. If the database is deleted while a
+ * cache instance is live, the next operation simply recreates it empty; the
+ * cost is one extra key derivation per map.
  */
 export class IndexedDbDerivedKeyMaterialCache implements DerivedKeyMaterialCache {
     readonly #store: UseStore;
@@ -114,7 +168,7 @@ export class IndexedDbDerivedKeyMaterialCache implements DerivedKeyMaterialCache
      *   supports only a single object store per database.
      */
     constructor(dbName = "ic-vetkeys") {
-        this.#store = createStore(dbName, "derived-key-material");
+        this.#store = perOperationStore(dbName, "derived-key-material");
     }
 
     async get(key: string): Promise<CryptoKey | undefined> {
