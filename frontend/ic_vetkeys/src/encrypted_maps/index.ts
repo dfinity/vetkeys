@@ -59,7 +59,9 @@ export type {
  *     (or call {@link EncryptedMaps.clearCache} on logout / identity change);
  *   - with {@link IndexedDbDerivedKeyMaterialCache}, give the store a **per-identity
  *     namespace** (e.g. include the caller's principal in the database name) so entries
- *     are physically separated, and call {@link EncryptedMaps.clearCache} on logout.
+ *     are physically separated, and on logout call {@link EncryptedMaps.clearCache} —
+ *     or {@link IndexedDbDerivedKeyMaterialCache.destroy} on the cache instance, which
+ *     also removes the per-identity database name itself.
  *
  */
 export class EncryptedMaps {
@@ -102,12 +104,12 @@ export class EncryptedMaps {
      *     IndexedDbDerivedKeyMaterialCache,
      * } from "@icp-sdk/vetkeys/encrypted_maps";
      *
-     * const encryptedMaps = new EncryptedMaps(encryptedMapsClientInstance, {
-     *     // Namespace the store per identity so one identity's cached keys are
-     *     // never served to another on the same origin.
-     *     cache: new IndexedDbDerivedKeyMaterialCache(`vetkeys-${myPrincipal}`),
-     * });
-     * // Remember to call encryptedMaps.clearCache() on logout / identity change.
+     * // Namespace the store per identity so one identity's cached keys are
+     * // never served to another on the same origin.
+     * const cache = new IndexedDbDerivedKeyMaterialCache(`vetkeys-${myPrincipal}`);
+     * const encryptedMaps = new EncryptedMaps(encryptedMapsClientInstance, { cache });
+     * // On logout / identity change, call encryptedMaps.clearCache() — or
+     * // cache.destroy() to also remove the per-identity database itself.
      * ```
      */
     constructor(
@@ -718,7 +720,9 @@ export class EncryptedMaps {
      * material from being served to another, and drops the still-usable
      * decryption capability that otherwise lingers. This matters most with
      * {@link IndexedDbDerivedKeyMaterialCache}, where cached key handles persist
-     * across sessions until cleared.
+     * across sessions until cleared — there,
+     * {@link IndexedDbDerivedKeyMaterialCache.destroy} on the cache instance
+     * goes one step further and also deletes the per-identity database itself.
      */
     async clearCache(): Promise<void> {
         await this.#derivedKeyMaterialCache.clear();
