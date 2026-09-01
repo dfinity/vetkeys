@@ -21,11 +21,11 @@
 ### Fixed
 
 - `IndexedDbDerivedKeyMaterialCache` no longer holds its IndexedDB connection
-  open for the lifetime of the page. It now opens a connection per operation
-  and closes it as soon as the operation settles, so the cache never blocks
-  `indexedDB.deleteDatabase` on its database name (beyond an in-flight
-  operation) and a queued delete can no longer stall every later `open` on
-  that name indefinitely. Applications can now delete a per-identity database
+  open for the lifetime of the page. It now opens a connection per operation,
+  closes it as soon as the operation settles, and yields on `versionchange`,
+  so the cache never blocks `indexedDB.deleteDatabase` on its database name
+  (beyond an in-flight transaction) and a queued delete can no longer stall
+  every later `open` on that name indefinitely. Applications can now delete a per-identity database
   outright on logout; if the database is deleted while a cache instance is
   live, the next operation recreates it empty (one extra key derivation per
   map). (#440)
