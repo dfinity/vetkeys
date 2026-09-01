@@ -195,6 +195,26 @@ describe("IndexedDbDerivedKeyMaterialCache database deletion (#440)", () => {
         expect(miss).toBeUndefined();
     });
 
+    test("destroy() removes the database, twice is a no-op, and the cache still works", async () => {
+        const name = "ic-vetkeys-test-destroy";
+        const cache = new IndexedDbDerivedKeyMaterialCache(name);
+        expect(cache.dbName).toBe(name);
+        const key = (await newDerivedKeyMaterial(7)).getCryptoKey();
+        await cache.set("k", key);
+
+        await cache.destroy();
+        const names = (await indexedDB.databases()).map((db) => db.name);
+        expect(names).not.toContain(name);
+
+        // A second destroy is a no-op rather than an error.
+        await cache.destroy();
+
+        // A later operation recreates the database empty.
+        expect(await cache.get("k")).toBeUndefined();
+        await cache.set("k", key);
+        expect(await cache.get("k")).toBeDefined();
+    });
+
     test("a delete racing an in-flight operation completes once it finishes", async () => {
         const name = "ic-vetkeys-test-delete-race";
         const cache = new IndexedDbDerivedKeyMaterialCache(name);
@@ -309,6 +329,80 @@ describe("EncryptedMaps derived key caching", () => {
         await maps.getDerivedKeyMaterialOrFetchIfNeeded(OWNER_A, mapName);
 
         expect(fetchSpy).toHaveBeenCalledTimes(2);
+    });
+
+    test("bulk decryption consults the cache once per non-empty map, not per entry", async () => {
+        // Regression guard for the per-operation IndexedDB cache: with the
+        // derived-key fetch inside the per-entry loop, a map with N entries
+        // would perform N cache reads (N connection open/close cycles on the
+        // IndexedDB cache) for the same per-map key material.
+        class CountingCache extends InMemoryDerivedKeyMaterialCache {
+            gets = 0;
+            override get(key: string): Promise<CryptoKey | undefined> {
+                this.gets++;
+                return super.get(key);
+            }
+        }
+
+        const dkm = await newDerivedKeyMaterial(42);
+        const cache = new CountingCache();
+        const maps = new EncryptedMaps(emptyClient(), { cache });
+        vi.spyOn(maps, "getDerivedKeyMaterial").mockResolvedValue(dkm);
+
+        const text = new TextEncoder();
+        const mapName = text.encode("some map");
+        const entry = async (
+            k: string,
+            v: string,
+        ): Promise<[{ inner: Uint8Array }, { inner: Uint8Array }]> => [
+            { inner: text.encode(k) },
+            {
+                inner: await dkm.encryptMessage(
+                    text.encode(v),
+                    text.encode(k),
+                    "",
+                ),
+            },
+        ];
+        const entries = [
+            await entry("a", "1"),
+            await entry("b", "2"),
+            await entry("c", "3"),
+        ];
+        Object.assign(maps.canisterClient, {
+            get_encrypted_values_for_map: () =>
+                Promise.resolve({ Ok: entries }),
+            get_all_accessible_encrypted_maps: () =>
+                Promise.resolve([
+                    {
+                        map_owner: OWNER_A,
+                        map_name: { inner: mapName },
+                        keyvals: entries,
+                        access_control: [],
+                    },
+                    {
+                        map_owner: OWNER_A,
+                        map_name: { inner: text.encode("empty map") },
+                        keyvals: [],
+                        access_control: [],
+                    },
+                ]),
+        });
+
+        const values = await maps.getValuesForMap(OWNER_A, mapName);
+        expect(values.map(([, v]) => new TextDecoder().decode(v))).toEqual([
+            "1",
+            "2",
+            "3",
+        ]);
+        expect(cache.gets).toBe(1);
+
+        const all = await maps.getAllAccessibleMaps();
+        expect(all).toHaveLength(2);
+        expect(all[0].keyvals).toHaveLength(3);
+        expect(all[1].keyvals).toHaveLength(0);
+        // One more read for the non-empty map; none for the empty one.
+        expect(cache.gets).toBe(2);
     });
 
     test("a cache hit still yields working key material", async () => {

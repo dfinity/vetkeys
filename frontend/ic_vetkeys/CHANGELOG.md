@@ -2,6 +2,22 @@
 
 ## [Unreleased]
 
+### Added
+
+- `IndexedDbDerivedKeyMaterialCache.destroy()` deletes the entire database —
+  unlike `clear()`, which only empties the object store — and
+  `IndexedDbDerivedKeyMaterialCache.dbName` exposes the database name the
+  cache was constructed with. Together they make the recommended
+  logout cleanup of a per-identity database a single call.
+
+### Changed
+
+- The bulk decryption paths (`getValuesForMap`, `getAllAccessibleValues`,
+  `getAllAccessibleMaps`) now fetch the per-map derived key material once per
+  non-empty map instead of once per entry. With the per-operation IndexedDB
+  cache below, a map with N entries previously performed N cache reads for
+  the same key material; it now performs one (and none for an empty map).
+
 ### Fixed
 
 - `IndexedDbDerivedKeyMaterialCache` no longer holds its IndexedDB connection

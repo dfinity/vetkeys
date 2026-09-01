@@ -151,14 +151,17 @@ function openConnection(
  * The cache opens a connection per operation and closes it when the operation
  * settles, so it never blocks `indexedDB.deleteDatabase` beyond an in-flight
  * operation. An application may therefore delete a per-identity database
- * outright on logout — removing not just the entries ({@link clear}) but also
- * the database name, which itself records that the identity has used the
- * application on that browser profile. If the database is deleted while a
- * cache instance is live, the next operation simply recreates it empty; the
- * cost is one extra key derivation per map.
+ * outright on logout — {@link destroy} does exactly that — removing not just
+ * the entries ({@link clear}) but also the database name, which itself records
+ * that the identity has used the application on that browser profile. If the
+ * database is deleted while a cache instance is live, the next operation
+ * simply recreates it empty; the cost is one extra key derivation per map.
  */
 export class IndexedDbDerivedKeyMaterialCache implements DerivedKeyMaterialCache {
     readonly #store: UseStore;
+
+    /** The IndexedDB database name this cache reads and writes. */
+    readonly dbName: string;
 
     /**
      * @param dbName - IndexedDB database name. Defaults to `"ic-vetkeys"`. This
@@ -168,6 +171,7 @@ export class IndexedDbDerivedKeyMaterialCache implements DerivedKeyMaterialCache
      *   supports only a single object store per database.
      */
     constructor(dbName = "ic-vetkeys") {
+        this.dbName = dbName;
         this.#store = perOperationStore(dbName, "derived-key-material");
     }
 
@@ -181,5 +185,20 @@ export class IndexedDbDerivedKeyMaterialCache implements DerivedKeyMaterialCache
 
     async clear(): Promise<void> {
         await idbClear(this.#store);
+    }
+
+    /**
+     * Deletes the entire database. Unlike {@link clear}, which only empties
+     * the object store, this also removes the database name itself — which is
+     * what records that an identity has used the application on this browser
+     * profile when the per-identity naming above is followed.
+     *
+     * A delete issued while an operation is in flight completes as soon as
+     * that operation's connection closes. Calling `destroy()` twice is a
+     * no-op; a later {@link get} or {@link set} simply recreates the database
+     * empty.
+     */
+    async destroy(): Promise<void> {
+        await promisifyRequest(indexedDB.deleteDatabase(this.dbName));
     }
 }
