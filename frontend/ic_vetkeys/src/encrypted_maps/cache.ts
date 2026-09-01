@@ -103,9 +103,10 @@ function perOperationStore(dbName: string, storeName: string): UseStore {
                 // `close()` only sets the close-pending flag while a
                 // transaction is live; the connection actually closes once the
                 // transaction finishes, so closing here never aborts the work.
-                const close = () => db.close();
-                void Promise.resolve(operation).then(close, close);
-                return operation;
+                // `finally` guarantees the close is requested before the
+                // awaiting caller resumes, so a delete issued right after an
+                // operation settles finds no connection still open.
+                return Promise.resolve(operation).finally(() => db.close());
             } catch (error) {
                 db.close();
                 throw error;
