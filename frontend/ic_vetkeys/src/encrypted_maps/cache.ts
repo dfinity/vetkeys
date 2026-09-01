@@ -7,8 +7,8 @@
 
 import {
     clear as idbClear,
-    createStore,
     get as idbGet,
+    promisifyRequest,
     set as idbSet,
     type UseStore,
 } from "idb-keyval";
@@ -78,6 +78,68 @@ export class InMemoryDerivedKeyMaterialCache implements DerivedKeyMaterialCache 
 }
 
 /**
+ * An idb-keyval {@link UseStore} that opens a fresh connection for each
+ * operation and closes it as soon as the operation settles.
+ *
+ * idb-keyval's own `createStore` keeps one connection open for the lifetime of
+ * the page and registers no `versionchange` handler, so it never yields to
+ * `indexedDB.deleteDatabase`: the delete stays queued forever, and — per the
+ * IndexedDB spec's connection queue — every later `open` on that name queues
+ * behind it and never settles. A cache instance would thus make its database
+ * name undeletable until the page goes away (#440). With a per-operation
+ * connection that also yields on `versionchange` (see {@link openConnection}),
+ * a concurrent delete waits at most for the in-flight transaction to finish.
+ *
+ * Concurrent operations each get their own connection, so one operation
+ * finishing (and closing) can never break another that is still running.
+ */
+function perOperationStore(dbName: string, storeName: string): UseStore {
+    return (txMode, callback) =>
+        openConnection(dbName, storeName).then((db) => {
+            try {
+                const operation = callback(
+                    db.transaction(storeName, txMode).objectStore(storeName),
+                );
+                // `close()` only sets the close-pending flag while a
+                // transaction is live; the connection actually closes once the
+                // transaction finishes, so closing here never aborts the work.
+                // `finally` guarantees the close is requested before the
+                // awaiting caller resumes, so a delete issued right after an
+                // operation settles finds no connection still open.
+                return Promise.resolve(operation).finally(() => db.close());
+            } catch (error) {
+                db.close();
+                throw error;
+            }
+        });
+}
+
+function openConnection(
+    dbName: string,
+    storeName: string,
+): Promise<IDBDatabase> {
+    const request = indexedDB.open(dbName);
+    request.onupgradeneeded = () => request.result.createObjectStore(storeName);
+    // `blocked` cannot fire on this request: a versionless open performs an
+    // upgrade only when it creates the database, and a database that does not
+    // exist has no connections to block on. (`promisifyRequest` ignores
+    // `blocked` and would simply keep waiting for `success` if it ever fired.)
+    return promisifyRequest(request).then((db) => {
+        // Yield to a concurrent `deleteDatabase` or versioned open — the
+        // spec's mechanism whose absence in idb-keyval caused #440. With
+        // per-operation connections this shrinks a racing delete's wait to
+        // the end of the current transaction; more importantly, it keeps the
+        // connection well-behaved should connection reuse ever be
+        // reintroduced, so #440 cannot silently return. The handler can only
+        // fire after the operation's transaction exists (event dispatch needs
+        // a task boundary; the transaction is created in this microtask
+        // chain), and closing never aborts it — see perOperationStore.
+        db.onversionchange = () => db.close();
+        return db;
+    });
+}
+
+/**
  * Opt-in {@link DerivedKeyMaterialCache} that persists key handles in IndexedDB.
  *
  * Key handles survive page reloads, avoiding repeated key derivation, but this
@@ -102,9 +164,21 @@ export class InMemoryDerivedKeyMaterialCache implements DerivedKeyMaterialCache 
  *
  * A dedicated IndexedDB store is used, so {@link clear} only removes entries
  * written by this cache and never touches other application data.
+ *
+ * The cache opens a connection per operation and closes it when the operation
+ * settles, so it never blocks `indexedDB.deleteDatabase` beyond an in-flight
+ * operation. An application may therefore delete a per-identity database
+ * outright on logout — {@link destroy} does exactly that — removing not just
+ * the entries ({@link clear}) but also the database name, which itself records
+ * that the identity has used the application on that browser profile. If the
+ * database is deleted while a cache instance is live, the next operation
+ * simply recreates it empty; the cost is one extra key derivation per map.
  */
 export class IndexedDbDerivedKeyMaterialCache implements DerivedKeyMaterialCache {
     readonly #store: UseStore;
+
+    /** The IndexedDB database name this cache reads and writes. */
+    readonly dbName: string;
 
     /**
      * @param dbName - IndexedDB database name. Defaults to `"ic-vetkeys"`. This
@@ -114,7 +188,8 @@ export class IndexedDbDerivedKeyMaterialCache implements DerivedKeyMaterialCache
      *   supports only a single object store per database.
      */
     constructor(dbName = "ic-vetkeys") {
-        this.#store = createStore(dbName, "derived-key-material");
+        this.dbName = dbName;
+        this.#store = perOperationStore(dbName, "derived-key-material");
     }
 
     async get(key: string): Promise<CryptoKey | undefined> {
@@ -127,5 +202,26 @@ export class IndexedDbDerivedKeyMaterialCache implements DerivedKeyMaterialCache
 
     async clear(): Promise<void> {
         await idbClear(this.#store);
+    }
+
+    /**
+     * Deletes the entire database. Unlike {@link clear}, which only empties
+     * the object store, this also removes the database name itself — which is
+     * what records that an identity has used the application on this browser
+     * profile when the per-identity naming above is followed.
+     *
+     * A delete issued while an operation is in flight completes as soon as
+     * that operation's connection closes. Calling `destroy()` twice is a
+     * no-op; a later {@link get} or {@link set} simply recreates the database
+     * empty.
+     */
+    async destroy(): Promise<void> {
+        // `promisifyRequest` ignores `blocked`, which is deliberate here:
+        // `blocked` means an operation's connection is still open, and with
+        // per-operation connections that state is transient — the connection
+        // closes as the operation settles (or on `versionchange`, which this
+        // very delete fires) and `success` follows. Resolving on `blocked`
+        // instead would report completion before the database is gone.
+        await promisifyRequest(indexedDB.deleteDatabase(this.dbName));
     }
 }

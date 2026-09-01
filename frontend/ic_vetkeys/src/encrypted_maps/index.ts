@@ -59,7 +59,9 @@ export type {
  *     (or call {@link EncryptedMaps.clearCache} on logout / identity change);
  *   - with {@link IndexedDbDerivedKeyMaterialCache}, give the store a **per-identity
  *     namespace** (e.g. include the caller's principal in the database name) so entries
- *     are physically separated, and call {@link EncryptedMaps.clearCache} on logout.
+ *     are physically separated, and on logout call {@link EncryptedMaps.clearCache} —
+ *     or {@link IndexedDbDerivedKeyMaterialCache.destroy} on the cache instance, which
+ *     also removes the per-identity database name itself.
  *
  */
 export class EncryptedMaps {
@@ -102,12 +104,12 @@ export class EncryptedMaps {
      *     IndexedDbDerivedKeyMaterialCache,
      * } from "@icp-sdk/vetkeys/encrypted_maps";
      *
-     * const encryptedMaps = new EncryptedMaps(encryptedMapsClientInstance, {
-     *     // Namespace the store per identity so one identity's cached keys are
-     *     // never served to another on the same origin.
-     *     cache: new IndexedDbDerivedKeyMaterialCache(`vetkeys-${myPrincipal}`),
-     * });
-     * // Remember to call encryptedMaps.clearCache() on logout / identity change.
+     * // Namespace the store per identity so one identity's cached keys are
+     * // never served to another on the same origin.
+     * const cache = new IndexedDbDerivedKeyMaterialCache(`vetkeys-${myPrincipal}`);
+     * const encryptedMaps = new EncryptedMaps(encryptedMapsClientInstance, { cache });
+     * // On logout / identity change, call encryptedMaps.clearCache() — or
+     * // cache.destroy() to also remove the per-identity database itself.
      * ```
      */
     constructor(
@@ -167,15 +169,25 @@ export class EncryptedMaps {
         for (const [mapId, encryptedValues] of result) {
             const mapName = Uint8Array.from(mapId[1].inner);
             const keyValues: Array<[Uint8Array, Uint8Array]> = [];
-            for (const [mapKeyBytes, encryptedValue] of encryptedValues) {
-                const mapKey = Uint8Array.from(mapKeyBytes.inner);
-                const value = await this.decryptFor(
-                    mapId[0],
-                    mapName,
-                    mapKey,
-                    Uint8Array.from(encryptedValue.inner),
-                );
-                keyValues.push([mapKey, value]);
+            if (encryptedValues.length > 0) {
+                // The derived key material is per map, so fetch it once for
+                // the whole map instead of once per entry (each fetch consults
+                // the cache, which may be backed by IndexedDB) — and not at
+                // all for an empty map.
+                const derivedKeyMaterial =
+                    await this.getDerivedKeyMaterialOrFetchIfNeeded(
+                        mapId[0],
+                        mapName,
+                    );
+                for (const [mapKeyBytes, encryptedValue] of encryptedValues) {
+                    const mapKey = Uint8Array.from(mapKeyBytes.inner);
+                    const value = await derivedKeyMaterial.decryptMessage(
+                        Uint8Array.from(encryptedValue.inner),
+                        mapKey,
+                        "",
+                    );
+                    keyValues.push([mapKey, value]);
+                }
             }
             decryptedResult.push([
                 [mapId[0], Uint8Array.from(mapId[1].inner)],
@@ -198,18 +210,26 @@ export class EncryptedMaps {
         for (const encryptedMapData of accessibleEncryptedMaps) {
             const mapName = Uint8Array.from(encryptedMapData.map_name.inner);
             const keyvals: Array<[Uint8Array, Uint8Array]> = [];
-            for (const [
-                mapKeyBytes,
-                encryptedValue,
-            ] of encryptedMapData.keyvals) {
-                const mapKey = Uint8Array.from(mapKeyBytes.inner);
-                const decrypted = await this.decryptFor(
-                    encryptedMapData.map_owner,
-                    mapName,
-                    mapKey,
-                    Uint8Array.from(encryptedValue.inner),
-                );
-                keyvals.push([mapKey, decrypted]);
+            if (encryptedMapData.keyvals.length > 0) {
+                // One key-material fetch per non-empty map, not per entry —
+                // see getAllAccessibleValues.
+                const derivedKeyMaterial =
+                    await this.getDerivedKeyMaterialOrFetchIfNeeded(
+                        encryptedMapData.map_owner,
+                        mapName,
+                    );
+                for (const [
+                    mapKeyBytes,
+                    encryptedValue,
+                ] of encryptedMapData.keyvals) {
+                    const mapKey = Uint8Array.from(mapKeyBytes.inner);
+                    const decrypted = await derivedKeyMaterial.decryptMessage(
+                        Uint8Array.from(encryptedValue.inner),
+                        mapKey,
+                        "",
+                    );
+                    keyvals.push([mapKey, decrypted]);
+                }
             }
             result.push({
                 accessControl: encryptedMapData.access_control,
@@ -294,13 +314,19 @@ export class EncryptedMaps {
         }
 
         const result = new Array<[Uint8Array, Uint8Array]>();
+        if (encryptedValues.Ok.length === 0) {
+            return result;
+        }
+        // One key-material fetch for the whole map, not per entry — see
+        // getAllAccessibleValues.
+        const derivedKeyMaterial =
+            await this.getDerivedKeyMaterialOrFetchIfNeeded(mapOwner, mapName);
         for (const [mapKey, mapValue] of encryptedValues.Ok) {
             const passwordName = Uint8Array.from(mapKey.inner);
-            const decrypted = await this.decryptFor(
-                mapOwner,
-                mapName,
-                passwordName,
+            const decrypted = await derivedKeyMaterial.decryptMessage(
                 Uint8Array.from(mapValue.inner),
+                passwordName,
+                "",
             );
             result.push([passwordName, decrypted]);
         }
@@ -694,7 +720,9 @@ export class EncryptedMaps {
      * material from being served to another, and drops the still-usable
      * decryption capability that otherwise lingers. This matters most with
      * {@link IndexedDbDerivedKeyMaterialCache}, where cached key handles persist
-     * across sessions until cleared.
+     * across sessions until cleared — there,
+     * {@link IndexedDbDerivedKeyMaterialCache.destroy} on the cache instance
+     * goes one step further and also deletes the per-identity database itself.
      */
     async clearCache(): Promise<void> {
         await this.#derivedKeyMaterialCache.clear();

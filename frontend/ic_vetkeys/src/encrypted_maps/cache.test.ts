@@ -96,6 +96,161 @@ describe("IndexedDbDerivedKeyMaterialCache", () => {
     });
 });
 
+describe("IndexedDbDerivedKeyMaterialCache database deletion (#440)", () => {
+    /**
+     * Resolves with the first event the delete request fires. `blocked` is the
+     * failure signature of #440: the cache's connection never yields, the
+     * delete stays queued for the lifetime of the page, and every later `open`
+     * on that name queues behind it and never settles.
+     */
+    function attemptDelete(
+        name: string,
+    ): Promise<"deleted" | "blocked" | "error"> {
+        return new Promise((resolve) => {
+            const request = indexedDB.deleteDatabase(name);
+            request.onsuccess = () => resolve("deleted");
+            request.onblocked = () => resolve("blocked");
+            request.onerror = () => resolve("error");
+        });
+    }
+
+    /**
+     * Guards against the queued-delete stall: an `open` behind a stuck delete
+     * fires no event at all, so a plain await would hang until the suite
+     * timeout. Fail fast with a diagnosis instead.
+     */
+    function openSettles(name: string): Promise<void> {
+        return new Promise((resolve, reject) => {
+            const timer = setTimeout(
+                () =>
+                    reject(
+                        new Error(
+                            `open("${name}") did not settle: a queued deleteDatabase is blocking the connection queue`,
+                        ),
+                    ),
+                5_000,
+            );
+            const request = indexedDB.open(name);
+            request.onsuccess = () => {
+                clearTimeout(timer);
+                request.result.close();
+                resolve();
+            };
+            request.onerror = () => {
+                clearTimeout(timer);
+                reject(request.error ?? new Error("open failed"));
+            };
+        });
+    }
+
+    test("a live cache does not block deletion of its database", async () => {
+        const name = "ic-vetkeys-test-delete-live";
+        const cache = new IndexedDbDerivedKeyMaterialCache(name);
+        // The repro from #440: populate, clear, then delete on logout.
+        await cache.set("k", (await newDerivedKeyMaterial(7)).getCryptoKey());
+        await cache.clear();
+
+        expect(await attemptDelete(name)).toBe("deleted");
+        // The connection queue must be clean: the next open settles.
+        await openSettles(name);
+    });
+
+    test("recreates an empty database after deletion out from under it", async () => {
+        const name = "ic-vetkeys-test-delete-reopen";
+        const cache = new IndexedDbDerivedKeyMaterialCache(name);
+        const key = (await newDerivedKeyMaterial(7)).getCryptoKey();
+        await cache.set("k", key);
+
+        expect(await attemptDelete(name)).toBe("deleted");
+
+        // The deletion costs a cache miss, nothing more.
+        expect(await cache.get("k")).toBeUndefined();
+        await cache.set("k", key);
+        expect(await cache.get("k")).toBeDefined();
+    });
+
+    test("concurrent operations each complete on their own connection", async () => {
+        // EncryptedMaps can issue concurrent gets; one operation finishing
+        // (and closing its connection) must not break the others.
+        const cache = new IndexedDbDerivedKeyMaterialCache(
+            "ic-vetkeys-test-concurrent",
+        );
+        const key = (await newDerivedKeyMaterial(7)).getCryptoKey();
+
+        await Promise.all([
+            cache.set("a", key),
+            cache.set("b", key),
+            cache.set("c", key),
+        ]);
+        const [a, b, c, miss] = await Promise.all([
+            cache.get("a"),
+            cache.get("b"),
+            cache.get("c"),
+            cache.get("missing"),
+        ]);
+
+        expect(a).toBeDefined();
+        expect(b).toBeDefined();
+        expect(c).toBeDefined();
+        expect(miss).toBeUndefined();
+    });
+
+    test("destroy() removes the database, twice is a no-op, and the cache still works", async () => {
+        const name = "ic-vetkeys-test-destroy";
+        const cache = new IndexedDbDerivedKeyMaterialCache(name);
+        expect(cache.dbName).toBe(name);
+        const key = (await newDerivedKeyMaterial(7)).getCryptoKey();
+        await cache.set("k", key);
+
+        await cache.destroy();
+        const names = (await indexedDB.databases()).map((db) => db.name);
+        expect(names).not.toContain(name);
+
+        // A second destroy is a no-op rather than an error.
+        await cache.destroy();
+
+        // A later operation recreates the database empty.
+        expect(await cache.get("k")).toBeUndefined();
+        await cache.set("k", key);
+        expect(await cache.get("k")).toBeDefined();
+    });
+
+    test("a delete racing an in-flight operation completes once it finishes", async () => {
+        const name = "ic-vetkeys-test-delete-race";
+        const cache = new IndexedDbDerivedKeyMaterialCache(name);
+        const key = (await newDerivedKeyMaterial(7)).getCryptoKey();
+
+        // Do not await: the delete is issued while the set's connection may
+        // still be open. `blocked` is then legitimate — but it must be
+        // transient (the operation ends, its connection closes, the delete
+        // proceeds), not terminal as in #440.
+        const inFlight = cache.set("k", key);
+        const deleted = new Promise<void>((resolve, reject) => {
+            const timer = setTimeout(
+                () =>
+                    reject(
+                        new Error(
+                            "deleteDatabase never completed: a connection is being held open",
+                        ),
+                    ),
+                5_000,
+            );
+            const request = indexedDB.deleteDatabase(name);
+            request.onsuccess = () => {
+                clearTimeout(timer);
+                resolve();
+            };
+            request.onerror = () => {
+                clearTimeout(timer);
+                reject(request.error ?? new Error("delete failed"));
+            };
+        });
+
+        await Promise.all([inFlight, deleted]);
+        await openSettles(name);
+    });
+});
+
 describe("EncryptedMaps derived key caching", () => {
     test("fetches once, then serves subsequent calls from cache", async () => {
         const maps = new EncryptedMaps(emptyClient());
@@ -174,6 +329,80 @@ describe("EncryptedMaps derived key caching", () => {
         await maps.getDerivedKeyMaterialOrFetchIfNeeded(OWNER_A, mapName);
 
         expect(fetchSpy).toHaveBeenCalledTimes(2);
+    });
+
+    test("bulk decryption consults the cache once per non-empty map, not per entry", async () => {
+        // Regression guard for the per-operation IndexedDB cache: with the
+        // derived-key fetch inside the per-entry loop, a map with N entries
+        // would perform N cache reads (N connection open/close cycles on the
+        // IndexedDB cache) for the same per-map key material.
+        class CountingCache extends InMemoryDerivedKeyMaterialCache {
+            gets = 0;
+            override get(key: string): Promise<CryptoKey | undefined> {
+                this.gets++;
+                return super.get(key);
+            }
+        }
+
+        const dkm = await newDerivedKeyMaterial(42);
+        const cache = new CountingCache();
+        const maps = new EncryptedMaps(emptyClient(), { cache });
+        vi.spyOn(maps, "getDerivedKeyMaterial").mockResolvedValue(dkm);
+
+        const text = new TextEncoder();
+        const mapName = text.encode("some map");
+        const entry = async (
+            k: string,
+            v: string,
+        ): Promise<[{ inner: Uint8Array }, { inner: Uint8Array }]> => [
+            { inner: text.encode(k) },
+            {
+                inner: await dkm.encryptMessage(
+                    text.encode(v),
+                    text.encode(k),
+                    "",
+                ),
+            },
+        ];
+        const entries = [
+            await entry("a", "1"),
+            await entry("b", "2"),
+            await entry("c", "3"),
+        ];
+        Object.assign(maps.canisterClient, {
+            get_encrypted_values_for_map: () =>
+                Promise.resolve({ Ok: entries }),
+            get_all_accessible_encrypted_maps: () =>
+                Promise.resolve([
+                    {
+                        map_owner: OWNER_A,
+                        map_name: { inner: mapName },
+                        keyvals: entries,
+                        access_control: [],
+                    },
+                    {
+                        map_owner: OWNER_A,
+                        map_name: { inner: text.encode("empty map") },
+                        keyvals: [],
+                        access_control: [],
+                    },
+                ]),
+        });
+
+        const values = await maps.getValuesForMap(OWNER_A, mapName);
+        expect(values.map(([, v]) => new TextDecoder().decode(v))).toEqual([
+            "1",
+            "2",
+            "3",
+        ]);
+        expect(cache.gets).toBe(1);
+
+        const all = await maps.getAllAccessibleMaps();
+        expect(all).toHaveLength(2);
+        expect(all[0].keyvals).toHaveLength(3);
+        expect(all[1].keyvals).toHaveLength(0);
+        // One more read for the non-empty map; none for the empty one.
+        expect(cache.gets).toBe(2);
     });
 
     test("a cache hit still yields working key material", async () => {
