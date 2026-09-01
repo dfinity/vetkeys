@@ -87,8 +87,8 @@ export class InMemoryDerivedKeyMaterialCache implements DerivedKeyMaterialCache 
  * IndexedDB spec's connection queue — every later `open` on that name queues
  * behind it and never settles. A cache instance would thus make its database
  * name undeletable until the page goes away (#440). With a per-operation
- * connection a concurrent delete blocks at most for the duration of one
- * in-flight operation.
+ * connection that also yields on `versionchange` (see {@link openConnection}),
+ * a concurrent delete waits at most for the in-flight transaction to finish.
  *
  * Concurrent operations each get their own connection, so one operation
  * finishing (and closing) can never break another that is still running.
@@ -120,7 +120,23 @@ function openConnection(
 ): Promise<IDBDatabase> {
     const request = indexedDB.open(dbName);
     request.onupgradeneeded = () => request.result.createObjectStore(storeName);
-    return promisifyRequest(request);
+    // `blocked` cannot fire on this request: a versionless open performs an
+    // upgrade only when it creates the database, and a database that does not
+    // exist has no connections to block on. (`promisifyRequest` ignores
+    // `blocked` and would simply keep waiting for `success` if it ever fired.)
+    return promisifyRequest(request).then((db) => {
+        // Yield to a concurrent `deleteDatabase` or versioned open — the
+        // spec's mechanism whose absence in idb-keyval caused #440. With
+        // per-operation connections this shrinks a racing delete's wait to
+        // the end of the current transaction; more importantly, it keeps the
+        // connection well-behaved should connection reuse ever be
+        // reintroduced, so #440 cannot silently return. The handler can only
+        // fire after the operation's transaction exists (event dispatch needs
+        // a task boundary; the transaction is created in this microtask
+        // chain), and closing never aborts it — see perOperationStore.
+        db.onversionchange = () => db.close();
+        return db;
+    });
 }
 
 /**
@@ -200,6 +216,12 @@ export class IndexedDbDerivedKeyMaterialCache implements DerivedKeyMaterialCache
      * empty.
      */
     async destroy(): Promise<void> {
+        // `promisifyRequest` ignores `blocked`, which is deliberate here:
+        // `blocked` means an operation's connection is still open, and with
+        // per-operation connections that state is transient — the connection
+        // closes as the operation settles (or on `versionchange`, which this
+        // very delete fires) and `success` follows. Resolving on `blocked`
+        // instead would report completion before the database is gone.
         await promisifyRequest(indexedDB.deleteDatabase(this.dbName));
     }
 }
