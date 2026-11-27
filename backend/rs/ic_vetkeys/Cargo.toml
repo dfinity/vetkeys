@@ -24,8 +24,10 @@ readme = "README.md"
 crate-type = ["lib"]
 
 [dependencies]
-aes-gcm = "0.10"
-anyhow = { workspace = true }
+# Default features are disabled because they include `getrandom`, which pulls in
+# getrandom 0.4 and fails to compile for wasm32-unknown-unknown. Nonces are drawn
+# from the caller's RNG instead.
+aes-gcm = { version = "0.11.1", default-features = false, features = ["aes", "alloc"] }
 candid = { workspace = true }
 ic_bls12_381 = { version = "0.10.1", default-features = false, features = [
     "groups",
@@ -34,9 +36,12 @@ ic_bls12_381 = { version = "0.10.1", default-features = false, features = [
     "experimental",
     "zeroize",
 ] }
-hkdf = { version = "0.12" }
-futures = "0.3.31"
-hex-literal = { version = "1" }
+# hkdf, pairing and sha2 must stay on the trait versions ic_bls12_381 0.10 uses
+# (digest 0.10 for `ExpandMsgXmd<sha2::Sha256>`, group 0.13). hkdf 0.13 and
+# sha2 0.11 are on digest 0.11, and pairing 0.24 is on group 0.14.
+hkdf = { version = "0.12.4" }
+futures = "0.3.34"
+hex-literal = { version = "1.1.0" }
 ic-cdk = { workspace = true }
 ic-stable-structures = { workspace = true }
 lazy_static = { workspace = true }
@@ -47,15 +52,17 @@ serde = { workspace = true }
 serde_bytes = { workspace = true }
 serde_cbor = { workspace = true }
 sha2 = "0.10.9"
-sha3 = "0.10.8"
+# Kept on 0.10 for performance: SHAKE256 from sha3 >= 0.11 or the `shake` crate
+# (both on keccak 0.2) makes IBE decryption of large messages ~3x more expensive
+# on wasm32 (see the `ibe_decrypt_*` canbench benchmarks).
+sha3 = "0.10.9"
 subtle = "2.6.1"
-strum = "0.27.1"
-strum_macros = "0.27.1"
-zeroize = { version = "1.8.1", features = ["zeroize_derive"] }
+strum = "0.28.0"
+strum_macros = "0.28.0"
+zeroize = { version = "1.9.2", features = ["zeroize_derive"] }
 ic-cdk-management-canister.workspace = true
 
 [dev-dependencies]
 assert_matches = "1.5.0"
 hex = { workspace = true }
 ic-vetkeys-test-utils = { path = "../ic_vetkeys_test_utils" }
-pocket-ic = { workspace = true }

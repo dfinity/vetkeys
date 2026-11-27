@@ -1,5 +1,33 @@
 # Change Log
 
+## [Unreleased]
+
+### Changed
+
+- **Breaking:** Raised the minimum supported Rust version (MSRV) from 1.85 to
+  1.89.
+- **Breaking:** Bumped `rand` and `rand_chacha` to `0.10`.
+  `DerivedKeyMaterial::encrypt_message` and `IbeSeed::random` now take a
+  `rand` 0.10 RNG (`R: rand::CryptoRng + ?Sized`), so RNGs from `rand` 0.8 /
+  `rand_core` 0.6 no longer satisfy the bound. Outputs are unchanged: for
+  example, `TransportSecretKey::from_seed` derives the same key from the same
+  seed, and a seeded RNG yields the same ciphertexts as before.
+- **Breaking:** Bumped `ic-cdk-management-canister` to `0.3.0`, which requires
+  `ic-cdk` >= `0.20.3`. The `VetKDKeyId`, `VetKDCurve` and `SignCallError`
+  types in this crate's API, including in the expansion of
+  `export_encrypted_maps_canister!`, are now the ones from
+  `ic-cdk-management-canister` 0.3.
+- **Breaking:** Bumped `strum` to `0.28`. Because `strum::IntoEnumIterator` is a
+  supertrait of `AccessControl`, custom access-rights types must derive
+  `EnumIter` with `strum` 0.28.
+- Bumped `aes-gcm` to `0.11`. The ciphertext format is unchanged.
+- `ic-vetkeys` no longer pulls in `getrandom` when building for
+  `wasm32-unknown-unknown`, so canisters no longer need a workaround such as
+  `ic-dummy-getrandom-for-wasm` because of this crate.
+- Raised the minimum versions of the other dependencies to their latest
+  semver-compatible releases, e.g. `candid` 0.10.41, `ic-cdk` 0.20.3,
+  `ic-stable-structures` 0.7.2 and `zeroize` 1.9.2.
+
 ## [0.9.0] - 2026-08-11
 
 ### Added

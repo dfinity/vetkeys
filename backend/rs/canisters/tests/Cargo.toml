@@ -15,9 +15,7 @@ crate-type = ["cdylib"]
 candid = { workspace = true }
 ic-cdk = { workspace = true }
 ic-cdk-management-canister = { workspace = true }
-ic-dummy-getrandom-for-wasm = { workspace = true }
 ic-vetkeys = { path = "../../ic_vetkeys" }
-serde = { workspace = true }
 
 [dev-dependencies]
 ic-vetkeys-test-utils = { path = "../../ic_vetkeys_test_utils" }

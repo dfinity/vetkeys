@@ -17,26 +17,26 @@ edition = "2021"
 license = "Apache-2.0"
 description = "Tools and examples for development with vetKeys on the Internet Computer"
 repository = "https://github.com/dfinity/vetkeys"
-rust-version = "1.85.0"
+rust-version = "1.89.0"
 documentation = "https://docs.rs/ic-vetkeys"
 
 [workspace.dependencies]
-anyhow = "1.0.95"
-canbench-rs = "0.4.0"
-candid = "0.10.16"
+canbench-rs = "0.7.0"
+candid = "0.10.41"
 hex = "0.4.3"
-ic-cdk = "0.20.1"
-ic-cdk-management-canister = "0.1.1"
-ic-stable-structures = "0.7.0"
+ic-cdk = "0.20.3"
+ic-cdk-management-canister = "0.3.0"
+ic-stable-structures = "0.7.2"
 ic-vetkeys = { path = "backend/rs/ic_vetkeys" }
-lazy_static = "1.5.0"
-pocket-ic = "15.0.0"
-rand = "0.8.6"
-rand_chacha = "0.3.1"
-serde = "1.0.217"
-serde_bytes = "0.11.15"
+lazy_static = "1.5.1"
+pocket-ic = "16.1.0"
+# Default features are disabled because they include `sys_rng`/`thread_rng`, which
+# pull in getrandom 0.4 and fail to compile for wasm32-unknown-unknown.
+rand = { version = "0.10.4", default-features = false }
+rand_chacha = "0.10.0"
+serde = "1.0.229"
+serde_bytes = "0.11.19"
 serde_cbor = "0.11.2"
-ic-dummy-getrandom-for-wasm = "0.1.0"
 
 [profile.release]
 lto = true

@@ -7,7 +7,7 @@ use ic_vetkeys::key_manager::key_id_to_vetkd_input;
 use ic_vetkeys::types::{AccessControl, AccessRights, ByteBuf, TransportKey};
 use ic_vetkeys::{DerivedPublicKey, EncryptedVetKey, TransportSecretKey};
 use pocket_ic::{CanisterSettings, EnvironmentVariable, PocketIc, PocketIcBuilder};
-use rand::{CryptoRng, Rng, SeedableRng};
+use rand::{CryptoRng, Rng, RngExt, SeedableRng};
 use rand_chacha::ChaCha20Rng;
 use std::collections::BTreeMap;
 use std::path::Path;
@@ -981,7 +981,7 @@ fn should_get_owned_map_names() {
             assert!(map_names.contains(map_name));
         }
 
-        let should_remove_map = rng.gen_bool(0.2);
+        let should_remove_map = rng.random_bool(0.2);
 
         if should_remove_map {
             env.update::<Result<Vec<ByteBuf>, String>>(
@@ -996,7 +996,7 @@ fn should_get_owned_map_names() {
 }
 
 pub fn reproducible_rng() -> ChaCha20Rng {
-    let seed = rand::thread_rng().gen();
+    let seed = rand::rng().random();
     println!("RNG seed: {seed:?}");
     ChaCha20Rng::from_seed(seed)
 }
@@ -1148,7 +1148,7 @@ fn fast_forward(ic: &PocketIc, ticks: u64) {
 }
 
 fn random_map_name<R: Rng + CryptoRng>(rng: &mut R) -> ByteBuf {
-    let length = rng.gen_range(0..32);
+    let length = rng.random_range(0..32);
     let mut map_name = vec![0u8; length];
     rng.fill_bytes(&mut map_name);
     ByteBuf::from(map_name)
@@ -1172,21 +1172,21 @@ fn git_root_dir() -> String {
 }
 
 fn random_map_key<R: Rng + CryptoRng>(rng: &mut R) -> ByteBuf {
-    let length = rng.gen_range(0..32);
+    let length = rng.random_range(0..32);
     let mut map_key = vec![0u8; length];
     rng.fill_bytes(&mut map_key);
     ByteBuf::from(map_key)
 }
 
 fn random_encrypted_value<R: Rng + CryptoRng>(rng: &mut R) -> ByteBuf {
-    let length = rng.gen_range(0..2_000_000);
+    let length = rng.random_range(0..2_000_000);
     let mut encrypted_value = vec![0u8; length];
     rng.fill_bytes(&mut encrypted_value);
     ByteBuf::from(encrypted_value)
 }
 
 fn random_small_encrypted_value<R: Rng + CryptoRng>(rng: &mut R) -> ByteBuf {
-    let length = rng.gen_range(0..1_000);
+    let length = rng.random_range(0..1_000);
     let mut encrypted_value = vec![0u8; length];
     rng.fill_bytes(&mut encrypted_value);
     ByteBuf::from(encrypted_value)
@@ -1194,7 +1194,7 @@ fn random_small_encrypted_value<R: Rng + CryptoRng>(rng: &mut R) -> ByteBuf {
 
 fn random_access_rights<R: Rng + CryptoRng>(rng: &mut R) -> AccessRights {
     loop {
-        if let Some(ar) = AccessRights::from_repr(rng.gen()) {
+        if let Some(ar) = AccessRights::from_repr(rng.random()) {
             return ar;
         }
     }
