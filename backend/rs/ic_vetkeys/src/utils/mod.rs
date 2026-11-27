@@ -295,10 +295,17 @@ pub struct TransportSecretKey {
 impl TransportSecretKey {
     /// Creates a transport secret key from a 32-byte seed.
     pub fn from_seed(seed: Vec<u8>) -> Result<TransportSecretKey, String> {
+        use rand::Rng;
         let seed_32_bytes: [u8; 32] = seed.try_into().map_err(|_e| "seed not 32 bytes")?;
-        let rng = &mut ChaCha20Rng::from_seed(seed_32_bytes);
-        use pairing::group::ff::Field;
-        let secret_key = Box::new(Scalar::random(rng));
+        let mut rng = ChaCha20Rng::from_seed(seed_32_bytes);
+        // Reduce 64 bytes of RNG output modulo the group order. This is exactly
+        // what ic_bls12_381's `<Scalar as ff::Field>::random` does, which cannot be
+        // used directly since it requires a rand_core 0.6 RNG. The derived key
+        // must stay bit-for-bit stable.
+        let mut wide = [0u8; 64];
+        rng.fill_bytes(&mut wide);
+        let secret_key = Box::new(Scalar::from_bytes_wide(&wide));
+        wide.zeroize();
         Ok(Self { secret_key })
     }
 
@@ -665,20 +672,23 @@ impl DerivedKeyMaterial {
     ///  * Ciphertext of length equal to the message length
     ///  * 16 byte GCM authentication tag
     ///
-    pub fn encrypt_message<R: rand::RngCore + rand::CryptoRng>(
+    pub fn encrypt_message<R: rand::CryptoRng + ?Sized>(
         &self,
         message: &[u8],
         domain_sep: &str,
         associated_data: &[u8],
         rng: &mut R,
     ) -> Result<Vec<u8>, EncryptionError> {
-        use aes_gcm::{aead::Aead, aead::AeadCore, Aes256Gcm, Key, KeyInit};
+        use aes_gcm::{aead::Aead, aead::Nonce, Aes256Gcm, KeyInit};
         let key = self.derive_aes_gcm_key(domain_sep, Self::GCM_HEADER_VERSION);
-        let key = Key::<Aes256Gcm>::from_slice(&key);
         // aes_gcm::Aes256Gcm only supports/uses 12 byte nonces
-        let nonce = Aes256Gcm::generate_nonce(rng);
-        assert_eq!(nonce.len(), Self::GCM_NONCE_SIZE);
-        let gcm = Aes256Gcm::new(key);
+        let nonce = {
+            let mut nonce = [0u8; Self::GCM_NONCE_SIZE];
+            rng.fill_bytes(&mut nonce);
+            Nonce::<Aes256Gcm>::from(nonce)
+        };
+        let gcm =
+            Aes256Gcm::new_from_slice(&key).expect("Derived AES-GCM key has unexpected length");
 
         // Unfortunately aes_gcm does not allow a vector of AAD inputs
         // so we have to allocate a copy. Typically associated data is short
@@ -696,7 +706,8 @@ impl DerivedKeyMaterial {
 
         // The function returns an opaque `Error` with no details, but upon
         // examination, the only way it can fail is if the plaintext is larger
-        // than GCM's maximum input length of 2^36 bytes.
+        // than GCM's maximum input length of 2^36 - 32 bytes (`aes_gcm::P_MAX`)
+        // or the associated data is larger than 2^61 - 1 bytes (`aes_gcm::A_MAX`).
         let ctext = gcm
             .encrypt(&nonce, msg)
             .map_err(|_| EncryptionError::PlaintextTooLong)?;
@@ -718,7 +729,7 @@ impl DerivedKeyMaterial {
         domain_sep: &str,
         associated_data: &[u8],
     ) -> Result<Vec<u8>, DecryptionError> {
-        use aes_gcm::{aead::Aead, Aes256Gcm, Key, KeyInit};
+        use aes_gcm::{aead::Aead, aead::Nonce, Aes256Gcm, KeyInit};
 
         // Minimum possible length is 8 byte header + 12 bytes nonce + 16 bytes GCM tag
         if ctext.len() < Self::GCM_HEADER_SIZE + Self::GCM_NONCE_SIZE + Self::GCM_TAG_SIZE {
@@ -736,8 +747,10 @@ impl DerivedKeyMaterial {
 
                 let key = derive_symmetric_key(&self.raw_vetkey, domain_sep, Self::GCM_KEY_SIZE);
 
-                let nonce = aes_gcm::Nonce::from_slice(&ctext[0..Self::GCM_NONCE_SIZE]);
-                let gcm = Aes256Gcm::new(Key::<Aes256Gcm>::from_slice(&key));
+                let nonce = <&Nonce<Aes256Gcm>>::try_from(&ctext[0..Self::GCM_NONCE_SIZE])
+                    .expect("Nonce slice has unexpected length");
+                let gcm = Aes256Gcm::new_from_slice(&key)
+                    .expect("Derived AES-GCM key has unexpected length");
 
                 let ptext = gcm
                     .decrypt(nonce, &ctext[Self::GCM_NONCE_SIZE..])
@@ -750,12 +763,13 @@ impl DerivedKeyMaterial {
         }
 
         let key = self.derive_aes_gcm_key(domain_sep, Self::GCM_HEADER_VERSION);
-        let key = Key::<Aes256Gcm>::from_slice(&key);
 
-        let nonce = aes_gcm::Nonce::from_slice(
+        let nonce = <&Nonce<Aes256Gcm>>::try_from(
             &ctext[Self::GCM_HEADER_SIZE..Self::GCM_HEADER_SIZE + Self::GCM_NONCE_SIZE],
-        );
-        let gcm = Aes256Gcm::new(key);
+        )
+        .expect("Nonce slice has unexpected length");
+        let gcm =
+            Aes256Gcm::new_from_slice(&key).expect("Derived AES-GCM key has unexpected length");
 
         let prefixed_aad = {
             let mut r = Vec::with_capacity(Self::GCM_HEADER.len() + associated_data.len());
@@ -910,8 +924,8 @@ impl IbeIdentity {
 }
 
 /*
-* Amount of randomness generated during the IBE encryption process
-*/
+ * Amount of randomness generated during the IBE encryption process
+ */
 const IBE_SEED_BYTES: usize = 32;
 
 /// A random seed, used for identity based encryption
@@ -923,10 +937,10 @@ pub struct IbeSeed {
 
 impl IbeSeed {
     /// Create a random seed for IBE encryption
-    pub fn random<R: rand::CryptoRng + rand::RngCore>(rng: &mut R) -> Self {
-        use rand::Rng;
+    pub fn random<R: rand::CryptoRng + ?Sized>(rng: &mut R) -> Self {
+        use rand::RngExt;
         Self {
-            val: Box::new(rng.gen::<[u8; IBE_SEED_BYTES]>()),
+            val: Box::new(rng.random::<[u8; IBE_SEED_BYTES]>()),
         }
     }
 
@@ -969,7 +983,7 @@ impl IbeSeed {
  * here are just fixed and effectively arbitrary values, but could be used to
  * indicate for example a version in the future should we need to support multiple
  * variants of the IBE scheme.
-*/
+ */
 const IBE_HEADER: [u8; 8] = [b'I', b'C', b' ', b'I', b'B', b'E', 0x00, 0x01];
 
 const IBE_HEADER_BYTES: usize = IBE_HEADER.len();

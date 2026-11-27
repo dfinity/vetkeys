@@ -5,7 +5,7 @@ use ic_vetkeys::types::{AccessRights, ByteBuf, TransportKey};
 use ic_vetkeys::{DerivedPublicKey, EncryptedVetKey, TransportSecretKey};
 use ic_vetkeys_test_utils::{git_root_dir, random_self_authenticating_principal, reproducible_rng};
 use pocket_ic::{PocketIc, PocketIcBuilder};
-use rand::{CryptoRng, Rng};
+use rand::{CryptoRng, Rng, RngExt};
 use std::path::Path;
 
 #[test]
@@ -675,7 +675,7 @@ fn fast_forward(ic: &PocketIc, ticks: u64) {
 }
 
 fn random_key_name<R: Rng + CryptoRng>(rng: &mut R) -> ByteBuf {
-    let length = rng.gen_range(0..32);
+    let length = rng.random_range(0..32);
     let mut key_name = vec![0u8; length];
     rng.fill_bytes(&mut key_name);
     ByteBuf::from(key_name)
@@ -683,7 +683,7 @@ fn random_key_name<R: Rng + CryptoRng>(rng: &mut R) -> ByteBuf {
 
 fn random_access_rights<R: Rng + CryptoRng>(rng: &mut R) -> AccessRights {
     loop {
-        if let Some(ar) = AccessRights::from_repr(rng.gen()) {
+        if let Some(ar) = AccessRights::from_repr(rng.random()) {
             return ar;
         }
     }

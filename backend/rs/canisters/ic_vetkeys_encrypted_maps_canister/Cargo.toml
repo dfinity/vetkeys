@@ -6,25 +6,22 @@ edition = "2021"
 license = "Apache-2.0"
 description = "# Basic Identity Based Encryption"
 repository = "https://github.com/dfinity/vetkeys"
-rust-version = "1.85.0"
+rust-version = "1.89.0"
 
 [lib]
 path = "src/lib.rs"
 crate-type = ["cdylib"]
 
 [dependencies]
-candid = "0.10.2"
+candid = "0.10.41"
 ic-cdk = { workspace = true }
 ic-cdk-management-canister = { workspace = true }
-ic-dummy-getrandom-for-wasm = "0.1.0"
 ic-stable-structures = { workspace = true }
 ic-vetkeys = { workspace = true }
-serde = "1.0.217"
 
 [dev-dependencies]
 assert_matches = "1.5.0"
 pocket-ic = { workspace = true }
-rand = "0.8.6"
-rand_chacha = "0.3.1"
-reqwest = "0.12.12"
-strum = "0.27.1"
+rand = "0.10.4"
+rand_chacha = "0.10.0"
+strum = "0.28.0"

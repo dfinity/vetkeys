@@ -12,7 +12,7 @@ use ic_vetkeys_test_utils::{
     random_access_rights, random_name, random_self_authenticating_principal,
     random_unique_memory_ids, random_utf8_string, reproducible_rng,
 };
-use rand::{CryptoRng, Rng};
+use rand::{CryptoRng, Rng, RngExt};
 
 #[test]
 fn can_init_memory() {
@@ -264,7 +264,7 @@ fn can_instantiate_two_key_managers() {
 fn random_key_manager<R: Rng + CryptoRng>(rng: &mut R) -> KeyManager<AccessRights> {
     let memory_manager = MemoryManager::init(DefaultMemoryImpl::default());
     let (_memory_id_encrypted_maps, memory_ids_key_manager) = random_unique_memory_ids(rng);
-    let domain_separator_len = rng.gen_range(0..32);
+    let domain_separator_len = rng.random_range(0..32);
     KeyManager::<AccessRights>::init(
         &random_utf8_string(rng, domain_separator_len),
         bls12_381_dfx_test_key(),

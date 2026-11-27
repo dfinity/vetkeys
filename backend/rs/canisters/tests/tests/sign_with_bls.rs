@@ -3,7 +3,7 @@ use ic_cdk_management_canister::{VetKDCurve, VetKDKeyId};
 use ic_vetkeys::{verify_bls_signature, DerivedPublicKey, EncryptedVetKey, TransportSecretKey};
 use ic_vetkeys_test_utils::{git_root_dir, reproducible_rng};
 use pocket_ic::{PocketIc, PocketIcBuilder};
-use rand::{CryptoRng, Rng};
+use rand::{CryptoRng, Rng, RngExt};
 use std::path::Path;
 
 #[test]
@@ -138,7 +138,7 @@ fn random_transport_key<R: Rng + CryptoRng>(rng: &mut R) -> TransportSecretKey {
 }
 
 fn random_bytes<R: Rng + CryptoRng>(rng: &mut R, max_length: usize) -> Vec<u8> {
-    let length = rng.gen_range(0..max_length);
+    let length = rng.random_range(0..max_length);
     let mut bytes = vec![0u8; length];
     rng.fill_bytes(&mut bytes);
     bytes

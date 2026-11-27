@@ -63,24 +63,3 @@ mod benches {
 }
 
 fn main() {}
-
-// In the following, we register a custom getrandom implementation because
-// otherwise getrandom (which is a dependency of some other dependencies) fails to compile.
-// This is necessary because getrandom by default fails to compile for the
-// wasm32-unknown-unknown target (which is required for deploying a canister).
-// Our custom implementation always fails, which is sufficient here because
-// the used RNGs are _manually_ seeded rather than by the system.
-#[cfg(all(
-    target_arch = "wasm32",
-    target_vendor = "unknown",
-    target_os = "unknown"
-))]
-getrandom::register_custom_getrandom!(always_fail);
-#[cfg(all(
-    target_arch = "wasm32",
-    target_vendor = "unknown",
-    target_os = "unknown"
-))]
-fn always_fail(_buf: &mut [u8]) -> Result<(), getrandom::Error> {
-    Err(getrandom::Error::UNSUPPORTED)
-}

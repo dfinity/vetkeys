@@ -3,7 +3,7 @@ use ic_bls12_381::*;
 use ic_cdk_management_canister::{VetKDCurve, VetKDKeyId};
 use ic_vetkeys::*;
 use ic_vetkeys_test_utils::*;
-use rand::Rng;
+use rand::RngExt;
 
 #[test]
 fn test_hkdf_test_vector() {
@@ -180,9 +180,9 @@ fn protocol_flow_with_emulated_server_side() {
     let mut rng = reproducible_rng();
 
     let derivation_context = DerivationContext::new(b"canister-id", b"context");
-    let identity = rng.gen::<[u8; 32]>();
+    let identity = rng.random::<[u8; 32]>();
 
-    let tsk_seed = rng.gen::<[u8; 32]>().to_vec();
+    let tsk_seed = rng.random::<[u8; 32]>().to_vec();
     let tsk = TransportSecretKey::from_seed(tsk_seed).unwrap();
 
     let tpk_bytes: [u8; 48] = tsk.public_key().try_into().unwrap();
@@ -215,7 +215,7 @@ fn protocol_flow_with_emulated_server_side() {
 
     let vetkey = ek.decrypt_and_verify(&tsk, &dpk, &identity).unwrap();
 
-    let msg = rng.gen::<[u8; 32]>().to_vec();
+    let msg = rng.random::<[u8; 32]>().to_vec();
     let seed = IbeSeed::random(&mut rng);
     let ctext = IbeCiphertext::encrypt(&dpk, &IbeIdentity::from_bytes(&identity), &msg, &seed);
 
@@ -394,7 +394,7 @@ fn aes_gcm_encryption() {
 
     for i in 1..32 {
         let mod_ctext = {
-            use rand::RngCore;
+            use rand::Rng;
             let mut m = ctext.clone();
             let mut extra = vec![0u8; i];
             rng.fill_bytes(&mut extra);
